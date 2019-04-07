@@ -30,7 +30,6 @@
     (walk-car
      (test-body test-name)
      #'(lambda (el)
-         (print el)
          (when (function-body el)
            (collect el))))))
 
