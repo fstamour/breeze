@@ -45,3 +45,4 @@
 
 (pushnew 'run-test *test-change-hooks*)
 
+(print "Tip: Remember to use the emacs mode if applicable.")
