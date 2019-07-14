@@ -47,7 +47,7 @@
     (rest body)))
 
 (defun run-test (name)
-  "Run a test by name"
+  "Run a test by name, returns a list (passed condition)"
   (destructuring-bind (_ package body)
       (gethash name *test*)
     (declare (ignore _))
@@ -67,8 +67,15 @@
 ;; This is ok, but it doesn't have a clear report
 (defun run-all-tests (&optional test-list)
   "Run all the tests"
+  (format t "~&Running all tests...")
   (loop :for name :in (or test-list (hash-table-keys *test*))
-        :collect (list name (run-test name))))
+        ;; :collect (list name (run-test name))
+        :do (destructuring-bind (passed condition)
+                (run-test name)
+                (unless passed
+                  (format t "~&Test \"~a\" failed with condition:~%\"~a\""
+                          name condition))))
+  (format t "~&Done."))
 
 (defmacro is (&body body)
   "Macro that signals an error when its body evaluate to nil"
