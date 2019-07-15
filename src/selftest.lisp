@@ -65,7 +65,7 @@
 (deftest self/test-case
   (is (equal '((mul 2 6) (mul 2 2)) (test-case 'mul))))
 
-(breeze.xref::function-without-test)
+;; (breeze.xref::function-without-test)
 
 
 
@@ -74,5 +74,6 @@
 
 
 
-(selftest)
+;; (selftest)
+
 

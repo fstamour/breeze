@@ -14,6 +14,12 @@
                 #:run-test
                 #:run-all-tests
                 #:is)
+  (:import-from #:breeze.test-runner
+                #:start-test-runner
+                #:stop-test-runner
+                #:ensure-test-runner
+                #:request-to-run-test
+                #:request-to-run-test*)
   (:import-from #:breeze.xref
                 #:calls-who
                 #:test-calls-who
@@ -39,10 +45,11 @@
 (in-package #:breeze.user)
 
 (cl:defun run-test-for-function (function-name)
-  (run-all-tests (tested-by function-name)))
+  (ensure-test-runner)
+  (request-to-run-test* (tested-by function-name)))
 
 (pushnew 'run-test-for-function *function-change-hooks*)
-
-(pushnew 'run-test *test-change-hooks*)
+(pushnew 'request-to-run-test *test-change-hooks*)
 
 (print "Tip: Remember to use the emacs mode if applicable.")
+

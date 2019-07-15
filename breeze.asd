@@ -6,7 +6,7 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
-  :depends-on (#:uiop #:alexandria)
+  :depends-on (#:uiop #:alexandria #:chanl #:anaphora)
   :serial t
   :components
   ((:module "src"
@@ -14,6 +14,8 @@
             ((:file "utils")
              (:file "definition")
              (:file "test")
+             (:file "test-runner")
              (:file "xref")
-             (:file "user")))))
+             (:file "user")
+             (:file "selftest")))))
 
