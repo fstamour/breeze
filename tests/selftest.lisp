@@ -55,7 +55,7 @@
   (remove-if #'selftest-p (tested-by function-name)))
 
 (deftest self/tested-by
-  (is (equalp (tested-by* 'mul) '(mul 2x should-fail))))
+  (is (equalp (tested-by* 'mul) '(mul 2x #+nil should-fail))))
 
 (deftest self/test-case
   (is (equal '((mul 2 6) (mul 2 2)) (test-case 'mul))))
