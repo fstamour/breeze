@@ -5,6 +5,7 @@
    #:*test*
    #:*test-change-hooks*
    #:deftest
+   #:test
    #:run-test
    #:run-all-tests
    #:is
@@ -64,18 +65,28 @@
         (flag-failed-test name body condition))
       (list passed condition))))
 
+(defun test (name &optional (message-on-success  "~&Passed."))
+  "Run a test by name, report nicely."
+  (destructuring-bind (passed condition)
+      (run-test name)
+    (if passed
+        (format t message-on-success)
+        (format t "~&Test \"~a\" failed with condition:~%\"~a\""
+                name condition))
+    passed))
+
+
 ;; This is ok, but it doesn't have a clear report
 (defun run-all-tests (&optional test-list)
   "Run all the tests"
   (format t "~&Running all tests...")
   (loop :for name :in (or test-list (hash-table-keys *test*))
-        ;; :collect (list name (run-test name))
-        :do (destructuring-bind (passed condition)
-                (run-test name)
-                (unless passed
-                  (format t "~&Test \"~a\" failed with condition:~%\"~a\""
-                          name condition))))
-  (format t "~&Done.")
+        :for passed = (test name ".")
+        :if passed
+          :count passed :into total-passed
+        :else
+          :count passed :into total-failed
+        :finally (format t "~&Done [~d/~d] tests passed.~%" total-passed total-failed))
   (force-output))
 
 (defmacro is (&body body)

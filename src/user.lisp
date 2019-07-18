@@ -11,6 +11,7 @@
                 #:*test-change-hooks*
                 #:deftest
                 #:test-body
+                #:test
                 #:run-test
                 #:run-all-tests
                 #:is)
