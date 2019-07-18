@@ -75,11 +75,11 @@
                 (unless passed
                   (format t "~&Test \"~a\" failed with condition:~%\"~a\""
                           name condition))))
-  (format t "~&Done."))
+  (format t "~&Done.")
+  (force-output))
 
 (defmacro is (&body body)
   "Macro that signals an error when its body evaluate to nil"
   `(unless (progn ,@body)
      (error "Expression is falsy: ~A" '(progn ,@body))))
-
 
