@@ -51,5 +51,16 @@
 (pushnew 'run-test-for-function *function-change-hooks*)
 (pushnew 'request-to-run-test *test-change-hooks*)
 
-(print "Tip: Remember to use the emacs mode if applicable.")
+(defun welcome ()
+  ;; figlet -mini breeze
+  (format t "~&~%~A~%~%" "
+    |_ .__  _ _  _
+    |_)|(/_(/_/_(/_ ")
+
+  (format t "~%Tips:~%")
+  (format t "~&~{~A~%~}"
+          '(" * Remember to use the emacs mode if applicable."
+            " * Use (require 'swank) followed by (swank:create-server) to start swank.")))
+
+(welcome)
 
