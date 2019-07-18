@@ -16,6 +16,7 @@
              (:file "test")
              (:file "test-runner")
              (:file "xref")
-             (:file "user")
-             (:file "selftest")))))
-
+             (:file "user")))
+   (:module "tests"
+    :components
+            ((:file "selftest")))))

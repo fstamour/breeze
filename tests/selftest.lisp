@@ -8,7 +8,7 @@
 (in-package #:breeze.selftest)
 
 
-;;; Setup (arrange)
+;;; Defines a few dummy functions
 
 (breeze.definition:defun mul (x y)
   (* x y))
@@ -23,15 +23,10 @@
   (is (= 4 (mul 2 2)))
   (is (= 12 (mul 2 6))))
 
-(breeze.utils:walk-list
- '('(mul))
- #'(lambda (node)
-     (let ((p (eq 'quote (car node))))
-       (format t "~&~A ~A%" p node))))
-
 (deftest 2x
   (is (= (2x 2) (mul 2 2))))
 
+#+nil
 (deftest should-fail
   (is (= 6 (mul 2 2))))
 
@@ -76,4 +71,11 @@
 
 ;; (selftest)
 
+
+#+nil
+(breeze.utils:walk-list
+ '('(mul))
+ #'(lambda (node)
+     (let ((p (eq 'quote (car node))))
+       (format t "~&~A ~A%" p node))))
 
