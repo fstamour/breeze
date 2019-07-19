@@ -7,7 +7,8 @@
    #:system-files
    #:clear-fasl
    #:reload-system
-   #:recompile-system))
+   #:recompile-system
+   #:system-directory ))
 
 (in-package #:breeze.asdf)
 
@@ -25,7 +26,7 @@
     (asdf:find-system system-designator))))
 
 (defun clear-fasl (system-designator)
-  "Delete a system's fasl files"
+  "Delete a system's fasl files."
   (uiop:delete-directory-tree
    (system-fasl-directory system-designator)
    :validate (constantly t)
@@ -40,4 +41,10 @@
   "Useful to force recompiling a system after changing the *features*."
   (clear-fasl system-designator)
   (reload-system system-designator))
+
+(defun system-directory (system-designator)
+  "Get the system's directory."
+  (uiop:pathname-directory-pathname
+   (asdf:system-source-file
+    (asdf:find-system system-designator))))
 
