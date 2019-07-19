@@ -3,7 +3,8 @@
 ;;; TODO Logging (maybe use log4cl)
 
 (defpackage #:breeze.test-runner
-  (:use :cl #:alexandria #:anaphora)
+  (:use :cl #:alexandria #:anaphora
+        #:breeze.worker)
   (:export #:start-test-runner
            #:stop-test-runner
            #:ensure-test-runner
@@ -14,32 +15,23 @@
 
 (in-package #:breeze.test-runner)
 
-(defvar *test-runner-channel* (make-instance 'chanl:unbounded-channel)
-  "The channel used to send messages to the test-runner.")
-
+;; TODO Get rid of this global
 (defvar *stop-test-runner* nil
   "If true, the test-runner-thread will stop on the next iteration.")
 
-(defvar *repeat-interval* 0.25
-  "The time between each iteration of the test-runner's main loop.
-Accepts positive reals (see cl:sleep function).")
+(defclass test-runner (worker) ())
 
-(defvar *test-runner-task* nil
-  "The handler to the test runner thread. (it's a chanl:task object).")
+(defvar *test-runner* (make-instance 'test-runner :interval 0.25))
 
-(defun receive-messages ()
-  "Get all the messages from the *test-runner-channel* channel. Returns a list."
-  (loop :for el = (chanl:recv *test-runner-channel* :blockp nil)
-        :while el
-        :collect el))
-
-(defun log-message (control-string &rest format-arguments)
+(defmethod worker-report ((test-runner test-runner) level control-string &rest format-arguments)
+  (declare (ignore test-runner level))
   (when nil ;; don't log anything anywhere for now
     (fresh-line)
     (apply #'format t control-string format-arguments)
     (fresh-line)
     (force-output)))
 
+;; (defmethod worker-process-messages ((test-runner test-runner) message-list)
 (defun process-messages (message-list)
   "Take a list of messages (already debounced) and deduplicate and process them."
   (let ((tests (make-hash-table))
@@ -60,14 +52,17 @@ Accepts positive reals (see cl:sleep function).")
     #+nil
     (force-output)))
 
-(defun test-runner-loop ()
+(defun receive-messages ()
+  (worker-receive-all-messages *test-runner*))
+
+(defun test-runner-loop (test-runner)
   (let ((messages ())
         (received-messages-last-iteration-p nil))
-    (log-message "test runner started")
+    (worker-report test-runner :info "test runner started")
     (loop :until *stop-test-runner*
           :do
-             (log-message "~%running test runner~%Messages: ~A~%received: ~A"
-                          messages received-messages-last-iteration-p)
+             (worker-report test-runner :debug "~%running test runner~%Messages: ~A~%received: ~A"
+                            messages received-messages-last-iteration-p)
              (aif (receive-messages)
                   (setf messages (append messages it)
                         received-messages-last-iteration-p t)
@@ -76,30 +71,28 @@ Accepts positive reals (see cl:sleep function).")
                (process-messages messages)
                (setf received-messages-last-iteration-p nil
                      messages nil))
-             (sleep *repeat-interval*))
-    (log-message "test runner stopped")))
+             (sleep (worker-interval test-runner)))
+    (worker-report test-runner :info "test runner stopped")))
 
-(defun start-test-runner ()
+(defmethod worker-loop ((test-runner test-runner))
+  (test-runner-loop test-runner))
+
+;; around methods are awesome
+(defmethod worker-start :around ((test-runner test-runner))
   "Start the test runner thread"
-  (setf *stop-test-runner* nil
-        *test-runner-task* (chanl:pcall 'test-runner-loop :name "test-runner")))
+  (setf *stop-test-runner* nil)
+  (call-next-method))
 
-(defun stop-test-runner ()
+(defmethod worker-stop ((test-runner test-runner))
   "Stop the test runner thread."
   (setf *stop-test-runner* t))
 
-(defun test-runner-alive-p ()
-  "Check if test-runner is running."
-  (and *test-runner-task*
-       (eq :alive (chanl:task-status *test-runner-task*))))
-
 (defun ensure-test-runner ()
-  (unless (test-runner-alive-p)
-    (start-test-runner)))
+  (worker-ensure-alive *test-runner*))
 
 (defun request-to-run-test (test)
   "Take a test name and send it to the test-runner."
-  (chanl:send *test-runner-channel* (list test (get-universal-time))))
+  (worker-send *test-runner* (list test (get-universal-time))))
 
 (defun request-to-run-test* (test-list)
   "Take a list of test name and send it to the test-runner."

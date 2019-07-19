@@ -14,6 +14,7 @@
             ((:file "utils")
              (:file "definition")
              (:file "test")
+             (:file "worker")
              (:file "test-runner")
              (:file "xref")
              (:file "asdf")
