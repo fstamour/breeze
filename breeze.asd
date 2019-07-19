@@ -16,6 +16,7 @@
              (:file "test")
              (:file "test-runner")
              (:file "xref")
+             (:file "asdf")
              (:file "user")))
    (:module "tests"
     :components
