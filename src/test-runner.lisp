@@ -59,6 +59,12 @@
       (setf received-messages-last-iteration-p nil
             messages nil))))
 
+(defun start-test-runner ()
+  (worker-start *test-runner*))
+
+(defun stop-test-runner ()
+  (worker-stop *test-runner*))
+
 (defun ensure-test-runner ()
   (worker-ensure-alive *test-runner*))
 
