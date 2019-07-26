@@ -6,6 +6,7 @@
    #:walk-car
    #:walk-list
    #:with-collector
+   #:with-values
    #:collect))
 
 (in-package #:breeze.utils)
@@ -39,4 +40,9 @@
        (macrolet ((collect (value) `(push ,value ,',collector)))
          ,@body)
        (nreverse ,collector))))
+
+
+(defmacro with-values (values &body body)
+  `(let ,values ,@body
+     (values ,@(mapcar #'first values))))
 
