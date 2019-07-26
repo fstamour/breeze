@@ -80,14 +80,20 @@
 (defun run-all-tests (&optional test-list)
   "Run all the tests"
   (format t "~&Running all tests...")
-  (loop :for name :in (or test-list (hash-table-keys *test*))
-        :for passed = (test name ".")
-        :if passed
-          :count passed :into total-passed
-        :else
-          :count passed :into total-failed
-        :finally (format t "~&Done [~d/~d] tests passed.~%" total-passed total-failed))
-  (force-output))
+  (let ((failed 0)
+                (total 0))
+    (loop :for name :in (or test-list (hash-table-keys *test*))
+          :for passed = (test name ".")
+          :do
+             (unless passed
+               (incf failed))
+             (incf total)
+          :finally (format t "~&Done [~d/~d] tests passed.~%" (- total failed) total)
+                   (force-output))
+    (values (if (zerop failed)
+                nil
+                failed)
+            total)))
 
 (defmacro is (&body body)
   "Macro that signals an error when its body evaluate to nil"
