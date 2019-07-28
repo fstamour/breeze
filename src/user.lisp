@@ -1,6 +1,7 @@
 
 (uiop:define-package #:breeze.user
     (:reexport :cl)
+  (:nicknames :br :br-user :breeze)
   (:shadowing-import-from #:breeze.definition
                           #:defun
                           #:fmakunbound)
@@ -41,7 +42,9 @@
    #:calls-who
    #:test-calls-who
    #:tested-by
-   #:test-case))
+   #:test-case
+   ;; MAIN
+   #:main))
 
 (in-package #:breeze.user)
 
@@ -49,8 +52,6 @@
   (ensure-test-runner)
   (request-to-run-test* (tested-by function-name)))
 
-(pushnew 'run-test-for-function *function-change-hooks*)
-(pushnew 'request-to-run-test *test-change-hooks*)
 
 (defun welcome ()
   ;; figlet -mini breeze
@@ -59,9 +60,13 @@
     |_)|(/_(/_/_(/_ ")
 
   (format t "~%Tips:~%")
-  (format t "~&~{~A~%~}"
-          '(" * Remember to use the emacs mode if applicable."
-            " * Use (require 'swank) followed by (swank:create-server) to start swank.")))
+  (format t "~&~{ * ~A~%~}"
+          '(#+later "Remember to use the emacs mode if applicable."
+            "User \"br\" as a nickname for \"breeze.user\"."
+            "Use (require 'swank) followed by (swank:create-server) to start swank.")))
 
-(welcome)
+(defun main ()
+  (pushnew 'run-test-for-function *function-change-hooks*)
+  (pushnew 'request-to-run-test *test-change-hooks*)
+  (welcome))
 
