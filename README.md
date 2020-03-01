@@ -1,4 +1,9 @@
 
+## Features
+
+* Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl))
+* Test-runner - a worker that runs tests (on demand)
+
 ## Getting started
 
 ```lisp
@@ -42,11 +47,6 @@ rg -i todo
 # Will update the documentation (docs/index.html)
 ./shell.nix
 ```
-
-## Features
-
-* Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl))
-* Test-runner - a worker that runs tests (on demand)
 
 ## Prior art
 
