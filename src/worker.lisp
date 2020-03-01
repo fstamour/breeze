@@ -1,5 +1,6 @@
 
 (defpackage #:breeze.worker
+  (:documentation "This package exports a class named \"worker\" and different methods to manipulate objects of that class.")
   (:use :cl #:alexandria #:anaphora)
   (:export
    ;; class
@@ -26,25 +27,29 @@
   ((name
     :accessor worker-name
     :initarg :name
-    :initform "worker")
+    :initform "worker"
+    :documentation "The name of this worker (for simpler identification).")
    (input-channel
     :accessor worker-input-channel
     :initarg :input-channel
-    :initform (make-instance 'chanl:unbounded-channel))
+    :initform (make-instance 'chanl:unbounded-channel)
+    :documentation "Channel used to send data to the task.")
    (output-channel
     :accessor worker-output-channel
     :initarg :output-channel
-    :initform nil)
+    :initform nil
+    :documentation "Channel to get data back from the task.")
    (control-channel
      :accessor worker-control-channel
      :initarg :control-channel
-     :initform (make-instance 'chanl:unbounded-channel))
+     :initform (make-instance 'chanl:unbounded-channel)
+     :documentation "Channel to ask to stop the task.")
    (interval
     :accessor worker-interval
     :initarg :interval
     :initform 1
     :type 'positive-real
-    :documentation "The time between each iteration worker's loop.
+    :documentation "The time between each iteration of the worker's loop.
 Accepts positive reals (see cl:sleep function).")
    (control-interval
     :accessor worker-control-interval
@@ -60,9 +65,25 @@ Accepts positive reals (see cl:sleep function).")
     :documentation "Time that the the worker was called last.")
    (task
     :accessor worker-task
-    :initform nil))
-  (:documentation "Workers are threads that process messages send via a channel."))
+    :initform nil
+    :documentation "The function called by the control loop, it is set when calling worker-start."))
+  (:documentation "Workers are threads that process messages send via a channels.
+There are 3 channels:
+* an input channel used to send data to the task
+* an ouput channel used to get data back from the task
+* a control channel used to stop the task
 
+To use the worker, you need to subclass the worker class and specialize the \"worker-run\" method.
+"))
+
+(defgeneric worker-input-channel (worker)
+  (:documentation "Get the channel used to send data to the task."))
+
+(defgeneric worker-output-channel (worker)
+  (:documentation "Get the channel used to get data from the task."))
+
+(defgeneric worker-interval (worker)
+  (:documentation "Get the time between each iterations of the worker's loop."))
 
 (defgeneric worker-receive-all-messages (worker)
   (:documentation "Get all the messages from the input channel.")
@@ -72,7 +93,7 @@ Accepts positive reals (see cl:sleep function).")
           :collect el)))
 
 (defgeneric worker-report (worker level control-string &rest format-arguments)
-  (:documentation "Log a string.")
+  (:documentation "Log a string (to the standard output).")
   (:method ((worker worker) level control-string &rest format-arguments)
     (fresh-line)
     (apply #'format t control-string format-arguments)
@@ -110,7 +131,7 @@ Accepts positive reals (see cl:sleep function).")
                             (worker-interval worker)))
                  (worker-set-last-iteration-time worker)
                  (worker-run worker)))
-             (sleep (worker-control-interval worker)))
+             (sleep (worker-control-interval worker))) ;; TODO This should take into account the worker-interval
     (worker-report worker :info "~a stopped"
                    (worker-name worker))))
 

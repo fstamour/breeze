@@ -17,11 +17,13 @@
 
 (defclass test-runner (worker)
   ((messages :initform ())
-   (received-messages-last-iteration-p :initform nil)))
+   (received-messages-last-iteration-p :initform nil))
+  (:documentation "A test runner is a worker that run tests on demand."))
 
 (defvar *test-runner* (make-instance 'test-runner
                                      :interval 0.25
-                                     :name "test runner"))
+                                     :name "test runner")
+  "The main test-runner.")
 
 (defun process-messages (message-list)
   "Take a list of messages (already debounced) and deduplicate and process them."
@@ -60,12 +62,15 @@
             messages nil))))
 
 (defun start-test-runner ()
+  "Start the test runner"
   (worker-start *test-runner*))
 
 (defun stop-test-runner ()
+  "Stop the test runner"
   (worker-stop *test-runner*))
 
 (defun ensure-test-runner ()
+  "Start the test runner if it's not already running."
   (worker-ensure-alive *test-runner*))
 
 (defun request-to-run-test (test)

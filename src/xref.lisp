@@ -1,5 +1,6 @@
 
 (defpackage #:breeze.xref
+  (:documentation "This package contains function for cross-referencing.")
   (:use :cl #:breeze.utils #:alexandria)
   (:import-from #:breeze.definition
                 #:*function*

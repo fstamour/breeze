@@ -1,6 +1,7 @@
 
 (uiop:define-package #:breeze.user
     (:reexport :cl)
+  (:documentation "This package is meant to be used by the end user, it re-export everything from cl.")
   (:nicknames :br :br-user :breeze)
   (:shadowing-import-from #:breeze.definition
                           #:defun
@@ -62,7 +63,7 @@
   (format t "~%Tips:~%")
   (format t "~&~{ * ~A~%~}"
           '(#+later "Remember to use the emacs mode if applicable."
-            "User \"br\" as a nickname for \"breeze.user\"."
+            "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
             "Use (require 'swank) followed by (swank:create-server) to start swank.")))
 
 (defun main ()

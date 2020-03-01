@@ -3,7 +3,8 @@
     (:use #:breeze.user #:alexandria)
   (:import-from #:breeze.test
                 #:*test*)
-  (:shadowing-import-from #:cl #:defun))
+  (:shadowing-import-from #:cl #:defun)
+  (:export #:selftest))
 
 (in-package #:breeze.selftest)
 
