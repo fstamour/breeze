@@ -1,4 +1,6 @@
 
+[Documentation](https://htmlpreview.github.io/?https://github.com/fstamour/breeze/blob/documentation/docs/index.html)
+
 ## Features
 
 * Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl))

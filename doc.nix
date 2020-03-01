@@ -1,5 +1,6 @@
 #!/usr/bin/env nix-shell
-#!nix-shell ./shell.nix --command "rlwrap sbcl --non-interactive --eval '(ql:quickload :staple)' --eval '(staple:generate :breeze :if-exists :supersede)'"
+#!nix-shell ./shell.nix --command "rlwrap sbcl --eval '(ql:quickload (list :staple :staple-markdown :breeze))' --eval '(staple:generate :breeze :if-exists :supersede)'"
+## --non-interactive
 
 with import <nixpkgs> {};
 stdenv.mkDerivation rec {
