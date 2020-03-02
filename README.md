@@ -1,6 +1,4 @@
 
-[Documentation](https://htmlpreview.github.io/?https://github.com/fstamour/breeze/blob/documentation/docs/index.html)
-
 ## Features
 
 * Redefine `defun` to keep track of the definitions (before any macro expansion).
@@ -8,6 +6,10 @@
 * Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl)).
 * Test-runner - a worker that runs tests (on demand).
 * Can re-run all tests on function or test redifinition.
+
+## Documentation
+
+[Documentation](https://htmlpreview.github.io/?https://github.com/fstamour/breeze/blob/master/docs/index.html)
 
 ## Getting started
 
