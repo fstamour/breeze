@@ -3,8 +3,11 @@
 
 ## Features
 
-* Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl))
-* Test-runner - a worker that runs tests (on demand)
+* Redefine `defun` to keep track of the definitions (before any macro expansion).
+* A minimal test library that supports introspection.
+* Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl)).
+* Test-runner - a worker that runs tests (on demand).
+* Can re-run all tests on function or test redifinition.
 
 ## Getting started
 

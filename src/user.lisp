@@ -1,13 +1,13 @@
 
 (uiop:define-package #:breeze.user
-    (:reexport :cl)
-  (:documentation "This package is meant to be used by the end user, it re-export everything from cl.")
+    (:use :cl)
+  (:documentation "This package is meant to be used by the end user.")
   (:nicknames :br :br-user :breeze)
   (:shadowing-import-from #:breeze.definition
                           #:defun
                           #:fmakunbound)
   (:import-from #:breeze.definition
-                #:*function-change-hooks*
+                #:*function-redifinition-hooks*
                 #:function-body)
   (:import-from #:breeze.test
                 #:*test-change-hooks*
@@ -67,7 +67,8 @@
             "Use (require 'swank) followed by (swank:create-server) to start swank.")))
 
 (defun main ()
-  (pushnew 'run-test-for-function *function-change-hooks*)
+  "Call this function to start."
+  (pushnew 'run-test-for-function *function-redifinition-hooks*)
   (pushnew 'request-to-run-test *test-change-hooks*)
   (welcome))
 

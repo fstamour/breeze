@@ -2,6 +2,7 @@
 (defpackage #:breeze.utils
   (:use :cl)
   (:export
+   #:package-apropos
    #:walk
    #:walk-car
    #:walk-list
@@ -45,4 +46,12 @@
 (defmacro with-values (values &body body)
   `(let ,values ,@body
      (values ,@(mapcar #'first values))))
+
+(defun package-apropos (search-string)
+  "Compute a list of package that contains the search-string."
+  (remove-if-not #'(lambda (package)
+                     (search search-string (package-name package)
+                             :test #'string-equal))
+                 (list-all-packages)))
+
 

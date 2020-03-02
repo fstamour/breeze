@@ -1,8 +1,10 @@
 
 (uiop:define-package #:breeze.selftest
-    (:use #:breeze.user #:alexandria)
+    (:documentation "Tests to tests breeze's facilities, including the test framework.")
+    (:mix #:breeze.user #:cl #:alexandria)
   (:import-from #:breeze.test
                 #:*test*)
+  ;; Use cl's defun
   (:shadowing-import-from #:cl #:defun)
   (:export #:selftest))
 
@@ -39,6 +41,7 @@
                       (symbol-name test-name)))
 
 (defun selftest ()
+  "Run all self-tests"
   (run-all-tests
    (loop :for test-name :being :the :hash-key :of *test*
          :when (selftest-p test-name)

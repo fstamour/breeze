@@ -1,5 +1,6 @@
 
 (defpackage #:breeze.test
+  (:documentation "This package provides a test framework.")
   (:use :cl #:alexandria)
   (:export
    #:*test*
