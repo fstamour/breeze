@@ -8,7 +8,7 @@
             ;; It's formatted this way so it's easy to sort
             :breeze.asdf
             :breeze.definition
-            :breeze.file-watcher
+            ;; :breeze.file-watcher
             :breeze.selftest
             :breeze.test
             :breeze.test-runner
