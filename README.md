@@ -52,7 +52,12 @@ rg -i todo
 
 ```shell
 # Will update the documentation (docs/index.html)
-./shell.nix
+./doc.nix
+```
+
+```shell
+# Will run the tests
+./test.nix
 ```
 
 ## Prior art
