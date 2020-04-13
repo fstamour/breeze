@@ -1,7 +1,7 @@
 
 (defpackage #:breeze.asdf
-  (:nicknames #:basdf)
   (:documentation "Utilities for adsf")
+  (:nicknames #:basdf)
   (:use :cl #:alexandria)
   (:export
    #:system-files

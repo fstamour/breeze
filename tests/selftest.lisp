@@ -11,7 +11,7 @@
 (in-package #:breeze.selftest)
 
 
-;;; Defines a few dummy functions
+;;; Defines a few dummy functions with breeze's defun
 
 (breeze.definition:defun mul (x y)
   (* x y))
