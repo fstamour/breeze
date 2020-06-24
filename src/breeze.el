@@ -1,6 +1,11 @@
 ;;; package -- breeze integration with emacs
 
 ;;; Commentary:
+;;
+;; Features:
+;; - snippets with abbrevs
+;; - capture
+;; - interactive make-project
 
 ;;; Code:
 
@@ -25,6 +30,35 @@
   "The default licence when generating asdf system."
   :type 'string
   :group 'breeze)
+
+(defcustom breeze-capture-folder "~/breeze-capture"
+  "The folder where to save scratch files."
+  :type 'string
+  :group 'breeze)
+
+(defcustom breeze-capture-template
+"
+
+(ql:quickload '(alexandria))
+
+;; Make it easier to debug
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
+#|
+
+Goal:
+
+Motivation:
+
+First lead:
+
+|#
+
+"
+  "The fixed template to insert in a new scratch file."
+  :type 'string
+  :group 'breeze)
+
 
 
 ;;; Variables
@@ -59,8 +93,10 @@ Othewise, return the position of the character."
 
 (define-skeleton breeze-insert-defpackage
   "Skeleton for a CL package"
-  ""
-  (let ((package-name (breeze-sanitize-symbol (skeleton-read "Package name: ")))
+  "" ;; Empty prompt. Ignored.
+  (let ((package-name (breeze-sanitize-symbol
+		       (skeleton-read "Package name: "
+				      (file-name-base buffer-file-name))))
 	(nicknames (loop for nickname = (skeleton-read "Package nickname: ")
 			 while (not (zerop (length nickname)))
 			 collect (format ":%s" nickname))))
@@ -74,19 +110,19 @@ Othewise, return the position of the character."
 
 (define-skeleton breeze-insert-defun
   "Insert a defun form."
-  "" ;; Empty prompt. Ignored/
+  "" ;; Empty prompt. Ignored.
   > "(defun " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") ")" \n
   > _ ")")
 
 (define-skeleton breeze-insert-defmacro
   "Insert a defvar form."
-  "" ;; Empty prompt. Ignored/
+  "" ;; Empty prompt. Ignored.
   > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") ")" \n
   > _ ")")
 
 (define-skeleton breeze-insert-defvar
   "Insert a defvar form."
-  "" ;; Empty prompt. Ignored/
+  "" ;; Empty prompt. Ignored.
   > "(defvar *" (skeleton-read "Name: ") "* " (skeleton-read "Initial value: ") \n
   > "\"" (skeleton-read "Documentation string: ") "\")")
 
@@ -116,6 +152,17 @@ Othewise, return the position of the character."
   > "(:module \"tests\"" \n
   > ":components ())))")
 
+(define-skeleton breeze-insert-loop-clause-for-hash
+  "Skeleton to insert a loop clause to iterate on a hash-table."
+  "" ;; Empty prompt. Ignored.
+  > " :for "
+  (skeleton-read "Enter the variable name for the key: ")
+  " :being :the :hash-key :of "
+  (skeleton-read "Enter the name of the hash-table: ")
+  " :using (hash-value "
+  (skeleton-read "Enter the variable name for the value: ")
+  ")")
+
 (defun breeze-indent-defun-at-point ()
   "Indent the whole form without moving."
   (interactive)
@@ -124,7 +171,7 @@ Othewise, return the position of the character."
     (indent-sexp)))
 
 (defun breeze-get-symbol-package (symbol)
-  "SYMBOL must be a string.  Return a list with the package name and the symbol name."
+  "SYMBOL must be a string.  return a list with the package name and the symbol name."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
 		    ,(format (format "%s"
@@ -141,10 +188,14 @@ Othewise, return the position of the character."
 ;; => ("common-lisp" "find")
 
 (defun breeeze-import-from ()
+  "Add or update defpackage to \"import-from\" the symbol at point.
+
+   TODO it assumes there's a defpackage form in the current
+   buffer, that it has an exisint \"import-from\" from and that
+   paredit-mode is enabled."
   (interactive)
-  "Assuming there's a defpackage. And paredit-mode is enabled."
   (let* ((symbol (slime-symbol-at-point))
-	 (case-fold-search t)) ;; Case insensitive search
+	 (case-fold-search t)) ;; case insensitive search
     (destructuring-bind (package-name symbol-name)
 	(breeze-get-symbol-package symbol)
       (message "%s:%s" package-name symbol-name)
@@ -159,8 +210,7 @@ Othewise, return the position of the character."
 	  ;; TODO else, search for defpackage, add it at the end
 	  )))))
 
-
-;; (slime-rex (VAR ...) (SEXP &optional PACKAGE THREAD) CLAUSES ...)
+;; (slime-rex (var ...) (sexp &optional package thread) clauses ...)
 
 ;; (slime-interactive-eval "(breeze/el:)")
 
@@ -170,17 +220,16 @@ Othewise, return the position of the character."
 ;;    (interactive)
 ;;    (slime-interactive-eval
 ;;     (concat "(breeze/el::insert-let "
-;; 	    (replace-match "\\\""  "FIXEDCASE" "LITERAL")
+;; 	    (replace-match "\\\""  "fixedcase" "literal")
 ;; 	    (slime-defun-at-point)
 ;; 	    "4"
 ;; 	    ")"))))
 
 
-
 (defun breeze-insert ()
   "Choose someting to insert."
   (interactive)
-  ;; TODO Filter the choices based on the context
+  ;; TODO filter the choices based on the context
   (breeze-choose-and-call-command
    "What do you want to insert? "
    '(("asdf:defsystem" breeze-insert-asdf)
@@ -190,6 +239,7 @@ Othewise, return the position of the character."
      ("defparameter" breeze-insert-defparameter)
      ("let" breeze-insert-let)
      ("defmacro" breeze-insert-defmacro)
+     ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
      ;; TODO
      ;; defclass
      ;; slots
@@ -198,25 +248,18 @@ Othewise, return the position of the character."
      )))
 
 
-;;; Abbrev
+;;; abbrev
 
-(define-abbrev-table 'breeze-mode-abbrev-table
-  '(
-    ("defmacro" "" breeze-insert-defmacro)
-    ("defpackage" "" breeze-insert-defpackage)
-    ("defparam" "" breeze-insert-defparameter)
-    ("defsystem" "" breeze-insert-asdf)
-    ("defun" "" breeze-insert-defun)
-    ("defvar" "" breeze-insert-defvar)
-  ))
-
-(defun breeze-new-buffer ()
-  (interactive)
-  (switch-to-buffer-other-window
-   (breeze-make-temporary-buffer))
-  (breeze-mode)
-  ;; (breeze-choose-major-mode)
-  )
+(progn
+  (when (boundp 'breeze-mode-abbrev-table)
+    (clear-abbrev-table breeze-mode-abbrev-table))
+  (define-abbrev-table 'breeze-mode-abbrev-table
+    '(("defmacro1" "" breeze-insert-defmacro)
+      ("defpackage1" "" breeze-insert-defpackage)
+      ("defparam1" "" breeze-insert-defparameter)
+      ("defsystem1" "" breeze-insert-asdf)
+      ("defun1" "" breeze-insert-defun)
+      ("defvar1" "" breeze-insert-defvar))))
 
 
 
@@ -233,17 +276,16 @@ Othewise, return the position of the character."
   "Let the user choose the directory if there's more than one."
   (first (breeze-quicklisp-local-project-directories)))
 
-;; (breeze-choose-local-project-directories) 
+;; (breeze-choose-local-project-directories)
 
 (defun breeze-quickproject (name)
-  "Create a project using quickproject."
-  ;; (interactive)
-  (interactive "sName of the project: ")
+  "Create a project named NAME using quickproject."
+  (interactive "Name of the project: ")
   (let (
-	;; TODO Let the user choose a directory outside of quicklisp's local
-	;; project directories.  See (read-directory-name "Directory: ").
+	;; TODO let the user choose a directory outside of quicklisp's local
+	;; project directories.  see (read-directory-name "directory: ").
 	(directory (breeze-choose-local-project-directories))
-	;; TODO Let the user choose
+	;; TODO let the user choose
 	(author breeze-default-author)
 	(licence breeze-default-licence)
 	;; TODO depends-on
@@ -261,14 +303,67 @@ Othewise, return the position of the character."
 ;; e.g. (breeze-quickproject "foo")
 
 
-;;
-(define-derived-mode breeze-mode slime-mode
-  "Breeze mode."
-  :lighter " sctch"
+;;; capture
+
+(defun breeze-list-lisp-files (directory)
+  ;; just the name, no extension, no directory
+  (loop for file in
+	(directory-files directory)
+	when (and (not (string-prefix-p "." file))
+		  (string-suffix-p ".lisp" file))
+	collect (file-name-sans-extension file)))
+
+
+(define-skeleton breeze-insert-header-template
+  "" ;; TODO docstring
+  "" ;; empty prompt. ignored.
+  \n
+  "(ql:quickload '(alexandria))" \n
+  \n
+  ";; make it easier to debug" \n
+  "(declaim (optimize (speed 0) (safety 3) (debug 3)))" \n
+  \n
+  "#|" \n
+  \n
+  "goal:" \n
+  \n
+  "motivation:" \n
+  \n
+  "first lead:" \n
+  \n
+  "|#")
+
+(defun breeze-capture ()
+  ;; TODO docstring
+  (interactive)
+  ;; TODO check if directory exists, creates it if not.
+  (let* ((name (completing-read
+		"name of the file and package: "
+		(breeze-list-lisp-files breeze-capture-folder)))
+	 (file (concat breeze-capture-folder name ".lisp"))
+	 (file-exists (file-exists-p file)))
+    (find-file file)
+    (unless file-exists
+      (breeze-insert-defpackage))))
+
+
+;;; managing threads
+
+;; TODO
+;; breeze-kill-worker-thread
+
+
+;;; mode
+
+(define-minor-mode breeze-mode
+  "Breeze mimor mode."
+  :lighter " brz"
   :keymap breeze-mode-map)
 
-(global-set-key (kbd "C-c s") 'breeze-insert)
-(define-key slime-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
+(define-key breeze-mode-map (kbd "C-c ,") 'breeze-insert)
+(define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
+
+;; TODO add defun "{en,dis}able-breeze-mode"
 
 (provide 'breeze)
 ;;; breeze.el ends here

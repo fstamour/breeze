@@ -1,0 +1,33 @@
+* Other projects with slime integration
+** log4cl
+* Portable file watching
+https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/
+
+* Random ideas
+** (tips), (tips "test"), (tips "doc")
+** (next) ;; what's next? print functions that aren't done, that have no tests or documentation.
+*** functions that aren't implemented or done
+*** functions that have no tests
+*** functions that have no documentation
+*** Have a plain user-controlled task list
+** Evaluate quality of documentation 
+*** e.g. if the documentation is almost just the name of the function
+*** Make sure it doens't "only" refer to another function
+*** It's more that the content of the function
+
+(defun print-x (x)
+  "print (* x x)"
+  (print (* x x))
+
+*** Make sure that all package have a :documentation
+*** Make sure that all classes have a :documentation
+** Evalutation the quality of the code
+*** Cyclomatic complexity
+*** Length of variable names
+*** linting in general
+** Compare the files in a system's directory and the actual components.
+** See BIST to probalistically compare functions
+*** Use a PRNG to generate inputs, use a hash to fingerprint the outputs
+* See
+** uses of slime's locative: http://quickdocs.org/mgl-pax/
+
