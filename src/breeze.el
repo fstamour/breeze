@@ -111,13 +111,13 @@ Othewise, return the position of the character."
 (define-skeleton breeze-insert-defun
   "Insert a defun form."
   "" ;; Empty prompt. Ignored.
-  > "(defun " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") ")" \n
+  > "(defun " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
   > _ ")")
 
 (define-skeleton breeze-insert-defmacro
   "Insert a defvar form."
   "" ;; Empty prompt. Ignored.
-  > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") ")" \n
+  > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
   > _ ")")
 
 (define-skeleton breeze-insert-defvar
@@ -127,9 +127,15 @@ Othewise, return the position of the character."
   > "\"" (skeleton-read "Documentation string: ") "\")")
 
 (define-skeleton breeze-insert-defparameter
-  "Insert a defvar form.")
+  "Insert a defparameter form."
+  "" ;; Empty prompt. Ignored.
+  > "(defparameter *" (skeleton-read "Name: ") "* " (skeleton-read "Initial value: ") \n
+  > "\"" (skeleton-read "Documentation string: ") "\")")
+
 (define-skeleton breeze-insert-let
-  "Insert a defvar form.")
+  "Insert a let defvar form."
+  "" ;; Empty prompt. Ignored.
+  > "(let ((" @ ")))")
 
 (define-skeleton breeze-insert-asdf
   "Skeleton for an asdf file."
@@ -187,6 +193,8 @@ Othewise, return the position of the character."
 
 ;;; abbrev
 
+;; P.S. This doesn't work anymore because (I think) breeze-mode is a
+;; minor mode.
 (progn
   (when (boundp 'breeze-mode-abbrev-table)
     (clear-abbrev-table breeze-mode-abbrev-table))
@@ -204,9 +212,11 @@ Othewise, return the position of the character."
 (defun breeze-indent-defun-at-point ()
   "Indent the whole form without moving."
   (interactive)
-  (save-excursion
-    (slime-beginning-of-defun)
-    (indent-sexp)))
+  (if (zerop (current-column))
+      (indent-sexp)
+    (save-excursion
+      (slime-beginning-of-defun)
+      (indent-sexp))))
 
 (defun breeze-get-symbol-package (symbol)
   "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
@@ -232,8 +242,8 @@ Othewise, return the position of the character."
    buffer, that it has an exisint \"import-from\" from and that
    paredit-mode is enabled."
   (interactive)
-  (let* ((symbol (slime-symbol-at-point))
-	 (case-fold-search t)) ;; case insensitive search
+  (let ((symbol (slime-symbol-at-point))
+	(case-fold-search t)) ;; case insensitive search
     (destructuring-bind (package-name symbol-name)
 	(breeze-get-symbol-package symbol)
       (message "%s:%s" package-name symbol-name)
@@ -247,6 +257,9 @@ Othewise, return the position of the character."
 	      (slime-eval-defun))
 	  ;; TODO else, search for defpackage, add it at the end
 	  )))))
+
+;; (slime-goto-package-source-definition "breeze")
+;; (slime-goto-xref)
 
 ;; (slime-rex (var ...) (sexp &optional package thread) clauses ...)
 
@@ -262,6 +275,52 @@ Othewise, return the position of the character."
 ;; 	    (slime-defun-at-point)
 ;; 	    "4"
 ;; 	    ")"))))
+
+;; Idea: (defun breeze-wrap-with-let-form ())
+
+(defun breeze-move-form-into-let ()
+  "Move the current form into the nearest parent \"let\" form."
+  (interactive)
+  (let* ((form (slime-sexp-at-point-or-error))
+	 (new-variable)
+	 ;; Find the position of the top-level form
+	 (beginning-of-defun (if (zerop (current-column))
+				 (point)
+			       (save-excursion
+				 (slime-beginning-of-defun)
+				 (point))))
+	 (case-fold-search t) ;; case insensitive search
+	 ;; Find the position of the previous "let"
+	 (let-point (save-excursion (re-search-backward "let"))))
+    (save-excursion
+      ;; Check if we found a parent let form
+      (if (and let-point
+	       (>= let-point beginning-of-defun))
+	  (progn
+	    (save-excursion
+	      ;; Find the place to add the new binding
+	      (re-search-backward "let")
+	      (re-search-forward "(")
+	      (save-excursion
+		(insert (format "( %s)" form))
+		;; Add a newline if necessary
+		(if (eq (char-after) (string-to-char "("))
+		    ;; also add a space to help indentation later
+		    (insert "\n ")))
+	      (forward-char)
+	      ;; Ask the user to name the new-variable
+	      (setq new-variable (read-string "Enter a new for the new-variable: "))
+	      ;; Insert the name of the variable in the let form.
+	      (insert new-variable))
+	    ;; Replace the form at point by the new variable
+	    (let ((start (point)))
+	      (forward-sexp)
+	      (delete-region start (point)))
+	    (insert new-variable)
+	    ;; reindent the whole top-level form
+	    (slime-beginning-of-defun)
+	    (indent-sexp))
+	(message "Failed to find a parent let form.")))))
 
 
 ;;; code evaluation
