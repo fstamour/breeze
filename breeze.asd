@@ -9,6 +9,7 @@
   :depends-on (#:alexandria
 	       #:anaphora
 	       #:chanl
+	       #:closer-mop
 	       #:staple
 	       #:quickproject
 	       #:swank
