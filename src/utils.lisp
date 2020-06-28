@@ -6,8 +6,6 @@
    #:walk
    #:walk-car
    #:walk-list
-   #:with-collector
-   #:with-values
    #:collect))
 
 (in-package #:breeze.utils)
@@ -34,18 +32,6 @@
              #'(lambda (node)
                  (funcall fn (car node)))
              recurse-p))
-
-(defmacro with-collector (&body body)
-  (let ((collector (gensym "collector")))
-    `(let ((,collector ()))
-       (macrolet ((collect (value) `(push ,value ,',collector)))
-         ,@body)
-       (nreverse ,collector))))
-
-
-(defmacro with-values (values &body body)
-  `(let ,values ,@body
-     (values ,@(mapcar #'first values))))
 
 (defun package-apropos (search-string)
   "Compute a list of package that contains the search-string."

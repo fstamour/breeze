@@ -20,7 +20,7 @@
 
 (defun calls-who (function-name)
   "Take a function name and returns a list of all the functions it calls."
-  (with-collector
+  (uiop:while-collecting (collect)
       (walk-car
        (function-body function-name)
        (lambda (el)
@@ -29,7 +29,7 @@
 
 (defun test-calls-who (test-name)
   "Take a test name and return a list of all the functions it calls."
-  (with-collector
+  (uiop:while-collecting (collect)
     (walk-car
      (test-body test-name)
      #'(lambda (el)
