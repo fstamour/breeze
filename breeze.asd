@@ -10,6 +10,8 @@
 	       #:anaphora
 	       #:chanl
 	       #:staple
+	       #:quickproject
+	       #:swank
 	       #:uiop)
   :serial t
   :components
@@ -22,6 +24,7 @@
              (:file "test-runner")
              (:file "xref")
              (:file "asdf")
+	     (:file "breeze-el")
              (:file "user")))
    (:module "tests"
 	    :components
