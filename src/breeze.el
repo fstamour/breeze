@@ -163,6 +163,44 @@ Othewise, return the position of the character."
   (skeleton-read "Enter the variable name for the value: ")
   ")")
 
+(defun breeze-insert ()
+  "Choose someting to insert."
+  (interactive)
+  ;; TODO filter the choices based on the context
+  (breeze-choose-and-call-command
+   "What do you want to insert? "
+   '(("asdf:defsystem" breeze-insert-asdf)
+     ("defpackage" breeze-insert-defpackage)
+     ("defun" breeze-insert-defun)
+     ("defvar" breeze-insert-defvar)
+     ("defparameter" breeze-insert-defparameter)
+     ("let" breeze-insert-let)
+     ("defmacro" breeze-insert-defmacro)
+     ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
+     ;; TODO
+     ;; defclass
+     ;; slots
+     ;; defgeneric
+     ;; defmethod
+     )))
+
+
+;;; abbrev
+
+(progn
+  (when (boundp 'breeze-mode-abbrev-table)
+    (clear-abbrev-table breeze-mode-abbrev-table))
+  (define-abbrev-table 'breeze-mode-abbrev-table
+    '(("defmacro1" "" breeze-insert-defmacro)
+      ("defpackage1" "" breeze-insert-defpackage)
+      ("defparam1" "" breeze-insert-defparameter)
+      ("defsystem1" "" breeze-insert-asdf)
+      ("defun1" "" breeze-insert-defun)
+      ("defvar1" "" breeze-insert-defvar))))
+
+
+;;; code modification
+
 (defun breeze-indent-defun-at-point ()
   "Indent the whole form without moving."
   (interactive)
@@ -171,7 +209,7 @@ Othewise, return the position of the character."
     (indent-sexp)))
 
 (defun breeze-get-symbol-package (symbol)
-  "SYMBOL must be a string.  return a list with the package name and the symbol name."
+  "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
 		    ,(format (format "%s"
@@ -225,43 +263,25 @@ Othewise, return the position of the character."
 ;; 	    "4"
 ;; 	    ")"))))
 
+
+;;; code evaluation
 
-(defun breeze-insert ()
-  "Choose someting to insert."
+(defun breeze-get-recently-evaluated-forms ()
+  "Get recently evaluated forms from the server."
+  (cl-destructuring-bind (output value)
+      (slime-eval `(swank:eval-and-grab-output
+		    "(breeze/el:get-recent-interactively-evaluated-forms)"))
+    (split-string output "\n")))
+
+(defun breeze-reevaluate-form ()
   (interactive)
-  ;; TODO filter the choices based on the context
-  (breeze-choose-and-call-command
-   "What do you want to insert? "
-   '(("asdf:defsystem" breeze-insert-asdf)
-     ("defpackage" breeze-insert-defpackage)
-     ("defun" breeze-insert-defun)
-     ("defvar" breeze-insert-defvar)
-     ("defparameter" breeze-insert-defparameter)
-     ("let" breeze-insert-let)
-     ("defmacro" breeze-insert-defmacro)
-     ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
-     ;; TODO
-     ;; defclass
-     ;; slots
-     ;; defgeneric
-     ;; defmethod
-     )))
+  (let ((form (completing-read  "Choose recently evaluated form: "
+				(breeze-get-recently-evaluated-forms))))
+    (when form
+      (slime-interactive-eval form)))))
 
 
-;;; abbrev
-
-(progn
-  (when (boundp 'breeze-mode-abbrev-table)
-    (clear-abbrev-table breeze-mode-abbrev-table))
-  (define-abbrev-table 'breeze-mode-abbrev-table
-    '(("defmacro1" "" breeze-insert-defmacro)
-      ("defpackage1" "" breeze-insert-defpackage)
-      ("defparam1" "" breeze-insert-defparameter)
-      ("defsystem1" "" breeze-insert-asdf)
-      ("defun1" "" breeze-insert-defun)
-      ("defvar1" "" breeze-insert-defvar))))
-
-
+;;; project scaffolding
 
 (defun breeze-quicklisp-local-project-directories ()
   "Get the list of quicklisp's local project directories."
@@ -362,6 +382,12 @@ Othewise, return the position of the character."
 
 (define-key breeze-mode-map (kbd "C-c ,") 'breeze-insert)
 (define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
+
+;; eval keymap
+(defvar breeze/eval-map (make-sparse-keymap))
+(define-key breeze-mode-map (kbd "C-c e") breeze/eval-map)
+
+(define-key breeze/eval-map (kbd "e") 'breeze-reevaluate-form)
 
 ;; TODO add defun "{en,dis}able-breeze-mode"
 

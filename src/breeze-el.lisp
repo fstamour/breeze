@@ -3,7 +3,7 @@
 (in-package #:common-lisp-user)
 
 (defpackage #:breeze/el
-  (:use :cl)
+  (:use :cl #:alexandria)
   (:export
    #:make-project
    #:get-ql-local-project-directories
@@ -84,4 +84,8 @@
 ;;  kind of frequency-table
 
 (defun get-recent-interactively-evaluated-forms ()
-  *recent-forms*)
+  "Get the 50 most recently evaluated forms"
+  (loop :for form :in *recent-forms*
+     :for i :below 50
+     :do (format t "~&~a~%"
+		 (remove #\newline form))))
