@@ -278,7 +278,7 @@ Othewise, return the position of the character."
   (let ((form (completing-read  "Choose recently evaluated form: "
 				(breeze-get-recently-evaluated-forms))))
     (when form
-      (slime-interactive-eval form)))))
+      (slime-interactive-eval form))))
 
 
 ;;; project scaffolding
