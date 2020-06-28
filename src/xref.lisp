@@ -12,7 +12,9 @@
    #:calls-who
    #:test-calls-who
    #:tested-by
-   #:test-case))
+   #:test-case
+   ;; Utilities
+   #:find-packages-by-prefix))
 
 (in-package #:breeze.xref)
 
@@ -78,3 +80,10 @@
 #+wip ;; Look at parse-smth in cover.lisp
 (defun function-without-documentation (&optional (package *package*)))
 
+(defun find-packages-by-prefix (prefix)
+   "Find all package whose name starts with the given prefix (case insensitive)."
+  (loop :for package :in (list-all-packages)
+     :when (starts-with-subseq prefix
+			       (string-downcase
+				(package-name package)))
+     :collect package))

@@ -6,6 +6,8 @@
   (:shadowing-import-from #:breeze.definition
                           #:defun
                           #:fmakunbound)
+  (:import-from #:breeze.documentation
+		#:find-undocumented-symbols)
   (:import-from #:breeze.definition
                 #:*function-redifinition-hooks*
                 #:function-body)
@@ -27,7 +29,8 @@
                 #:calls-who
                 #:test-calls-who
                 #:tested-by
-                #:test-case)
+                #:test-case
+		#:find-packages-by-prefix)
   (:export
    ;; definition
    #:defun
@@ -46,7 +49,8 @@
    #:tested-by
    #:test-case
    ;; MAIN
-   #:main))
+   #:main
+   #:next))
 
 (in-package #:breeze.user)
 
@@ -72,6 +76,16 @@
   (pushnew 'run-test-for-function *function-redifinition-hooks*)
   (pushnew 'request-to-run-test *test-change-hooks*)
   (welcome))
+
+(defun next ()
+  "Call this to get hints on what to do next."
+  (let ((missing-documentation-in-breeze
+	 (loop :for package :in (find-packages-by-prefix "breeze")
+	    :append (find-undocumented-symbols package))))
+    (when missing-documentation-in-breeze
+      (princ "There are undocumented symbols in breeze's packages:")
+      (format t "~&~{ * ~A~%~}"
+	      missing-documentation-in-breeze))))
 
 (defun selftest ()
   "Load and run breeze's selftests."

@@ -19,6 +19,8 @@
 (br:main)
 ```
 
+Don't know what to do next? Call `(br:next)`.
+
 ### Developping
 
 ```shell

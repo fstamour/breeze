@@ -18,6 +18,7 @@
   ((:module "src"
 	    :components
             ((:file "utils")
+	     (:file "documentation")
              (:file "definition")
              (:file "test")
              (:file "worker")
