@@ -13,11 +13,13 @@
 (in-package #:breeze.asdf)
 
 (defun system-files (system-designator)
-  "List all the files in a system."
-  (remove-if #'uiop/pathname:directory-pathname-p
-             (mapcar #'asdf/component:component-pathname
-                     (asdf/component:sub-components
-                      (asdf/system:find-system system-designator)))))
+  "List all the files in a system. Including the .asd file too."
+  (let ((system (asdf/system:find-system system-designator)))
+    `(,(asdf/system:system-source-file system)
+      ,@(remove-if #'uiop/pathname:directory-pathname-p
+		   (mapcar #'asdf/component:component-pathname
+			   (asdf/component:sub-components
+			    system))))))
 
 (defun system-fasl-directory (system-designator)
   "Find the directory of a system's fasl files."
