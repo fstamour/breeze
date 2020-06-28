@@ -39,6 +39,7 @@
    #:run-test
    #:run-all-tests
    #:test-body
+   #:selftest
    ;; xref
    #:calls-who
    #:test-calls-who
@@ -72,3 +73,8 @@
   (pushnew 'request-to-run-test *test-change-hooks*)
   (welcome))
 
+(defun selftest ()
+  "Load and run breeze's selftests."
+  (load (merge-pathnames "tests/selftest.lisp"
+			 (breeze.asdf:system-directory '#:breeze)))
+  (uiop:symbol-call '#:breeze.selftest '#:selftest))

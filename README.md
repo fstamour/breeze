@@ -31,8 +31,7 @@ rg -i todo
 
 ```lisp
 (ql:quickload 'breeze)
-(load "tests/selftest.lisp")
-(breeze.selftest:selftest)
+(br:selftest)
 ```
 
 ### To generate the documentation
