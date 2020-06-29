@@ -3,10 +3,13 @@
   (:use :cl)
   (:export
    #:package-apropos
+   #:optimal-string-alignment-distance
    #:walk
    #:walk-car
    #:walk-list
-   #:collect))
+   #:repeat-string
+   #:indent-string
+   #:print-comparison))
 
 (in-package #:breeze.utils)
 
@@ -41,3 +44,90 @@
                  (list-all-packages)))
 
 
+(defun optimal-string-alignment-distance (vec-a vec-b)
+  "Compute an edit distance between two vector."
+  (let* ((m (length vec-a))
+         (n (length vec-b))
+         (diff-0 (make-array (list (1+ n)) :element-type 'integer))
+         (diff-1 (make-array (list (1+ n)) :element-type 'integer))
+         (diff-2 (make-array (list (1+ n)) :element-type 'integer)))
+
+    (loop :for i :upto n :do
+      (setf (aref diff-1 i) i))
+    (setf (aref diff-0 0) 1)
+
+    (flet ((a (index) (aref vec-a (1- index)))
+           (b (index) (aref vec-b (1- index)))
+           (diff-0 (index) (aref diff-0 index))
+           (diff-1 (index) (aref diff-1 index))
+           (diff-2 (index) (aref diff-2 index)))
+      (loop :for i :from 1 :upto m :do
+        (loop :for j :from 1 :upto n
+              :for cost = (if (eq (a i) (b j)) 0 1) ;; aka substitution-cost
+              :do
+                 (setf (aref diff-0 j) (min
+                                        (1+ (diff-1 j))          ;; deletion
+                                        (1+ (diff-0 (1- j)))     ;; insertion
+                                        (+ cost (diff-1 (1- j))) ;; substitution
+                                        ))
+                 ;; transposition
+                 (when (and (< 1 i) (< 1 j)
+                            (eq (a i) (b (1- j)))
+                            (eq (a (1- i)) (b j)))
+                   (setf (aref diff-0 j) (min (diff-0 j)
+                                              (+ cost (diff-2 (- j 2)))))))
+        (when (/= m i)
+          (let ((tmp diff-2))
+            (setf diff-2 diff-1
+                  diff-1 diff-0
+                  diff-0 tmp
+                  (aref diff-0 0) (1+ i)))))
+      (diff-0 n))))
+
+(defun repeat-string (times string)
+  (check-type times (integer 0))
+  "Repeat a string multiple times"
+  (format nil "~v@{~A~:*~}" times string))
+
+#|
+(repeat-string 0 "")
+(repeat-string 0 "-")
+(repeat-string 1 "-")
+(length (repeat-string 10 "--"))
+|#
+
+(defun indent-string (indentation string)
+  (check-type indentation (integer 0))
+  (with-input-from-string (input string)
+    (with-output-to-string (output)
+      (loop :for line = (read-line input nil nil)
+	 :while line
+	 :do (format output "~a~a~%" (repeat-string indentation " ") line)))))
+
+#|
+(indent-string 4 (format nil "a~%b"))
+"    a
+    b
+"
+|#
+
+(defun print-comparison (stream string1 string2)
+  "Print two (close) string in a way that the difference are easier to see."
+  (let* ((mismatch (mismatch string1 string2)))
+    (format stream "~&~a~%~a|~%~a"
+	    string1
+	    (repeat-string mismatch "=")
+	    string2)))
+
+#|
+(print-comparison nil "abc" "adc")
+
+(print-comparison nil "abce" "abcd")
+
+(print-comparison nil
+		  (string-downcase 'system-files)
+		  (string-downcase 'sytsem-files))
+"system-files
+==|
+sytsem-files"
+|#

@@ -263,14 +263,14 @@ Othewise, return the position of the character."
 
 ;; (slime-rex (var ...) (sexp &optional package thread) clauses ...)
 
-;; (slime-interactive-eval "(breeze/el:)")
+;; (slime-interactive-eval "(breeze.swank:)")
 
 ;; (global-set-key
 ;;  (kbd "<f5>")
 ;;  (lambda ()
 ;;    (interactive)
 ;;    (slime-interactive-eval
-;;     (concat "(breeze/el::insert-let "
+;;     (concat "(breeze.swank::insert-let "
 ;; 	    (replace-match "\\\""  "fixedcase" "literal")
 ;; 	    (slime-defun-at-point)
 ;; 	    "4"
@@ -329,7 +329,7 @@ Othewise, return the position of the character."
   "Get recently evaluated forms from the server."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
-		    "(breeze/el:get-recent-interactively-evaluated-forms)"))
+		    "(breeze.swank:get-recent-interactively-evaluated-forms)"))
     (split-string output "\n")))
 
 (defun breeze-reevaluate-form ()
@@ -348,7 +348,7 @@ Othewise, return the position of the character."
    (read-from-string
     (cl-destructuring-bind (output value)
 	(slime-eval `(swank:eval-and-grab-output
-		      ,(format "%s" `(breeze/el:get-ql-local-project-directories))))
+		      ,(format "%s" `(breeze.swank:get-ql-local-project-directories))))
       value))))
 
 (defun breeze-choose-local-project-directories ()
@@ -374,7 +374,7 @@ Othewise, return the position of the character."
 	)
     (slime-interactive-eval
      (concat
-      "(breeze/el:make-project \"" directory name "\""
+      "(breeze.swank:make-project \"" directory name "\""
       " :author \"" author "\""
       " :license \"" licence "\""
       ")"))))

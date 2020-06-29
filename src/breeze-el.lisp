@@ -2,7 +2,7 @@
 
 (in-package #:common-lisp-user)
 
-(defpackage #:breeze/el
+(defpackage #:breeze.swank
   (:use :cl #:alexandria)
   (:export
    #:make-project
@@ -11,7 +11,7 @@
    #:restore-swank-interactive-eval
    #:get-recent-interactively-evaluated-forms))
 
-(in-package #:breeze/el)
+(in-package #:breeze.swank)
 
 (defun insert-at (current-text text-to-insert position)
   (with-output-to-string (stream)
@@ -60,11 +60,40 @@
 (defparameter *recent-forms* ()
   "A list of recently-evaluated forms (as strings).")
 
+(defun call-with-correction-suggestion (function)
+  (handler-bind
+      ((undefined-function #'(lambda (condition)
+			       (let ((input (string-downcase (cell-error-name condition)))
+				     (candidate nil)
+				     (candidate-distance 0))
+				 (do-symbols (sym)
+				   (when (fboundp sym)
+				     (let ((distance (breeze.utils:optimal-string-alignment-distance
+						      input
+						      (string-downcase sym))))
+				       (when (or (not candidate)
+						 (< distance candidate-distance))
+					 (setf candidate sym
+					       candidate-distance distance)))))
+				 (warn "Did you mean \"~a\"?~%~a"
+				       candidate
+				       (breeze.utils:indent-string
+					2 (breeze.utils:print-comparison nil
+									 (string-downcase candidate)
+									 input)))))))
+    (funcall function)))
+
+
+;; (call-with-correction-suggestion (lambda () (eval '(prin))))
+
 (defun interactive-eval (string)
   "Breeze's interactive-eval."
   (pushnew string *recent-forms* :test #'string=)
   ;; (format t "~&Interactive-eval: ~A~%" string)
-  (funcall *original-swank-interactive-eval* string))
+  (call-with-correction-suggestion
+   (lambda ()
+     ;; (swank::with-buffer-syntax () (eval string))
+     (funcall *original-swank-interactive-eval* string))))
 
 (defun %interactive-eval (string)
   (funcall 'interactive-eval string))
