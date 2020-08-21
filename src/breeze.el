@@ -353,14 +353,17 @@ Othewise, return the position of the character."
 
 (defun breeze-choose-local-project-directories ()
   "Let the user choose the directory if there's more than one."
-  (first (breeze-quicklisp-local-project-directories)))
+  (let ((directories (breeze-quicklisp-local-project-directories)))
+    (if (eq 1 (length directories))
+	(first directories)
+      (completing-read "Choose a local-project directory: " directories))))
 
 ;; (breeze-choose-local-project-directories)
 
-(defun breeze-quickproject (name)
+(defun breeze-quickproject ()
   "Create a project named NAME using quickproject."
-  (interactive "Name of the project: ")
-  (let (
+  (interactive)
+  (let ((name (read-string "Name of the project: "))
 	;; TODO let the user choose a directory outside of quicklisp's local
 	;; project directories.  see (read-directory-name "directory: ").
 	(directory (breeze-choose-local-project-directories))
@@ -377,7 +380,9 @@ Othewise, return the position of the character."
       "(breeze.swank:make-project \"" directory name "\""
       " :author \"" author "\""
       " :license \"" licence "\""
-      ")"))))
+      ")"))
+    (message "\"%s\" created" (concat directory name "/"))
+    (find-file (concat directory name "/README.md"))))
 
 ;; e.g. (breeze-quickproject "foo")
 
@@ -430,6 +435,13 @@ Othewise, return the position of the character."
 
 ;; TODO
 ;; breeze-kill-worker-thread
+
+;; (bordeaux-threads:destroy-thread
+;;  (let ((current-thread (bt:current-thread)))
+;;    (find-if #'(lambda (thread)
+;; 		(and (not (eq current-thread thread))
+;; 		     (string= "worker" (bt:thread-name thread))))
+;; 	    (sb-thread:list-all-threads))))
 
 
 ;;; mode
