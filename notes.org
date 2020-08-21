@@ -1,7 +1,11 @@
+#+STARTUP: showeverything
+
 * Other projects with slime integration
 ** log4cl
 * Portable file watching
 https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/
+
+http://eradman.com/entrproject/
 
 * Random ideas
 ** (tips), (tips "test"), (tips "doc")
@@ -31,3 +35,4 @@ https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_chang
 * See
 ** uses of slime's locative: http://quickdocs.org/mgl-pax/
 
+* Scratch files
