@@ -8,6 +8,10 @@
 * Test-runner - a worker that runs tests (on demand).
 * Can re-run all tests on function or test redifinition.
 * Emacs integration
+* Integration with slime
+* File watcher
+* Integration with quickproject
+* In the future: integration with different test frameworks
 
 ## Documentation
 
