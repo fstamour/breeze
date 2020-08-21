@@ -86,6 +86,8 @@
 
 ;; (call-with-correction-suggestion (lambda () (eval '(prin))))
 
+(defparameter *interactive-eval-hooks* '())
+
 (defun interactive-eval (string)
   "Breeze's interactive-eval."
   (pushnew string *recent-forms* :test #'string=)
@@ -93,7 +95,18 @@
   (call-with-correction-suggestion
    (lambda ()
      ;; (swank::with-buffer-syntax () (eval string))
-     (funcall *original-swank-interactive-eval* string))))
+     (prog1
+	 (funcall *original-swank-interactive-eval* string)
+       (loop
+	  :for (name . hook) :in *interactive-eval-hooks*
+	  :do
+	    (handler-case
+		(funcall hook string)
+	      (error (condition)
+		(format *error-output*
+			"~&Error signaled while running \"~a\" interactive-eval hook: ~a~%  "
+			name
+			condition))))))))
 
 (defun %interactive-eval (string)
   (funcall 'interactive-eval string))

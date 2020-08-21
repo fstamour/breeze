@@ -1,3 +1,4 @@
+# Breeze
 
 ## Features
 
@@ -6,6 +7,7 @@
 * Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl)).
 * Test-runner - a worker that runs tests (on demand).
 * Can re-run all tests on function or test redifinition.
+* Emacs integration
 
 ## Documentation
 

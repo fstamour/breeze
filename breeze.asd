@@ -26,7 +26,7 @@
              (:file "test-runner")
              (:file "xref")
              (:file "asdf")
-	     (:file "breeze-el")
+	     (:file "breeze-swank")
              (:file "user")))
    (:module "tests"
 	    :components
