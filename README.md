@@ -1,5 +1,9 @@
 # Breeze
 
+Breeze is a set of tools that aims to make lisp development a breeze (hence the name).
+
+It is still in its early development.
+
 ## Features
 
 * Redefine `defun` to keep track of the definitions (before any macro expansion).
@@ -9,7 +13,7 @@
 * Can re-run all tests on function or test redifinition.
 * Emacs integration
 * Integration with slime
-* File watcher
+* WIP File watcher
 * Integration with quickproject
 * In the future: integration with different test frameworks
 
@@ -19,50 +23,76 @@
 
 ## Getting started
 
+This project is currently not in quicklisp, you'll need to start by
+cloning this repository in quicklisp's local-projects folder.
+
+From the repl:
+
 ```lisp
 (ql:quickload :breeze)
 (in-package :breeze.user)
 (br:main)
 ```
+Or from the command line, with nix:
+
+```sh
+# Will run sbcl and load breeze with quicklisp
+./shell.nix
+```
 
 Don't know what to do next? Call `(br:next)`.
 
-### Developping
+### Contributing
 
-```shell
+Start by forking and cloning this repository into quicklisp's
+local-projects directory.
+
+Optional: setup the pre-commit hook (currently assumes that
+[nix](https://nixos.org/) is installed).
+
+```sh
+git config core.hooksPath githooks
+```
+
+Look for TODOs in the code
+
+```sh
 grep -ir --include='*.lisp' todo
 # or
 rg -i todo
 ```
 
-### To run the (self-) tests
+### How to run the (self-) tests
+
+From the repl:
 
 ```lisp
 (ql:quickload 'breeze)
 (br:selftest)
 ```
 
-### To generate the documentation
+Or from the command line, with nix:
 
-> See https://shinmera.github.io/staple/
+```sh
+./doc.nix
+```
+
+### How to generate the documentation
+
+> The documentation is generated using [Staple](https://shinmera.github.io/staple/)
+
+From the repl:
 
 ```lisp
 (staple:generate '#:breeze :if-exists :supersede)
 ```
 
-### With [nix](https://nixos.org/)
+Or from the command line, with nix:
 
-```shell
-# Will run sbcl and load breeze with quicklisp
-./shell.nix
-```
-
-```shell
-# Will update the documentation (docs/index.html)
+```sh
 ./doc.nix
 ```
 
-```shell
-# Will run the tests
-./test.nix
+With either method, the documentation is generated into to `docs/`
+folder.
 ```

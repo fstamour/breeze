@@ -51,4 +51,9 @@ git diff-index --check --cached $against --
 # run the tests
 ./test.nix
 
+# generate the docs
+./doc.nix
+
+git add docs/
+
 echo "Pre-commit hook done"
