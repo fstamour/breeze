@@ -1,2 +1,15 @@
-language: nix
-script: ./ci.nix
+language: common-lisp
+sudo: required
+
+env:
+  matrix:
+    - LISP=sbcl
+    - LISP=ccl
+
+install:
+  # Install cl-travis
+  - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
+
+script:
+  - cl -e '(ql:quickload :breeze)'
+       -e '(breeze.selftest:selftest)'
