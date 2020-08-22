@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#!nix-shell ./shell.nix --command "rlwrap sbcl --noinform --eval '(ql:quickload :breeze)'"
+#!nix-shell ./shell.nix --command "rlwrap sbcl --noinform --eval '(ql:quickload :breeze)' --eval '(br:main)'"
 
 with import <nixpkgs> {};
 stdenv.mkDerivation rec {
