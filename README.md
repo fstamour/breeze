@@ -19,10 +19,6 @@ It is still in its early development.
 * Integration with quickproject
 * In the future: integration with different test frameworks
 
-## Documentation
-
-[Documentation](https://htmlpreview.github.io/?https://github.com/fstamour/breeze/blob/master/docs/index.html)
-
 ## Getting started
 
 This project is currently not in quicklisp, you'll need to start by
@@ -97,4 +93,3 @@ Or from the command line, with nix:
 
 With either method, the documentation is generated into to `docs/`
 folder.
-```
