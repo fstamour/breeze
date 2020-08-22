@@ -1,0 +1,23 @@
+language: common-lisp
+sudo: false
+
+env:
+  global:
+    - PATH=~/.roswell/bin:$PATH
+    - ROSWELL_INSTALL_DIR=$HOME/.roswell
+  matrix:
+    - LISP=sbcl-bin
+    # - LISP=ccl-bin
+    # - LISP=abcl
+    # - LISP=clisp
+    # - LISP=ecl
+    # - LISP=cmucl
+    # - LISP=alisp
+
+install:
+  # Install roswell
+  - curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
+
+script:
+  - ros -e '(ql:quickload :breeze)'
+        -e '(breeze.selftest:selftest)'

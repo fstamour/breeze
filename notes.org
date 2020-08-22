@@ -1,7 +1,21 @@
+#+STARTUP: showeverything
+
+* Tasks
+** TODO Advising swank-interactive-eval doesn't override emacs' repl
+** TODO Advising swank-interactive-eval doesn't override sbcl's repl either
+** TODO Document how to use breeze:defun
+** TODO Document (with screenshots) how to setup and use emacs integration
+** TODO Document how to use quickproject integration
+** TODO Make the file-watcher usable
+** TODO Document how to use the file-watcher
+** TODO Document how the file-watcher works
+
 * Other projects with slime integration
 ** log4cl
 * Portable file watching
 https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/
+
+http://eradman.com/entrproject/
 
 * Random ideas
 ** (tips), (tips "test"), (tips "doc")
@@ -10,7 +24,7 @@ https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_chang
 *** functions that have no tests
 *** functions that have no documentation
 *** Have a plain user-controlled task list
-** Evaluate quality of documentation 
+** Evaluate quality of documentation
 *** e.g. if the documentation is almost just the name of the function
 *** Make sure it doens't "only" refer to another function
 *** It's more that the content of the function
@@ -29,5 +43,15 @@ https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_chang
 ** See BIST to probalistically compare functions
 *** Use a PRNG to generate inputs, use a hash to fingerprint the outputs
 * See
-** uses of slime's locative: http://quickdocs.org/mgl-pax/
+** TODO uses of slime's locative: http://quickdocs.org/mgl-pax/
 
+* Scratch files
+
+* Prior Arts
+
+** Tinker (1980)
+http://web.media.mit.edu/%7Elieber/Lieberary/Tinker/Tinker/Tinker.html
+
+** Image Based develoment
+
+[Image based development](https://www.informatimago.com/develop/lisp/com/informatimago/small-cl-pgms/ibcl/index.html)

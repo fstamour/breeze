@@ -1,2 +1,5 @@
 *.fasl
 *.core
+
+
+githooks/*.sample

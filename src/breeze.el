@@ -111,13 +111,13 @@ Othewise, return the position of the character."
 (define-skeleton breeze-insert-defun
   "Insert a defun form."
   "" ;; Empty prompt. Ignored.
-  > "(defun " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") ")" \n
+  > "(defun " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
   > _ ")")
 
 (define-skeleton breeze-insert-defmacro
   "Insert a defvar form."
   "" ;; Empty prompt. Ignored.
-  > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") ")" \n
+  > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
   > _ ")")
 
 (define-skeleton breeze-insert-defvar
@@ -127,9 +127,15 @@ Othewise, return the position of the character."
   > "\"" (skeleton-read "Documentation string: ") "\")")
 
 (define-skeleton breeze-insert-defparameter
-  "Insert a defvar form.")
+  "Insert a defparameter form."
+  "" ;; Empty prompt. Ignored.
+  > "(defparameter *" (skeleton-read "Name: ") "* " (skeleton-read "Initial value: ") \n
+  > "\"" (skeleton-read "Documentation string: ") "\")")
+
 (define-skeleton breeze-insert-let
-  "Insert a defvar form.")
+  "Insert a let defvar form."
+  "" ;; Empty prompt. Ignored.
+  > "(let ((" @ ")))")
 
 (define-skeleton breeze-insert-asdf
   "Skeleton for an asdf file."
@@ -187,6 +193,8 @@ Othewise, return the position of the character."
 
 ;;; abbrev
 
+;; P.S. This doesn't work anymore because (I think) breeze-mode is a
+;; minor mode.
 (progn
   (when (boundp 'breeze-mode-abbrev-table)
     (clear-abbrev-table breeze-mode-abbrev-table))
@@ -204,9 +212,11 @@ Othewise, return the position of the character."
 (defun breeze-indent-defun-at-point ()
   "Indent the whole form without moving."
   (interactive)
-  (save-excursion
-    (slime-beginning-of-defun)
-    (indent-sexp)))
+  (if (zerop (current-column))
+      (indent-sexp)
+    (save-excursion
+      (slime-beginning-of-defun)
+      (indent-sexp))))
 
 (defun breeze-get-symbol-package (symbol)
   "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
@@ -232,8 +242,8 @@ Othewise, return the position of the character."
    buffer, that it has an exisint \"import-from\" from and that
    paredit-mode is enabled."
   (interactive)
-  (let* ((symbol (slime-symbol-at-point))
-	 (case-fold-search t)) ;; case insensitive search
+  (let ((symbol (slime-symbol-at-point))
+	(case-fold-search t)) ;; case insensitive search
     (destructuring-bind (package-name symbol-name)
 	(breeze-get-symbol-package symbol)
       (message "%s:%s" package-name symbol-name)
@@ -248,20 +258,69 @@ Othewise, return the position of the character."
 	  ;; TODO else, search for defpackage, add it at the end
 	  )))))
 
+;; (slime-goto-package-source-definition "breeze")
+;; (slime-goto-xref)
+
 ;; (slime-rex (var ...) (sexp &optional package thread) clauses ...)
 
-;; (slime-interactive-eval "(breeze/el:)")
+;; (slime-interactive-eval "(breeze.swank:)")
 
 ;; (global-set-key
 ;;  (kbd "<f5>")
 ;;  (lambda ()
 ;;    (interactive)
 ;;    (slime-interactive-eval
-;;     (concat "(breeze/el::insert-let "
+;;     (concat "(breeze.swank::insert-let "
 ;; 	    (replace-match "\\\""  "fixedcase" "literal")
 ;; 	    (slime-defun-at-point)
 ;; 	    "4"
 ;; 	    ")"))))
+
+;; Idea: (defun breeze-wrap-with-let-form ())
+
+(defun breeze-move-form-into-let ()
+  "Move the current form into the nearest parent \"let\" form."
+  (interactive)
+  (let* ((form (slime-sexp-at-point-or-error))
+	 (new-variable)
+	 ;; Find the position of the top-level form
+	 (beginning-of-defun (if (zerop (current-column))
+				 (point)
+			       (save-excursion
+				 (slime-beginning-of-defun)
+				 (point))))
+	 (case-fold-search t) ;; case insensitive search
+	 ;; Find the position of the previous "let"
+	 (let-point (save-excursion (re-search-backward "let"))))
+    (save-excursion
+      ;; Check if we found a parent let form
+      (if (and let-point
+	       (>= let-point beginning-of-defun))
+	  (progn
+	    (save-excursion
+	      ;; Find the place to add the new binding
+	      (re-search-backward "let")
+	      (re-search-forward "(")
+	      (save-excursion
+		(insert (format "( %s)" form))
+		;; Add a newline if necessary
+		(if (eq (char-after) (string-to-char "("))
+		    ;; also add a space to help indentation later
+		    (insert "\n ")))
+	      (forward-char)
+	      ;; Ask the user to name the new-variable
+	      (setq new-variable (read-string "Enter a new for the new-variable: "))
+	      ;; Insert the name of the variable in the let form.
+	      (insert new-variable))
+	    ;; Replace the form at point by the new variable
+	    (let ((start (point)))
+	      (forward-sexp)
+	      (delete-region start (point)))
+	    (insert new-variable)
+	    ;; reindent the whole top-level form
+	    (slime-beginning-of-defun)
+	    (indent-sexp))
+	(message "Failed to find a parent let form.")))))
 
 
 ;;; code evaluation
@@ -270,7 +329,7 @@ Othewise, return the position of the character."
   "Get recently evaluated forms from the server."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
-		    "(breeze/el:get-recent-interactively-evaluated-forms)"))
+		    "(breeze.swank:get-recent-interactively-evaluated-forms)"))
     (split-string output "\n")))
 
 (defun breeze-reevaluate-form ()
@@ -278,7 +337,7 @@ Othewise, return the position of the character."
   (let ((form (completing-read  "Choose recently evaluated form: "
 				(breeze-get-recently-evaluated-forms))))
     (when form
-      (slime-interactive-eval form)))))
+      (slime-interactive-eval form))))
 
 
 ;;; project scaffolding
@@ -289,19 +348,22 @@ Othewise, return the position of the character."
    (read-from-string
     (cl-destructuring-bind (output value)
 	(slime-eval `(swank:eval-and-grab-output
-		      ,(format "%s" `(breeze/el:get-ql-local-project-directories))))
+		      ,(format "%s" `(breeze.swank:get-ql-local-project-directories))))
       value))))
 
 (defun breeze-choose-local-project-directories ()
   "Let the user choose the directory if there's more than one."
-  (first (breeze-quicklisp-local-project-directories)))
+  (let ((directories (breeze-quicklisp-local-project-directories)))
+    (if (eq 1 (length directories))
+	(first directories)
+      (completing-read "Choose a local-project directory: " directories))))
 
 ;; (breeze-choose-local-project-directories)
 
-(defun breeze-quickproject (name)
+(defun breeze-quickproject ()
   "Create a project named NAME using quickproject."
-  (interactive "Name of the project: ")
-  (let (
+  (interactive)
+  (let ((name (read-string "Name of the project: "))
 	;; TODO let the user choose a directory outside of quicklisp's local
 	;; project directories.  see (read-directory-name "directory: ").
 	(directory (breeze-choose-local-project-directories))
@@ -315,10 +377,12 @@ Othewise, return the position of the character."
 	)
     (slime-interactive-eval
      (concat
-      "(breeze/el:make-project \"" directory name "\""
+      "(breeze.swank:make-project \"" directory name "\""
       " :author \"" author "\""
       " :license \"" licence "\""
-      ")"))))
+      ")"))
+    (message "\"%s\" created" (concat directory name "/"))
+    (find-file (concat directory name "/README.md"))))
 
 ;; e.g. (breeze-quickproject "foo")
 
@@ -371,6 +435,13 @@ Othewise, return the position of the character."
 
 ;; TODO
 ;; breeze-kill-worker-thread
+
+;; (bordeaux-threads:destroy-thread
+;;  (let ((current-thread (bt:current-thread)))
+;;    (find-if #'(lambda (thread)
+;; 		(and (not (eq current-thread thread))
+;; 		     (string= "worker" (bt:thread-name thread))))
+;; 	    (sb-thread:list-all-threads))))
 
 
 ;;; mode
