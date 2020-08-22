@@ -1,5 +1,7 @@
 # Breeze
 
+[![Build Status](https://travis-ci.org/fstamour/breeze.svg?branch=master)](https://travis-ci.org/fstamour/breeze)
+
 Breeze is a set of tools that aims to make lisp development a breeze (hence the name).
 
 It is still in its early development.
@@ -33,7 +35,7 @@ From the repl:
 (in-package :breeze.user)
 (br:main)
 ```
-Or from the command line, with nix:
+Or from the command line, with nix (assumes quicklisp is already setup):
 
 ```sh
 # Will run sbcl and load breeze with quicklisp
