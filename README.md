@@ -33,7 +33,7 @@ From the repl:
 (in-package :breeze.user)
 (br:main)
 ```
-Or from the command line, with nix:
+Or from the command line, with nix (assumes quicklisp is already setup):
 
 ```sh
 # Will run sbcl and load breeze with quicklisp
