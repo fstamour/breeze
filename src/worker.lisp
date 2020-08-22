@@ -67,7 +67,7 @@ Accepts positive reals (see cl:sleep function).")
     :accessor worker-task
     :initform nil
     :documentation "The function called by the control loop, it is set when calling worker-start."))
-  (:documentation "Workers are threads that process messages send via a channels.
+  (:documentation "Workers are threads that process messages sent via a channels.
 There are 3 channels:
 * an input channel used to send data to the task
 * an ouput channel used to get data back from the task
