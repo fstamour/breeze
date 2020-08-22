@@ -1,2 +1,2 @@
 language: nix
-script: ./test.nix
+script: ./ci.nix
