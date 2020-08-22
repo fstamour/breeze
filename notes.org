@@ -2,6 +2,7 @@
 
 * Tasks
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl
+** TODO Advising swank-interactive-eval doesn't override sbcl's repl either
 ** TODO Document how to use breeze:defun
 ** TODO Document (with screenshots) how to setup and use emacs integration
 ** TODO Document how to use quickproject integration
