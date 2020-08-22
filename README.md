@@ -66,7 +66,3 @@ rg -i todo
 # Will run the tests
 ./test.nix
 ```
-
-## Prior art
-
-[Image based development](https://www.informatimago.com/develop/lisp/com/informatimago/small-cl-pgms/ibcl/index.html)
