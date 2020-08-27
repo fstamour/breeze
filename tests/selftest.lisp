@@ -1,14 +1,14 @@
 
-(uiop:define-package #:breeze.selftest
-    (:documentation "Tests to tests breeze's facilities, including the test framework.")
-    (:mix #:breeze.user #:cl #:alexandria)
+(uiop:define-package #:breeze.test.test
+    (:documentation "Tests for breeze.test.")
+  (:mix #:breeze.user #:cl #:alexandria)
   (:import-from #:breeze.test
                 #:*test*)
   ;; Use cl's defun
   (:shadowing-import-from #:cl #:defun)
-  (:export #:selftest))
+  (:export #:test.test))
 
-(in-package #:breeze.selftest)
+(in-package #:breeze.test.test)
 
 
 ;;; Defines a few dummy functions with breeze's defun
@@ -35,12 +35,14 @@
 
 
 
+;; TODO This won't be necessary once br:selftest filter existing tests
+;; by packages
 (defun selftest-p (test-name)
   "Is this test a self-test?"
   (starts-with-subseq (symbol-name 'self/)
                       (symbol-name test-name)))
 
-(defun selftest ()
+(defun run-all-selftest ()
   "Run all self-tests"
   (run-all-tests
    (loop :for test-name :being :the :hash-key :of *test*
@@ -82,4 +84,3 @@
  #'(lambda (node)
      (let ((p (eq 'quote (car node))))
        (format t "~&~A ~A%" p node))))
-

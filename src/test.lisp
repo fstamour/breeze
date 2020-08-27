@@ -80,7 +80,7 @@
 ;; This is ok, but it doesn't have a clear report
 (defun run-all-tests (&optional test-list)
   "Run all the tests"
-  (format t "~&Running all tests...")
+  (format t "~&Running tests...")
   (let ((failed 0)
                 (total 0))
     (loop :for name :in (or test-list (hash-table-keys *test*))

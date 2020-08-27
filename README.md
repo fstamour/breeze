@@ -93,3 +93,8 @@ Or from the command line, with nix:
 
 With either method, the documentation is generated into to `docs/`
 folder.
+
+## Notes
+
+- "selftests" are called like that to prevent confusion with
+  `breeze.test`, which is the test framewokr that breeze provides.

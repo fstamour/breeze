@@ -9,6 +9,7 @@
   :depends-on (#:alexandria
 	       #:anaphora
 	       #:chanl
+	       #:cl-ppcre
 	       #:closer-mop
 	       #:staple
 	       #:quickproject
@@ -18,16 +19,18 @@
   :components
   ((:module "src"
 	    :components
-            ((:file "utils")
+	    ((:file "utils")
 	     (:file "documentation")
-             (:file "definition")
-             (:file "test")
-             (:file "worker")
-             (:file "test-runner")
-             (:file "xref")
-             (:file "asdf")
+	     (:file "definition")
+	     (:file "test")
+	     (:file "worker")
+	     (:file "test-runner")
+	     (:file "xref")
+	     (:file "asdf")
 	     (:file "breeze-swank")
-             (:file "user")))
+	     (:file "user")))
+   ;; TODO move this into its own system (breeze.selftest.asd)
    (:module "tests"
 	    :components
-            ((:file "selftest")))))
+            ((:file "user")
+	     (:file "xref")))))
