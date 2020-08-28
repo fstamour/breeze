@@ -19,5 +19,5 @@ install:
   - curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
 
 script:
-  - ros -Q -e '(ql:quickload :breeze)'
-        -e '(breeze.selftest:selftest)'
+  - ros -e '(ql:quickload :breeze)'
+        -e '(breeze.user:selftest)'
