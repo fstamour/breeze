@@ -64,6 +64,11 @@
   (ensure-test-runner)
   (request-to-run-test* (tested-by function-name)))
 
+(defun maybe-tips-about-test-runner (&optional (stream *standard-output*))
+  (unless (breeze.worker:worker-alive-p
+	   breeze.test-runner::*test-runner*)
+    (format stream "~&Use (br:ensure-test-runner) or (br:start-test-runner) to be able to run tests automatically in the background.")))
+
 (defun welcome ()
   ;; figlet -mini breeze
   (format t "~&~%~A~%~%" "
@@ -72,11 +77,12 @@
 
   (format t "~%Tips:~%")
   (format t "~&~{ * ~A~%~}"
-          '(#+later "Remember to use the emacs mode if applicable."
-            "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
-            "Use (require 'swank) followed by (swank:create-server) to start swank."
-	    "Once swank is started, call (breeze.swank:advise-swank-interactive-eval)"
-	    "Use (br:ensure-test-runner) or (br:start-test-runner) to be able to run tests automatically in the background.")))
+	  (remove-if #'null
+	   `(#+later "Remember to use the emacs mode if applicable."
+		     "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
+		     "Use (require 'swank) followed by (swank:create-server) to start swank."
+		     "Once swank is started, call (breeze.swank:advise-swank-interactive-eval)"
+		     ,(maybe-tips-about-test-runner nil)))))
 
 (defun main ()
   "Call this function to start."
@@ -131,7 +137,10 @@
 
 (defun next ()
   "Call this to get hints on what to do next."
+  (maybe-tips-about-test-runner)
   (check-for-undocumented-symbols))
+
+
 
 (defun selftest ()
   "Load and run breeze's selftests."
