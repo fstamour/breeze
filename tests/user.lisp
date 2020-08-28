@@ -18,4 +18,9 @@
        (list
 	(find-package :cl))
        (current-packages #'(lambda ()
-			     (find-package :cl))))))
+			     (find-package :cl)))))
+  (is
+    (equal
+     (current-packages "breeze\\.(user|xref)\\.test")
+     (list (find-package '#:breeze.user.test)
+	   (find-package '#:breeze.xref.test)))))

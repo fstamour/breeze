@@ -109,6 +109,8 @@
      ((listp package-designator)
       (loop :for designator :in package-designator
 	 :append (current-packages designator)))
+     ((stringp package-designator)
+      (find-packages-by-regex package-designator))
      ((when (functionp package-designator)
 	(funcall package-designator))))))
 
