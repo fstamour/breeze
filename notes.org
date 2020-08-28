@@ -4,6 +4,16 @@
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl
 ** TODO Advising swank-interactive-eval doesn't override sbcl's repl either
 ** TODO Document how to use breeze:defun
+
+*** When redefining a function defined with breeze:defun, it run tests
+*** When defining a test with breeze:deftest, it run tests
+
+*** Demonstrate that the test-runner is debounced
+
+When you redefine many function (e.g. when reloading a file), it
+doens't run all the tests each time a something is redefined.
+
+
 ** TODO Document (with screenshots) how to setup and use emacs integration
 ** TODO Document how to use quickproject integration
 ** TODO Make the file-watcher usable

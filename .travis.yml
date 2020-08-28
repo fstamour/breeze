@@ -20,4 +20,4 @@ install:
 
 script:
   - ros -e '(ql:quickload :breeze)'
-        -e '(breeze.selftest:selftest)'
+        -e '(breeze.user:selftest)'

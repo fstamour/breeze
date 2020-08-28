@@ -14,7 +14,8 @@
    #:tested-by
    #:test-case
    ;; Utilities
-   #:find-packages-by-prefix))
+   #:find-packages-by-prefix
+   #:find-packages-by-regex))
 
 (in-package #:breeze.xref)
 
@@ -68,7 +69,8 @@
           :unless (gethash function-name function-called)
             :collect function-name)))
 
-#+wip ;; It's done, but not tested or used
+;; TODO
+#+todo ;; It's done, but not tested or used
 (defun list-function (&optional (package *package*))
   "List all the functions, optionally filter by package"
   (loop :for function-name :being :the :hash-key :of *function*
@@ -77,13 +79,27 @@
                   t)
           :collect function-name))
 
-#+wip ;; Look at parse-smth in cover.lisp
+;; TODO
+#+todo ;; Look at parse-smth in cover.lisp
 (defun function-without-documentation (&optional (package *package*)))
 
 (defun find-packages-by-prefix (prefix)
-   "Find all package whose name starts with the given prefix (case insensitive)."
-  (loop :for package :in (list-all-packages)
+  "Find all packages whose name starts with the given prefix (case insensitive)."
+  (loop
+     :with prefix = (string-downcase prefix)
+     :for package :in (list-all-packages)
      :when (starts-with-subseq prefix
 			       (string-downcase
 				(package-name package)))
+     :collect package))
+
+(defun find-packages-by-regex (regex &optional (case-insensitive-p t))
+  "Find all packages whose name match the regex (case insensitive by default)."
+  (loop
+     :with scanner = (cl-ppcre:create-scanner regex :case-insensitive-mode
+					      case-insensitive-p)
+     :for package :in (list-all-packages)
+     :when (cl-ppcre:scan scanner
+			  (string-downcase
+			   (package-name package)))
      :collect package))
