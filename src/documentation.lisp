@@ -205,7 +205,8 @@
 	(:doctype)
 	(:html
 	 (:head
-	  (:title "Breeze"))
+	  (:title "Breeze")
+	  (:link :rel "stylesheet" :href "style.css"))
 	 (:body
 	  (:ol
 	   (:li (:a :href "#readme" "Breeze"))
