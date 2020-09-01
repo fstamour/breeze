@@ -4,19 +4,21 @@
 (staple:load-system-quietly '#:staple-markdown)
 
 (defmethod staple:packages ((system (eql (asdf:find-system '#:breeze))))
-  (mapcar #'find-package '(
-            ;; It's formatted this way so it's easy to sort
-            :breeze.user
-            :breeze.asdf
-            :breeze.definition
-            ;; :breeze.file-watcher
-            :breeze.selftest
-            :breeze.test
-            :breeze.test-runner
-            :breeze.utils
-            :breeze.worker
-            :breeze.xref
-            )))
+  (mapcar #'(lambda (package)
+	      (or
+	       (find-package package)
+	       (error "Cound not find package \"~a\"." package)))
+	  '(
+	    ;; It's formatted this way so it's easy to sort
+	    :breeze.user
+	    :breeze.asdf
+	    :breeze.definition
+	    :breeze.test
+	    :breeze.test-runner
+	    :breeze.utils
+	    :breeze.worker
+	    :breeze.xref
+	    )))
 
 (defmethod staple:documents ((system (eql (asdf:find-system '#:breeze))))
   (list (asdf:system-relative-pathname system "README.md")))
