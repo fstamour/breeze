@@ -1,4 +1,4 @@
-# Emacs integration
+# <a name="emacs">Emacs integration</a>
 
 ## Features
 
@@ -60,4 +60,6 @@ In emacs, `M-x customize`, search for `breeze`.
 
 ### Refactoring
 
-| breeze-move-form-into-let | Move the current form into the nearest parent `let` form. |
+| Command | Description | Default Key |
+| - | - | - |
+| breeze-move-form-into-let | Move the current form into the nearest parent `let` form. | |

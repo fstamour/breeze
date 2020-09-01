@@ -1,6 +1,7 @@
 
 (defpackage #:breeze.utils
   (:use :cl)
+  (:documentation "Utilities")
   (:export
    #:package-apropos
    #:optimal-string-alignment-distance

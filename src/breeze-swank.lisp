@@ -4,6 +4,7 @@
 
 (defpackage #:breeze.swank
   (:use :cl #:alexandria)
+  (:documentation "Backend side of integration with swank")
   (:export
    #:make-project
    #:get-ql-local-project-directories
@@ -28,7 +29,7 @@
 (equal
  (test-insert-at "(defun f1 ()" ")"
 		 "~&(let (()))")
- (test-insert-at 
+ (test-insert-at
   "(defun f1 ()
 " ")"
   "~&(let (()))"))
@@ -43,7 +44,7 @@
 ;;; project scaffolding
 
 (defun make-project (&rest args)
-  ;; make-project pathname &key depends-on author include-copyright license name template-directory template-parameters => project-name 
+  ;; make-project pathname &key depends-on author include-copyright license name template-directory template-parameters => project-name
   (apply #'quickproject:make-project args))
 
 (defun get-ql-local-project-directories ()

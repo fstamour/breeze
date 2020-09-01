@@ -1,6 +1,6 @@
 
 (defpackage #:breeze.test
-  (:documentation "This package provides a test framework.")
+  (:documentation "Provides a test framework.")
   (:use :cl #:alexandria)
   (:export
    #:*test*
@@ -100,4 +100,3 @@
   "Macro that signals an error when its body evaluate to nil"
   `(unless (progn ,@body)
      (error "Expression is falsy: ~A" '(progn ,@body))))
-

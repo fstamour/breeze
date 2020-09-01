@@ -54,6 +54,9 @@ http://eradman.com/entrproject/
 *** Use a PRNG to generate inputs, use a hash to fingerprint the outputs
 * See
 ** TODO uses of slime's locative: http://quickdocs.org/mgl-pax/
+** TODO CCL's Watches https://ccl.clozure.com/manual/chapter4.12.html#watched-objects
+** TODO CCL's Advise https://ccl.clozure.com/manual/chapter4.3.html#Advising
+** TODO https://github.com/melisgl/mgl-pax for more emacs/slime integration
 
 * Scratch files
 
