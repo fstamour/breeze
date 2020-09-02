@@ -1,7 +1,7 @@
 
 (uiop:define-package #:breeze.user
     (:use :cl)
-  (:documentation "This package is meant to be used by the end user.")
+  (:documentation "Use this package.")
   (:nicknames :br :br-user :breeze)
   (:shadowing-import-from #:breeze.definition
                           #:defun

@@ -1,6 +1,6 @@
 
 (defpackage #:breeze.definition
-  (:documentation "This package provide replacements for \"definition forms\" such as defun and defmacro.
+  (:documentation "Provides replacements for \"definition forms\" (such as defun and defmacro).
 The goal is to (portably) make sure we keep the definitions and not just their [compiled] results.")
   (:use :cl)
   (:shadow cl:defun cl:fmakunbound)
@@ -71,4 +71,3 @@ DEFINE-MODIFY-MACRO
 DEFINE-CONDITION
 DEFINE-SETF-EXPANDER)
 |#
-

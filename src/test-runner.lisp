@@ -3,8 +3,9 @@
 ;;; TODO Logging (maybe use log4cl)
 
 (defpackage #:breeze.test-runner
-  (:documentation "This package provides a test-runner and methods to interact with it.
-Alternatively, you _could_ run many different test-runner.")
+  (:documentation "Provides a test-runner (and methods to interact
+with it).  Alternatively, you _could_ run many different
+test-runner.")
   (:use :cl #:alexandria #:anaphora
         #:breeze.worker)
   (:export #:start-test-runner
@@ -95,5 +96,3 @@ Alternatively, you _could_ run many different test-runner.")
   (request-to-run-test 'a)
   (request-to-run-test* '(a b c)))
 |#
-
-

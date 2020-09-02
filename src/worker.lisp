@@ -1,6 +1,6 @@
 
 (defpackage #:breeze.worker
-  (:documentation "This package exports a class named \"worker\" and different methods to manipulate objects of that class.")
+  (:documentation "Worker class and methods")
   (:use :cl #:alexandria #:anaphora)
   (:export
    ;; class
@@ -174,4 +174,3 @@ To use the worker, you need to subclass the worker class and specialize the \"wo
 (worker-start *test-worker*)
 (worker-stop *test-worker*)
 |#
-

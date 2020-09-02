@@ -52,8 +52,41 @@ http://eradman.com/entrproject/
 ** Compare the files in a system's directory and the actual components.
 ** See BIST to probalistically compare functions
 *** Use a PRNG to generate inputs, use a hash to fingerprint the outputs
+** Generate code based on desired input/output
+
+https://github.com/webyrd/Barliman
+
 * See
 ** TODO uses of slime's locative: http://quickdocs.org/mgl-pax/
+** TODO CCL's Watches https://ccl.clozure.com/manual/chapter4.12.html#watched-objects
+** TODO CCL's Advise https://ccl.clozure.com/manual/chapter4.3.html#Advising
+** TODO https://github.com/melisgl/mgl-pax for more emacs/slime integration
+** TODO SLIMA for integration with Atom
+
+Superior Lisp Interactive Mode for Atom
+
+https://github.com/neil-lindquist/SLIMA
+
+* Libraries we might need in the future
+
+** PROtocol and TESTcase manager
+
+https://github.com/phoe/protest
+
+** Concrete Syntax Tree
+
+https://github.com/s-expressionists/Concrete-Syntax-Tree
+This library is intended to solve the problem of source tracking for
+Common Lisp code.
+
+** SICL
+
+A fresh implementation of Common Lisp
+https://github.com/robert-strandh/SICL
+
+I'm sure there are tons of other user-case:
+- infer types
+- interpret code (symbolically or not)
 
 * Scratch files
 

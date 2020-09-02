@@ -11,26 +11,28 @@
 	       #:chanl
 	       #:cl-ppcre
 	       #:closer-mop
-	       #:staple
 	       #:quickproject
 	       #:swank
-	       #:uiop)
+	       #:uiop
+	       ;; For documentation generation
+	       #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
+	       )
   :serial t
   :components
   ((:module "src"
 	    :components
 	    ((:file "utils")
-	     (:file "documentation")
 	     (:file "definition")
 	     (:file "test")
 	     (:file "worker")
 	     (:file "test-runner")
 	     (:file "xref")
+	     (:file "documentation")
 	     (:file "asdf")
 	     (:file "breeze-swank")
 	     (:file "user")))
    ;; TODO move this into its own system (breeze.selftest.asd)
    (:module "tests"
 	    :components
-            ((:file "user")
+	    ((:file "user")
 	     (:file "xref")))))
