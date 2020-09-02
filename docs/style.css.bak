@@ -77,7 +77,9 @@ pre > code {
   background-color: #f4f5f6;
 }
 code, kbd, samp {
-	padding: 0.3em; background: #f4f5f6; white-space: pre; font-size: 90%;
+    padding: 0.3em 0;
+    background: #f4f5f6;
+    white-space: pre;
 }
 
 

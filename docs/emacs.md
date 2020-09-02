@@ -12,10 +12,8 @@
 
 ## Setup
 
-```elisp
-(load `quicklisp/local-projects/breeze/src/breeze.el`)
-(add-hook 'lisp-mode-hook #'breeze-mode)
-```
+	(load `quicklisp/local-projects/breeze/src/breeze.el`)
+	(add-hook 'lisp-mode-hook #'breeze-mode)
 
 ## Customizations
 

@@ -29,17 +29,16 @@ cloning this repository in quicklisp's local-projects folder.</p>
 
 <p>From the repl:</p>
 
-<p><code>
-(ql:quickload :breeze)
+<pre><code>(ql:quickload :breeze)
 (in-package :breeze.user)
 (br:main)
-</code>
-Or from the command line, with nix (assumes quicklisp is already setup):</p>
+</code></pre>
 
-<p><code>
-# Will run sbcl and load breeze with quicklisp
+<p>Or from the command line, with nix (assumes quicklisp is already setup):</p>
+
+<pre><code># Will run sbcl and load breeze with quicklisp
 ./shell.nix
-</code></p>
+</code></pre>
 
 <p>Don't know what to do next? Call <code>(br:next)</code>.</p>
 
@@ -51,46 +50,40 @@ local-projects directory.</p>
 <p>Optional: setup the pre-commit hook (currently assumes that
 <a href="https://nixos.org/" >nix</a> is installed).</p>
 
-<p><code>
-git config core.hooksPath githooks
-</code></p>
+<pre><code>git config core.hooksPath githooks
+</code></pre>
 
 <p>Look for TODOs in the code</p>
 
-<p><code>
-grep -ir --include='*.lisp' todo
+<pre><code>grep -ir --include='*.lisp' todo
 # or
 rg -i todo
-</code></p>
+</code></pre>
 
 <h3>How to run the (self-) tests</h3>
 
 <p>From the repl:</p>
 
-<p><code>
-(ql:quickload 'breeze)
+<pre><code>(ql:quickload 'breeze)
 (br:selftest)
-</code></p>
+</code></pre>
 
 <p>Or from the command line, with nix:</p>
 
-<p><code>
-./doc.nix
-</code></p>
+<pre><code>./doc.nix
+</code></pre>
 
 <h3>How to generate the documentation</h3>
 
 <p>From the repl:</p>
 
-<p><code>
-(breeze.documentation::generate-documentation)
-</code></p>
+<pre><code>(breeze.documentation::generate-documentation)
+</code></pre>
 
 <p>Or from the command line, with nix:</p>
 
-<p><code>
-./doc.nix
-</code></p>
+<pre><code>./doc.nix
+</code></pre>
 
 <p>With either method, the documentation is generated into to <code>docs/</code>
 folder.</p>
@@ -119,10 +112,9 @@ folder.</p>
 
 <h2>Setup</h2>
 
-<p><code>elisp
-(load `quicklisp/local-projects/breeze/src/breeze.el`)
+<pre><code>(load `quicklisp/local-projects/breeze/src/breeze.el`)
 (add-hook 'lisp-mode-hook #'breeze-mode)
-</code></p>
+</code></pre>
 
 <h2>Customizations</h2>
 
