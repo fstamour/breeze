@@ -14,6 +14,7 @@
 	       #:quickproject
 	       #:swank
 	       #:uiop
+	       #:str
 	       ;; For documentation generation
 	       #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
 	       )

@@ -8,7 +8,6 @@
    #:walk
    #:walk-car
    #:walk-list
-   #:repeat-string
    #:indent-string
    #:print-comparison))
 
@@ -85,25 +84,13 @@
                   (aref diff-0 0) (1+ i)))))
       (diff-0 n))))
 
-(defun repeat-string (times string)
-  (check-type times (integer 0))
-  "Repeat a string multiple times"
-  (format nil "~v@{~A~:*~}" times string))
-
-#|
-(repeat-string 0 "")
-(repeat-string 0 "-")
-(repeat-string 1 "-")
-(length (repeat-string 10 "--"))
-|#
-
 (defun indent-string (indentation string)
   (check-type indentation (integer 0))
   (with-input-from-string (input string)
     (with-output-to-string (output)
       (loop :for line = (read-line input nil nil)
 	 :while line
-	 :do (format output "~a~a~%" (repeat-string indentation " ") line)))))
+	 :do (format output "~a~a~%" (str:repeat indentation " ") line)))))
 
 #|
 (indent-string 4 (format nil "a~%b"))
