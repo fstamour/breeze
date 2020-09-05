@@ -21,6 +21,9 @@
 			     (find-package :cl)))))
   (is
     (equal
-     (current-packages "breeze\\.(user|xref)\\.test")
+     (sort
+      (current-packages "breeze\\.(user|xref)\\.test")
+      #'string<
+      :key #'package-name)
      (list (find-package '#:breeze.user.test)
 	   (find-package '#:breeze.xref.test)))))
