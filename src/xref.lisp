@@ -15,7 +15,9 @@
    #:test-case
    ;; Utilities
    #:find-packages-by-prefix
-   #:find-packages-by-regex))
+   #:find-packages-by-regex
+   #:generic-method-p
+   #:specialp))
 
 (in-package #:breeze.xref)
 
@@ -103,3 +105,17 @@
 			  (string-downcase
 			   (package-name package)))
      :collect package))
+
+(defun generic-method-p (symbol)
+  "Returns T if SYMBOL designates a generic method"
+  (and (fboundp symbol)
+       (subtypep
+	(type-of (symbol-function symbol))
+	'standard-generic-function)))
+
+(defun specialp (symbol)
+  "Return true if SYMBOL is a special variable."
+  (or (boundp symbol)
+      (eval `(let (,symbol)
+               (declare (ignorable ,symbol))
+               (boundp ',symbol)))))

@@ -36,4 +36,6 @@
    (:module "tests"
 	    :components
 	    ((:file "user")
-	     (:file "xref")))))
+	     (:file "dummy-package")
+	     (:file "xref")
+	     (:file "documentation")))))

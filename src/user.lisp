@@ -140,8 +140,6 @@
   (maybe-tips-about-test-runner)
   (check-for-undocumented-symbols))
 
-
-
 (defun selftest ()
   "Load and run breeze's selftests."
   (breeze.test:run-all-tests)
