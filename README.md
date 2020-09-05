@@ -2,6 +2,8 @@
 
 <a href="https://travis-ci.org/fstamour/breeze">![Build Status](https://travis-ci.org/fstamour/breeze.svg?branch=master)</a>
 
+<a href="https://ko-fi.com/F2F21YR7I">Support me on Ko-Fi</a>
+
 Breeze is a set of tools that aims to make lisp development a breeze (hence the name).
 
 It is still in its early development.
