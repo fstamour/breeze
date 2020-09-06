@@ -20,7 +20,8 @@
    #:generic-method-p
    #:specialp
    #:macrop
-   #:simple-function-p))
+   #:simple-function-p
+   #:classp))
 
 (in-package #:breeze.xref)
 
@@ -75,7 +76,7 @@
             :collect function-name)))
 
 ;; TODO
-#+todo ;; It's done, but not tested or used
+#+todo ;; It's done, but not tested nor used
 (defun list-function (&optional (package *package*))
   "List all the functions, optionally filter by package"
   (loop :for function-name :being :the :hash-key :of *function*
@@ -130,7 +131,11 @@
        (macro-function symbol)))
 
 (defun simple-function-p (symbol)
-  "Return true if symbol is a function that is nor a macro nor a generic function."
+  "Return true if SYMBOL is a function that is nor a macro nor a generic function."
   (and (fboundp symbol)
        (not (generic-method-p symbol))
        (not (macrop symbol))))
+
+(defun classp (symbol)
+  "Return true if SYMBOL designate a class."
+  (find-class symbol nil))

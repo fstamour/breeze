@@ -5,20 +5,24 @@
   (:nicknames :dum)
   (:export
    ;; Documented symbols
-   #:*bound-variable-documented*
-   #:*unbound-variable-documented*
-   #:class-documented
-   #:function-documented
-   #:macro-documented
-   #:slot-documented
+   #:*bound-variable*
+   #:*unbound-variable*
+   #:a-class
+   #:a-function
+   #:a-generic-function
+   #:a-macro
+   #:slot
 
    ;; Undocumented symbols
    #:*bound-variable-undocumented*
    #:*unbound-variable-undocumented*
    #:class-undocumented
    #:function-undocumented
+   #:generic-function-undocumented
    #:macro-undocumented
    #:slot-undocumented
+
+   #:another-generic-function
    ))
 
 (in-package #:breeze.dummy.test)
@@ -26,23 +30,30 @@
 
 ;;; Documented symbols
 
-(defvar *unbound-variable-documented* ()
+(defvar *unbound-variable* ()
   "A documented unbound symbol.")
-(defvar *bound-variable-documented* t
+
+(defvar *bound-variable* t
   "A documented bound symbol.")
 
-(defun function-documented ()
-  "A documented function.")
+(defun a-function ()
+  "A documented function."
+  t)
 
-(defgeneric generic-function-documented ()
+(defgeneric a-generic-function ()
   (:documentation "A documented generic function."))
 
-(defmacro macro-documented ()
-  "A documented macro.")
+(defmethod a-generic-function ()
+  "A method."
+  t)
 
-(defclass class-documented ()
-  ((slot-documented
-    :accessor slot-documented
+(defmacro a-macro ()
+  "A documented macro."
+  t)
+
+(defclass a-class ()
+  ((slot
+    :accessor slot
     :documentation "A documented slot."))
   (:documentation "A documented class."))
 
@@ -53,7 +64,16 @@
 (defvar *bound-variable-undocumented* t)
 (defun function-undocumented ())
 (defgeneric generic-function-undocumented ())
+(defmethod generic-function-undocumented ())
 (defmacro macro-documented ())
 (defclass class-undocumented ()
   ((slot-undocumented
     :accessor slot-undocumented)))
+
+
+;;; Other cases
+
+(defgeneric another-generic-function (x))
+(defmethod another-generic-function ((x (eql '1))))
+(defmethod another-generic-function ((x (eql '2)))
+  "documented" t)
