@@ -150,3 +150,9 @@
   (uiop:symbol-call '#:breeze.test.test '#:run-all-selftest)
   ;; TODO Run only breeze's tests (hint: find-packages-by-prefix)
   )
+
+(defun dogfood ()
+  "Setup breeze to work on breeze."
+  (breeze.swank:advise-swank-interactive-eval)
+  (setf breeze.user:*current-packages*  "^breeze\\.[^.]+$")
+  (ensure-test-runner))
