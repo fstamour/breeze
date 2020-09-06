@@ -16,8 +16,11 @@
    ;; Utilities
    #:find-packages-by-prefix
    #:find-packages-by-regex
+   ;; Symbol inspection
    #:generic-method-p
-   #:specialp))
+   #:specialp
+   #:macrop
+   #:simple-function-p))
 
 (in-package #:breeze.xref)
 
@@ -110,12 +113,24 @@
   "Returns T if SYMBOL designates a generic method"
   (and (fboundp symbol)
        (subtypep
-	(type-of (symbol-function symbol))
+	(type-of (fdefinition symbol))
 	'standard-generic-function)))
 
 (defun specialp (symbol)
   "Return true if SYMBOL is a special variable."
-  (or (boundp symbol)
-      (eval `(let (,symbol)
-               (declare (ignorable ,symbol))
-               (boundp ',symbol)))))
+  (and (symbolp symbol)
+       (or (boundp symbol)
+	   (eval `(let (,symbol)
+		    (declare (ignorable ,symbol))
+		    (boundp ',symbol))))))
+
+(defun macrop (symbol)
+  "Return true if SYMBOL designate a macro."
+  (and (symbolp symbol)
+       (macro-function symbol)))
+
+(defun simple-function-p (symbol)
+  "Return true if symbol is a function that is nor a macro nor a generic function."
+  (and (fboundp symbol)
+       (not (generic-method-p symbol))
+       (not (macrop symbol))))
