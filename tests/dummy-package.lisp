@@ -12,6 +12,7 @@
    #:a-generic-function
    #:a-macro
    #:slot
+   #:an-integer
 
    ;; Undocumented symbols
    #:*bound-variable-undocumented*
@@ -21,6 +22,7 @@
    #:generic-function-undocumented
    #:macro-undocumented
    #:slot-undocumented
+   #:integer-undocumented
 
    #:another-generic-function
    ))
@@ -57,6 +59,8 @@
     :documentation "A documented slot."))
   (:documentation "A documented class."))
 
+(deftype an-integer () "A documented type-specifier." '(integer 0 100))
+
 
 ;;; Undocumented symbols
 
@@ -69,6 +73,8 @@
 (defclass class-undocumented ()
   ((slot-undocumented
     :accessor slot-undocumented)))
+
+(deftype integer-undocumented () '(integer 0 100))
 
 
 ;;; Other cases
