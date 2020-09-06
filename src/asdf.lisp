@@ -13,7 +13,7 @@
 (in-package #:breeze.asdf)
 
 (defun system-files (system-designator)
-  "List all the files in a system. Including the .asd file too."
+  "List all the files in a system. Including the .asd file itself."
   (let ((system (asdf/system:find-system system-designator)))
     `(,(asdf/system:system-source-file system)
       ,@(remove-if #'uiop/pathname:directory-pathname-p

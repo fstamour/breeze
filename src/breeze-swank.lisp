@@ -14,40 +14,17 @@
 
 (in-package #:breeze.swank)
 
-(defun insert-at (current-text text-to-insert position)
-  (with-output-to-string (stream)
-    (princ (subseq current-text 0 position) stream)
-    (format stream text-to-insert)
-    (princ (subseq current-text position) stream)))
-
-(defun test-insert-at (pre post insert)
-  (insert-at (concatenate 'string pre post)
-	     insert
-	     (length pre)))
-
-#+nil
-(equal
- (test-insert-at "(defun f1 ()" ")"
-		 "~&(let (()))")
- (test-insert-at
-  "(defun f1 ()
-" ")"
-  "~&(let (()))"))
-
-(defun insert-let (string position)
-  (insert-at string
-	     "~&(let (()))"
-	     position))
-
-
 
 ;;; project scaffolding
 
-(defun make-project (&rest args)
-  ;; make-project pathname &key depends-on author include-copyright license name template-directory template-parameters => project-name
+(defun make-project (&rest args
+		     &key depends-on author include-copyright license name template-directory template-parameters)
+  (declare (ignore depends-on author include-copyright license name template-directory template-parameters))
+  "Scaffold a project. Currently it's just a wrapper on quickproject's make-project."
   (apply #'quickproject:make-project args))
 
 (defun get-ql-local-project-directories ()
+  "Get the list of quicklisp local-projects directories (as strings)."
   (mapcar #'namestring
 	  ql:*local-project-directories*))
 
@@ -62,6 +39,7 @@
   "A list of recently-evaluated forms (as strings).")
 
 (defun call-with-correction-suggestion (function)
+  "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
   (handler-bind
       ((undefined-function #'(lambda (condition)
 			       (let ((input (string-downcase (cell-error-name condition)))
@@ -113,9 +91,12 @@
   (funcall 'interactive-eval string))
 
 (defun advise-swank-interactive-eval ()
-  (setf (symbol-function 'swank:interactive-eval) #'%interactive-eval))
+  "Advise swank:interactive-eval."
+  (unless (eq (symbol-function 'swank:interactive-eval) #'%interactive-eval)
+    (setf (symbol-function 'swank:interactive-eval) #'%interactive-eval)))
 
 (defun restore-swank-interactive-eval ()
+  "Unadvise swank:interactive-eval."
   (setf (symbol-function 'swank:interactive-eval)
 	*original-swank-interactive-eval*))
 

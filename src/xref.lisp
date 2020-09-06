@@ -15,7 +15,13 @@
    #:test-case
    ;; Utilities
    #:find-packages-by-prefix
-   #:find-packages-by-regex))
+   #:find-packages-by-regex
+   ;; Symbol inspection
+   #:generic-method-p
+   #:specialp
+   #:macrop
+   #:simple-function-p
+   #:classp))
 
 (in-package #:breeze.xref)
 
@@ -70,7 +76,7 @@
             :collect function-name)))
 
 ;; TODO
-#+todo ;; It's done, but not tested or used
+#+todo ;; It's done, but not tested nor used
 (defun list-function (&optional (package *package*))
   "List all the functions, optionally filter by package"
   (loop :for function-name :being :the :hash-key :of *function*
@@ -84,7 +90,7 @@
 (defun function-without-documentation (&optional (package *package*)))
 
 (defun find-packages-by-prefix (prefix)
-  "Find all packages whose name starts with the given prefix (case insensitive)."
+  "Find all packages whose name starts with the given prefix (case insensitive by default)."
   (loop
      :with prefix = (string-downcase prefix)
      :for package :in (list-all-packages)
@@ -103,3 +109,33 @@
 			  (string-downcase
 			   (package-name package)))
      :collect package))
+
+(defun generic-method-p (symbol)
+  "Returns T if SYMBOL designates a generic method"
+  (and (fboundp symbol)
+       (subtypep
+	(type-of (fdefinition symbol))
+	'standard-generic-function)))
+
+(defun specialp (symbol)
+  "Return true if SYMBOL is a special variable."
+  (and (symbolp symbol)
+       (or (boundp symbol)
+	   (eval `(let (,symbol)
+		    (declare (ignorable ,symbol))
+		    (boundp ',symbol))))))
+
+(defun macrop (symbol)
+  "Return true if SYMBOL designate a macro."
+  (and (symbolp symbol)
+       (macro-function symbol)))
+
+(defun simple-function-p (symbol)
+  "Return true if SYMBOL is a function that is nor a macro nor a generic function."
+  (and (fboundp symbol)
+       (not (generic-method-p symbol))
+       (not (macrop symbol))))
+
+(defun classp (symbol)
+  "Return true if SYMBOL designate a class."
+  (find-class symbol nil))

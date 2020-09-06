@@ -4,50 +4,84 @@
   (:nicknames ":br.doc")
   (:documentation "Tools to inspect and generate documentation")
   (:use :cl #:alexandria)
+  (:import-from #:breeze.xref
+		#:generic-method-p
+		#:specialp
+		#:macrop
+		#:classp
+		#:simple-function-p)
+  (:shadowing-import-from #:breeze.definition
+                          #:defun
+                          #:fmakunbound)
   (:export
    #:find-undocumented-symbols))
 
 (in-package #:breeze.documentation)
 
+
+
 
 ;;; Inspect documentation
 
-(defun generic-method-p (symbol)
-  "Returns T if SYMBOL designates a generic method"
-  (and (fboundp symbol)
-       (subtypep
-	(type-of (symbol-function symbol))
-	'standard-generic-function)))
+(defun prettify-method (method)
+  (let ((name (closer-mop:generic-function-name
+	       (closer-mop:method-generic-function method)))
+	(specializers (closer-mop:method-specializers method)))
+    (list name specializers method)))
 
+;; TODO
+#|
+- [ ] Classes
+- [ ] Class slots
+- [ ] Conditions
+- [X] Functions
+- [X] Generic functions
+- [X] Macros
+- [X] Methods
+- [ ] Method combinations
+- [X] Packages
+- [X] Special variables
+- [ ] constants
+- [ ] Structures
+- [ ] Type definitions (I'm not sure this one can be done with introspection alone).
+|#
+;; TODO this doesn't detect if the documentation string actually has anything (could be the empty string).
 (defun find-undocumented-symbols (package-designator)
   "Find symbols in a package that lacks documentation."
   (let ((result)
 	(package (find-package package-designator)))
     ;; Package
     (unless (documentation package t)
-      (push package result))
+      (push (list :package package-designator) result))
     (do-external-symbols (symbol package result)
       ;; Functions
       (when (and (fboundp symbol)
 		 (not (documentation symbol 'function)))
-	(if generic-method-p symbol)
-	    (loop :for method :in (closer-mop:generic-function-methods
-				   (symbol-function symbol))
-	       :unless (documentation method t)
-	       :do (push method result))
-	    (push (symbol-function symbol) result)))
+	;; Generic functions
+	(cond
+	  ((generic-method-p symbol)
+	   (let ((has-documented-methods-p nil))
+	     (loop :for method :in (closer-mop:generic-function-methods
+				    (symbol-function symbol))
+		:if (documentation method t)
+		:do (setf has-documented-methods-p t)
+		:else
+		:do (push (append '(:method) (prettify-method method)) result))
+	     (unless has-documented-methods-p
+	       (push (list :generic-method symbol) result))))
+	  ((macrop symbol)
+	   (push (list :macro symbol) result))
+	  (t
+	   (push (list :function symbol) result))))
       ;; Compiler macros
       (when (and (compiler-macro-function symbol)
 		 (not (documentation symbol 'compiler-macro)))
-	(push (compiler-macro-function symbol) result))
+	(push (list :compiler-macro symbol) result))
       ;; Variable
-      (when (and (boundp symbol)
+      (when (and (specialp symbol)
 		 (not (documentation symbol 'variable)))
-	(push symbol result))
-      ;; TODO Method combination (documentation symbol 'method-combination)
-      ;; TODO Classes and Structures (documentation symbol 'structure)
-      ;; TODO Type specifiers (documentation symbol 'type)
-      ))
+	(push (list :special-variable symbol) result))
+      )))
 
 ;; To complete the 3 TODOs, I need to figure out:
 ;; how to check if a symbol represent a structure (for a class, I just need to use (find-class)
@@ -55,30 +89,7 @@
 ;; hot to check if a symbol represent a method-combination
 
 
-;;; Generate documentation
-
-(defun relative-pathname (pathname)
-  (if (cl-fad:pathname-relative-p pathname)
-      (asdf:system-relative-pathname :breeze pathname)
-      pathname))
-
-(defun render-markdown (pathname)
-  "Read a markdown file and render it in spinneret's *html* stream."
-  (let ((3bmd-tables:*tables* t))
-    (3bmd:parse-and-print-to-stream
-     (relative-pathname pathname)
-     spinneret:*html*)))
-
-(defun summarize (string)
-  "Keep only the first sentence, remove parenthesis."
-  (cl-ppcre:regex-replace-all
-   "\\([^)]*\\) *"
-   (if-let (position (position #\. string))
-     (subseq string 0 position)
-     string)
-   ""))
-
-;; (defun special-variable-p ())
+;;; Utilities for document generation
 
 (defmacro map-external-symbol ((var package )
 			       predicate-body
@@ -120,6 +131,52 @@
   (:dt (symbol-name symbol))
   (:dd (documentation symbol 'variable)))
 
+(defun relative-pathname (pathname)
+  (if (cl-fad:pathname-relative-p pathname)
+      (asdf:system-relative-pathname :breeze pathname)
+      pathname))
+
+(defun render-markdown (pathname)
+  "Read a markdown file and render it in spinneret's *html* stream."
+  (let ((3bmd-tables:*tables* t))
+    (3bmd:parse-and-print-to-stream
+     (relative-pathname pathname)
+     spinneret:*html*)))
+
+;; TODO Move to utilities
+(defun summarize (string)
+  "Keep only the first sentence, remove parenthesis."
+  (cl-ppcre:regex-replace-all
+   "\\([^)]*\\) *"
+   (if-let (position (position #\. string))
+     (subseq string 0 position)
+     string)
+   ""))
+
+;; TOOD
+(defun function-lambda-list (function)
+  "Returns a function's lambda-list"
+   nil)
+
+
+;;; Generate documentation
+
+;; TODO
+#|
+- [X] Classes
+- [ ] Class slots
+- [ ] Conditions
+- [X] Functions
+- [X] Generic functions
+- [X] Macros
+- [X] Methods
+- [ ] Method combinations
+- [X] Packages
+- [X] Special variables
+- [ ] constants
+- [ ] Structures
+- [ ] Type definitions (I'm not sure this one can be done with introspection alone).
+|#
 (defun render-reference ()
   (spinneret:with-html
     (let ((packages
@@ -167,40 +224,25 @@
 			     (:h3 ,title)
 			     :dl
 			   :do
-			   (:dt (symbol-name symbol))
+			   (:dt (symbol-name symbol) (function-lambda-list symbol))
 			   (:dd (or (documentation symbol
 						   ,documentation-type)
 				    "No documentation.")))))
 	     (:h2 (:a :name package-name package-name))
 	     (:p (or (documentation package t) "No description."))
-	     (gen "Special variables" (boundp symbol) 'variable)
-	     (gen "Classes" (find-class symbol nil) 'type)
-	     (gen "Generic methods"
-		  (generic-method-p symbol)
-		  'function)
-	     (gen "Functions"
-		  (and (fboundp symbol)
-		       (not (generic-method-p symbol))
-		       (not (macro-function symbol)))
-		  'function)
-	     (gen "Macros"
-		  (and (fboundp symbol)
-		       (not (generic-method-p symbol))
-		       (macro-function symbol))
-		  'function))
-	 ;; TODO Macros
+	     (gen "Special variables" (specialp symbol) 'variable)
+	     (gen "Classes" (classp symbol) 'type)
+	     (gen "Generic methods" (generic-method-p symbol) 'function)
+	     (gen "Functions" (simple-function-p symbol) 'function)
+	     (gen "Macros" (macrop symbol) 'function))
 	   ))))
 
-(defun generate-documentation ()
-  (let ((index (relative-pathname "docs/index.html"))
-	(spinneret:*suppress-inserted-spaces* t)
-	(spinneret:*html-style* :tree)
-	(*print-pretty* nil))
-    (with-output-to-file
-	(spinneret:*html*
-	 index
-	 :if-exists :supersede
-	 :if-does-not-exist :create)
+(defun generate-documentation-to-stream (stream)
+  (let ((spinneret:*html* stream))
+    (let (
+	  (spinneret:*suppress-inserted-spaces* t)
+	  (spinneret:*html-style* :tree)
+	  (*print-pretty* nil))
       (spinneret:with-html
 	(:doctype)
 	(:html
@@ -214,5 +256,15 @@
 	   (:li (:a :href "#reference" "Reference")))
 	  (render-markdown "README.md")
 	  (render-markdown "docs/emacs.md")
-	  (render-reference)))))
-    (format t "~%breeze.documentation: ~s written.~%" index)))
+	  (render-reference)))))))
+
+(defun generate-documentation ()
+  (let ((index (relative-pathname "docs/index.html")))
+    (with-output-to-file
+	(output
+	 index
+	 :if-exists :supersede
+	 :if-does-not-exist :create)
+      (generate-documentation-to-stream output)
+      (format t "~%breeze.documentation: ~s written.~%" index))))
+

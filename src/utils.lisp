@@ -85,6 +85,7 @@
       (diff-0 n))))
 
 (defun indent-string (indentation string)
+  "Prepend INDENTATION spaces at the beginning of each line in STRING."
   (check-type indentation (integer 0))
   (with-input-from-string (input string)
     (with-output-to-string (output)
@@ -104,7 +105,7 @@
   (let* ((mismatch (mismatch string1 string2)))
     (format stream "~&~a~%~a|~%~a"
 	    string1
-	    (repeat-string mismatch "=")
+	    (str:repeat mismatch "=")
 	    string2)))
 
 #|
