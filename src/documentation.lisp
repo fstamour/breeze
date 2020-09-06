@@ -7,7 +7,10 @@
   (:import-from #:breeze.xref
 		#:generic-method-p
 		#:specialp
-		#:macrop)
+		#:macrop
+		#:classp
+		#:simple-function-p
+		)
   (:export
    #:find-undocumented-symbols))
 
@@ -203,22 +206,11 @@
 				    "No documentation.")))))
 	     (:h2 (:a :name package-name package-name))
 	     (:p (or (documentation package t) "No description."))
-	     (gen "Special variables" (boundp symbol) 'variable)
-	     (gen "Classes" (find-class symbol nil) 'type)
-	     (gen "Generic methods"
-		  (generic-method-p symbol)
-		  'function)
-	     (gen "Functions"
-		  (and (fboundp symbol)
-		       (not (generic-method-p symbol))
-		       (not (macro-function symbol)))
-		  'function)
-	     (gen "Macros"
-		  (and (fboundp symbol)
-		       (not (generic-method-p symbol))
-		       (macro-function symbol))
-		  'function))
-	 ;; TODO Macros
+	     (gen "Special variables" (specialp symbol) 'variable)
+	     (gen "Classes" (classp symbol) 'type)
+	     (gen "Generic methods" (generic-method-p symbol) 'function)
+	     (gen "Functions" (simple-function-p symbol) 'function)
+	     (gen "Macros" (macrop symbol) 'function))
 	   ))))
 
 (defun generate-documentation ()
