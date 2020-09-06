@@ -75,12 +75,3 @@
 
 
 
-;; (selftest)
-
-
-#+nil
-(breeze.utils:walk-list
- '('(mul))
- #'(lambda (node)
-     (let ((p (eq 'quote (car node))))
-       (format t "~&~A ~A%" p node))))

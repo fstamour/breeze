@@ -35,7 +35,8 @@
    ;; TODO move this into its own system (breeze.selftest.asd)
    (:module "tests"
 	    :components
-	    ((:file "user")
+	    ((:file "utils")
+	     (:file "user")
 	     (:file "dummy-package")
 	     (:file "xref")
 	     (:file "documentation")))))
