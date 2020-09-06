@@ -9,56 +9,15 @@
 		#:specialp
 		#:macrop
 		#:classp
-		#:simple-function-p
-		)
+		#:simple-function-p)
+  (:shadowing-import-from #:breeze.definition
+                          #:defun
+                          #:fmakunbound)
   (:export
    #:find-undocumented-symbols))
 
 (in-package #:breeze.documentation)
 
-
-
-;;; Utilities
-
-(defmacro map-external-symbol ((var package )
-			       predicate-body
-			       prelude-body
-			       wrapper
-			       &body loop-body)
-  (once-only (package)
-    (with-gensyms (symbols)
-      `(spinneret:with-html
-	 (let ((,symbols
-		(sort
-		 (loop :for ,var :being :the :external-symbol :of ,package
-		    :when ,predicate-body
-		    :collect ,var)
-		 #'string<
-		 :key #'symbol-name)))
-	   (when ,symbols
-	     ,prelude-body
-	     ,(let ((loop `(loop :for ,var :in ,symbols
-				,@loop-body)))
-		(if wrapper
-		    (list wrapper loop)
-		    loop))))))))
-
-#+nil
-(map-external-symbol (sym (find-package :br))
-    (boundp sym)
-    (print "Symbol found")
-    print
-  :collect (print sym))
-
-#+nil
-(map-external-symbol
-    (symbol (find-package :br))
-    (boundp symbol)
-    (:h3 "Special variables")
-    :dl
-  :do
-  (:dt (symbol-name symbol))
-  (:dd (documentation symbol 'variable)))
 
 
 
@@ -129,7 +88,47 @@
 ;; hot to check if a symbol represent a method-combination
 
 
-;;; Generate documentation
+;;; Utilities for document generation
+
+(defmacro map-external-symbol ((var package )
+			       predicate-body
+			       prelude-body
+			       wrapper
+			       &body loop-body)
+  (once-only (package)
+    (with-gensyms (symbols)
+      `(spinneret:with-html
+	 (let ((,symbols
+		(sort
+		 (loop :for ,var :being :the :external-symbol :of ,package
+		    :when ,predicate-body
+		    :collect ,var)
+		 #'string<
+		 :key #'symbol-name)))
+	   (when ,symbols
+	     ,prelude-body
+	     ,(let ((loop `(loop :for ,var :in ,symbols
+				,@loop-body)))
+		(if wrapper
+		    (list wrapper loop)
+		    loop))))))))
+
+#+nil
+(map-external-symbol (sym (find-package :br))
+    (boundp sym)
+    (print "Symbol found")
+    print
+  :collect (print sym))
+
+#+nil
+(map-external-symbol
+    (symbol (find-package :br))
+    (boundp symbol)
+    (:h3 "Special variables")
+    :dl
+  :do
+  (:dt (symbol-name symbol))
+  (:dd (documentation symbol 'variable)))
 
 (defun relative-pathname (pathname)
   (if (cl-fad:pathname-relative-p pathname)
@@ -152,6 +151,14 @@
      (subseq string 0 position)
      string)
    ""))
+
+;; TOOD
+(defun function-lambda-list (function)
+  "Returns a function's lambda-list"
+   nil)
+
+
+;;; Generate documentation
 
 ;; TODO
 #|
@@ -216,7 +223,7 @@
 			     (:h3 ,title)
 			     :dl
 			   :do
-			   (:dt (symbol-name symbol))
+			   (:dt (symbol-name symbol) (function-lambda-list symbol))
 			   (:dd (or (documentation symbol
 						   ,documentation-type)
 				    "No documentation.")))))
@@ -229,16 +236,12 @@
 	     (gen "Macros" (macrop symbol) 'function))
 	   ))))
 
-(defun generate-documentation ()
-  (let ((index (relative-pathname "docs/index.html"))
-	(spinneret:*suppress-inserted-spaces* t)
-	(spinneret:*html-style* :tree)
-	(*print-pretty* nil))
-    (with-output-to-file
-	(spinneret:*html*
-	 index
-	 :if-exists :supersede
-	 :if-does-not-exist :create)
+(defun generate-documentation-to-stream (stream)
+  (let ((spinneret:*html* stream))
+    (let (
+	  (spinneret:*suppress-inserted-spaces* t)
+	  (spinneret:*html-style* :tree)
+	  (*print-pretty* nil))
       (spinneret:with-html
 	(:doctype)
 	(:html
@@ -252,5 +255,15 @@
 	   (:li (:a :href "#reference" "Reference")))
 	  (render-markdown "README.md")
 	  (render-markdown "docs/emacs.md")
-	  (render-reference)))))
-    (format t "~%breeze.documentation: ~s written.~%" index)))
+	  (render-reference)))))))
+
+(defun generate-documentation ()
+  (let ((index (relative-pathname "docs/index.html")))
+    (with-output-to-file
+	(output
+	 index
+	 :if-exists :supersede
+	 :if-does-not-exist :create)
+      (generate-documentation-to-stream output)
+      (format t "~%breeze.documentation: ~s written.~%" index))))
+
