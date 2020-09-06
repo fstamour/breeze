@@ -16,19 +16,6 @@
 
 (in-package #:breeze.documentation)
 
-#|
-    Classes and class slots
-    Conditions
-    Functions
-    Generic functions
-    Macros
-    Methods
-    Method combinations
-    Packages
-    Special variables and constants
-    Structures
-    Type definitions
-|#
 
 
 ;;; Utilities
@@ -83,6 +70,22 @@
 	(specializers (closer-mop:method-specializers method)))
     (list name specializers method)))
 
+;; TODO
+#|
+- [ ] Classes
+- [ ] Class slots
+- [ ] Conditions
+- [X] Functions
+- [X] Generic functions
+- [X] Macros
+- [X] Methods
+- [ ] Method combinations
+- [X] Packages
+- [X] Special variables
+- [ ] constants
+- [ ] Structures
+- [ ] Type definitions (I'm not sure this one can be done with introspection alone).
+|#
 (defun find-undocumented-symbols (package-designator)
   "Find symbols in a package that lacks documentation."
   (let ((result)
@@ -118,9 +121,6 @@
       (when (and (specialp symbol)
 		 (not (documentation symbol 'variable)))
 	(push (list :special-variable symbol) result))
-      ;; TODO Method combination (documentation symbol 'method-combination)
-      ;; TODO Classes and Structures (documentation symbol 'structure)
-      ;; TODO Type specifiers (documentation symbol 'type)
       )))
 
 ;; To complete the 3 TODOs, I need to figure out:
@@ -153,6 +153,22 @@
      string)
    ""))
 
+;; TODO
+#|
+- [X] Classes
+- [ ] Class slots
+- [ ] Conditions
+- [X] Functions
+- [X] Generic functions
+- [X] Macros
+- [X] Methods
+- [ ] Method combinations
+- [X] Packages
+- [X] Special variables
+- [ ] constants
+- [ ] Structures
+- [ ] Type definitions (I'm not sure this one can be done with introspection alone).
+|#
 (defun render-reference ()
   (spinneret:with-html
     (let ((packages
