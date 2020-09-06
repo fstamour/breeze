@@ -6,11 +6,26 @@
   (:use :cl #:alexandria)
   (:import-from #:breeze.xref
 		#:generic-method-p
-		#:specialp)
+		#:specialp
+		#:macrop)
   (:export
    #:find-undocumented-symbols))
 
 (in-package #:breeze.documentation)
+
+#|
+    Classes and class slots
+    Conditions
+    Functions
+    Generic functions
+    Macros
+    Methods
+    Method combinations
+    Packages
+    Special variables and constants
+    Structures
+    Type definitions
+|#
 
 
 ;;; Utilities
@@ -59,31 +74,47 @@
 
 ;;; Inspect documentation
 
+(defun prettify-method (method)
+  (let ((name (closer-mop:generic-function-name
+	       (closer-mop:method-generic-function method)))
+	(specializers (closer-mop:method-specializers method)))
+    (list name specializers method)))
+
 (defun find-undocumented-symbols (package-designator)
   "Find symbols in a package that lacks documentation."
   (let ((result)
 	(package (find-package package-designator)))
     ;; Package
     (unless (documentation package t)
-      (push package result))
+      (push (list :package package-designator) result))
     (do-external-symbols (symbol package result)
       ;; Functions
       (when (and (fboundp symbol)
 		 (not (documentation symbol 'function)))
-	(if (generic-method-p symbol)
-	    (loop :for method :in (closer-mop:generic-function-methods
-				   (symbol-function symbol))
-	       :unless (documentation method t)
-	       :do (push method result))
-	    (push (symbol-function symbol) result)))
+	;; Generic functions
+	(cond
+	  ((generic-method-p symbol)
+	   (let ((has-documented-methods-p nil))
+	     (loop :for method :in (closer-mop:generic-function-methods
+				    (symbol-function symbol))
+		:if (documentation method t)
+		:do (setf has-documented-methods-p t)
+		:else
+		:do (push (append '(:method) (prettify-method method)) result))
+	     (unless has-documented-methods-p
+	       (push (list :generic-method symbol) result))))
+	  ((macrop symbol)
+	   (push (list :macro symbol) result))
+	  (t
+	   (push (list :function symbol) result))))
       ;; Compiler macros
       (when (and (compiler-macro-function symbol)
 		 (not (documentation symbol 'compiler-macro)))
-	(push (compiler-macro-function symbol) result))
+	(push (list :compiler-macro symbol) result))
       ;; Variable
-      (when (and (boundp symbol)
+      (when (and (specialp symbol)
 		 (not (documentation symbol 'variable)))
-	(push symbol result))
+	(push (list :special-variable symbol) result))
       ;; TODO Method combination (documentation symbol 'method-combination)
       ;; TODO Classes and Structures (documentation symbol 'structure)
       ;; TODO Type specifiers (documentation symbol 'type)
@@ -109,6 +140,7 @@
      (relative-pathname pathname)
      spinneret:*html*)))
 
+;; TODO Move to utilities
 (defun summarize (string)
   "Keep only the first sentence, remove parenthesis."
   (cl-ppcre:regex-replace-all
@@ -117,9 +149,6 @@
      (subseq string 0 position)
      string)
    ""))
-
-;; (defun special-variable-p ())
-
 
 (defun render-reference ()
   (spinneret:with-html
