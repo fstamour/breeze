@@ -5,7 +5,7 @@
 (defpackage #:breeze.test-runner
   (:documentation "Provides a test-runner (and methods to interact
 with it).  Alternatively, you _could_ run many different
-test-runner.")
+test-runners.")
   (:use :cl #:alexandria #:anaphora
         #:breeze.worker)
   (:export #:start-test-runner

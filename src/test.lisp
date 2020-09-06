@@ -49,7 +49,7 @@
     (rest body)))
 
 (defun run-test (name)
-  "Run a test by name, returns a list (passed condition)"
+  "Run a test by name, returns a list containing a boolean and a condition."
   (destructuring-bind (_ package body)
       (gethash name *test*)
     (declare (ignore _))

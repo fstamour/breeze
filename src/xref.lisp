@@ -90,7 +90,7 @@
 (defun function-without-documentation (&optional (package *package*)))
 
 (defun find-packages-by-prefix (prefix)
-  "Find all packages whose name starts with the given prefix (case insensitive)."
+  "Find all packages whose name starts with the given prefix (case insensitive by default)."
   (loop
      :with prefix = (string-downcase prefix)
      :for package :in (list-all-packages)
