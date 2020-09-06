@@ -9,6 +9,31 @@
 
 (in-package #:breeze.xref.test)
 
+(deftest test-calls-who
+  (is (equal '(dum:mul = is) (test-calls-who 'dum:mul))))
+
+(deftest tested-by
+  (is (member 'dum:mul (tested-by 'dum:mul)))
+  (is (member 'dum:2x (tested-by 'dum:mul))))
+
+(deftest test-case
+  (is (equal '((dum:mul 2 6) (dum:mul 2 2)) (test-case 'dum:mul))))
+
+(deftest package-test
+  (is (equal
+       '(breeze.dummy.test:mul breeze.dummy.test:2x)
+       (package-test 'dum))))
+
+;; TODO Fix me
+#+nil
+(deftest self/calls-who
+    (is (equalp (calls-who 'dum:2x) '(mul))))
+
+;; (breeze.xref::function-without-test)
+
+
+
+
 (deftest find-package
   (is (equal
        (find-packages-by-prefix "breeze")

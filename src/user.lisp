@@ -26,6 +26,7 @@
                 #:request-to-run-test
                 #:request-to-run-test*)
   (:import-from #:breeze.xref
+		#:package-test
                 #:calls-who
                 #:test-calls-who
                 #:tested-by
@@ -144,12 +145,10 @@
 
 (defun selftest ()
   "Load and run breeze's selftests."
-  (breeze.test:run-all-tests)
-  (load (merge-pathnames "tests/selftest.lisp"
-			 (breeze.asdf:system-directory '#:breeze)))
-  (uiop:symbol-call '#:breeze.test.test '#:run-all-selftest)
-  ;; TODO Run only breeze's tests (hint: find-packages-by-prefix)
-  )
+  (loop
+     :for package :in (current-packages "^breeze\\.[^.]+$")
+     :append
+       (run-all-tests (package-test package))))
 
 (defun dogfood ()
   "Setup breeze to work on breeze."

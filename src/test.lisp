@@ -1,7 +1,7 @@
 
-(defpackage #:breeze.test
+(uiop:define-package #:breeze.test
   (:documentation "Provides a test framework.")
-  (:use :cl #:alexandria)
+  (:mix :cl #:alexandria #:breeze.definition)
   (:export
    #:*test*
    #:*test-change-hooks*
@@ -43,10 +43,11 @@
 
 (defun test-body (name)
   "Get the body of a test by name"
-  (destructuring-bind (_ package body)
-      (gethash name *test*)
-    (declare (ignore _ package))
-    (rest body)))
+  (if-let (body (gethash name *test*))
+    (destructuring-bind (_ package body)
+	body
+	(declare (ignore _ package))
+      (rest body))))
 
 (defun run-test (name)
   "Run a test by name, returns a list containing a boolean and a condition."

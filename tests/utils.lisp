@@ -8,16 +8,41 @@
 
 (in-package #:breeze.utils.test)
 
-#+nil
-(breeze.utils:walk-list
- '('(mul))
- #'(lambda (node)
-     (let ((p (eq 'quote (car node))))
-       (format t "~&~A ~A%" p node))))
-
 (deftest walk)
-(deftest walk-list)
-(deftest walk-car)
+
+(deftest walk-list
+  (is
+    (equal
+     '(('(mul))
+       '(mul)
+       (mul))
+     (uiop:while-collecting (collect)
+       (breeze.utils:walk-list
+	'('(mul))
+	#'(lambda (node)
+	    (collect node))))))
+  (is
+    (equal
+     '(('(a b) c (d e (f)))
+       '(a b)
+       (a b)
+       (d e (f))
+       (f))
+     (uiop:while-collecting (collect)
+       (breeze.utils:walk-list
+	'('(a b) c (d e (f)))
+	#'(lambda (node)
+	    (collect node)))))))
+
+(deftest walk-car
+  (is (equal
+       '('(a b) quote a d f)
+       (uiop:while-collecting (collect)
+	 (breeze.utils:walk-car
+	  '('(a b) c (d e (f)))
+	  #'(lambda (node)
+	      (collect node)))))))
+
 (deftest package-apropos)
 (deftest optimal-string-alignment-distance)
 (deftest indent-string)

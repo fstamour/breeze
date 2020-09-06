@@ -1,14 +1,12 @@
 
-(defpackage #:breeze.xref
+(uiop:define-package #:breeze.xref
   (:documentation "Cross-reference and introspection")
-  (:use :cl #:breeze.utils #:alexandria)
-  (:import-from #:breeze.definition
-                #:*function*
-                #:function-body)
+  (:mix #:breeze.definition :cl #:breeze.utils #:alexandria)
   (:import-from #:breeze.test
                 #:test-body
                 #:*test*)
   (:export
+   #:package-test
    #:calls-who
    #:test-calls-who
    #:tested-by
@@ -25,6 +23,14 @@
 
 (in-package #:breeze.xref)
 
+(defun package-test (package)
+  "Find all tests defined in a pacakge."
+  (loop
+     :with package = (find-package package)
+     :for test-name :being :the :hash-key :of *test*
+     :when (eq package (symbol-package test-name))
+     :collect test-name))
+
 (defun calls-who (function-name)
   "Take a function name and returns a list of all the functions it calls."
   (uiop:while-collecting (collect)
@@ -36,18 +42,19 @@
 
 (defun test-calls-who (test-name)
   "Take a test name and return a list of all the functions it calls."
-  (uiop:while-collecting (collect)
+  (let ((function (make-hash-table)))
     (walk-car
      (test-body test-name)
      #'(lambda (el)
-         (when (function-body el)
-           (collect el))))))
+	 (when (and (symbolp el) (fboundp el)) ;;(function-body el)
+	   (setf (gethash el function) t))))
+    (hash-table-keys function)))
 
 (defun tested-by (function-name)
-  "Take a function name and return a list of all the tests that calls it."
+  "Return a list of all the tests that calls FUNCTION-NAME."
   (loop :for test-name :being :the :hash-key :of *test*
-        :when (member function-name (test-calls-who test-name))
-          :collect test-name))
+     :when (member function-name (test-calls-who test-name))
+     :collect test-name))
 
 (defun test-case (function-name)
   "List all the test-cases"
@@ -65,15 +72,20 @@
                        t))))
     (hash-table-keys case-set)))
 
-(defun function-without-test (&optional (package *package*))
+(defun function-without-test (package)
   ""
   (let ((function-called (make-hash-table)))
+    ;; For each tests
     (loop :for test-name :being :the :hash-key :of *test*
-          :do (loop :for function-name :in (test-calls-who test-name)
-                    :do (setf (gethash function-name function-called) t)))
+       ;; For each function called by this test.
+       :do (loop :for function-name :in (test-calls-who test-name)
+	      ;; accumulate
+              :do (setf (gethash function-name function-called) t)))
+    ;; For each functions
     (loop :for function-name :being :the :hash-key :of *function*
-          :unless (gethash function-name function-called)
-            :collect function-name)))
+       ;; Is it called in any test?
+       :unless (gethash function-name function-called)
+       :collect function-name)))
 
 ;; TODO
 #+todo ;; It's done, but not tested nor used
