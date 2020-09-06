@@ -105,7 +105,7 @@
   (let* ((mismatch (mismatch string1 string2)))
     (format stream "~&~a~%~a|~%~a"
 	    string1
-	    (repeat-string mismatch "=")
+	    (str:repeat mismatch "=")
 	    string2)))
 
 #|

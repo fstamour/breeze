@@ -45,6 +45,7 @@
 - [ ] Structures
 - [ ] Type definitions (I'm not sure this one can be done with introspection alone).
 |#
+;; TODO this doesn't detect if the documentation string actually has anything (could be the empty string).
 (defun find-undocumented-symbols (package-designator)
   "Find symbols in a package that lacks documentation."
   (let ((result)
