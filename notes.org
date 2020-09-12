@@ -19,6 +19,7 @@ doens't run all the tests each time a something is redefined.
 ** TODO Make the file-watcher usable
 ** TODO Document how to use the file-watcher
 ** TODO Document how the file-watcher works
+** TODO There's no easy way to remove a test altogether
 
 * Other projects with slime integration
 ** log4cl
