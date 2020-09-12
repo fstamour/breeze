@@ -57,7 +57,8 @@
    #:main
    #:next
    #:*current-packages*
-   #:current-packages))
+   #:current-packages
+   #:dogfood))
 
 (in-package #:breeze.user)
 
