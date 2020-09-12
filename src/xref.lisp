@@ -11,6 +11,7 @@
    #:test-calls-who
    #:tested-by
    #:test-case
+   #:tests-by-package
    ;; Utilities
    #:find-packages-by-prefix
    #:find-packages-by-regex
@@ -25,11 +26,22 @@
 
 (defun package-test (package)
   "Find all tests defined in a pacakge."
-  (loop
-     :with package = (find-package package)
-     :for test-name :being :the :hash-key :of *test*
-     :when (eq package (symbol-package test-name))
-     :collect test-name))
+  (let ((package (find-package package)))
+    (loop
+       :for test-name :being :the :hash-key :of breeze.test:*test*
+       :using (hash-value test-definition)
+       :for test-package = (second test-definition)
+       :when (eq test-package package)
+       :collect test-name)))
+
+(defun tests-by-package ()
+  "Return a hash-table of tests keyed by package."
+  (cl-hash-util:collecting-hash-table (:mode :append)
+    (loop
+       :for test-name :being :the :hash-key :of breeze.test:*test*
+       :using (hash-value test-definition)
+       :for package = (second test-definition)
+       :do (cl-hash-util:collect package test-definition))))
 
 (defun calls-who (function-name)
   "Take a function name and returns a list of all the functions it calls."

@@ -146,9 +146,11 @@
 
 (defun selftest ()
   "Load and run breeze's selftests."
+  (terpri)
   (loop
-     :for package :in (current-packages "^breeze\\.[^.]+$")
-     :append
+     :for package :in (current-packages "^breeze\\.[^.]+.test$")
+     :do
+       (format t "~&Testing package \"~(~A~)\"." (package-name package))
        (run-all-tests (package-test package))))
 
 (defun dogfood ()
