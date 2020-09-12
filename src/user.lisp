@@ -48,6 +48,8 @@
    #:start-test-runner
    #:stop-test-runner
    #:ensure-test-runner
+   ;; documentation
+   #:find-undocumented-symbols
    ;; xref
    #:calls-who
    #:test-calls-who

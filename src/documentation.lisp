@@ -52,7 +52,7 @@
 	(package (find-package package-designator)))
     ;; Package
     (unless (documentation package t)
-      (push (list :package package-designator) result))
+      (push (list :package (package-name package)) result))
     (do-external-symbols (symbol package result)
       ;; Functions
       (when (and (fboundp symbol)
