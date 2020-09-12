@@ -169,6 +169,22 @@ Othewise, return the position of the character."
   (skeleton-read "Enter the variable name for the value: ")
   ")")
 
+(define-skeleton breeze-insert-loop-clause-for-on-list
+  "Skeleton to insert a loop clause to iterate on a list."
+  "" ;; Empty prompt. Ignored.
+  > " :for "
+  (skeleton-read "Enter the variable name for the iterator: ")
+  " :on "
+  (skeleton-read "Enter the name of the list: "))
+
+(define-skeleton breeze-insert-loop-clause-for-in-list
+  "Skeleton to insert a loop clause to iterate on a list."
+  "" ;; Empty prompt. Ignored.
+  > " :for "
+  (skeleton-read "Enter the variable name for the iterator: ")
+  " :in "
+  (skeleton-read "Enter the name of the list: "))
+
 (defun breeze-insert ()
   "Choose someting to insert."
   (interactive)
@@ -183,6 +199,8 @@ Othewise, return the position of the character."
      ("let" breeze-insert-let)
      ("defmacro" breeze-insert-defmacro)
      ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
+     ("loop clause: iterate ON list" breeze-insert-loop-clause-for-on-list)
+     ("loop clause: iterate IN list" breeze-insert-loop-clause-for-in-list)
      ;; TODO
      ;; defclass
      ;; slots
