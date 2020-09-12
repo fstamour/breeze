@@ -37,7 +37,9 @@
   "Defines a test"
   (check-type name symbol)
   `(progn
-     (setf (gethash ',name *test*) (make-test ',name *package* '(progn ,@body)))
+     (setf (gethash ',name *test*) (make-test ',name *package*
+					      ,(when body
+						 `'(progn ,@body))))
      (flag-test-change ',name)
      nil))
 
