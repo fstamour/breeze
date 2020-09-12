@@ -9,7 +9,8 @@
    #:walk-car
    #:walk-list
    #:indent-string
-   #:print-comparison))
+   #:print-comparison
+   #:breeze-relative-pathname))
 
 (in-package #:breeze.utils)
 
@@ -120,3 +121,9 @@
 ==|
 sytsem-files"
 |#
+
+(defun breeze-relative-pathname (pathname)
+  "Returns a pathname relative to breeze's location."
+  (if (cl-fad:pathname-relative-p pathname)
+      (asdf:system-relative-pathname :breeze pathname)
+      pathname))
