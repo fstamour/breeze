@@ -14,7 +14,7 @@ It is still in its early development.
 * A minimal test library that supports introspection.
 * Workers - generic threads with message passing (thanks to [chanl](https://github.com/zkat/chanl)).
 * Test-runner - a worker that runs tests (on demand).
-* Can re-run all tests on function or test redifinition.
+* Can re-run all tests on function or test redefinition.
 * [Emacs integration](#emacs)
 * Integration with slime
 * WIP File watcher
