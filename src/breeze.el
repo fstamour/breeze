@@ -99,17 +99,52 @@ Othewise, return the position of the character."
 
 ;;; Insertion commands (mostly skeletons)
 
+(defun breeze-infer-project-name ()
+  "Try to find the project's name"
+  ;; TODO look at current *package*
+  ;; TODO look at git's remotes' url
+  ;; TODO look at .asd file <===
+  (when (vc-root-dir) ;; TODO this doesn't always work :(
+    (file-name-nondirectory
+     (directory-file-name
+      (vc-root-dir)))))
+
+;; (breeze-infer-project-name)
+
+(defun breeze-is-in-test-directory ()
+  "Try to figure out if the current file is in the test directory."
+  (member
+   (file-name-nondirectory
+    (directory-file-name
+     (file-name-directory
+      (buffer-file-name))))
+   '("test" "tests" "t")))
+
+(defun breeze-infer-package-name-from-file ()
+  (let ((project (breeze-infer-project-name))
+	(testp (breeze-is-in-test-directory))
+	(result (file-name-base buffer-file-name)))
+    (message "project \"%s\"" project)
+    (when project
+      (setf result (concat project "." result)))
+    (when testp
+      (setf result (concat result ".test")))
+    result))
+
 (define-skeleton breeze-insert-defpackage
   "Skeleton for a CL package"
   "" ;; Empty prompt. Ignored.
-  (let ((package-name (breeze-sanitize-symbol
-		       (skeleton-read "Package name: "
-				      (if buffer-file-name
-					  (file-name-base buffer-file-name)
-					""))))
-	(nicknames (loop for nickname = (skeleton-read "Package nickname: ")
-			 while (not (zerop (length nickname)))
-			 collect (format ":%s" nickname))))
+  (let ((package-name
+	 (breeze-sanitize-symbol
+	  (skeleton-read "Package name: "
+			 (if buffer-file-name
+			     (breeze-infer-package-name-from-file)
+			   (file-name-base buffer-file-name)
+			   ""))))
+	(nicknames
+	 (cl-loop for nickname = (skeleton-read "Package nickname: ")
+		  while (not (zerop (length nickname)))
+		  collect (format ":%s" nickname))))
     (concat
      "(in-package #:common-lisp-user)\n\n"
      "(defpackage #:" package-name "\n"
@@ -202,28 +237,46 @@ Othewise, return the position of the character."
   " :in "
   (skeleton-read "Enter the name of the list: "))
 
+(defun breeze-new-buffer-p ()
+  "Check if the current buffer is \"new\"."
+  ;; Check the size
+  (zerop (buffer-size))
+  ;; TODO Check if it's all whitespaces
+  ;; TODO Check if it's all comments
+  )
+
+;; WIP
+(defun breeze-buffer-has-defpackage ()
+  "Check if a buffer already contains a defpackage form.")
+
+;; WIP
+(defun breeze-in-loop ()
+  "Check if it's a valid place to add a loop clause.")
+
 (defun breeze-insert ()
   "Choose someting to insert."
   (interactive)
   ;; TODO filter the choices based on the context
-  (breeze-choose-and-call-command
-   "What do you want to insert? "
-   '(("asdf:defsystem" breeze-insert-asdf)
-     ("defpackage" breeze-insert-defpackage)
-     ("defun" breeze-insert-defun)
-     ("defvar" breeze-insert-defvar)
-     ("defparameter" breeze-insert-defparameter)
-     ("let" breeze-insert-let)
-     ("defmacro" breeze-insert-defmacro)
-     ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
-     ("loop clause: iterate ON list" breeze-insert-loop-clause-for-on-list)
-     ("loop clause: iterate IN list" breeze-insert-loop-clause-for-in-list)
-     ;; TODO
-     ;; defclass
-     ;; slots
-     ;; defgeneric
-     ;; defmethod
-     )))
+  (if (zerop (buffer-size))
+      (call-interactively 'breeze-insert-defpackage)
+    (breeze-choose-and-call-command
+     "What do you want to insert? "
+     '(("asdf:defsystem" breeze-insert-asdf)
+       ("defpackage" breeze-insert-defpackage)
+       ("defun" breeze-insert-defun)
+       ("defvar" breeze-insert-defvar)
+       ("defparameter" breeze-insert-defparameter)
+       ("let" breeze-insert-let)
+       ("defmacro" breeze-insert-defmacro)
+       ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
+       ("loop clause: iterate ON list" breeze-insert-loop-clause-for-on-list)
+       ("loop clause: iterate IN list" breeze-insert-loop-clause-for-in-list)
+       ;; TODO
+       ;; defclass
+       ;; slots
+       ;; defgeneric
+       ;; defmethod
+       ))))
 
 
 ;;; abbrev
