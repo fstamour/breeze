@@ -96,7 +96,9 @@ Othewise, return the position of the character."
   "" ;; Empty prompt. Ignored.
   (let ((package-name (breeze-sanitize-symbol
 		       (skeleton-read "Package name: "
-				      (file-name-base buffer-file-name))))
+				      (if buffer-file-name
+					  (file-name-base buffer-file-name)
+					""))))
 	(nicknames (loop for nickname = (skeleton-read "Package nickname: ")
 			 while (not (zerop (length nickname)))
 			 collect (format ":%s" nickname))))
@@ -115,7 +117,7 @@ Othewise, return the position of the character."
   > _ ")")
 
 (define-skeleton breeze-insert-defmacro
-  "Insert a defvar form."
+  "Insert a defmacro form."
   "" ;; Empty prompt. Ignored.
   > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
   > _ ")")
@@ -227,7 +229,6 @@ Othewise, return the position of the character."
 
 ;;; code modification
 
-;; I discovered that Paredit has M-q that does it better :/
 (defun breeze-indent-defun-at-point ()
   "Indent the whole form without moving."
   (interactive)
@@ -238,7 +239,7 @@ Othewise, return the position of the character."
       (indent-sexp))))
 
 (defun breeze-get-symbol-package (symbol)
-  "SYMBOL must be a string.  Return a list with the package name and the symbol name."
+  "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
 		    ,(format (format "%s"
@@ -359,14 +360,6 @@ Othewise, return the position of the character."
       (slime-interactive-eval form))))
 
 
-;;; testing
-
-(defun breeze-run-tests ()
-  "Run tests."
-  (interactive)
-  (slime-repl-eval-string "(breeze.user:run-all-tests)"))
-
-
 ;;; project scaffolding
 
 (defun breeze-quicklisp-local-project-directories ()
@@ -424,7 +417,7 @@ Othewise, return the position of the character."
 		  (string-suffix-p ".lisp" file))
 	collect (file-name-sans-extension file)))
 
-;; TODO Use breeze-capture-template
+
 (define-skeleton breeze-insert-header-template
   "" ;; TODO docstring
   "" ;; empty prompt. ignored.
@@ -480,8 +473,6 @@ Othewise, return the position of the character."
 
 (define-key breeze-mode-map (kbd "C-c ,") 'breeze-insert)
 (define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
-(define-key breeze-mode-map (kbd "C-c c") 'breeze-capture)
-(define-key breeze-mode-map (kbd "C-c t") 'breeze-run-tests)
 
 ;; eval keymap
 (defvar breeze/eval-map (make-sparse-keymap))

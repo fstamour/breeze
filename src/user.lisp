@@ -136,7 +136,7 @@
 	    :append (find-undocumented-symbols package))))
     (if missing-documentation
 	(progn
-	  (princ "There are undocumented symbols in current packages:")
+	  (format t "~&There are undocumented symbols in current packages:")
 	  (format t "~&~{ * ~A~%~}"
 		  missing-documentation))
 	(format t "~&No undocumented symbols found. ~A" (cheers)))))

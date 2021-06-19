@@ -53,7 +53,40 @@
 		     :do
 		       (:dl
 			(:dt (symbol-name name))
-			(:dd (:pre (format nil "~a" body))))))))))))
+			(:dd
+			 (:pre (format nil "~a" body))
+			 "This test calls:"
+			 (:ol
+			  (loop :for symbol :in (br:test-calls-who name)
+			       :do
+			     (:li (symbol-name symbol)) ))))))))))))
+
+(define-easy-handler (tests :uri "/test-results") ()
+  (with-output-to-string (spinneret:*html*)
+    (spinneret:with-html
+      (:doctype)
+      (:html
+       (:head
+	(:title "Tests results")
+	(:link :rel "stylesheet" :href "style.css"))
+       (:body
+	(:h1 "Tests results"
+	     (loop
+		:for package :being :the :hash-key :of (breeze.xref:tests-by-package)
+		:using (hash-value test-definition)
+		:do
+		  (:h2 (package-name package))
+		  (loop
+		     :for (name _ body) :in test-definition
+		     :for result := (breeze.test:test-results name)
+		     :do
+		       (:dl
+			(:dt (symbol-name name))
+			(:dd
+			 (:pre ;; (format nil "~A" test-results)
+			  (with-output-to-string (output)
+			    (describe result output))
+			  )))))))))))
 
 
 

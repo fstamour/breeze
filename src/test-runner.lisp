@@ -66,6 +66,8 @@ test-runners.")
 
 (defun start-test-runner ()
   "Start the test runner"
+  ;; Empty the message queue before starting.
+  (receive-messages)
   (worker-start *test-runner*))
 
 (defun stop-test-runner ()
