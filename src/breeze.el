@@ -9,15 +9,17 @@
 
 ;;; Code:
 
-;;; Scratch section
+
+;;; Scratch section
 ;; (defun breeze-eval-defun )
 
 
-;;; Requires
-(require 'cl)
-(require 'evil) ;; Actually optional
+
+;;; Requires
+(require 'cl-lib)
 
-;;; Groups and customs
+
+;;; Groups and customs
 (defgroup breeze nil
   "breeze")
 
@@ -63,7 +65,13 @@ First lead:
 
 ;;; Variables
 
-(defvar breeze-mode-map (make-sparse-keymap))
+(defvar breeze-mode-map
+  (make-sparse-keymap)
+  "Keymap for breeze-mode")
+
+(defvar breeze/status
+  "OK"
+  "TBD Status of the current project.")
 
 
 ;;; Utilities
@@ -113,25 +121,31 @@ Othewise, return the position of the character."
 (define-skeleton breeze-insert-defun
   "Insert a defun form."
   "" ;; Empty prompt. Ignored.
-  > "(defun " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
-  > _ ")")
+  > "(defun " (skeleton-read "Function name: ")
+  " (" ("Enter an > argument name: "
+	str " ")
+  (fixup-whitespace) ")" \n _ ")")
 
 (define-skeleton breeze-insert-defmacro
   "Insert a defmacro form."
   "" ;; Empty prompt. Ignored.
-  > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
-  > _ ")")
+  > "(defmacro " (skeleton-read "Function name: ")
+  " (" ("Enter
+  > an argument name: " str " ") (fixup-whitespace) ")" \n _ ")")
 
 (define-skeleton breeze-insert-defvar
   "Insert a defvar form."
   "" ;; Empty prompt. Ignored.
-  > "(defvar *" (skeleton-read "Name: ") "* " (skeleton-read "Initial value: ") \n
+  > "(defvar *"
+  (skeleton-read "Name: ") "* "
+  (skeleton-read "Initial value: ") \n
   > "\"" (skeleton-read "Documentation string: ") "\")")
 
 (define-skeleton breeze-insert-defparameter
   "Insert a defparameter form."
   "" ;; Empty prompt. Ignored.
-  > "(defparameter *" (skeleton-read "Name: ") "* " (skeleton-read "Initial value: ") \n
+  > "(defparameter *" (skeleton-read "Name: ") "* "
+  (skeleton-read "Initial value: ") \n
   > "\"" (skeleton-read "Documentation string: ") "\")")
 
 (define-skeleton breeze-insert-let
@@ -150,6 +164,7 @@ Othewise, return the position of the character."
   > "(asdf:defsystem \"" v1 "\"" \n
   > ":description \"\"" \n
   > ":version \"0.1.0\"" \n
+  ;; TODO Use emacs' built-in user-name?
   > ":author \"" (skeleton-read "Author name: " breeze-default-author) "\"" \n
   > ":licence \"" (skeleton-read "Licence name: " breeze-default-licence) "\"" \n
   > ":depends-on ()" \n
@@ -463,6 +478,28 @@ Othewise, return the position of the character."
 ;; 		     (string= "worker" (bt:thread-name thread))))
 ;; 	    (sb-thread:list-all-threads))))
 
+
+
+;;; Mode-line indicator
+
+(defun breeze/set-status (new-status)
+  "Update the status variable with NEW-STATUS and update the mode-line."
+  (setf breeze/status new-status)
+  (force-mode-line-update))
+
+(defun breeze/configure-mode-line ()
+  "Add breeze's status to the mode-line-format, if not already there."
+  (interactive)
+  (unless
+      (cl-remove-if-not
+       #'(lambda (el)
+	   (and (listp el)
+		(eq 'breeze/status (car el))))
+       mode-line-format)
+    (setf mode-line-format
+	  (append mode-line-format
+		  '((breeze/status  ("--> " breeze/status " <--")))))))
+
 
 ;;; mode
 
@@ -471,16 +508,31 @@ Othewise, return the position of the character."
   :lighter " brz"
   :keymap breeze-mode-map)
 
-(define-key breeze-mode-map (kbd "C-c ,") 'breeze-insert)
-(define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
+;; Analoguous to org-insert-structure-template
+(define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
 
-;; eval keymap
+;; I think the reason I needed that was because of a conflict of keybindings,
+;; paredit's M-q seems to do the job.
+;; (define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
+
+;; eval keymap - because we might want to keep an history
 (defvar breeze/eval-map (make-sparse-keymap))
+;; eval last expression
 (define-key breeze-mode-map (kbd "C-c e") breeze/eval-map)
-
+;; choose an expression from history to evaluate
 (define-key breeze/eval-map (kbd "e") 'breeze-reevaluate-form)
 
-;; TODO add defun "{en,dis}able-breeze-mode"
+(defun enable-breeze-mode ()
+  "Enable breeze-mode."
+  (interactive)
+  (breeze-mode 1))
+
+(defun disable-breeze-mode ()
+  "Disable breeze-mode."
+  (interactive)
+  (breeze-mode -1))
+
+(add-hook 'breeze-mode-hook 'breeze/configure-mode-line)
 
 (provide 'breeze)
 ;;; breeze.el ends here
