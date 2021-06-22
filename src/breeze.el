@@ -243,6 +243,7 @@ Othewise, return the position of the character."
   (zerop (buffer-size))
   ;; TODO Check if it's all whitespaces
   ;; TODO Check if it's all comments
+  ;; TODO See the function "bobp" (beginnig-of-buffer-p)
   )
 
 ;; WIP
