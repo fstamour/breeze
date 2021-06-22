@@ -43,6 +43,6 @@
 	       (:generic-method breeze.dummy.test:generic-function-undocumented)
 	       (:method breeze.dummy.test:another-generic-function)
 	       (:method breeze.dummy.test:generic-function-undocumented)
-	       (:package breeze.dummy.test)
+	       (:package "BREEZE.DUMMY.TEST")
 	       (:special-variable breeze.dummy.test:*bound-variable-undocumented*)
 	       (:special-variable breeze.dummy.test:*unbound-variable-undocumented*))))))

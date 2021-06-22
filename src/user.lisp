@@ -26,6 +26,7 @@
                 #:request-to-run-test
                 #:request-to-run-test*)
   (:import-from #:breeze.xref
+		#:package-test
                 #:calls-who
                 #:test-calls-who
                 #:tested-by
@@ -47,6 +48,8 @@
    #:start-test-runner
    #:stop-test-runner
    #:ensure-test-runner
+   ;; documentation
+   #:find-undocumented-symbols
    ;; xref
    #:calls-who
    #:test-calls-who
@@ -56,7 +59,8 @@
    #:main
    #:next
    #:*current-packages*
-   #:current-packages))
+   #:current-packages
+   #:dogfood))
 
 (in-package #:breeze.user)
 
@@ -132,7 +136,7 @@
 	    :append (find-undocumented-symbols package))))
     (if missing-documentation
 	(progn
-	  (princ "There are undocumented symbols in current packages:")
+	  (format t "~&There are undocumented symbols in current packages:")
 	  (format t "~&~{ * ~A~%~}"
 		  missing-documentation))
 	(format t "~&No undocumented symbols found. ~A" (cheers)))))
@@ -144,12 +148,12 @@
 
 (defun selftest ()
   "Load and run breeze's selftests."
-  (breeze.test:run-all-tests)
-  (load (merge-pathnames "tests/selftest.lisp"
-			 (breeze.asdf:system-directory '#:breeze)))
-  (uiop:symbol-call '#:breeze.test.test '#:run-all-selftest)
-  ;; TODO Run only breeze's tests (hint: find-packages-by-prefix)
-  )
+  (terpri)
+  (loop
+     :for package :in (current-packages "^breeze\\.[^.]+.test$")
+     :do
+       (format t "~&Testing package \"~(~A~)\"." (package-name package))
+       (run-all-tests (package-test package))))
 
 (defun dogfood ()
   "Setup breeze to work on breeze."

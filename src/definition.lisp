@@ -39,7 +39,7 @@ The goal is to (portably) make sure we keep the definitions and not just their [
 
 (cl:defun function-body (name)
   "Get the body of a function by name"
-  (fourth (gethash name *function*)))
+  (cdddr (gethash name *function*)))
 
 ;; TODO defmacro
 ;; TODO defgeneric

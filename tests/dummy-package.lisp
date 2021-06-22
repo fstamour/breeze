@@ -1,7 +1,10 @@
 (in-package #:common-lisp-user)
 
-(defpackage #:breeze.dummy.test
-  (:use :cl)
+(uiop:define-package #:breeze.dummy.test
+    (:mix :breeze.definition :cl)
+  (:import-from #:breeze.test
+		#:deftest
+		#:is)
   (:nicknames :dum)
   (:export
    ;; Documented symbols
@@ -25,6 +28,11 @@
    #:integer-undocumented
 
    #:another-generic-function
+
+   ;;
+   #:mul
+   #:2x
+   #:add-one
    ))
 
 (in-package #:breeze.dummy.test)
@@ -83,3 +91,29 @@
 (defmethod another-generic-function ((x (eql '1))))
 (defmethod another-generic-function ((x (eql '2)))
   "documented" t)
+
+
+;;;
+
+(defun mul (x y)
+  "Multiply x by y."
+  (* x y))
+
+(defun 2x (x)
+  "Multiply x by 2."
+  (mul 2 x))
+
+(defun add-one (x)
+  "Add 1 to x."
+  (1+ x))
+
+(deftest mul
+  (is (= 4 (mul 2 2)))
+  (is (= 12 (mul 2 6))))
+
+(deftest 2x
+  (is (= (2x 2) (mul 2 2))))
+
+#+nil
+(deftest should-fail
+  (is (= 6 (mul 2 2))))

@@ -19,6 +19,16 @@ doens't run all the tests each time a something is redefined.
 ** TODO Make the file-watcher usable
 ** TODO Document how to use the file-watcher
 ** TODO Document how the file-watcher works
+** TODO There's no easy way to remove a test altogether
+** TODO Add a condition "test-failed"
+
+It can be used to *break-on-signals*
+** TODO Optionnaly signal an error when a test fails
+
+Currently, if we do that, we'll get 2 conditions if the evaluation
+signals a condition and triggers test runs that fail.
+** TODO Add binding to run test at point
+** TODO Add command to choose a test and run it
 
 * Other projects with slime integration
 ** log4cl

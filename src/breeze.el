@@ -9,15 +9,17 @@
 
 ;;; Code:
 
-;;; Scratch section
+
+;;; Scratch section
 ;; (defun breeze-eval-defun )
 
 
-;;; Requires
-(require 'cl)
-(require 'evil) ;; Actually optional
+
+;;; Requires
+(require 'cl-lib)
 
-;;; Groups and customs
+
+;;; Groups and customs
 (defgroup breeze nil
   "breeze")
 
@@ -63,7 +65,13 @@ First lead:
 
 ;;; Variables
 
-(defvar breeze-mode-map (make-sparse-keymap))
+(defvar breeze-mode-map
+  (make-sparse-keymap)
+  "Keymap for breeze-mode")
+
+(defvar breeze/status
+  "OK"
+  "TBD Status of the current project.")
 
 
 ;;; Utilities
@@ -91,15 +99,52 @@ Othewise, return the position of the character."
 
 ;;; Insertion commands (mostly skeletons)
 
+(defun breeze-infer-project-name ()
+  "Try to find the project's name"
+  ;; TODO look at current *package*
+  ;; TODO look at git's remotes' url
+  ;; TODO look at .asd file <===
+  (when (vc-root-dir) ;; TODO this doesn't always work :(
+    (file-name-nondirectory
+     (directory-file-name
+      (vc-root-dir)))))
+
+;; (breeze-infer-project-name)
+
+(defun breeze-is-in-test-directory ()
+  "Try to figure out if the current file is in the test directory."
+  (member
+   (file-name-nondirectory
+    (directory-file-name
+     (file-name-directory
+      (buffer-file-name))))
+   '("test" "tests" "t")))
+
+(defun breeze-infer-package-name-from-file ()
+  (let ((project (breeze-infer-project-name))
+	(testp (breeze-is-in-test-directory))
+	(result (file-name-base buffer-file-name)))
+    (message "project \"%s\"" project)
+    (when project
+      (setf result (concat project "." result)))
+    (when testp
+      (setf result (concat result ".test")))
+    result))
+
 (define-skeleton breeze-insert-defpackage
   "Skeleton for a CL package"
   "" ;; Empty prompt. Ignored.
-  (let ((package-name (breeze-sanitize-symbol
-		       (skeleton-read "Package name: "
-				      (file-name-base buffer-file-name))))
-	(nicknames (loop for nickname = (skeleton-read "Package nickname: ")
-			 while (not (zerop (length nickname)))
-			 collect (format ":%s" nickname))))
+  (let ((package-name
+	 (breeze-sanitize-symbol
+	  (skeleton-read "Package name: "
+			 (if buffer-file-name
+			     (breeze-infer-package-name-from-file)
+			   (file-name-base buffer-file-name)
+			   ""))))
+	(nicknames
+	 (cl-loop for nickname = (skeleton-read "Package nickname: ")
+		  while (not (zerop (length nickname)))
+		  collect (format ":%s" nickname))))
     (concat
      "(in-package #:common-lisp-user)\n\n"
      "(defpackage #:" package-name "\n"
@@ -111,25 +156,31 @@ Othewise, return the position of the character."
 (define-skeleton breeze-insert-defun
   "Insert a defun form."
   "" ;; Empty prompt. Ignored.
-  > "(defun " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
-  > _ ")")
+  > "(defun " (skeleton-read "Function name: ")
+  " (" ("Enter an > argument name: "
+	str " ")
+  (fixup-whitespace) ")" \n _ ")")
 
 (define-skeleton breeze-insert-defmacro
-  "Insert a defvar form."
+  "Insert a defmacro form."
   "" ;; Empty prompt. Ignored.
-  > "(defmacro " (skeleton-read "Function name: ") " (" ("Enter an argument name: " str " ") (fixup-whitespace) ")" \n
-  > _ ")")
+  > "(defmacro " (skeleton-read "Function name: ")
+  " (" ("Enter
+  > an argument name: " str " ") (fixup-whitespace) ")" \n _ ")")
 
 (define-skeleton breeze-insert-defvar
   "Insert a defvar form."
   "" ;; Empty prompt. Ignored.
-  > "(defvar *" (skeleton-read "Name: ") "* " (skeleton-read "Initial value: ") \n
+  > "(defvar *"
+  (skeleton-read "Name: ") "* "
+  (skeleton-read "Initial value: ") \n
   > "\"" (skeleton-read "Documentation string: ") "\")")
 
 (define-skeleton breeze-insert-defparameter
   "Insert a defparameter form."
   "" ;; Empty prompt. Ignored.
-  > "(defparameter *" (skeleton-read "Name: ") "* " (skeleton-read "Initial value: ") \n
+  > "(defparameter *" (skeleton-read "Name: ") "* "
+  (skeleton-read "Initial value: ") \n
   > "\"" (skeleton-read "Documentation string: ") "\")")
 
 (define-skeleton breeze-insert-let
@@ -148,6 +199,7 @@ Othewise, return the position of the character."
   > "(asdf:defsystem \"" v1 "\"" \n
   > ":description \"\"" \n
   > ":version \"0.1.0\"" \n
+  ;; TODO Use emacs' built-in user-name?
   > ":author \"" (skeleton-read "Author name: " breeze-default-author) "\"" \n
   > ":licence \"" (skeleton-read "Licence name: " breeze-default-licence) "\"" \n
   > ":depends-on ()" \n
@@ -169,26 +221,63 @@ Othewise, return the position of the character."
   (skeleton-read "Enter the variable name for the value: ")
   ")")
 
+(define-skeleton breeze-insert-loop-clause-for-on-list
+  "Skeleton to insert a loop clause to iterate on a list."
+  "" ;; Empty prompt. Ignored.
+  > " :for "
+  (skeleton-read "Enter the variable name for the iterator: ")
+  " :on "
+  (skeleton-read "Enter the name of the list: "))
+
+(define-skeleton breeze-insert-loop-clause-for-in-list
+  "Skeleton to insert a loop clause to iterate on a list."
+  "" ;; Empty prompt. Ignored.
+  > " :for "
+  (skeleton-read "Enter the variable name for the iterator: ")
+  " :in "
+  (skeleton-read "Enter the name of the list: "))
+
+(defun breeze-new-buffer-p ()
+  "Check if the current buffer is \"new\"."
+  ;; Check the size
+  (zerop (buffer-size))
+  ;; TODO Check if it's all whitespaces
+  ;; TODO Check if it's all comments
+  ;; TODO See the function "bobp" (beginnig-of-buffer-p)
+  )
+
+;; WIP
+(defun breeze-buffer-has-defpackage ()
+  "Check if a buffer already contains a defpackage form.")
+
+;; WIP
+(defun breeze-in-loop ()
+  "Check if it's a valid place to add a loop clause.")
+
 (defun breeze-insert ()
   "Choose someting to insert."
   (interactive)
   ;; TODO filter the choices based on the context
-  (breeze-choose-and-call-command
-   "What do you want to insert? "
-   '(("asdf:defsystem" breeze-insert-asdf)
-     ("defpackage" breeze-insert-defpackage)
-     ("defun" breeze-insert-defun)
-     ("defvar" breeze-insert-defvar)
-     ("defparameter" breeze-insert-defparameter)
-     ("let" breeze-insert-let)
-     ("defmacro" breeze-insert-defmacro)
-     ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
-     ;; TODO
-     ;; defclass
-     ;; slots
-     ;; defgeneric
-     ;; defmethod
-     )))
+  (if (zerop (buffer-size))
+      (call-interactively 'breeze-insert-defpackage)
+    (breeze-choose-and-call-command
+     "What do you want to insert? "
+     '(("asdf:defsystem" breeze-insert-asdf)
+       ("defpackage" breeze-insert-defpackage)
+       ("defun" breeze-insert-defun)
+       ("defvar" breeze-insert-defvar)
+       ("defparameter" breeze-insert-defparameter)
+       ("let" breeze-insert-let)
+       ("defmacro" breeze-insert-defmacro)
+       ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
+       ("loop clause: iterate ON list" breeze-insert-loop-clause-for-on-list)
+       ("loop clause: iterate IN list" breeze-insert-loop-clause-for-in-list)
+       ;; TODO
+       ;; defclass
+       ;; slots
+       ;; defgeneric
+       ;; defmethod
+       ))))
 
 
 ;;; abbrev
@@ -209,7 +298,6 @@ Othewise, return the position of the character."
 
 ;;; code modification
 
-;; I discovered that Paredit has M-q that does it better :/
 (defun breeze-indent-defun-at-point ()
   "Indent the whole form without moving."
   (interactive)
@@ -220,7 +308,7 @@ Othewise, return the position of the character."
       (indent-sexp))))
 
 (defun breeze-get-symbol-package (symbol)
-  "SYMBOL must be a string.  Return a list with the package name and the symbol name."
+  "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
 		    ,(format (format "%s"
@@ -341,14 +429,6 @@ Othewise, return the position of the character."
       (slime-interactive-eval form))))
 
 
-;;; testing
-
-(defun breeze-run-tests ()
-  "Run tests."
-  (interactive)
-  (slime-repl-eval-string "(breeze.user:run-all-tests)"))
-
-
 ;;; project scaffolding
 
 (defun breeze-quicklisp-local-project-directories ()
@@ -406,7 +486,7 @@ Othewise, return the position of the character."
 		  (string-suffix-p ".lisp" file))
 	collect (file-name-sans-extension file)))
 
-;; TODO Use breeze-capture-template
+
 (define-skeleton breeze-insert-header-template
   "" ;; TODO docstring
   "" ;; empty prompt. ignored.
@@ -452,6 +532,28 @@ Othewise, return the position of the character."
 ;; 		     (string= "worker" (bt:thread-name thread))))
 ;; 	    (sb-thread:list-all-threads))))
 
+
+
+;;; Mode-line indicator
+
+(defun breeze/set-status (new-status)
+  "Update the status variable with NEW-STATUS and update the mode-line."
+  (setf breeze/status new-status)
+  (force-mode-line-update))
+
+(defun breeze/configure-mode-line ()
+  "Add breeze's status to the mode-line-format, if not already there."
+  (interactive)
+  (unless
+      (cl-remove-if-not
+       #'(lambda (el)
+	   (and (listp el)
+		(eq 'breeze/status (car el))))
+       mode-line-format)
+    (setf mode-line-format
+	  (append mode-line-format
+		  '((breeze/status  ("--> " breeze/status " <--")))))))
+
 
 ;;; mode
 
@@ -460,18 +562,31 @@ Othewise, return the position of the character."
   :lighter " brz"
   :keymap breeze-mode-map)
 
-(define-key breeze-mode-map (kbd "C-c ,") 'breeze-insert)
-(define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
-(define-key breeze-mode-map (kbd "C-c c") 'breeze-capture)
-(define-key breeze-mode-map (kbd "C-c t") 'breeze-run-tests)
+;; Analoguous to org-insert-structure-template
+(define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
 
-;; eval keymap
+;; I think the reason I needed that was because of a conflict of keybindings,
+;; paredit's M-q seems to do the job.
+;; (define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
+
+;; eval keymap - because we might want to keep an history
 (defvar breeze/eval-map (make-sparse-keymap))
+;; eval last expression
 (define-key breeze-mode-map (kbd "C-c e") breeze/eval-map)
-
+;; choose an expression from history to evaluate
 (define-key breeze/eval-map (kbd "e") 'breeze-reevaluate-form)
 
-;; TODO add defun "{en,dis}able-breeze-mode"
+(defun enable-breeze-mode ()
+  "Enable breeze-mode."
+  (interactive)
+  (breeze-mode 1))
+
+(defun disable-breeze-mode ()
+  "Disable breeze-mode."
+  (interactive)
+  (breeze-mode -1))
+
+(add-hook 'breeze-mode-hook 'breeze/configure-mode-line)
 
 (provide 'breeze)
 ;;; breeze.el ends here

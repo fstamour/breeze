@@ -52,7 +52,7 @@
 	(package (find-package package-designator)))
     ;; Package
     (unless (documentation package t)
-      (push (list :package package-designator) result))
+      (push (list :package (package-name package)) result))
     (do-external-symbols (symbol package result)
       ;; Functions
       (when (and (fboundp symbol)
@@ -234,8 +234,7 @@
 	     (gen "Classes" (classp symbol) 'type)
 	     (gen "Generic methods" (generic-method-p symbol) 'function)
 	     (gen "Functions" (simple-function-p symbol) 'function)
-	     (gen "Macros" (macrop symbol) 'function))
-	   ))))
+	     (gen "Macros" (macrop symbol) 'function))))))
 
 (defun generate-documentation-to-stream (stream)
   (let ((spinneret:*html* stream))
@@ -267,4 +266,3 @@
 	 :if-does-not-exist :create)
       (generate-documentation-to-stream output)
       (format t "~%breeze.documentation: ~s written.~%" index))))
-

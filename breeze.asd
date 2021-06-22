@@ -9,12 +9,13 @@
   :depends-on (#:alexandria
 	       #:anaphora
 	       #:chanl
+	       #:cl-hash-util
 	       #:cl-ppcre
 	       #:closer-mop
 	       #:quickproject
+	       #:str
 	       #:swank
 	       #:uiop
-	       #:str
 	       ;; For documentation generation
 	       #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
 	       )
@@ -35,7 +36,9 @@
    ;; TODO move this into its own system (breeze.selftest.asd)
    (:module "tests"
 	    :components
-	    ((:file "user")
+	    ((:file "utils")
 	     (:file "dummy-package")
+	     (:file "test")
+	     (:file "user")
 	     (:file "xref")
 	     (:file "documentation")))))
