@@ -17,6 +17,7 @@
 
 ;;; Requires
 (require 'cl-lib)
+(require 'slime)
 
 
 ;;; Groups and customs
@@ -74,6 +75,64 @@ First lead:
   "TBD Status of the current project.")
 
 
+;;; Prerequisites checks
+
+(defun breeze/check-if-slime-is-connected ()
+  "Make sure that slime is connected, signals an error otherwise."
+  ;; This function throws an error if there are no connections
+  (slime-connection))
+
+(defun breeze/validate-if-breeze-package-exists ()
+  "Returns true if the package \"breeze\" exists in the inferior-lisp."
+  (cl-destructuring-bind (output value)
+      (slime-eval `(swank:eval-and-grab-output
+		    "(and (or (find-package \"BREEZE\") (find-package \"breeze\")) t)"))
+    (cl-equalp "t" value)))
+
+;; (breeze/validate-if-breeze-package-exists)
+
+(defvar breeze/breeze.el load-file-name
+  "Path to \"breeze.el\".")
+
+(defun breeze/system-definition ()
+  "Get the path to \"breeze.asd\" based on the (load-time) location of \"breeze.el\"."
+  (expand-file-name
+   (concat
+    (file-name-directory
+     breeze/breeze.el)
+    "../breeze.asd")))
+
+(defun breeze/ensure-breeze ()
+  "Make sure that breeze is loaded in swank."
+  (unless (breeze/validate-if-breeze-package-exists)
+    (slime-eval `(swank:interactive-eval
+		  ,(format "(progn (load \"%s\") (require 'breeze))" (breeze/system-definition))))))
+
+;; (breeze/ensure-breeze)
+
+(defun breeze/advise-swank-interactive-eval ()
+  "Advise swank:interactive-eval"
+  (slime-eval `(swank:interactive-eval
+		"(breeze.swank:advise-swank-interactive-eval)")))
+
+;; (breeze/advise-swank-interactive-eval)
+
+;; See slime--setup-contribs, I used that name so it _could_ be added to slime-contrib,
+;; I haven't tested it yet though.
+(defun breeze-init ()
+  "Ensure that breeze is initialized correctly on swank's side."
+  (interactive)
+  (breeze/check-if-slime-is-connected)
+  (breeze/ensure-breeze)
+  (breeze/advise-swank-interactive-eval))
+
+(defmacro breeze/with-slime (&rest body)
+  `(progn
+     (breeze-init)
+     ,@body))
+
+;; (macroexpand-1 '(breeze/with-slime (print 42)))
+
 ;;; Utilities
 
 (cl-defun breeze-choose-and-call-command (prompt commands &key allow-other-p)
@@ -309,17 +368,18 @@ Othewise, return the position of the character."
 
 (defun breeze-get-symbol-package (symbol)
   "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
-  (cl-destructuring-bind (output value)
-      (slime-eval `(swank:eval-and-grab-output
-		    ,(format (format "%s"
-				     `(let ((symbol (quote %s)))
-					(check-type symbol symbol)
-					(format t "\"~(~a ~a~)\""
-						(package-name (symbol-package symbol))
-						(symbol-name symbol))))
-			     symbol)))
+  (breeze/with-slime
+   (cl-destructuring-bind (output value)
+       (slime-eval `(swank:eval-and-grab-output
+		     ,(format (format "%s"
+				      `(let ((symbol (quote %s)))
+					 (check-type symbol symbol)
+					 (format t "\"~(~a ~a~)\""
+						 (package-name (symbol-package symbol))
+						 (symbol-name symbol))))
+			      symbol)))
 
-    (split-string output)))
+     (split-string output))))
 
 ;; (breeze-get-symbol-package "cl:find")
 ;; => ("common-lisp" "find")
@@ -587,6 +647,14 @@ Othewise, return the position of the character."
   (breeze-mode -1))
 
 (add-hook 'breeze-mode-hook 'breeze/configure-mode-line)
+(add-hook 'breeze-mode-hook 'breeze-init)
+
+(defun breeze ()
+  "Start slime and breeze"
+  (interactive)
+  (unless (slime-current-connection)
+    (slime))
+  (breeze-init))
 
 (provide 'breeze)
 ;;; breeze.el ends here

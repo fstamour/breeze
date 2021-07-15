@@ -54,6 +54,8 @@
 						 (< distance candidate-distance))
 					 (setf candidate sym
 					       candidate-distance distance)))))
+				 ;; WARNING: Using a non-exported symbol from swank
+				 (swank::background-message "Did you mean \"~a\"?" candidate)
 				 (warn "Did you mean \"~a\"?~%~a"
 				       candidate
 				       (breeze.utils:indent-string
@@ -110,6 +112,6 @@
 (defun get-recent-interactively-evaluated-forms ()
   "Get the 50 most recently evaluated forms"
   (loop :for form :in *recent-forms*
-     :for i :below 50
-     :do (format t "~&~a~%"
-		 (remove #\newline form))))
+	:for i :below 50
+	:do (format t "~&~a~%"
+		    (remove #\newline form))))
