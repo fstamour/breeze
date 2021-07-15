@@ -625,6 +625,9 @@ Othewise, return the position of the character."
 ;; Analoguous to org-insert-structure-template
 (define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
 
+;; Analoguous to org-goto
+(define-key breeze-mode-map (kbd "C-c C-j") #'imenu)
+
 ;; I think the reason I needed that was because of a conflict of keybindings,
 ;; paredit's M-q seems to do the job.
 ;; (define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
