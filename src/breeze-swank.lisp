@@ -38,33 +38,67 @@
 (defparameter *recent-forms* ()
   "A list of recently-evaluated forms (as strings).")
 
+(defun find-most-similar-symbol (input)
+  (let ((candidate nil)
+	(candidate-distance 0))
+    (do-symbols (sym)
+      (when (fboundp sym)
+	(let ((distance (breeze.utils:optimal-string-alignment-distance
+			 input
+			 (string-downcase sym))))
+	  (when (or (not candidate)
+		    (< distance candidate-distance))
+	    (setf candidate sym
+		  candidate-distance distance)))))
+    candidate))
+
+;; (find-most-similar-symbol "prin") ;; => princ
+
+(defun find-most-similar-package (input)
+  (let ((candidate nil)
+	(candidate-distance 0))
+    (loop :for package in (list-all-packages)
+	  :for package-name = (package-name package) :do
+	  (loop :for name in `(,package-name ,@(package-nicknames package)) :do
+		(let ((distance (breeze.utils:optimal-string-alignment-distance
+					    input
+					    (string-downcase name))))
+		  (when (or (not candidate)
+			    (< distance candidate-distance))
+		    (setf candidate name
+			  candidate-distance distance)))))
+    candidate))
+
+;; (find-most-similar-package "breeze.util") ;; => breeze.utils
+
+
+(defun suggest (input candidate)
+  ;; WARNING: Using a non-exported symbol from swank
+  (swank::background-message "Did you mean \"~a\"?" candidate)
+  (warn "Did you mean \"~a\"?~%~a"
+	candidate
+	(breeze.utils:indent-string
+	 2 (breeze.utils:print-comparison nil
+					  (string-downcase candidate)
+					  input))))
+
 (defun call-with-correction-suggestion (function)
   "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
   (handler-bind
-      ((undefined-function #'(lambda (condition)
-			       (let ((input (string-downcase (cell-error-name condition)))
-				     (candidate nil)
-				     (candidate-distance 0))
-				 (do-symbols (sym)
-				   (when (fboundp sym)
-				     (let ((distance (breeze.utils:optimal-string-alignment-distance
-						      input
-						      (string-downcase sym))))
-				       (when (or (not candidate)
-						 (< distance candidate-distance))
-					 (setf candidate sym
-					       candidate-distance distance)))))
-				 ;; WARNING: Using a non-exported symbol from swank
-				 (swank::background-message "Did you mean \"~a\"?" candidate)
-				 (warn "Did you mean \"~a\"?~%~a"
-				       candidate
-				       (breeze.utils:indent-string
-					2 (breeze.utils:print-comparison nil
-									 (string-downcase candidate)
-									 input)))))))
+      ((undefined-function
+	#'(lambda (condition)
+	    (let* ((input (string-downcase (cell-error-name condition)))
+		   (candidate (find-most-similar-symbol input)))
+	      (suggest input candidate))))
+       (package-error
+	#'(lambda (condition)
+	    (let* ((input (string-downcase (package-error-package condition)))
+		   (candidate (find-most-similar-package input)))
+	      (suggest input candidate)))))
     (funcall function)))
 
-
+;; (prin)
+;; (cl-suer:print :oups)
 ;; (call-with-correction-suggestion (lambda () (eval '(prin))))
 
 (defparameter *interactive-eval-hooks* '())
