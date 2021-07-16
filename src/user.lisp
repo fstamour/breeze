@@ -75,25 +75,26 @@
 
 (defun welcome ()
   ;; figlet -mini breeze
-  (format t "~&~%~A~%~%" "
-    |_ .__  _ _  _
-    |_)|(/_(/_/_(/_ ")
+  (format t "~&~%Welcome to breeze!~%")
 
   (format t "~%Tips:~%")
   (format t "~&~{ * ~A~%~}"
 	  (remove-if #'null
 		     `(#+later "Remember to use the emacs mode if applicable."
-			       "User (br:next) to get hints on what to do next."
-			       "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
-			       "Use (require 'swank) followed by (swank:create-server) to start swank."
-			       "Once swank is started, call (breeze.swank:advise-swank-interactive-eval)"
-			       "User (br:dogfood) to start hacking on breeze."
-			       ,(maybe-tips-about-test-runner nil)))))
+		       "User (br:next) to get hints on what to do next."
+		       "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
+		       "Use (require 'swank) followed by (swank:create-server) to start swank."
+		       "Once swank is started, call (breeze.swank:advise-swank-interactive-eval)"
+		       "User (br:dogfood) to start hacking on breeze."
+		       ,(maybe-tips-about-test-runner nil))))
+  "Breeze started!")
 
 (defun main ()
   "Call this function to start."
   (pushnew 'run-test-for-function *function-redifinition-hooks*)
   (pushnew 'request-to-run-test *test-change-hooks*)
+  (breeze.swank:advise-swank-interactive-eval)
+  (ensure-test-runner)
   (welcome))
 
 ;; Naming is hard

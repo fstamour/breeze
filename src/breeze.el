@@ -110,13 +110,6 @@ First lead:
 
 ;; (breeze/ensure-breeze)
 
-(defun breeze/advise-swank-interactive-eval ()
-  "Advise swank:interactive-eval"
-  (slime-eval `(swank:interactive-eval
-		"(breeze.swank:advise-swank-interactive-eval)")))
-
-;; (breeze/advise-swank-interactive-eval)
-
 ;; See slime--setup-contribs, I used that name so it _could_ be added to slime-contrib,
 ;; I haven't tested it yet though.
 (defun breeze-init ()
@@ -124,7 +117,8 @@ First lead:
   (interactive)
   (breeze/check-if-slime-is-connected)
   (breeze/ensure-breeze)
-  (breeze/advise-swank-interactive-eval))
+  (slime-eval `(swank:interactive-eval
+		"(breeze.user:main)")))
 
 (defmacro breeze/with-slime (&rest body)
   `(progn
