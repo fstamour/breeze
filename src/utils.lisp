@@ -10,7 +10,8 @@
    #:walk-list
    #:indent-string
    #:print-comparison
-   #:breeze-relative-pathname))
+   #:breeze-relative-pathname
+   #:whitespacep))
 
 (in-package #:breeze.utils)
 
@@ -129,3 +130,6 @@ sytsem-files"
   (if (cl-fad:pathname-relative-p pathname)
       (asdf:system-relative-pathname :breeze pathname)
       pathname))
+
+(defun whitespacep (char)
+  (member char '(#\Space #\Newline #\Backspace #\Tab #\Newline #\Page #\Return #\Rubout)))
