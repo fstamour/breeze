@@ -485,6 +485,12 @@ Othewise, return the position of the character."
 	    (indent-sexp))
 	(message "Failed to find a parent let form.")))))
 
+(defun breeze-quickfix ()
+  "Suggest valid actions to the user based on the point."
+  (interactive)
+  ;; TODO
+  )
+
 
 ;;; code evaluation
 
@@ -633,6 +639,9 @@ Othewise, return the position of the character."
 
 ;; Analoguous to org-goto
 (define-key breeze-mode-map (kbd "C-c C-j") #'imenu)
+
+;; Analoguous to Visual Studio Code's "quickfix"
+(define-key breeze-mode-map (kbd "C-.") #'breeze-quickfix)
 
 ;; I think the reason I needed that was because of a conflict of keybindings,
 ;; paredit's M-q seems to do the job.
