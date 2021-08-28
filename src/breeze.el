@@ -599,14 +599,6 @@ Othewise, return the position of the character."
 ;; TODO
 ;; breeze-kill-worker-thread
 
-;; (bordeaux-threads:destroy-thread
-;;  (let ((current-thread (bt:current-thread)))
-;;    (find-if #'(lambda (thread)
-;; 		(and (not (eq current-thread thread))
-;; 		     (string= "worker" (bt:thread-name thread))))
-;; 	    (sb-thread:list-all-threads))))
-
-
 
 ;;; Mode-line indicator
 

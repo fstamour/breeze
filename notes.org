@@ -1,6 +1,10 @@
 #+STARTUP: showeverything
 
 * Tasks
+** TODO On first setup, the user has to (ql:quickload 'breeze)
+
+Start by documenting it, then automate it.
+
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl
 ** TODO Advising swank-interactive-eval doesn't override sbcl's repl either
 ** TODO Document how to use breeze:defun
@@ -29,6 +33,7 @@ Currently, if we do that, we'll get 2 conditions if the evaluation
 signals a condition and triggers test runs that fail.
 ** TODO Add binding to run test at point
 ** TODO Add command to choose a test and run it
+** TODO When inserting a package definition in an empty buffer, evaluate the buffer
 
 * Other projects with slime integration
 ** log4cl
@@ -99,6 +104,15 @@ I'm sure there are tons of other user-case:
 - interpret code (symbolically or not)
 
 * Scratch files
+
+#+begin_src lisp
+(bordeaux-threads:destroy-thread
+ (let ((current-thread (bt:current-thread)))
+   (find-if #'(lambda (thread)
+  		(and (not (eq current-thread thread))
+  		     (string= "worker" (bt:thread-name thread))))
+  	    (sb-thread:list-all-threads))))
+#+end_src
 
 * Prior Arts
 
