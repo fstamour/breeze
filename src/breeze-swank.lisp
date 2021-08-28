@@ -10,7 +10,9 @@
    #:get-ql-local-project-directories
    #:advise-swank-interactive-eval
    #:restore-swank-interactive-eval
-   #:get-recent-interactively-evaluated-forms))
+   #:get-recent-interactively-evaluated-forms)
+  (:import-from #:breeze.xref
+		#:classp))
 
 (in-package #:breeze.swank)
 
@@ -38,68 +40,94 @@
 (defparameter *recent-forms* ()
   "A list of recently-evaluated forms (as strings).")
 
+
+(defmacro minimizing ((var) &body body)
+  (check-type var symbol)
+  (with-gensyms (score)
+    `(let  ((,var nil)
+	    (,score))
+       (flet ((,var (new-candidate new-score)
+		(when (or (not ,var)
+			  (< new-score ,score))
+		  (setf ,var new-candidate
+			,score new-score))))
+	 ,@body
+	 ,var))))
+
+#+nil
+(minimizing (x)
+  (x 'a 10)
+  (x 'b 5))
+;; => B
+
 (defun find-most-similar-symbol (input)
-  (let ((candidate nil)
-	(candidate-distance 0))
+  (minimizing (candidate)
     (do-symbols (sym)
       (when (fboundp sym)
-	(let ((distance (breeze.utils:optimal-string-alignment-distance
-			 input
-			 (string-downcase sym))))
-	  (when (or (not candidate)
-		    (< distance candidate-distance))
-	    (setf candidate sym
-		  candidate-distance distance)))))
-    candidate))
+	(candidate sym
+		   (breeze.utils:optimal-string-alignment-distance
+		    input
+		    (string-downcase sym)))))))
 
 ;; (find-most-similar-symbol "prin") ;; => princ
 
 (defun find-most-similar-package (input)
-  (let ((candidate nil)
-	(candidate-distance 0))
+  (minimizing (candidate)
     (loop :for package in (list-all-packages)
 	  :for package-name = (package-name package) :do
-	  (loop :for name in `(,package-name ,@(package-nicknames package)) :do
-		(let ((distance (breeze.utils:optimal-string-alignment-distance
-					    input
-					    (string-downcase name))))
-		  (when (or (not candidate)
-			    (< distance candidate-distance))
-		    (setf candidate name
-			  candidate-distance distance)))))
-    candidate))
+	    (loop :for name in `(,package-name ,@(package-nicknames package)) :do
+	      (candidate name (breeze.utils:optimal-string-alignment-distance
+			       input
+			       (string-downcase name)))))))
 
 ;; (find-most-similar-package "breeze.util") ;; => breeze.utils
+
+(defun find-most-similar-class (input)
+  (minimizing (candidate)
+    (do-symbols (sym)
+      (when (classp sym)
+	(candidate sym
+		   (breeze.utils:optimal-string-alignment-distance
+		    input
+		    (string-downcase sym)))))))
 
 
 (defun suggest (input candidate)
   ;; WARNING: Using a non-exported symbol from swank
   (swank::background-message "Did you mean \"~a\"?" candidate)
-  (warn "Did you mean \"~a\"?~%~a"
-	candidate
-	(breeze.utils:indent-string
-	 2 (breeze.utils:print-comparison nil
-					  (string-downcase candidate)
-					  input))))
+  (when candidate
+    (warn "Did you mean \"~a\"?~%~a"
+	  candidate
+	  (breeze.utils:indent-string
+	   2 (breeze.utils:print-comparison nil
+					    (string-downcase candidate)
+					    input)))))
 
 (defun call-with-correction-suggestion (function)
   "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
   (handler-bind
       ((undefined-function
-	#'(lambda (condition)
-	    (let* ((input (string-downcase (cell-error-name condition)))
-		   (candidate (find-most-similar-symbol input)))
-	      (suggest input candidate))))
+	 #'(lambda (condition)
+	     (let* ((input (string-downcase (cell-error-name condition)))
+		    (candidate (find-most-similar-symbol input)))
+	       (suggest input candidate))))
        (package-error
-	#'(lambda (condition)
-	    (let* ((input (string-downcase (package-error-package condition)))
-		   (candidate (find-most-similar-package input)))
-	      (suggest input candidate)))))
+	 #'(lambda (condition)
+	     (let* ((input (string-downcase (package-error-package condition)))
+		    (candidate (find-most-similar-package input)))
+	       (suggest input candidate))))
+       #+sbcl
+       (sb-pcl:class-not-found-error
+	 #'(lambda (condition)
+	     (let* ((input (string-downcase (sb-kernel::cell-error-name condition)))
+		    (candidate (find-most-similar-class input)))
+	       (suggest input candidate)))))
     (funcall function)))
 
 ;; (prin)
 ;; (cl-suer:print :oups)
 ;; (call-with-correction-suggestion (lambda () (eval '(prin))))
+;; (make-instance 'typos)
 
 (defparameter *interactive-eval-hooks* '())
 
