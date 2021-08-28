@@ -384,7 +384,7 @@ Othewise, return the position of the character."
 ;; (breeze-get-symbol-package "cl:find")
 ;; => ("common-lisp" "find")
 
-(defun breeeze-import-from ()
+(defun breeze-add-import-from ()
   "Add or update defpackage to \"import-from\" the symbol at point.
 
    TODO it assumes there's a defpackage form in the current
@@ -395,17 +395,31 @@ Othewise, return the position of the character."
 	(case-fold-search t)) ;; case insensitive search
     (destructuring-bind (package-name symbol-name)
 	(breeze-get-symbol-package symbol)
-      (message "%s:%s" package-name symbol-name)
+      ;; (message "%s:%s" package-name symbol-name)
       (save-excursion
-	(goto-char (point-min))
-	(if (re-search-forward (concat "import-from[[:space:]:#]+" package-name))
+	(goto-char (point-min)) ;; Go to the start of the buffer
+	(if (re-search-forward (concat "import-from[[:space:]:#]+" package-name) nil t)
 	    (progn
 	      (insert (format "\n#:%s" symbol-name))
 	      (slime-beginning-of-defun)
 	      (indent-sexp)
 	      (slime-eval-defun))
-	  ;; TODO else, search for defpackage, add it at the end
-	  )))))
+	  (progn
+	    ;; Find the defpackage form
+	    (re-search-forward "defpackage")
+	    (slime-beginning-of-defun)
+	    (forward-sexp)
+	    (backward-char)
+	    (insert (concat "\n(:import-from #:" package-name "\n#:" symbol-name ")"))
+	    ))
+	;; Evaluate the defpackage form
+	(slime-eval-defun))
+      ;; Replace package:symbol by symbol, in the current buffer
+      (save-excursion
+	(goto-char (point-min)) ;; Go to the start of the buffer
+	(while (re-search-forward symbol nil t)
+	  (replace-match symbol-name))))))
+
 
 ;; (slime-goto-package-source-definition "breeze")
 ;; (slime-goto-xref)
