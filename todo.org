@@ -1,0 +1,18 @@
+
+* Emacs integration
+
+** DONE [#A] Make sure slime is loaded                             :ux:elisp:
+
+   Added =(require 'slime)=
+
+** TODO [#A] Make sure slime has an active connection              :ux:elisp:
+
+* CI
+
+** TODO [#B] Use GitHub actions instead of TravisCI                     :ops:
+
+** TODO [#C] Generate the documenation in the CI                    :ops:doc:
+
+* Documentation
+
+** TODO [#C] Add a link to the GitHub repository in the documentation :doc:ux:

@@ -30,6 +30,15 @@
   (mapcar #'namestring
 	  ql:*local-project-directories*))
 
+
+;;; introspection
+
+(defun get-symbol-package (symbol)
+  (check-type symbol symbol)
+  (format t "\"~(~a ~a~)\""
+	  (package-name (symbol-package symbol))
+	  (symbol-name symbol)))
+
 
 
 ;;; advising swank
