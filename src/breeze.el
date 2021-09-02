@@ -482,6 +482,20 @@ Othewise, return the position of the character."
 	    (indent-sexp))
 	(message "Failed to find a parent let form.")))))
 
+
+;;; Suggestions
+
+(defun breeze-next ()
+  "Ask breeze for suggestions on what to do next."
+  (interactive)
+  (cl-destructuring-bind (output value)
+      (slime-eval `(swank:eval-and-grab-output
+		    ;; TODO send more information to "next"
+		    ;; What's the current buffer? does it visit a file?
+		    ;; What's the current package? is it covered by breeze.user:*current-packages*
+		    "(breeze.user:next)"))
+    (message "%s" output)))
+
 (defun breeze-quickfix ()
   "Suggest valid actions to the user based on the point."
   (interactive)

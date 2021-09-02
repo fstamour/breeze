@@ -134,9 +134,10 @@
 (defun cheers ()
   "Bravo!")
 
-(defun check-for-undocumented-symbols ()
+(defun tips-about-undocumented-symbols ()
+  "Tell the user there are undocumented symbols."
   (let ((missing-documentation
-	 (loop
+	  (loop
 	    :for package :in (current-packages)
 	    :append (find-undocumented-symbols package))))
     (if missing-documentation
@@ -144,12 +145,24 @@
 	  (format t "~&There are undocumented symbols in current packages:")
 	  (format t "~&~{ * ~A~%~}"
 		  missing-documentation))
-	(format t "~&No undocumented symbols found. ~A" (cheers)))))
+	(format t "~&No undocumented symbols found ~{~A~}. ~A" (current-packages) (cheers)))))
+
+(defun tips-about-failing-tests ()
+  "Tell the user about currently failiing tests."
+  ;; TODO
+  )
+
+(defun tips-about-untested-code ()
+  "Tell the user about untested code."
+  ;; TODO
+  )
 
 (defun next ()
   "Call this to get hints on what to do next."
   (maybe-tips-about-test-runner)
-  (check-for-undocumented-symbols))
+  (tips-about-undocumented-symbols)
+  (tips-about-failing-tests)
+  (tips-about-untested-code))
 
 (defun selftest ()
   "Load and run breeze's selftests."
