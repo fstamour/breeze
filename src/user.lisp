@@ -89,12 +89,16 @@
 		       ,(maybe-tips-about-test-runner nil))))
   "Breeze started!")
 
-(defun main ()
-  "Call this function to start."
+(defun initilize ()
+  "Make sure everything is initialized."
   (pushnew 'run-test-for-function *function-redifinition-hooks*)
   (pushnew 'request-to-run-test *test-change-hooks*)
   (breeze.swank:advise-swank-interactive-eval)
-  (ensure-test-runner)
+  (ensure-test-runner))
+
+(defun main ()
+  "Call this function to start."
+  (initialize)
   (welcome))
 
 ;; Naming is hard

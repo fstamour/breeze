@@ -120,7 +120,7 @@ First lead:
   (breeze/check-if-slime-is-connected)
   (breeze/ensure-breeze)
   (slime-eval `(swank:interactive-eval
-		"(breeze.user:main)")))
+		"(breeze.user::initialize)"))
   (message "Breeze initialized."))
 
 (defmacro breeze/with-slime (&rest body)
