@@ -105,8 +105,10 @@ First lead:
 (defun breeze/ensure-breeze ()
   "Make sure that breeze is loaded in swank."
   (unless (breeze/validate-if-breeze-package-exists)
+    (message "Loading breeze's system...")
     (slime-eval `(swank:interactive-eval
-		  ,(format "(progn (load \"%s\") (require 'breeze))" (breeze/system-definition))))))
+		  ,(format "(progn (load \"%s\") (require 'breeze))" (breeze/system-definition)))))
+  (message "Breeze loaded in inferior-lisp."))
 
 ;; (breeze/ensure-breeze)
 
@@ -119,6 +121,7 @@ First lead:
   (breeze/ensure-breeze)
   (slime-eval `(swank:interactive-eval
 		"(breeze.user:main)")))
+  (message "Breeze initialized."))
 
 (defmacro breeze/with-slime (&rest body)
   `(progn
@@ -664,8 +667,11 @@ Othewise, return the position of the character."
 (defun breeze ()
   "Start slime and breeze"
   (interactive)
-  (unless (slime-current-connection)
-    (slime))
+  (if (slime-current-connection)
+      (progn
+	(message "Starting slime...")
+	(slime))
+    (message "Slime already started."))
   (breeze-init))
 
 (provide 'breeze)
