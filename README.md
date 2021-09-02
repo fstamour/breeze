@@ -8,6 +8,28 @@ Breeze is a set of tools that aims to make lisp development a breeze (hence the 
 
 It is still in its early development.
 
+## Goals and non-goals
+
+### Goals
+
+- Make it easier to develop in common lisp
+  - by any means
+- With any editor (or even without one)
+- Be as portable as possible
+- Be useful to new and experimented developper (or even
+  non-developpers, we'll get there)
+
+### Non-goals
+
+- Replace slime, sly, slimv, slima, etc
+- Replace existing test framework
+  - One test "framework" is included in breeze, but only for convenience/experimentation purposes.
+- Force the user to use a set of conventions
+  - If there are conventions used by breeze, for convenience, they should be customizable.
+  - e.g. Currently, some refactoring utilies only work when the user
+    use `cl:defpackage` (as opposed to `uiop:defpackage`) and there's
+    one `defpackage` per file, but it doesn't have to be that way.
+
 ## Features
 
 * Redefine `defun` to keep track of the definitions (before any macro expansion).

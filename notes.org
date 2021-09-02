@@ -1,9 +1,11 @@
-#+STARTUP: showeverything
 
 * Tasks
-** TODO On first setup, the user has to (ql:quickload 'breeze)
 
-Start by documenting it, then automate it.
+** TODO [#A] On first setup, the user has to (ql:quickload 'breeze)
+
+Start by documenting how to start using breeze, then automate it.
+
+** TODO Put these tasks in GitHub?
 
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl
 ** TODO Advising swank-interactive-eval doesn't override sbcl's repl either
@@ -33,7 +35,64 @@ Currently, if we do that, we'll get 2 conditions if the evaluation
 signals a condition and triggers test runs that fail.
 ** TODO Add binding to run test at point
 ** TODO Add command to choose a test and run it
-** TODO When inserting a package definition in an empty buffer, evaluate the buffer
+** TODO [#B] When inserting a package definition in an empty buffer, evaluate the buffer :easy:
+** TODO [#B] Use GitHub actions instead of TravisCI                     :ops:
+** TODO [#C] Generate the documenation in the CI                    :ops:doc:
+** TODO [#C] Add a link to the GitHub repository in the documentation :doc:ux:
+** Add integration tests
+*** TODO Look into emacs-director                                      :test:
+
+https://github.com/bard/emacs-director
+
+** TODO Try to detect when the current buffer/file was not loaded.
+
+Could pass the file to br:next. What if
+- it's a buffer that's not visiting a file?
+- it's not a buffer in lisp-mode
+- the buffer is empty
+- the buffer requires some reader-macro
+- the buffer is visiting a file, but there are unsaved modifications
+
+** TODO Try to suggest new and old projects?
+
+When the user just initialized breeze, try to find out if the user has
+any lisp project(s) already opened, help him work on it.
+
+If not projects are found guide him through (breeze-quickproject)
+
+** TODO Suggest corrections when typos are detected
+
+We already suggest stuff when there's, for example, an
+undefined-function error. We could go one step further and suggest a
+quickfix in the editor. We should probably suggest that quickfix only
+when the edit-distance is not too great, or we would get some wild quickfixes.
+
+* Design decisions
+
+** Write everything in common lisp
+
+As much as possible, so that breeze can easily be ported to different
+platforms and editors.
+
+** Wrap definitions
+
+Decision: Create wrapper macros (e.g. =br:defun=) to keep the original
+  forms for later analysis.
+
+This decision is really not definitive.
+
+This decision is less than ideal, especially for existing systems, but
+it was the easiest to start with.
+
+*** Alternatives
+
+**** Keep the string being eval'd
+
+Advising swank's eval function is "a good start" in that direction.
+
+**** Parse the source code
+
+Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
 
 * Other projects with slime integration
 ** log4cl
@@ -67,9 +126,41 @@ http://eradman.com/entrproject/
 ** Compare the files in a system's directory and the actual components.
 ** See BIST to probalistically compare functions
 *** Use a PRNG to generate inputs, use a hash to fingerprint the outputs
+See [[file:scratch-files/function-fingerprinting.lisp][function-fingerprinting.lisp]]
+
+** Generate test for existing functions
+
+- The more we know the types of the expression, the more we can narrow
+  down the search.
+- It would be easier if we knew which expression are safe to execute
+
 ** Generate code based on desired input/output
 
 https://github.com/webyrd/Barliman
+
+- The more we know the types of the expression, the more we can narrow
+  down the search.
+- It would be easier if we knew which expression are safe to execute
+- The linter can help choose better results
+- Using e-graph to refactor candidates can help suggest helper
+  functions
+
+
+*** See Programming by examples (inductive synthesis)
+
+** A lot of things could be done by instrumenting the code
+
+Which is one of the reason behind wrapping the definitions (e.g. =breeze:defun=)
+
+- fault injection
+- program slicing
+- Stepping though code
+- profiling
+- test coverage
+- coverage guided
+- profile-guided optimization
+
+** Use equivalence-graph e-graph to suggest refactors
 
 * See
 ** TODO uses of slime's locative: http://quickdocs.org/mgl-pax/
@@ -81,6 +172,16 @@ https://github.com/webyrd/Barliman
 Superior Lisp Interactive Mode for Atom
 
 https://github.com/neil-lindquist/SLIMA
+
+** TODO An implementation of the Language Server Protocol for Common Lisp
+
+- https://github.com/cxxxr/cl-lsp
+- related: https://marketplace.visualstudio.com/items?itemName=ailisp.commonlisp-vscode
+
+** About e-graph
+
+- https://egraphs-good.github.io/
+- https://colab.research.google.com/drive/1tNOQijJqe5tw-Pk9iqd6HHb2abC5aRid?usp=sharing
 
 * Libraries we might need in the future
 
@@ -104,6 +205,8 @@ I'm sure there are tons of other user-case:
 - interpret code (symbolically or not)
 
 * Scratch files
+
+Pieces of code that could be useful
 
 #+begin_src lisp
 (bordeaux-threads:destroy-thread
