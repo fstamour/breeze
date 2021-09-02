@@ -81,11 +81,11 @@
   (format t "~&~{ * ~A~%~}"
 	  (remove-if #'null
 		     `(#+later "Remember to use the emacs mode if applicable."
-		       "User (br:next) to get hints on what to do next."
+		       "Use (br:next) to get hints on what to do next."
 		       "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
 		       "Use (require 'swank) followed by (swank:create-server) to start swank."
 		       "Once swank is started, call (breeze.swank:advise-swank-interactive-eval)"
-		       "User (br:dogfood) to start hacking on breeze."
+		       "Use (br:dogfood) to start hacking on breeze."
 		       ,(maybe-tips-about-test-runner nil))))
   "Breeze started!")
 
