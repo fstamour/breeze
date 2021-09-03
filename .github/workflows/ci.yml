@@ -31,7 +31,9 @@ jobs:
         shell: cmd
         run: |
           echo "C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $GITHUB_PATH
+          cat $GITHUB_PATH
           echo "SBCL_HOME=C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $GITHUB_ENV
+          cat $GITHUB_ENV
           curl -L http://downloads.sourceforge.net/project/sbcl/sbcl/2.0.0/sbcl-2.0.0-x86-64-windows-binary.msi --output sbcl.msi
           msiexec /qn /i sbcl.msi
 
@@ -52,7 +54,7 @@ jobs:
       - name: Setup quicklisp
         run: |
           curl -kLO https://beta.quicklisp.org/quicklisp.lisp
-          printenv
+          printenv | sort
           sbcl --noinform --non-interactive --load scripts/setup-quicklisp.lisp
 
       - name: Tests
