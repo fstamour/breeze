@@ -56,7 +56,7 @@ jobs:
           sbcl --noinform --non-interactive --load scripts/setup-quicklisp.lisp
 
       - name: Tests
-        run: >
+        run: >-
           sbcl --noinform --non-interactive
            --load 'breeze.asd'
            --eval '(ql:quickload :breeze)'
