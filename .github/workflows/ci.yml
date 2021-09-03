@@ -26,7 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Install sbcl
+      - name: "Windows: Install sbcl"
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
@@ -35,16 +35,16 @@ jobs:
           curl -L http://downloads.sourceforge.net/project/sbcl/sbcl/2.0.0/sbcl-2.0.0-x86-64-windows-binary.msi --output sbcl.msi
           msiexec /qn /i sbcl.msi
 
-      - name: Install sbcl
+      - name: "Ubuntu: Install sbcl"
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y sbcl
 
-      - name: Install sbcl
+      - name: "MacOs: Install sbcl"
         if: matrix.os == 'macos-latest'
         run: |
-          brew install sbcl clozure-cl
+          brew install sbcl
 
       - name: Checkout repository
         uses: actions/checkout@v2
