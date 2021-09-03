@@ -52,6 +52,7 @@ jobs:
       - name: Setup quicklisp
         run: |
           curl -kLO https://beta.quicklisp.org/quicklisp.lisp
+          printenv
           sbcl --noinform --non-interactive --load scripts/setup-quicklisp.lisp
 
       - name: Tests
