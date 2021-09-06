@@ -1,13 +1,39 @@
 <!DOCTYPE html>
 <html lang=en><head><meta charset=UTF-8><title>Breeze</title><link rel=stylesheet href=style.css></head><body><ol><li><a href=#readme>Breeze</a></li><li><a href=#emacs>Emacs integration</a></li><li><a href=#reference>Reference</a></li></ol><h1><a name="readme">Breeze</a></h1>
 
-<p><a href="https://travis-ci.org/fstamour/breeze"><img src="https://travis-ci.org/fstamour/breeze.svg?branch=master" alt="Build Status" /></a></p>
+<!-- <a href="https://travis-ci.org/fstamour/breeze">![Build Status](https://travis-ci.org/fstamour/breeze.svg?branch=master)</a> -->
 
 <p><a href="https://ko-fi.com/F2F21YR7I">Support me on Ko-Fi</a></p>
 
 <p>Breeze is a set of tools that aims to make lisp development a breeze (hence the name).</p>
 
 <p>It is still in its early development.</p>
+
+<h2>Goals and non-goals</h2>
+
+<h3>Goals</h3>
+
+<ul>
+<li>Make it easier to develop in common lisp</li>
+<li>by any means</li>
+<li>With any editor (or even without one)</li>
+<li>Be as portable as possible</li>
+<li>Be useful to new and experimented developper (or even
+  non-developpers, we'll get there)</li>
+</ul>
+
+<h3>Non-goals</h3>
+
+<ul>
+<li>Replace slime, sly, slimv, slima, etc</li>
+<li>Replace existing test framework</li>
+<li>One test &quot;framework&quot; is included in breeze, but only for convenience/experimentation purposes.</li>
+<li>Force the user to use a set of conventions</li>
+<li>If there are conventions used by breeze, for convenience, they should be customizable.</li>
+<li>e.g. Currently, some refactoring utilies only work when the user
+use <code>cl:defpackage</code> (as opposed to <code>uiop:defpackage</code>) and there's
+one <code>defpackage</code> per file, but it doesn't have to be that way.</li>
+</ul>
 
 <h2>Features</h2>
 
@@ -16,7 +42,7 @@
 <li>A minimal test library that supports introspection.</li>
 <li>Workers - generic threads with message passing (thanks to <a href="https://github.com/zkat/chanl" >chanl</a>).</li>
 <li>Test-runner - a worker that runs tests (on demand).</li>
-<li>Can re-run all tests on function or test redifinition.</li>
+<li>Can re-run all tests on function or test redefinition.</li>
 <li><a href="#emacs" >Emacs integration</a></li>
 <li>Integration with slime</li>
 <li>WIP File watcher</li>
@@ -242,7 +268,7 @@ with it).  Alternatively, you _could_ run many different
 test-runners.</p><h3>Functions</h3><dl><dt>ENSURE-TEST-RUNNER</dt><dd>Start the test runner if it's not already running.</dd><dt>REQUEST-TO-RUN-TEST</dt><dd>Take a test name and send it to the test-runner.</dd><dt>REQUEST-TO-RUN-TEST*</dt><dd>Take a list of test name and send it to the test-runner.</dd><dt>START-TEST-RUNNER</dt><dd>Start the test runner</dd><dt>STOP-TEST-RUNNER</dt><dd>Stop the test runner</dd></dl><h2><a name=breeze.user>breeze.user</a></h2><p>Use this package.</p><h3>Special variables</h3><dl><dt>*CURRENT-PACKAGES*</dt><dd>Specify which packages you are working on. By default this variable
   is set to a function that returns the current value of *package*.</dd></dl><h3>Functions</h3><dl><dt>CALLS-WHO</dt><dd>Take a function name and returns a list of all the functions it calls.</dd><dt>CURRENT-PACKAGES</dt><dd>Coerce *current-packages* into a list of packages.</dd><dt>DOGFOOD</dt><dd>Setup breeze to work on breeze.</dd><dt>ENSURE-TEST-RUNNER</dt><dd>Start the test runner if it's not already running.</dd><dt>FIND-UNDOCUMENTED-SYMBOLS</dt><dd>Find symbols in a package that lacks documentation.</dd><dt>FMAKUNBOUND</dt><dd>Make NAME have no global function definition.</dd><dt>FUNCTION-BODY</dt><dd>Get the body of a function by name</dd><dt>MAIN</dt><dd>Call this function to start.</dd><dt>NEXT</dt><dd>Call this to get hints on what to do next.</dd><dt>RUN-ALL-TESTS</dt><dd>Run a list of tests, runs all existing tests if no list is provided.
     Returns NIL if they all passed, or the number of failed tests otherwise.
-    Also returns the total number of tests as a second value.</dd><dt>RUN-TEST</dt><dd>Run a test by name, returns a test-result.</dd><dt>SELFTEST</dt><dd>Load and run breeze's selftests.</dd><dt>START-TEST-RUNNER</dt><dd>Start the test runner</dd><dt>STOP-TEST-RUNNER</dt><dd>Stop the test runner</dd><dt>TEST-BODY</dt><dd>Get the body of a test by name</dd><dt>TEST-CALLS-WHO</dt><dd>Take a test name and return a list of all the functions it calls.</dd><dt>TEST-CASE</dt><dd>List all the test-cases</dd><dt>TESTED-BY</dt><dd>Return a list of all the tests that calls FUNCTION-NAME.</dd></dl><h3>Macros</h3><dl><dt>DEFTEST</dt><dd>Defines a test</dd><dt>DEFUN</dt><dd>Define a functions and saves its definition in memory, flag a function redifinition.</dd><dt>IS</dt><dd>Macro that signals an error when its body evaluate to nil</dd></dl><h2><a name=breeze.utils>breeze.utils</a></h2><p>Utilities</p><h3>Functions</h3><dl><dt>BREEZE-RELATIVE-PATHNAME</dt><dd>Returns a pathname relative to breeze's location.</dd><dt>INDENT-STRING</dt><dd>Prepend INDENTATION spaces at the beginning of each line in STRING.</dd><dt>OPTIMAL-STRING-ALIGNMENT-DISTANCE</dt><dd>Compute an edit distance between two vector.</dd><dt>PACKAGE-APROPOS</dt><dd>Compute a list of package that contains the search-string.</dd><dt>PRINT-COMPARISON</dt><dd>Print two (close) string in a way that the difference are easier to see.</dd><dt>WALK</dt><dd>Walk a tree and call fn on every elements</dd><dt>WALK-CAR</dt><dd>Walk a tree and call fn on each first elements (cars)</dd><dt>WALK-LIST</dt><dd>Walk a tree and call fn on each list parts</dd></dl><h2><a name=breeze.worker>breeze.worker</a></h2><p>Worker class and methods</p><h3>Classes</h3><dl><dt>WORKER</dt><dd>Workers are threads that process messages sent via a channels.
+    Also returns the total number of tests as a second value.</dd><dt>RUN-TEST</dt><dd>Run a test by name, returns a test-result.</dd><dt>SELFTEST</dt><dd>Load and run breeze's selftests.</dd><dt>START-TEST-RUNNER</dt><dd>Start the test runner</dd><dt>STOP-TEST-RUNNER</dt><dd>Stop the test runner</dd><dt>TEST-BODY</dt><dd>Get the body of a test by name</dd><dt>TEST-CALLS-WHO</dt><dd>Take a test name and return a list of all the functions it calls.</dd><dt>TEST-CASE</dt><dd>List all the test-cases</dd><dt>TESTED-BY</dt><dd>Return a list of all the tests that calls FUNCTION-NAME.</dd></dl><h3>Macros</h3><dl><dt>DEFTEST</dt><dd>Defines a test</dd><dt>DEFUN</dt><dd>Define a functions and saves its definition in memory, flag a function redifinition.</dd><dt>IS</dt><dd>Macro that signals an error when its body evaluate to nil</dd></dl><h2><a name=breeze.utils>breeze.utils</a></h2><p>Utilities</p><h3>Functions</h3><dl><dt>BREEZE-RELATIVE-PATHNAME</dt><dd>Returns a pathname relative to breeze's location.</dd><dt>INDENT-STRING</dt><dd>Prepend INDENTATION spaces at the beginning of each line in STRING.</dd><dt>OPTIMAL-STRING-ALIGNMENT-DISTANCE</dt><dd>Compute an edit distance between two vector.</dd><dt>PACKAGE-APROPOS</dt><dd>Compute a list of package that contains the search-string.</dd><dt>PRINT-COMPARISON</dt><dd>Print two (close) string in a way that the difference are easier to see.</dd><dt>WALK</dt><dd>Walk a tree and call fn on every elements</dd><dt>WALK-CAR</dt><dd>Walk a tree and call fn on each first elements (cars)</dd><dt>WALK-LIST</dt><dd>Walk a tree and call fn on each list parts</dd><dt>WHITESPACEP</dt><dd>No documentation.</dd></dl><h2><a name=breeze.worker>breeze.worker</a></h2><p>Worker class and methods</p><h3>Classes</h3><dl><dt>WORKER</dt><dd>Workers are threads that process messages sent via a channels.
 There are 3 channels:
 * an input channel used to send data to the task
 * an ouput channel used to get data back from the task

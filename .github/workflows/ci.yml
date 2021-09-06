@@ -1,0 +1,56 @@
+name: ci
+
+# When to trigger this workflow
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+
+    # run the job on every combination of "os" above
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: "Windows: Install sbcl"
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $env:GITHUB_PATH
+          cat $env:GITHUB_PATH
+          echo "SBCL_HOME=C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $env:GITHUB_ENV
+          cat $env:GITHUB_ENV
+          curl -L http://downloads.sourceforge.net/project/sbcl/sbcl/2.0.0/sbcl-2.0.0-x86-64-windows-binary.msi --output sbcl.msi
+          msiexec /qn /i sbcl.msi
+
+      - name: "Ubuntu: Install sbcl"
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sbcl
+
+      - name: "MacOs: Install sbcl"
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install sbcl
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup quicklisp
+        run: |
+          curl -kLO https://beta.quicklisp.org/quicklisp.lisp
+          printenv | sort
+          sbcl --noinform --non-interactive --load scripts/setup-quicklisp.lisp
+
+      - name: Tests
+        run: sbcl --noinform --non-interactive --load 'breeze.asd' --eval '(ql:quickload :breeze)' --eval '(breeze.user:selftest)'
