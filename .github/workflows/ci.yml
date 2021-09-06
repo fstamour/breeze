@@ -28,7 +28,6 @@ jobs:
     steps:
       - name: "Windows: Install sbcl"
         if: matrix.os == 'windows-latest'
-        shell: cmd
         run: |
           echo "C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $GITHUB_PATH
           cat $GITHUB_PATH
