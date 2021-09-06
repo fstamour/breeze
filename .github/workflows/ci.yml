@@ -25,10 +25,10 @@ jobs:
       - name: "Windows: Install sbcl"
         if: matrix.os == 'windows-latest'
         run: |
-          echo "C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $GITHUB_PATH
-          cat $GITHUB_PATH
-          echo "SBCL_HOME=C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $GITHUB_ENV
-          cat $GITHUB_ENV
+          echo "C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $env:GITHUB_PATH
+          cat $env:GITHUB_PATH
+          echo "SBCL_HOME=C:\\Program Files\\Steel Bank Common Lisp\\2.0.0\\" >> $env:GITHUB_ENV
+          cat $env:GITHUB_ENV
           curl -L http://downloads.sourceforge.net/project/sbcl/sbcl/2.0.0/sbcl-2.0.0-x86-64-windows-binary.msi --output sbcl.msi
           msiexec /qn /i sbcl.msi
 
