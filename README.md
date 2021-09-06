@@ -1,6 +1,6 @@
 # <a name="readme">Breeze</a>
 
-<!-- <a href="https://travis-ci.org/fstamour/breeze">![Build Status](https://travis-ci.org/fstamour/breeze.svg?branch=master)</a> -->
+![ci](https://github.com/fstamour/breeze/actions/workflows/ci.yml/badge.svg)
 
 <a href="https://ko-fi.com/F2F21YR7I">Support me on Ko-Fi</a>
 
