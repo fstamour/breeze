@@ -49,10 +49,10 @@ fi
 git diff-index --check --cached $against --
 
 # run the tests
-./test.nix
+./scripts/test.nix
 
 # generate the docs
-./doc.nix
+./scripts/doc.nix
 
 git add docs/
 
