@@ -89,7 +89,7 @@
 		       ,(maybe-tips-about-test-runner nil))))
   "Breeze started!")
 
-(defun initilize ()
+(defun initialize ()
   "Make sure everything is initialized."
   (pushnew 'run-test-for-function *function-redifinition-hooks*)
   (pushnew 'request-to-run-test *test-change-hooks*)
