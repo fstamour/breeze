@@ -4,7 +4,14 @@
 ;;; Snippets
 ;;; N.B. They are more like templates/skeletons.
 
-(ql:quickload 'with-output-to-stream)
+(in-package #:common-lisp-user)
+
+(defpackage #:breeze.snippets
+  (:use :cl))
+
+(in-package #:breeze.snippets)
+
+;; (ql:quickload 'with-output-to-stream)
 
 (defvar *snippet-stream* nil
   "The stream use to print out snippets.")
@@ -53,12 +60,12 @@
 
 (defmacro define-snippet (&whole whole
 			    name (&rest lambda-list)
-				    docstring
+			    docstring
 			  &body body)
   "Create a function and register a snippet."
   (check-type docstring string)
   `(progn
-     (defun ,(symbolicate 'snippet/ name)
+     (defun ,(alexandria:symbolicate 'snippet/ name)
 	 (stream
 	  &optional
 	    ,@(mapcar #'ensure-car lambda-list))
@@ -73,7 +80,7 @@
 	    ,@(mapcar #'ensure-car lambda-list))
        ,docstring
        (,(symbolicate 'snippet/ name)
-	 stream
+	stream
 	,@(mapcar #'ensure-car lambda-list)))
      ;; Register the snippet's definition.
      (setf (gethash ',name *snippets*) ',whole)
