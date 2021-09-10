@@ -169,17 +169,20 @@ Othewise, return the position of the character."
 
 (defun breeze-is-in-test-directory ()
   "Try to figure out if the current file is in the test directory."
-  (member
-   (file-name-nondirectory
-    (directory-file-name
-     (file-name-directory
-      (buffer-file-name))))
-   '("test" "tests" "t")))
+  (when buffer-file-name
+    (member
+     (file-name-nondirectory
+      (directory-file-name
+       (file-name-directory
+	buffer-file-name)))
+     '("test" "tests" "t"))))
 
-(defun breeze-infer-package-name-from-file ()
+(defun breeze-infer-package-name-from-file (&optional file-name)
+  "Given a FILE-NAME or the buffer's file name, infer a proper package name."
   (let ((project (breeze-infer-project-name))
 	(testp (breeze-is-in-test-directory))
-	(result (file-name-base buffer-file-name)))
+	(result
+	 (file-name-base (or file-name buffer-file-name))))
     (message "project \"%s\"" project)
     (when project
       (setf result (concat project "." result)))
@@ -195,7 +198,6 @@ Othewise, return the position of the character."
 	  (skeleton-read "Package name: "
 			 (if buffer-file-name
 			     (breeze-infer-package-name-from-file)
-			   (file-name-base buffer-file-name)
 			   ""))))
 	(nicknames
 	 (cl-loop for nickname = (skeleton-read "Package nickname: ")
