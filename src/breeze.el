@@ -297,12 +297,14 @@ Othewise, return the position of the character."
 
 (defun breeze-new-buffer-p ()
   "Check if the current buffer is \"new\"."
-  ;; Check the size
-  (zerop (buffer-size))
-  ;; TODO Check if it's all whitespaces
-  ;; TODO Check if it's all comments
-  ;; TODO See the function "bobp" (beginnig-of-buffer-p)
-  )
+  (or
+   ;; Check the size of the buffer
+   (zerop (buffer-size))
+   ;; Check if it's all whitespaces
+   (zerop (length (string-trim (buffer-string))))
+   ;; TODO Check if it's all comments
+   ;; TODO See the function "bobp" (beginnig-of-buffer-p)
+   ))
 
 ;; WIP
 (defun breeze-buffer-has-defpackage ()
@@ -316,7 +318,9 @@ Othewise, return the position of the character."
   "Choose someting to insert."
   (interactive)
   ;; TODO filter the choices based on the context
-  (if (zerop (buffer-size))
+  (if (or
+       (= 1 (point))
+       (breeze-new-buffer-p))
       (call-interactively 'breeze-insert-defpackage)
     (breeze-choose-and-call-command
      "What do you want to insert? "
