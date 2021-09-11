@@ -1,12 +1,17 @@
 # <a name="readme">Breeze</a>
 
-![ci](https://github.com/fstamour/breeze/actions/workflows/ci.yml/badge.svg)
-
-<a href="https://ko-fi.com/F2F21YR7I">Support me on Ko-Fi</a>
-
-Breeze is a set of tools that aims to make lisp development a breeze (hence the name).
+Breeze is a set of tools that aims to make lisp development a breeze
+(hence the name).
 
 It is still in its early development.
+
+Please take a look at the
+[notes.org](https://github.com/fstamour/breeze/blob/master/notes.org)
+to get a better idea.
+
+![ci](https://github.com/fstamour/breeze/actions/workflows/ci.yml/badge.svg)
+
+[github.com/fstamour/breeze](https://github.com/fstamour/breeze)
 
 ## Goals and non-goals
 
@@ -104,3 +109,10 @@ folder.
 
 - "selftests" are called like that to prevent confusion with
   `breeze.test`, which is the test framework that breeze provides.
+
+## Support me
+
+I'm doing this for fun, but if you find this useful or just want to
+cheer me up :) here's a link for that:
+
+<a href="https://ko-fi.com/F2F21YR7I">Support me on Ko-Fi</a>
