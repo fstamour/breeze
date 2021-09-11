@@ -1,3 +1,8 @@
 #!/bin/sh
+#
+# This script is used to run the tests
+#
 
-rlwrap sbcl --non-interactive --eval '(ql:quickload :breeze)' --eval '(breeze.user:selftest)'
+cd "$(git rev-parse --show-toplevel)"
+
+sbcl --non-interactive --eval '(ql:quickload :breeze)' --eval '(breeze.user:selftest)'

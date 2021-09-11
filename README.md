@@ -57,7 +57,7 @@ From the repl:
 Or from the command line, with nix (assumes quicklisp is already setup):
 
 	# Will run sbcl and load breeze with quicklisp
-	./shell.nix
+	./scripts/shell.nix
 
 Don't know what to do next? Call `(br:next)`.
 
@@ -66,8 +66,7 @@ Don't know what to do next? Call `(br:next)`.
 Start by forking and cloning this repository into quicklisp's
 local-projects directory.
 
-Optional: setup the pre-commit hook (currently assumes that
-[nix](https://nixos.org/) is installed).
+Setup the pre-commit hook
 
 	git config core.hooksPath githooks
 
@@ -84,9 +83,9 @@ From the repl:
 	(ql:quickload 'breeze)
 	(br:selftest)
 
-Or from the command line, with nix:
+Or from the command line:
 
-	./doc.nix
+	./scripts/test.sh
 
 ### How to generate the documentation
 
@@ -94,9 +93,9 @@ From the repl:
 
 	(breeze.documentation::generate-documentation)
 
-Or from the command line, with nix:
+Or from the command line:
 
-	./doc.nix
+	./scripts/doc.sh
 
 With either method, the documentation is generated into to `docs/`
 folder.

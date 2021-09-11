@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang=en><head><meta charset=UTF-8><title>Breeze</title><link rel=stylesheet href=style.css></head><body><ol><li><a href=#readme>Breeze</a></li><li><a href=#emacs>Emacs integration</a></li><li><a href=#reference>Reference</a></li></ol><h1><a name="readme">Breeze</a></h1>
 
-<!-- <a href="https://travis-ci.org/fstamour/breeze">![Build Status](https://travis-ci.org/fstamour/breeze.svg?branch=master)</a> -->
+<p><img src="https://github.com/fstamour/breeze/actions/workflows/ci.yml/badge.svg" alt="ci" /></p>
 
 <p><a href="https://ko-fi.com/F2F21YR7I">Support me on Ko-Fi</a></p>
 
@@ -65,7 +65,7 @@ cloning this repository in quicklisp's local-projects folder.</p>
 <p>Or from the command line, with nix (assumes quicklisp is already setup):</p>
 
 <pre><code># Will run sbcl and load breeze with quicklisp
-./shell.nix
+./scripts/shell.nix
 </code></pre>
 
 <p>Don't know what to do next? Call <code>(br:next)</code>.</p>
@@ -75,8 +75,7 @@ cloning this repository in quicklisp's local-projects folder.</p>
 <p>Start by forking and cloning this repository into quicklisp's
 local-projects directory.</p>
 
-<p>Optional: setup the pre-commit hook (currently assumes that
-<a href="https://nixos.org/" >nix</a> is installed).</p>
+<p>Setup the pre-commit hook</p>
 
 <pre><code>git config core.hooksPath githooks
 </code></pre>
@@ -96,9 +95,9 @@ rg -i todo
 (br:selftest)
 </code></pre>
 
-<p>Or from the command line, with nix:</p>
+<p>Or from the command line:</p>
 
-<pre><code>./doc.nix
+<pre><code>./scripts/test.sh
 </code></pre>
 
 <h3>How to generate the documentation</h3>
@@ -108,9 +107,9 @@ rg -i todo
 <pre><code>(breeze.documentation::generate-documentation)
 </code></pre>
 
-<p>Or from the command line, with nix:</p>
+<p>Or from the command line:</p>
 
-<pre><code>./doc.nix
+<pre><code>./scripts/doc.sh
 </code></pre>
 
 <p>With either method, the documentation is generated into to <code>docs/</code>
