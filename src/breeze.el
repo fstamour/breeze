@@ -518,7 +518,24 @@ Othewise, return the position of the character."
   "Suggest valid actions to the user based on the point."
   (interactive)
   ;; TODO
-  )
+  (message "%s"
+	   (breeze-eval
+	    (format "(breeze.quickfix:quickfix
+             :buffer-name %s
+             :buffer-file-name %s
+             :buffer-string %s
+             :point %s
+             :point-min %s
+             :point-max %s
+             )"
+		    (mapcar #'prin1-to-string
+			    (list
+			     (buffer-name)
+			     (buffer-file-name)
+			     (buffer-substring-no-properties (point-min) (point-max))
+			     (point)
+			     (point-min)
+			     (point-max)))))))
 
 
 ;;; code evaluation
