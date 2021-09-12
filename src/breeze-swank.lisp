@@ -100,17 +100,32 @@
 		    input
 		    (string-downcase sym)))))))
 
+(defun resignal-with-suggestion-restart (input candidate condition)
+  ;; Ok, this is messy as hell, but it works
+  (unless
+      ;; We install a new restart
+      (with-simple-restart (use-suggestion "Use \"~a\" instead of \"~a\"." candidate input)
+	;; with-simple-restart returns the _last evaluated_ form
+	t
+	;; Then we signal the condition again
+	(error condition))
+    ;; with-simple-restart will return nil and t if the restart was invoked
+    (let ((use-value (find-restart 'use-value condition)))
+      (invoke-restart use-value candidate))))
 
-(defun suggest (input candidate)
+(defun suggest (input candidate condition)
   ;; WARNING: Using a non-exported symbol from swank
   (swank::background-message "Did you mean \"~a\"?" candidate)
   (when candidate
-    (warn "Did you mean \"~a\"?~%~a"
-	  candidate
-	  (breeze.utils:indent-string
-	   2 (breeze.utils:print-comparison nil
-					    (string-downcase candidate)
-					    input)))))
+    (let ((restart (find-restart 'use-value condition)))
+      (or
+       (and restart (resignal-with-suggestion-restart input candidate condition))
+       (warn "Did you mean \"~a\"?~%~a"
+	     candidate
+	     (breeze.utils:indent-string
+	      2 (breeze.utils:print-comparison nil
+					       (string-downcase candidate)
+					       input)))))))
 
 (defun call-with-correction-suggestion (function)
   "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
@@ -119,18 +134,18 @@
 	 #'(lambda (condition)
 	     (let* ((input (string-downcase (cell-error-name condition)))
 		    (candidate (find-most-similar-symbol input)))
-	       (suggest input candidate))))
+	       (suggest input candidate condition))))
        (package-error
 	 #'(lambda (condition)
 	     (let* ((input (string-downcase (package-error-package condition)))
 		    (candidate (find-most-similar-package input)))
-	       (suggest input candidate))))
+	       (suggest input candidate condition))))
        #+sbcl
        (sb-pcl:class-not-found-error
 	 #'(lambda (condition)
 	     (let* ((input (string-downcase (sb-kernel::cell-error-name condition)))
 		    (candidate (find-most-similar-class input)))
-	       (suggest input candidate)))))
+	       (suggest input candidate condition)))))
     (funcall function)))
 
 ;; (prin)
