@@ -54,6 +54,7 @@
   (insert "(fop)")
   ;; Take """screenshot""" of slime's debugger buffer.
   (run-at-time "0.5 sec" nil
+	       ;; TODO Extract this in another function
 	       #'(lambda ()
 		   (with-temp-buffer
 		     ;; Copy SLDB's buffer into the temp buffer
@@ -77,3 +78,8 @@
   (write-file (breeze/demo/next-to-this-file "demo.lisp"))
   ;; (buffer-substring-no-properties (point-min) (point-max))
   )
+
+
+;; NEXT STEP: take the html buffer and extract the CSS and the PRE
+;; element so we can embed the result into another webpage, like
+;; breeze's documentation
