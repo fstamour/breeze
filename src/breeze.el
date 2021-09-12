@@ -75,6 +75,15 @@ First lead:
   "TBD Status of the current project.")
 
 
+;;; Integration with lisp listener
+
+(defun breeze-eval (string)
+  (slime-eval `(swank:eval-and-grab-output ,string)))
+
+(defun breeze-interactive-eval (string)
+  (slime-eval `(swank:interactive-eval ,string)))
+
+
 ;;; Prerequisites checks
 
 (defun breeze/check-if-slime-is-connected ()
@@ -85,8 +94,8 @@ First lead:
 (defun breeze/validate-if-breeze-package-exists ()
   "Returns true if the package \"breeze\" exists in the inferior-lisp."
   (cl-destructuring-bind (output value)
-      (slime-eval `(swank:eval-and-grab-output
-		    "(and (or (find-package \"BREEZE\") (find-package \"breeze\")) t)"))
+      (breeze-eval
+       "(and (or (find-package \"BREEZE\") (find-package \"breeze\")) t)")
     (cl-equalp "t" value)))
 
 ;; (breeze/validate-if-breeze-package-exists)
@@ -102,26 +111,29 @@ First lead:
      breeze/breeze.el)
     "../breeze.asd")))
 
-(defun breeze/ensure-breeze ()
+(defun breeze/ensure-breeze (&optional verbosep)
   "Make sure that breeze is loaded in swank."
   (unless (breeze/validate-if-breeze-package-exists)
-    (message "Loading breeze's system...")
-    (slime-eval `(swank:interactive-eval
-		  ,(format "(progn (load \"%s\") (require 'breeze))" (breeze/system-definition)))))
-  (message "Breeze loaded in inferior-lisp."))
+    (when verbosep
+      (message "Loading breeze's system..."))
+    (breeze-interactive-eval
+     (format "(progn (load \"%s\") (require 'breeze))"
+	     (breeze/system-definition))))
+  (when verbosep
+    (message "Breeze loaded in inferior-lisp.")))
 
 ;; (breeze/ensure-breeze)
 
 ;; See slime--setup-contribs, I used that name so it _could_ be added to slime-contrib,
 ;; I haven't tested it yet though.
-(defun breeze-init ()
+(defun breeze-init (&optional verbosep)
   "Ensure that breeze is initialized correctly on swank's side."
   (interactive)
   (breeze/check-if-slime-is-connected)
-  (breeze/ensure-breeze)
-  (slime-eval `(swank:interactive-eval
-		"(breeze.user::initialize)"))
-  (message "Breeze initialized."))
+  (breeze/ensure-breeze verbosep)
+  (breeze-interactive-eval "(breeze.user::initialize)")
+  (when verbosep
+    (message "Breeze initialized.")))
 
 (defmacro breeze/with-slime (&rest body)
   `(progn
@@ -200,7 +212,7 @@ Othewise, return the position of the character."
 			     (breeze-infer-package-name-from-file)
 			   ""))))
 	(nicknames
-	 (cl-loop for nickname = (skeleton-read "Package nickname: ")
+	 (cl-loop for nickname = (string-trim (skeleton-read "Package nickname: "))
 		  while (not (zerop (length nickname)))
 		  collect (format ":%s" nickname))))
     (concat
@@ -222,7 +234,7 @@ Othewise, return the position of the character."
 (define-skeleton breeze-insert-defmacro
   "Insert a defmacro form."
   "" ;; Empty prompt. Ignored.
-  > "(defmacro " (skeleton-read "Function name: ")
+  > "(defmacro " (skeleton-read "Macro name: ")
   " (" ("Enter
   > an argument name: " str " ") (fixup-whitespace) ")" \n _ ")")
 
@@ -373,14 +385,14 @@ Othewise, return the position of the character."
   "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
   (breeze/with-slime
    (cl-destructuring-bind (output value)
-       (slime-eval `(swank:eval-and-grab-output
-		     ,(format (format "%s"
-				      `(let ((symbol (quote %s)))
-					 (check-type symbol symbol)
-					 (format t "\"~(~a ~a~)\""
-						 (package-name (symbol-package symbol))
-						 (symbol-name symbol))))
-			      symbol)))
+       (breeze-eval
+	(format (format "%s"
+			`(let ((symbol (quote %s)))
+			   (check-type symbol symbol)
+			   (format t "\"~(~a ~a~)\""
+				   (package-name (symbol-package symbol))
+				   (symbol-name symbol))))
+		symbol))
 
      (split-string output))))
 
