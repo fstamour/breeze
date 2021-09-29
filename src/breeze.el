@@ -36,7 +36,7 @@
 
 (defcustom breeze-capture-folder "~/breeze-capture"
   "The folder where to save scratch files."
-  :type 'string
+  :type 'directory
   :group 'breeze)
 
 (defcustom breeze-capture-template
