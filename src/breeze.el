@@ -514,28 +514,57 @@ Othewise, return the position of the character."
 		    "(breeze.user:next)"))
     (message "%s" output)))
 
+(defun breeze-current-paragraph ()
+  (string-trim
+   (save-mark-and-excursion
+     (mark-paragraph)
+     (buffer-substring (mark) (point)))))
+
+(defun breeze-delete-paragraph ()
+  (save-mark-and-excursion
+    (mark-paragraph)
+    (delete-region (point) (mark))))
+
+(defun %breeze-expand-to-defuns (paragraph)
+  (cl-loop for line in
+	   (split-string paragraph "\n")
+	   for parts = (split-string line)
+	   collect
+	   (format "(defun %s %s\n)\n" (car parts) (rest parts))))
+
+(defun %breeze-expand-to-defuns ()
+  "Takes a paragraph where each line describes a function, the
+first word is the function's name and the rest are the
+arguments. Use to quickly scaffold a bunch of functions."
+  (interactive)
+  (let ((paragraph (breeze-current-paragraph)))
+    (breeze-delete-paragraph)
+    (loop for form in (%breeze-expand-to-defuns paragraph)
+	  do (insert form "\n"))))
+
 (defun breeze-quickfix ()
   "Suggest valid actions to the user based on the point."
   (interactive)
   ;; TODO
-  (message "%s"
-	   (breeze-eval
-	    (format "(breeze.quickfix:quickfix
+  (message
+   "%s"
+   (breeze-eval
+    (format
+     "(breeze.quickfix:quickfix
              :buffer-name %s
              :buffer-file-name %s
              :buffer-string %s
              :point %s
              :point-min %s
-             :point-max %s
-             )"
-		    (mapcar #'prin1-to-string
-			    (list
-			     (buffer-name)
-			     (buffer-file-name)
-			     (buffer-substring-no-properties (point-min) (point-max))
-			     (point)
-			     (point-min)
-			     (point-max)))))))
+             :point-max %s)"
+     (mapcar #'prin1-to-string
+	     (list
+	      (buffer-name)
+	      (buffer-file-name)
+	      (buffer-substring-no-properties (point-min) (point-max))
+	      (point)
+	      (point-min)
+	      (point-max)))))))
 
 
 ;;; code evaluation
