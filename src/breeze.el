@@ -636,10 +636,11 @@ Othewise, return the position of the character."
   ;; TODO docstring
   (interactive)
   ;; TODO check if directory exists, creates it if not.
+  ;;   (mkdir breeze-capture-folder)
   (let* ((name (completing-read
 		"name of the file and package: "
 		(breeze-list-lisp-files breeze-capture-folder)))
-	 (file (concat breeze-capture-folder name ".lisp"))
+	 (file (concat breeze-capture-folder "/" name ".lisp"))
 	 (file-exists (file-exists-p file)))
     (find-file file)
     (unless file-exists
