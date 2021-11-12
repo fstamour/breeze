@@ -549,22 +549,22 @@ arguments. Use to quickly scaffold a bunch of functions."
   (message
    "%s"
    (breeze-eval
-    (format
-     "(breeze.quickfix:quickfix
+    (apply 'format
+	   "(breeze.quickfix:quickfix
              :buffer-name %s
              :buffer-file-name %s
              :buffer-string %s
              :point %s
              :point-min %s
              :point-max %s)"
-     (mapcar #'prin1-to-string
-	     (list
-	      (buffer-name)
-	      (buffer-file-name)
-	      (buffer-substring-no-properties (point-min) (point-max))
-	      (point)
-	      (point-min)
-	      (point-max)))))))
+	   (mapcar #'prin1-to-string
+		   (list
+		    (buffer-name)
+		    (buffer-file-name)
+		    (buffer-substring-no-properties (point-min) (point-max))
+		    (point)
+		    (point-min)
+		    (point-max)))))))
 
 
 ;;; code evaluation

@@ -22,23 +22,25 @@
   :serial t
   :components
   ((:module "src"
-	    :components
-	    ((:file "utils")
-	     (:file "definition")
-	     (:file "test")
-	     (:file "worker")
-	     (:file "test-runner")
-	     (:file "xref")
-	     (:file "documentation")
-	     (:file "asdf")
-	     (:file "breeze-swank")
-	     (:file "user")))
+    :components
+    ((:file "utils")
+     (:file "definition")
+     (:file "test")
+     (:file "worker")
+     (:file "test-runner")
+     (:file "xref")
+     (:file "documentation")
+     (:file "asdf")
+     (:file "breeze-swank")
+     (:file "refactor")
+     (:file "quickfix")
+     (:file "user")))
    ;; TODO move this into its own system (breeze.selftest.asd)
    (:module "tests"
-	    :components
-	    ((:file "utils")
-	     (:file "dummy-package")
-	     (:file "test")
-	     (:file "user")
-	     (:file "xref")
-	     (:file "documentation")))))
+    :components
+    ((:file "utils")
+     (:file "dummy-package")
+     (:file "test")
+     (:file "user")
+     (:file "xref")
+     (:file "documentation")))))

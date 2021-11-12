@@ -4,7 +4,9 @@
   (:use :cl)
   (:import-from
    #:breeze.utils
-   #:whitespacep))
+   #:whitespacep)
+  (:export
+   #:form-at-point))
 
 (in-package #:breeze.refactor)
 
@@ -53,7 +55,8 @@
 (defun form-at-point (string point)
   (let ((eof (gensym "eof"))
 	(start (next-non-whitespace string point)))
-    (multiple-value-bind )
+    ;; (multiple-value-bind )
+;;; TODO <============================
     (read-from-string string t eof :start start :preserve-whitespace t)))
 
 #+(or)

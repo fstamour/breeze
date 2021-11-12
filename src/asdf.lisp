@@ -50,3 +50,5 @@
    (asdf:system-source-file
     (asdf:find-system system-designator))))
 
+#+todo
+(defun apropos-system ())

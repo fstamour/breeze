@@ -124,7 +124,8 @@ Advising swank's eval function is "a good start" in that direction.
 
 **** Parse the source code
 
-Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
+- Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
+- [[https://github.com/hyotang666/read-as-string][hyotang666/read-as-string]] is another candidate
 
 * Other projects with slime integration
 ** log4cl
@@ -281,3 +282,8 @@ should be, so any effort on this area is appreciated. I mean: starting
 with 5am is ok (but could be easier with an editor command), running
 it from the CLI/a CI is less OK, getting the correct return code of
 the tests needs more work, etc.
+
+* To classify
+
+https://quickdocs.org/cl-scripting
+https://quickdocs.org/repl-utilities

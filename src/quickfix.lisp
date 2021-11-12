@@ -1,8 +1,11 @@
+
 (in-package #:common-lisp-user)
 
 (defpackage #:breeze.quickfix
   (:use :cl)
-  (:export #:quickfix))
+  (:export #:quickfix)
+  (:import-from #:breeze.refactor
+		#:form-at-point))
 
 (in-package #:breeze.quickfix)
 
@@ -14,4 +17,4 @@
 		   point
 		   point-min
 		   point-max)
-  all)
+  (form-at-point buffer-string point))
