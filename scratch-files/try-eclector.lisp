@@ -238,12 +238,28 @@ If it is return the package-designator"
     :accessor raw)))
 
 (defclass ignored-node (node) ())
+(defclass character-node (node)
+  ((char
+    :initform nil
+    :initarg :char
+    :accessor node-char)))
+;; not-used
+(defclass reader-macro-node (node)
+  ((char
+    :initform nil
+    :initarg :char
+    :accessor node-char)))
 (defclass read-eval-node (node) ())
 (defclass symbol-node (node) ())
+(defclass quasiquote-node (node) ())
+(defclass unquote-node (node) ())
+(defclass unquote-splicing-node (node) ())
+(defclass function-node (node) ())
+(defclass list-node (node) ())
 
 (defgeneric terminalp (node)
   (:documentation "Whethere a node cannot contain other nodes.")
-  (:method ((node node)) nil)
+  (:method ((node node)) (not (listp (content node))))
   (:method ((node ignored-node)) t)
   (:method ((node symbol-node)) t))
 
@@ -252,52 +268,73 @@ If it is return the package-designator"
   (print-unreadable-object
    (node stream :type t :identity nil)
    (if (prefix node)
-       (format stream "~s ~s @ ~s"
+       (format stream "~s ~s"
 	       (prefix node)
-	       (content node)
-	       (source node)))
-   (format stream "~s @ ~s"
-	   (content node)
-	   (source node))))
+	       (content node)))
+   (format stream "~s"
+	   (content node))))
+
+(defmethod print-object ((node reader-macro-node) stream)
+  (print-unreadable-object
+   (node stream :type t :identity nil)
+   (if (prefix node)
+       (format stream "~s ~c ~s"
+	       (prefix node)
+	       (node-char node)
+	       (content node)))
+   (format stream "~c ~s"
+	   (node-char node)
+	   (content node))))
 
 (defmethod print-object ((node symbol-node) stream)
   (print-unreadable-object
    (node stream :type t :identity nil)
    (if (prefix node)
-       (format stream "~s ~s @ ~s"
+       (format stream "~s ~s"
 	       (prefix node)
-	       (or (raw node) (content node))
-	       (source node))
-     (format stream "~s @ ~s"
-	     (or (raw node) (content node))
-	     (source node)))))
+	       (or (raw node) (content node)))
+     (format stream "~s"
+	     (or (raw node) (content node))))))
 
 (defmethod print-object ((node ignored-node) stream)
   (print-unreadable-object
    (node stream :type t :identity nil)
-   (format stream "~s @ ~s"
-	   (raw node)
-	   (source node))))
+   (format stream "~s"
+	   (raw node))))
+
+
+;; TODO find a better name
+(defparameter +mapping+
+  '((eclector.reader:quasiquote . quasiquote-node)
+    (eclector.reader:unquote . unquote-node)
+    (eclector.reader:unquote-splicing . unquote-splicing-node)))
 
 ;; Create a "make expression result" method for our custom client
 (defmethod eclector.parse-result:make-expression-result
   ((client my-client) (result t) (children t) (source t))
   (format t "~&result: ~s source: ~s" result source) ;; ========================================
   (typecase result
-    ;; #.
-    (read-eval-node
+    (node
      (setf (source result) source)
      (when children
-       (setf (content result) children))
+	 (setf (content result) children))
      result)
+
     (symbol
      (make-instance 'symbol-node
 		    :content result
 		    :source source))
     (t
-     (make-instance 'node
-		    :content (or children result)
-		    :source source))))
+     (cond
+      ((and (listp result)
+	    (member (car result) +mapping+ :key #'car))
+       (make-instance (cdar (member (car result) +mapping+ :key #'car))
+		      :content children	;; result
+		      :source source))
+      (t
+       (make-instance 'node
+		      :content (or children result)
+		      :source source))))))
 
 ;; Create a "make skipped input result" method for our custom client
 (defmethod eclector.parse-result:make-skipped-input-result
@@ -319,6 +356,34 @@ If it is return the package-designator"
   (make-instance 'read-eval-node
 		 :content expression))
 
+(defmethod eclector.reader:find-character ((client my-client) designator)
+  (make-instance 'character-node
+		 :content (format nil "#\\~a" designator)
+		 :char
+		 (call-next-method)))
+
+(defmethod eclector.reader:call-reader-macro ((client my-client) input-stream char readtable)
+  (if (eq #\( char)
+      (make-instance 'list-node
+		     :content (call-next-method))
+    (call-next-method))
+  ;; TODO This isn't exactly right...
+  #+nil
+  (progn
+    (format t "~&eclector.reader:call-reader-macro: ~s" char)
+    (make-instance 'reader-macro-node
+		   :content (call-next-method)
+		   :char char)))
+
+;; TODO defmethod eclector.reader:make-structure-instance client name initargs
+(defmethod eclector.reader:wrap-in-function ((client my-client) name)
+  (format t "~&eclector.reader:wrap-in-function: ~a" name)
+  (make-instance 'function-node
+		 :content name)
+  #+nil
+  (call-next-method))
+
+
 (defun maybe-source (form eof)
   (and
    form
@@ -336,8 +401,10 @@ If it is return the package-designator"
 	  until (eq eof form)
 	  collect form)))
 
-(defun add-prefix! (stream forms &optional (start-at 0))
-  "Update each nodes in FORMS to include their prefix (extracted from STREAM)."
+;; end-at is not used, its purpose is to help find trailing characters
+;; but I haven't implemented that because I'm not sure it's the way to go.
+(defun post-process-nodes! (stream forms &optional (start-at 0) end-at)
+  "Update each nodes in FORMS to include their prefix and raw (extracted from STREAM)."
   (let ((previous nil))
     (loop
      for form in forms
@@ -351,31 +418,36 @@ If it is return the package-designator"
      do
      (format t "~&node: ~a raw: ~s" form raw)
      ;; update FORM
-     (setf (prefix form) prefix
-	   (raw form) raw)
+     (setf
+      ;; Add the prefix
+      (prefix form) prefix
+      ;; Add the raw
+      (raw form) raw)
+     #+nil
+     (cond
+      ((string= "#'" )))
      ;; recurse
      (unless (terminalp form)
-       (add-prefix! stream (content form)
-		    (car (source form))))
+       (post-process-nodes! stream (content form)
+			    (car (source form))
+			    (cdr (source form))))
      ;; update loop variables
      (setf previous form))))
 
-(defun get-tail (stream forms)
+(defun get-tail (stream forms &optional (end (stream-size stream)))
   "Given a list of forms, extract any trailing characters that were ignored."
   (let* ((tail (alexandria:lastcar forms))
 	 (tail-end (if tail
 		       (cdr (source tail))
-		     0))
-	 (stream-size (stream-size stream)))
-
-    (when (positivep (- stream-size tail-end))
+		     0)))
+    (when (positivep (- end tail-end))
       (make-instance 'ignored-node
-		     :content (read-stream-range stream tail-end stream-size)
-		     :source (cons tail-end stream-size)))))
+		     :content (read-stream-range stream tail-end end)
+		     :source (cons tail-end end)))))
 
 (defun parse (stream)
   (let ((forms (read-all-forms stream)))
-	   (add-prefix! stream forms)
+	   (post-process-nodes! stream forms)
 	   `(,@forms
 	     ;; ,@ (source (alexandria:lastcar forms))
 	     ,@(alexandria:if-let ((tail (get-tail stream forms)))
@@ -421,11 +493,6 @@ If it is return the package-designator"
 	 string
 	 (parse stream)))
 
-(parse-string "`(,a)")
-(parse-string "()")
-(parse-string "#.()")
-(parse-string "#.(+ 1 2)")
-(parse-string "#'print")
 
 (defun unparse-to-stream (stream nodes)
   (let ((*print-case* :downcase)
@@ -436,7 +503,8 @@ If it is return the package-designator"
   (dolist (node nodes)
     (alexandria:if-let
      ((prefix (prefix node)))
-     (format stream "~a" prefix))
+     (unless (string= "(" prefix)
+       (write-string prefix stream)))
     (unparse-node stream node)))
 
 (defun unparse-to-string (nodes)
@@ -445,13 +513,33 @@ If it is return the package-designator"
     (unparse-to-stream stream nodes)))
 
 (defmethod unparse-node (stream (node node))
-  (cond
-   ((and (listp (content node))
-	 (content node))
-    (unparse-to-stream% stream (content node))
-    (write-char #\) stream))
-   (t
-    (format stream "~a" (content node)))))
+  (let ((content (content node)))
+    (cond
+     ((not (terminalp node))
+      (unparse-to-stream% stream (content node))
+      #+nil (when (listp content)
+	      (write-char #\) stream)))
+     ((typep content 'character-node)
+      (princ (raw node) stream))
+     (t
+      (format stream "~a" content)))))
+
+(defmethod unparse-node (stream (node list-node))
+  (write-char #\( stream)
+  (unparse-to-stream% stream (content node))
+  (write-char #\) stream))
+
+(defmethod unparse-node (stream (node quasiquote-node))
+  (unparse-to-stream% stream (content node)))
+
+(defmethod unparse-node (stream (node unquote-node))
+  (unparse-to-stream% stream (content node)))
+
+(defmethod unparse-node (stream (node unquote-splicing-node))
+  (unparse-to-stream% stream (content node)))
+
+(defmethod unparse-node (stream (node read-eval-node))
+  (unparse-to-stream% stream (content node)))
 
 (defmethod unparse-node (stream (node ignored-node))
   (princ (content node) stream))
@@ -459,10 +547,22 @@ If it is return the package-designator"
 (defmethod unparse-node (stream (node symbol-node))
   (princ (raw node) stream))
 
+(unparse-to-string (parse-string "'a"))
+(unparse-to-string (parse-string "`a"))
+(unparse-to-string (parse-string "`(,a)"))
+(unparse-to-string (parse-string "`(,@a)"))
+(unparse-to-string (parse-string "()"))
+(unparse-to-string (parse-string "#.()"))
+(unparse-to-string (parse-string "#.(+ 1 2)"))
+(unparse-to-string (parse-string "#'print"))
+
+
+
 (unparse-to-string (parse-string " nil "))
 (unparse-to-string (parse-string " NiL "))
 (unparse-to-string (parse-string " () "))
 (unparse-to-string (parse-string " '() "))
-(parse-string "'()")
-(parse-string "'a")
+(unparse-to-string (parse-string "(((a)))"))
 (unparse-to-string (parse-string "(quote a b c)"))
+
+(unparse-to-string (parse-string "#\\Space"))
