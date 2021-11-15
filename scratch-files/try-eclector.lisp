@@ -66,12 +66,6 @@
 ;;; Eclector + Custom parse result
 
 
-(defun positivep (x)
-  (> x 0))
-
-;; (positivep 1)
-;; (positivep 0)
-;; (positivep -1)
 
 ;; Define a class representing the "parse result client"
 (defclass my-client (eclector.parse-result:parse-result-client)

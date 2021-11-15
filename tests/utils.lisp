@@ -65,3 +65,8 @@
 	 (with-input-from-string
 	  (stream "(1 #|comment|# \"string\")")
 	  (stream-size stream)))))
+
+(deftest positivep
+  (is (positivep 1))
+  (is (not (positivep -1)))
+  (is (not (positivep 0))))

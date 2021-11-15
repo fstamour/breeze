@@ -13,7 +13,8 @@
    #:breeze-relative-pathname
    #:whitespacep
    #:stream-size
-   #:read-stream-range))
+   #:read-stream-range
+   #:positivep))
 
 (in-package #:breeze.utils)
 
@@ -155,3 +156,6 @@ sytsem-files"
 	    (file-position stream :end) ;; TODO This might fail
 	    (file-position stream))
 	(file-position stream current-position)))))
+
+(defun positivep (x)
+  (> x 0))
