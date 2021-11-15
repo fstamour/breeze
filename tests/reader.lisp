@@ -61,7 +61,26 @@
 	     "`(,a ,b)"
 	     "(1 . 2)"
 	     "#.(+ 1 2)"
-	     "#+nil ingored"))
+	     "#+nil ingored"
+	     "#\\Space"
+	     "a"
+	     "A"
+	     " nil "
+	     " NiL "
+	     " () "
+	     " ( ) "
+	     " '() "
+	     "(((a)))"
+	     "(quote a b c)"
+	     "'a"
+	     "`a"
+	     "`(,a)"
+	     "`(,@a)"
+	     "()"
+	     "#.()"
+	     "#.(+ 1 2)"
+	     "#'print"
+	     ))
     (let ((*break-on-signals* #+nil 'error))
       (let* ((got (unparse-to-string (parse-string expected)))
 	     (ok? (string= expected got)))

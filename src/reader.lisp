@@ -70,7 +70,10 @@
   (:documentation "Syntax node for #. (read-eval)."))
 
 (defclass character-node (node)
-  ()
+  ((char
+    :initform nil
+    :initarg :char
+    :accessor node-char))
   (:documentation "Syntax node for #\\ (character literals)."))
 
 (defclass list-node (node)
