@@ -18,12 +18,13 @@
 	       #:uiop
 	       ;; For documentation generation
 	       #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
-	       )
+	       #:eclector)
   :serial t
   :components
   ((:module "src"
     :components
     ((:file "utils")
+     (:file "reader")
      (:file "definition")
      (:file "test")
      (:file "worker")
@@ -39,6 +40,7 @@
    (:module "tests"
     :components
     ((:file "utils")
+     (:file "reader")
      (:file "dummy-package")
      (:file "test")
      (:file "user")
