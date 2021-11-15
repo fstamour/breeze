@@ -16,6 +16,7 @@
 
 (in-package #:arch)
 
+;; Should've called that "map-stream"
 (defun read-funcall-loop (stream fn)
   "Call fn on each form read from a stream."
   (let ((eof (gensym "eof")))
@@ -50,11 +51,6 @@
                               :components
                               ((:file package)
                                (:file main))))))
-
-(defun each (function)
-  "Defered mapcar."
-  (lambda (list)
-    (mapcar function list)))
 
 (defun lisp-file-p (pathname)
   "Return true if pathname designate a lisp file."
