@@ -137,7 +137,8 @@
 	       (suggest input candidate condition))))
        (package-error
 	 #'(lambda (condition)
-	     (let* ((input (string-downcase (package-error-package condition)))
+	     (let* ((input (string-downcase
+			    (package-name (package-error-package condition))))
 		    (candidate (find-most-similar-package input)))
 	       (suggest input candidate condition))))
        #+sbcl
