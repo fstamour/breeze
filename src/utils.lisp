@@ -11,7 +11,9 @@
    #:indent-string
    #:print-comparison
    #:breeze-relative-pathname
-   #:whitespacep))
+   #:whitespacep
+   #:stream-size
+   #:read-stream-range))
 
 (in-package #:breeze.utils)
 
@@ -133,3 +135,23 @@ sytsem-files"
 
 (defun whitespacep (char)
   (member char '(#\Space #\Newline #\Backspace #\Tab #\Newline #\Page #\Return #\Rubout)))
+
+(defun read-stream-range (stream from to)
+  "Read a subsequence from STREAM between FROM and TO."
+  (let ((current-position (file-position stream)))
+    (unwind-protect
+	(let ((sequence (make-string (- to from))))
+	  (file-position stream from)
+	  (read-sequence sequence stream)
+	  sequence)
+      (file-position stream current-position))))
+
+(defun stream-size (stream)
+  "Get the total size of STREAM."
+  (let ((current-position (file-position stream)))
+    (when current-position
+      (unwind-protect
+	  (progn
+	    (file-position stream :end) ;; TODO This might fail
+	    (file-position stream))
+	(file-position stream current-position)))))

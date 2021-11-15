@@ -10,6 +10,7 @@
 (ql:quickload '(#:eclector
 		#:eclector-concrete-syntax-tree))
 
+
 ;;; Eclector + Concrete Syntax Tree
 
 (defparameter *cst*
@@ -64,35 +65,6 @@
 
 ;;; Eclector + Custom parse result
 
-(defun read-stream-range (stream from to)
-  (let ((current-position (file-position stream)))
-    (unwind-protect
-	(let ((sequence (make-string (- to from))))
-	  (file-position stream from)
-	  (read-sequence sequence stream)
-	  sequence)
-      (file-position stream current-position))))
-
-(with-input-from-string
- (stream "(1 #|comment|# \"string\")")
- (values
-  (read-stream-range stream 3 (+ 3 11))
-  (file-position stream)))
-;; => "#|comment|#", 0
-
-(defun stream-size (stream)
-  (let ((current-position (file-position stream)))
-    (when current-position
-      (unwind-protect
-	  (progn
-	    (file-position stream :end) ;; TODO This might fail
-	    (file-position stream))
-	(file-position stream current-position)))))
-
-(with-input-from-string
- (stream "(1 #|comment|# \"string\")")
- (stream-size stream))
-;; => 24
 
 (defun positivep (x)
   (> x 0))
