@@ -29,7 +29,8 @@
 (in-package #:breeze.reader)
 
 ;; TODO Use log4cl...
-(defparameter *debug-print* t)
+(defparameter *debug-print* nil)
+;; (setf *debug-print* t)
 
 (defun dbg (control-string &rest args)
   (when *debug-print*
