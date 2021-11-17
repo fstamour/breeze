@@ -260,6 +260,34 @@ http://web.media.mit.edu/%7Elieber/Lieberary/Tinker/Tinker/Tinker.html
 ** Image Based develoment
 
 [Image based development](https://www.informatimago.com/develop/lisp/com/informatimago/small-cl-pgms/ibcl/index.html)
+
+** Code refactoring tools and libraries in other languages
+
+*** javascript and front-end in general
+
+https://github.com/facebookarchive/codemod replaced by
+https://github.com/facebook/jscodeshift, which uses
+https://github.com/benjamn/recast
+
+Examples: https://github.com/cpojer/js-codemod
+
+*** Ruby
+
+https://github.com/whitequark/parser
+https://github.com/seattlerb/ruby_parser
+https://github.com/seattlerb/ruby2ruby/
+https://docs.rubocop.org/rubocop-ast/node_pattern_compiler.html
+https://nodepattern.herokuapp.com/
+https://github.com/mbj/unparser
+
+*** Other
+
+Probably Rosely for C# and clang for C/C++. I'm sure there are tons of
+tools/libraries for Java.
+
+For python, there's the ast module, but I don't know if it can
+preserve the formatting. There's a bunch of tools to format the code.
+
 * Breeze on the internets
 
 ** Lisp project of the day
