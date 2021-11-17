@@ -80,6 +80,20 @@ First lead:
 (defun breeze-eval (string)
   (slime-eval `(swank:eval-and-grab-output ,string)))
 
+(defun breeze-eval-value-only (string)
+  (cl-destructuring-bind (output value)
+      (breeze-eval string)
+    value))
+
+(defun breeze-eval-predicate (string)
+  (cl-equalp "t" (breeze-eval-value-only string)))
+
+;; (and
+;;  (eq t (breeze-eval-predicate "t"))
+;;  (eq t (breeze-eval-predicate "T"))
+;;  (eq nil (breeze-eval-predicate "nil"))
+;;  (eq nil (breeze-eval-predicate "NIL")))
+
 (defun breeze-interactive-eval (string)
   (slime-eval `(swank:interactive-eval ,string)))
 
@@ -93,10 +107,7 @@ First lead:
 
 (defun breeze/validate-if-breeze-package-exists ()
   "Returns true if the package \"breeze\" exists in the inferior-lisp."
-  (cl-destructuring-bind (output value)
-      (breeze-eval
-       "(and (or (find-package \"BREEZE\") (find-package \"breeze\")) t)")
-    (cl-equalp "t" value)))
+  (breeze-eval-predicate "(and (or (find-package \"BREEZE\") (find-package \"breeze\")) t)"))
 
 ;; (breeze/validate-if-breeze-package-exists)
 
