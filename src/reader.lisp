@@ -24,7 +24,10 @@
    #:parse-stream
    #:parse-string
    #:unparse-to-stream
-   #:unparse-to-string))
+   #:unparse-to-string
+
+   #:defpackage-node-p)
+  (:shadow #:read-from-string))
 
 (in-package #:breeze.reader)
 
@@ -219,14 +222,30 @@
    (not (eq eof form))
    (node-source form)))
 
+(defun read-from-string (string &optional (eof-error-p t)
+				eof-value
+				&key
+				(start 0)
+				end
+				preserve-whitespace)
+  (eclector.parse-result:read-from-string
+   (make-instance 'breeze-client)
+   string
+   eof-error-p
+   eof-value
+   :start start
+   :end end
+   :preserve-whitespace preserve-whitespace))
+
+
 (defun read-all-forms (stream)
   (let ((eof (gensym "eof")))
     (loop for form =
-		   (eclector.parse-result:read-preserving-whitespace
-		    (make-instance 'breeze-client)
-		    stream
-		    nil
-		    eof)
+	  (eclector.parse-result:read-preserving-whitespace
+	   (make-instance 'breeze-client)
+	   stream
+	   nil
+	   eof)
 	  until (eq eof form)
 	  collect form)))
 
@@ -328,3 +347,12 @@
     (write-char #\( stream)
     (unparse-to-stream% stream (node-content node))
     (write-char #\) stream)))
+
+
+
+(defun defpackage-node-p (node)
+  (and
+   (typep node 'list-node)
+   (let ((car (car (node-content node))))
+     (and (typep car 'symbol-node)
+	  (string-equal "defpackage" (node-content car))))))

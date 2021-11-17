@@ -589,29 +589,48 @@ arguments. Use to quickly scaffold a bunch of functions."
     (loop for form in (%breeze-expand-to-defuns paragraph)
 	  do (insert form "\n"))))
 
-(defun breeze-quickfix ()
-  "Suggest valid actions to the user based on the point."
-  (interactive)
-  ;; TODO
-  (message
-   "%s"
-   (breeze-eval
-    (apply 'format
-	   "(breeze.quickfix:quickfix
+(defun breeze-get-quickfix-suggestions ()
+  (let ((list
+	 (car
+	  (read-from-string
+	   (cl-destructuring-bind (output value)
+	       (breeze-eval
+		(apply 'format
+		       "(breeze.quickfix:quickfix
              :buffer-name %s
              :buffer-file-name %s
              :buffer-string %s
              :point %s
              :point-min %s
              :point-max %s)"
-	   (mapcar #'prin1-to-string
-		   (list
-		    (buffer-name)
-		    (buffer-file-name)
-		    (buffer-substring-no-properties (point-min) (point-max))
-		    (point)
-		    (point-min)
-		    (point-max)))))))
+		       (mapcar #'prin1-to-string
+			       (list
+				(buffer-name)
+				(buffer-file-name)
+				(buffer-substring-no-properties (point-min) (point-max))
+				(point)
+				(point-min)
+				(point-max)))))
+	     (message "quickfix logs: %s" output)
+	     value)))))
+    (when (sequencep list)
+      list)))
+
+(defun breeze-quickfix ()
+  "Suggest valid actions to the user based on the point."
+  (interactive)
+  ;; TODO
+  (let* ((suggestions (breeze-get-quickfix-suggestions))
+	 (commands
+	  (mapcar #'(lambda (command-name)
+		      (let ((command (intern (downcase command-name))))
+			(if (fboundp command)
+			    command
+			  (error "quickfix suggested an invalid command %s" command))))
+		  suggestions)))
+    (if suggestions
+	(breeze-choose-and-call-command "Choose a quickfix to apply" commands)
+      (message "No quickfixes found in this context."))))
 
 
 ;;; code evaluation
