@@ -155,11 +155,47 @@ First lead:
 
 ;;; Utilities
 
+(cl-defun breeze-command-description (command &optional shortp)
+  "Take a symbol COMMAND and return a user-friendly description (to use with completions)."
+  (let ((description (car
+		      (cl-member
+		       command
+		       '((breeze-insert-asdf "asdf:defsystem" "insert %s")
+			 (breeze-insert-defpackage "defpackage" "insert %s")
+			 (breeze-insert-defun "defun" "insert %s")
+			 (breeze-insert-defvar "defvar" "insert %s")
+			 (breeze-insert-defparameter "defparameter" "insert %s")
+			 (breeze-insert-let "let" "insert %s")
+			 (breeze-insert-defmacro "defmacro" "insert %s")
+			 (breeze-insert-loop-clause-for-hash "loop clause: hash-table iteration" "insert %s")
+			 (breeze-insert-loop-clause-for-on-list "loop clause: iterate ON list" "insert %s")
+			 (breeze-insert-loop-clause-for-in-list "loop clause: iterate IN list" "insert %s"))
+		       :key #'car))))
+    (when description
+      (if shortp
+	  (second description)
+	(format (third description) (second description))))))
+
+;; (breeze-command-description 'breeze-insert-asdf t)
+;; => "asdf:defsystem"
+;; (breeze-command-description 'breeze-insert-asdf)
+;; => "insert asdf:defsystem"
+
+(cl-defun breeze-command-ensure-alist (commands &optional shortp)
+  "Transform a list of command symbols COMMANDS to an alist (symbol . description)"
+  (mapcar #'(lambda (command)
+	      (if (consp command)
+		  command
+		(cons (breeze-command-description command shortp) command)))
+	  commands))
+;; (breeze-command-ensure-alist '(breeze-insert-asdf breeze-insert-defpackage))
+;; => (("insert asdf:defsystem" . breeze-insert-asdf) ("insert defpackage" . breeze-insert-defpackage))
+
 (cl-defun breeze-choose-and-call-command (prompt commands &key allow-other-p)
   "Let the user choose a command to run from a list."
-  (let* ((choice (completing-read prompt (mapcar 'car commands)))
-	 (command (or (cadr (assoc choice commands))
-		      (and allow-other-p choice))))
+  (let* ((commands-alist (breeze-command-ensure-alist commands t))
+	 (choice (completing-read prompt (mapcar #'first commands-alist)))
+	 (command (cdr (assoc choice commands-alist))))
     (when command
       (call-interactively command))))
 
@@ -347,16 +383,16 @@ Othewise, return the position of the character."
       (call-interactively 'breeze-insert-defpackage)
     (breeze-choose-and-call-command
      "What do you want to insert? "
-     '(("asdf:defsystem" breeze-insert-asdf)
-       ("defpackage" breeze-insert-defpackage)
-       ("defun" breeze-insert-defun)
-       ("defvar" breeze-insert-defvar)
-       ("defparameter" breeze-insert-defparameter)
-       ("let" breeze-insert-let)
-       ("defmacro" breeze-insert-defmacro)
-       ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
-       ("loop clause: iterate ON list" breeze-insert-loop-clause-for-on-list)
-       ("loop clause: iterate IN list" breeze-insert-loop-clause-for-in-list)
+     '(breeze-insert-asdf
+       breeze-insert-defpackage
+       breeze-insert-defun
+       breeze-insert-defvar
+       breeze-insert-defparameter
+       breeze-insert-let
+       breeze-insert-defmacro
+       breeze-insert-loop-clause-for-hash
+       breeze-insert-loop-clause-for-on-list
+       breeze-insert-loop-clause-for-in-list
        ;; TODO
        ;; defclass
        ;; slots
