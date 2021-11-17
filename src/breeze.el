@@ -135,7 +135,7 @@ First lead:
 
 ;; (breeze/ensure-breeze)
 
-;; See slime--setup-contribs, I used that name so it _could_ be added to slime-contrib,
+;; See slime--setup-contribs, I named this breeze-init so it _could_ be added to slime-contrib,
 ;; I haven't tested it yet though.
 (defun breeze-init (&optional verbosep)
   "Ensure that breeze is initialized correctly on swank's side."
