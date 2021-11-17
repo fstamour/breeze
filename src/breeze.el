@@ -420,7 +420,7 @@ Othewise, return the position of the character."
 ;;; code modification
 
 (defun breeze-indent-defun-at-point ()
-  "Indent the whole form without moving."
+  "Indent the whole form without moving the point."
   (interactive)
   (if (zerop (current-column))
       (indent-sexp)
