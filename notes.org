@@ -261,7 +261,22 @@ http://web.media.mit.edu/%7Elieber/Lieberary/Tinker/Tinker/Tinker.html
 
 [Image based development](https://www.informatimago.com/develop/lisp/com/informatimago/small-cl-pgms/ibcl/index.html)
 
-** Code refactoring tools and libraries in other languages
+** Code refactoring tools and libraries, linters, etc.
+
+*** General
+
+https://comby.dev/ (and https://github.com/s-kostyaev/comby.el)
+https://github.com/reviewdog/reviewdog
+
+*** common lisp
+
+https://github.com/hyotang666/trivial-formatter
+https://github.com/yitzchak/cl-indentify
+https://github.com/vindarel/colisper (uses comby)
+  - its catalog of rewrites: https://github.com/vindarel/colisper/tree/master/src/catalog/lisp
+https://github.com/cxxxr/sblint
+https://github.com/g000001/lisp-critic/
+https://github.com/eschulte/lisp-format
 
 *** javascript and front-end in general
 
@@ -315,3 +330,4 @@ the tests needs more work, etc.
 
 https://quickdocs.org/cl-scripting
 https://quickdocs.org/repl-utilities
+[[https://github.com/slime/slime/issues/532][slime issue #532: Rename package and all the symbol prefixes]]
