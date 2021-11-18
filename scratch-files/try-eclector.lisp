@@ -195,6 +195,8 @@
 		 :content (read-stream-range stream (car source) (cdr source))
 		 :source source))
 
+;; TODO make-structure-instance [eclector.reader] client name initargs
+
 ;; Not useful
 #+nil
 (defmethod eclector.reader:note-skipped-input ((client my-client) (stream t) (reason t))

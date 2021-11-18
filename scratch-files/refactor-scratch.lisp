@@ -26,7 +26,7 @@
  (make-instance 'list-node :content (make-instance 'symbol-node :content "defpackage")))
 
 (read-from-string "(defpackage name)")
-#<LIST-NODE (#<SYMBOL-NODE DEFPACKAGE> #<SYMBOL-NODE NAME>)>
+;; #<LIST-NODE (#<SYMBOL-NODE DEFPACKAGE> #<SYMBOL-NODE NAME>)>
 
 (defclass defpackage-node (list-node)
   ())

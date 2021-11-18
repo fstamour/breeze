@@ -206,10 +206,12 @@
 					      input-stream char
 					      readtable)
   "Create a syntax node for lists."
-  (if (eq #\( char)
-      (make-instance 'list-node
-		     :content (call-next-method))
-      (call-next-method)))
+  (case char
+    (#\(
+     (make-instance 'list-node
+		    :content (call-next-method)))
+    (t
+     (call-next-method))))
 
 (defmethod eclector.reader:wrap-in-function ((client breeze-client)
 					     name)

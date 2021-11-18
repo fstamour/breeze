@@ -94,6 +94,13 @@ First lead:
 ;;  (eq nil (breeze-eval-predicate "nil"))
 ;;  (eq nil (breeze-eval-predicate "NIL")))
 
+(defun breeze-eval-list (string)
+  (let ((list (car
+	       (read-from-string
+		(breeze-eval-value-only string)))))
+    (when (listp list)
+      list)))
+
 (defun breeze-interactive-eval (string)
   (slime-eval `(swank:interactive-eval ,string)))
 
@@ -589,32 +596,28 @@ arguments. Use to quickly scaffold a bunch of functions."
     (loop for form in (%breeze-expand-to-defuns paragraph)
 	  do (insert form "\n"))))
 
+(defun breeze-compute-buffer-args ()
+  (apply 'format
+	 ":buffer-name %s
+          :buffer-file-name %s
+          :buffer-string %s
+          :point %s
+          :point-min %s
+          :point-max %s"
+	 (mapcar #'prin1-to-string
+		 (list
+		  (buffer-name)
+		  (buffer-file-name)
+		  (buffer-substring-no-properties (point-min) (point-max))
+		  (point)
+		  (point-min)
+		  (point-max)))))
+
 (defun breeze-get-quickfix-suggestions ()
-  (let ((list
-	 (car
-	  (read-from-string
-	   (cl-destructuring-bind (output value)
-	       (breeze-eval
-		(apply 'format
-		       "(breeze.quickfix:quickfix
-             :buffer-name %s
-             :buffer-file-name %s
-             :buffer-string %s
-             :point %s
-             :point-min %s
-             :point-max %s)"
-		       (mapcar #'prin1-to-string
-			       (list
-				(buffer-name)
-				(buffer-file-name)
-				(buffer-substring-no-properties (point-min) (point-max))
-				(point)
-				(point-min)
-				(point-max)))))
-	     (message "quickfix logs: %s" output)
-	     value)))))
-    (when (sequencep list)
-      list)))
+  (breeze-eval-list
+   (format
+    "(breeze.quickfix:quickfix %s)"
+    (breeze-compute-buffer-args))))
 
 (defun breeze-quickfix ()
   "Suggest valid actions to the user based on the point."
@@ -631,6 +634,42 @@ arguments. Use to quickly scaffold a bunch of functions."
     (if suggestions
 	(breeze-choose-and-call-command "Choose a quickfix to apply" commands)
       (message "No quickfixes found in this context."))))
+
+(defun breeze-quickfix ()
+  "SHADOWS the real breeze-quickfix, just for quick prototyping."
+  (interactive)
+  (cl-loop
+   for i below 5
+   for
+   request = (breeze-eval-list
+	      (format
+	       "(breeze.quickfix::prototyping-stuff %s)"
+	       (breeze-compute-buffer-args)))
+   then (breeze-eval-list
+	 (format
+	  "(breeze.quickfix::prototyping-stuff2 %s)"
+	  (prin1-to-string response)))
+   while request
+   for response = (pcase (car request)
+		    ("completing-read"
+		     (completing-read (second request)
+				      (third request)))
+		    ("insert"
+		     (goto-char (second request))
+		     (apply #'insert (cddr request)))
+		    ("insert-saving-excursion"
+		     (save-excursion
+		       (goto-char (second request))
+		       (apply #'insert (cddr request))))
+		    ("replace"		; TODO -saving-excursion variant
+		     (cl-destructuring-bind
+			 (point-from point-to replacement-stirng)
+			 (cdr request)
+		       ;; TODO
+		       )))
+   do (message "%s %s"
+	       (prin1-to-string request)
+	       (prin1-to-string response))))
 
 
 ;;; code evaluation
