@@ -4,6 +4,8 @@
 (defpackage #:breeze.quickfix
   (:use :cl)
   (:export #:quickfix)
+  (:import-from #:breeze.utils
+		#:positivep)
   (:import-from #:breeze.refactor
 		#:form-at-point)
   (:import-from #:breeze.reader

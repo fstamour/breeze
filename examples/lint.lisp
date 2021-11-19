@@ -60,6 +60,15 @@ a-symbol
 ;; or
 (if pain tylenol water)
 
+;; TODO
+(defun _ (&ptional))
+makeunbound
+make-unbound
+
+extract-function
+inline-function
+#+nil use #+(or) instead
+
 
 
 ;; nested car and cdr can be replaced by c[ad]+r functions

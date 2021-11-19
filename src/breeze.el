@@ -651,9 +651,11 @@ arguments. Use to quickly scaffold a bunch of functions."
 	  (prin1-to-string response)))
    while request
    for response = (pcase (car request)
-		    ("completing-read"
+		    ("choose"
 		     (completing-read (second request)
 				      (third request)))
+		    ("read-string"
+		     (read-string (second request)))
 		    ("insert"
 		     (goto-char (second request))
 		     (apply #'insert (cddr request)))
@@ -667,7 +669,7 @@ arguments. Use to quickly scaffold a bunch of functions."
 			 (cdr request)
 		       ;; TODO
 		       )))
-   do (message "%s %s"
+   do (message "Resquest received: %s response to send %s"
 	       (prin1-to-string request)
 	       (prin1-to-string response))))
 

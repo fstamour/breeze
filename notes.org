@@ -13,7 +13,7 @@ Actually explain what breeze *do*.
 
 Start by documenting how to start using breeze, then automate it.
 
-** TODO Put these tasks in GitHub?                                      :ops:
+** TODO It's too easy to kill the test-runner                       :impl:ux:
 
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl   :impl:
 ** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :impl:
