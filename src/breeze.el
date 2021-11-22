@@ -107,10 +107,15 @@ First lead:
 
 ;;; Prerequisites checks
 
-(defun breeze/check-if-slime-is-connected ()
+(cl-defun breeze/check-if-slime-is-connected (&optional verbosep)
   "Make sure that slime is connected, signals an error otherwise."
-  ;; This function throws an error if there are no connections
-  (slime-connection))
+  (if (slime-current-connection)
+      (when verbosep
+	(message "Slime already started."))
+    (progn
+      (when verbosep
+	(message "Starting slime..."))
+      (slime))))
 
 (defun breeze/validate-if-breeze-package-exists ()
   "Returns true if the package \"breeze\" exists in the inferior-lisp."
@@ -144,14 +149,7 @@ First lead:
 
 ;; See slime--setup-contribs, I named this breeze-init so it _could_ be added to slime-contrib,
 ;; I haven't tested it yet though.
-(defun breeze-init (&optional verbosep)
-  "Ensure that breeze is initialized correctly on swank's side."
-  (interactive)
-  (breeze/check-if-slime-is-connected)
-  (breeze/ensure-breeze verbosep)
-  (breeze-interactive-eval "(breeze.user::initialize)")
-  (when verbosep
-    (message "Breeze initialized.")))
+
 
 (defmacro breeze/with-slime (&rest body)
   `(progn
@@ -853,12 +851,7 @@ arguments. Use to quickly scaffold a bunch of functions."
 (defun breeze ()
   "Start slime and breeze"
   (interactive)
-  (if (slime-current-connection)
-      (progn
-	(message "Starting slime...")
-	(slime))
-    (message "Slime already started."))
-  (breeze-init))
+  (breeze-init t))
 
 (provide 'breeze)
 ;;; breeze.el ends here
