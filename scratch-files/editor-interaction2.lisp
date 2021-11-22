@@ -182,3 +182,10 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
    all))
 
 ;;; Much better interface :)
+;;;
+;;; Next: utility function to help with looping, chaining, and common
+;;; usage.  BUT, to get an idea of a "common usage", I would need to
+;;; actually start using this... So first add move this to src/ (maybe
+;;; with better names) and add tests.
+;;;
+;;; Hint: use reduce for chaining. (values command t) for simple loops
