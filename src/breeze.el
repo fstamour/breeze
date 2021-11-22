@@ -633,6 +633,8 @@ arguments. Use to quickly scaffold a bunch of functions."
 	(breeze-choose-and-call-command "Choose a quickfix to apply" commands)
       (message "No quickfixes found in this context."))))
 
+;; (setf debug-on-error t)
+;; (setf debug-on-error nil)
 (defun breeze-quickfix ()
   "SHADOWS the real breeze-quickfix, just for quick prototyping."
   (interactive)
@@ -641,13 +643,22 @@ arguments. Use to quickly scaffold a bunch of functions."
    for
    request = (breeze-eval-list
 	      (format
-	       "(breeze.quickfix::prototyping-stuff %s)"
+	       "(editor-interaction2:dummy-command %s)"
 	       (breeze-compute-buffer-args)))
    then (breeze-eval-list
-	 (format
-	  "(breeze.quickfix::prototyping-stuff2 %s)"
-	  (prin1-to-string response)))
+	 (if send-response-p
+	     (format
+	      "(editor-interaction2:continue-command-processing %s)"
+	      (prin1-to-string response))
+	   "(editor-interaction2:continue-command-processing)"))
    while request
+   ;; Wheter or not we need to send a request's response.
+   for send-response-p = (pcase (car request)
+			   ("choose" t)
+			   ("read-string" t)
+			   ("insert" nil)
+			   ("insert-saving-excursion" nil)
+			   ("replace" nil))
    for response = (pcase (car request)
 		    ("choose"
 		     (completing-read (second request)
@@ -655,13 +666,14 @@ arguments. Use to quickly scaffold a bunch of functions."
 		    ("read-string"
 		     (read-string (second request)))
 		    ("insert"
-		     (goto-char (second request))
+		     (when (numberp (second request))
+		       (goto-char (second request)))
 		     (apply #'insert (cddr request)))
 		    ("insert-saving-excursion"
 		     (save-excursion
 		       (goto-char (second request))
 		       (apply #'insert (cddr request))))
-		    ("replace"		; TODO -saving-excursion variant
+		    ("replace"	      ; TODO -saving-excursion variant
 		     (cl-destructuring-bind
 			 (point-from point-to replacement-stirng)
 			 (cdr request)

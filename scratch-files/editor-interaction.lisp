@@ -388,3 +388,7 @@ NIL
 ;;; over the newly sent parameters (response). I think I could just
 ;;; accumulate them in a list... and pass the whole list to the next
 ;;; lambda... we'll see
+
+
+;;;; To make it easier to load [the right thing], I decided to
+;;;; continue to try stuff in editor-interaction2.lisp.
