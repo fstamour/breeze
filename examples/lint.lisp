@@ -69,6 +69,14 @@ extract-function
 inline-function
 #+nil use #+(or) instead
 
+(case x
+  (1 t)
+  (3 t)
+  (4 t)
+  (t nil))
+;; should be
+(member x '(1 2 3) :test #'=)
+
 
 
 ;; nested car and cdr can be replaced by c[ad]+r functions

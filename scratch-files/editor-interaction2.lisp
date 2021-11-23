@@ -86,6 +86,11 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 	     replacement-string)
 	    callback)))
 
+(defun backward-char (n &optional callback)
+  (lambda ()
+    (values (list "backward-char" n)
+	    callback)))
+
 
 
 (defun point ()
@@ -189,3 +194,43 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 ;;; with better names) and add tests.
 ;;;
 ;;; Hint: use reduce for chaining. (values command t) for simple loops
+
+
+(defun insert-defun (&rest all)
+  (process-command
+   (insert nil "(defun " nil
+	   (read-string
+	    "Function name: "
+	    (lambda (name)
+	      (insert nil (format nil "~a (" name) nil
+		      (read-string
+		       ;; Who needs to loop...?
+		       "Enter the arguments: "
+		       (lambda (lambda-list)
+			 (insert nil (format nil "~a)~%)" lambda-list) nil
+				 (backward-char nil)
+				 )))))))
+   all))
+
+
+(defun insert-defun (&rest all)
+  (process-command
+   (insert nil "(defun " nil
+	   (insert nil ")" t))
+   all))
+
+
+(insert-defun)
+;; ("insert" NIL "(defun ")
+(continue-command-processing)
+;; => ("read-string" "Function name: ")
+(continue-command-processing "foo")
+;; ("insert" NIL "foo (")
+(continue-command-processing)
+;; => ("read-string" "Enter the arguments: ")
+(continue-command-processing "x y")
+;; => ("insert" NIL "x y)
+;; ")
+(continue-command-processing)
+;; => ("insert-saving-excursion" NIL ")")
+(continue-command-processing)

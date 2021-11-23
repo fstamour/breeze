@@ -17,7 +17,11 @@
   (:use :cl)
   (:import-from #:alexandria
 		#:ensure-car
-		#:symbolicate))
+		#:symbolicate)
+  (:export #:find-snippet
+	   ;; #:snippet-inputs
+	   #:snippet-lambda-list
+	   #:snippet-function))
 
 (in-package #:breeze.snippets)
 
@@ -31,6 +35,9 @@
 
 (defparameter *indentation* 0
   "Variable to manage indentation level when printing snippets.")
+
+(defun find-snippet (name)
+  (gethash name *snippets*))
 
 (defclass snippet ()
   ((name
@@ -135,9 +142,10 @@
 ;; (snippet-inputs 'defmacro)
 
 
-(define-snippet defpackage ((name :placeholder "Name of the package")
-			    (nicknames :type (list string)
-				       :placeholder "Nickname for the package"))
+(define-snippet defpackage
+    ((name :placeholder "Name of the package")
+     (nicknames :type (list string)
+		:placeholder "Nickname for the package"))
     "Define a package."
   "(in-package #:common-lisp-user)" \n \n
   "(defpackage #:" 'name > \n

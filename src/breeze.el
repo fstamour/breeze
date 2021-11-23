@@ -633,32 +633,37 @@ arguments. Use to quickly scaffold a bunch of functions."
 	(breeze-choose-and-call-command "Choose a quickfix to apply" commands)
       (message "No quickfixes found in this context."))))
 
+(defun breeze-replace-NIL (list)
+  (mapcar #'(lambda (el)
+	      (if (eq el 'NIL)
+		  nil
+		el))
+	  list))
+
 ;; (setf debug-on-error t)
 ;; (setf debug-on-error nil)
 (defun breeze-quickfix ()
   "SHADOWS the real breeze-quickfix, just for quick prototyping."
   (interactive)
   (cl-loop
-   for i below 5
+   for i below 50
    for
-   request = (breeze-eval-list
+   request = (breeze-replace-NIL
+	      (breeze-eval-list
+	       (format
+		"(editor-interaction2::insert-defun %s)"
+		(breeze-compute-buffer-args))))
+   then (breeze-replace-NIL
+	 (breeze-eval-list
+	  (if send-response-p
 	      (format
-	       "(editor-interaction2:dummy-command %s)"
-	       (breeze-compute-buffer-args)))
-   then (breeze-eval-list
-	 (if send-response-p
-	     (format
-	      "(editor-interaction2:continue-command-processing %s)"
-	      (prin1-to-string response))
-	   "(editor-interaction2:continue-command-processing)"))
+	       "(editor-interaction2:continue-command-processing %s)"
+	       (prin1-to-string response))
+	    "(editor-interaction2:continue-command-processing)")))
    while request
    ;; Wheter or not we need to send a request's response.
-   for send-response-p = (pcase (car request)
-			   ("choose" t)
-			   ("read-string" t)
-			   ("insert" nil)
-			   ("insert-saving-excursion" nil)
-			   ("replace" nil))
+   for send-response-p = (member (car request)
+				 '("choose" "read-string"))
    for response = (pcase (car request)
 		    ("choose"
 		     (completing-read (second request)
@@ -666,19 +671,26 @@ arguments. Use to quickly scaffold a bunch of functions."
 		    ("read-string"
 		     (read-string (second request)))
 		    ("insert"
-		     (when (numberp (second request))
-		       (goto-char (second request)))
-		     (apply #'insert (cddr request)))
+		     (cl-destructuring-bind (_ position string)
+			 request
+		       (when (numberp position) (goto-char position))
+		       (insert string)))
 		    ("insert-saving-excursion"
-		     (save-excursion
-		       (goto-char (second request))
-		       (apply #'insert (cddr request))))
+		     (cl-destructuring-bind (_ position string)
+			 request
+		       (save-excursion
+			 (when (numberp position) (goto-char position))
+			 (insert string))))
 		    ("replace"	      ; TODO -saving-excursion variant
 		     (cl-destructuring-bind
 			 (point-from point-to replacement-stirng)
 			 (cdr request)
 		       ;; TODO
-		       )))
+		       ))
+		    ("backward-char"
+		     (backward-char (second request))
+		     (indent-for-tab-command) ;; Had to do this hack so the cursor is positioned correctly... probably because of aggressive-indent
+		     ))
    do (message "Resquest received: %s response to send %s"
 	       (prin1-to-string request)
 	       (prin1-to-string response))))
