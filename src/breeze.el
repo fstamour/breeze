@@ -95,6 +95,7 @@ First lead:
 ;;  (eq nil (breeze-eval-predicate "NIL")))
 
 (defun breeze-eval-list (string)
+  ;; TODO check breeze-cl-to-el-list
   (let ((list (car
 	       (read-from-string
 		(breeze-eval-value-only string)))))
@@ -275,41 +276,6 @@ Othewise, return the position of the character."
      "  (:use :cl))\n\n"
      "(in-package #:" package-name ")\n\n")))
 
-(define-skeleton breeze-insert-defun
-  "Insert a defun form."
-  "" ;; Empty prompt. Ignored.
-  > "(defun " (skeleton-read "Function name: ")
-  " (" ("Enter an > argument name: "
-	str " ")
-  (fixup-whitespace) ")" \n _ ")")
-
-(define-skeleton breeze-insert-defmacro
-  "Insert a defmacro form."
-  "" ;; Empty prompt. Ignored.
-  > "(defmacro " (skeleton-read "Macro name: ")
-  " (" ("Enter
-  > an argument name: " str " ") (fixup-whitespace) ")" \n _ ")")
-
-(define-skeleton breeze-insert-defvar
-  "Insert a defvar form."
-  "" ;; Empty prompt. Ignored.
-  > "(defvar *"
-  (skeleton-read "Name: ") "* "
-  (skeleton-read "Initial value: ") \n
-  > "\"" (skeleton-read "Documentation string: ") "\")")
-
-(define-skeleton breeze-insert-defparameter
-  "Insert a defparameter form."
-  "" ;; Empty prompt. Ignored.
-  > "(defparameter *" (skeleton-read "Name: ") "* "
-  (skeleton-read "Initial value: ") \n
-  > "\"" (skeleton-read "Documentation string: ") "\")")
-
-(define-skeleton breeze-insert-let
-  "Insert a let defvar form."
-  "" ;; Empty prompt. Ignored.
-  > "(let ((" @ ")))")
-
 (define-skeleton breeze-insert-asdf
   "Skeleton for an asdf file."
   "" ;; Empty prompt. Ignored.
@@ -343,41 +309,7 @@ Othewise, return the position of the character."
   (skeleton-read "Enter the variable name for the value: ")
   ")")
 
-(define-skeleton breeze-insert-loop-clause-for-on-list
-  "Skeleton to insert a loop clause to iterate on a list."
-  "" ;; Empty prompt. Ignored.
-  > " :for "
-  (skeleton-read "Enter the variable name for the iterator: ")
-  " :on "
-  (skeleton-read "Enter the name of the list: "))
-
-(define-skeleton breeze-insert-loop-clause-for-in-list
-  "Skeleton to insert a loop clause to iterate on a list."
-  "" ;; Empty prompt. Ignored.
-  > " :for "
-  (skeleton-read "Enter the variable name for the iterator: ")
-  " :in "
-  (skeleton-read "Enter the name of the list: "))
-
-(defun breeze-new-buffer-p ()
-  "Check if the current buffer is \"new\"."
-  (or
-   ;; Check the size of the buffer
-   (zerop (buffer-size))
-   ;; Check if it's all whitespaces
-   (zerop (length (string-trim (buffer-string))))
-   ;; TODO Check if it's all comments
-   ;; TODO See the function "bobp" (beginnig-of-buffer-p)
-   ))
-
-;; WIP
-(defun breeze-buffer-has-defpackage ()
-  "Check if a buffer already contains a defpackage form.")
-
-;; WIP
-(defun breeze-in-loop ()
-  "Check if it's a valid place to add a loop clause.")
-
+;; TODO RIP
 (defun breeze-insert ()
   "Choose someting to insert."
   (interactive)
@@ -390,14 +322,6 @@ Othewise, return the position of the character."
      "What do you want to insert? "
      '(breeze-insert-asdf
        breeze-insert-defpackage
-       breeze-insert-defun
-       breeze-insert-defvar
-       breeze-insert-defparameter
-       breeze-insert-let
-       breeze-insert-defmacro
-       breeze-insert-loop-clause-for-hash
-       breeze-insert-loop-clause-for-on-list
-       breeze-insert-loop-clause-for-in-list
        ;; TODO
        ;; defclass
        ;; slots
@@ -406,32 +330,7 @@ Othewise, return the position of the character."
        ))))
 
 
-;;; abbrev
-
-;; P.S. This doesn't work anymore because (I think) breeze-mode is a
-;; minor mode.
-(progn
-  (when (boundp 'breeze-mode-abbrev-table)
-    (clear-abbrev-table breeze-mode-abbrev-table))
-  (define-abbrev-table 'breeze-mode-abbrev-table
-    '(("defmacro1" "" breeze-insert-defmacro)
-      ("defpackage1" "" breeze-insert-defpackage)
-      ("defparam1" "" breeze-insert-defparameter)
-      ("defsystem1" "" breeze-insert-asdf)
-      ("defun1" "" breeze-insert-defun)
-      ("defvar1" "" breeze-insert-defvar))))
-
-
 ;;; code modification
-
-(defun breeze-indent-defun-at-point ()
-  "Indent the whole form without moving the point."
-  (interactive)
-  (if (zerop (current-column))
-      (indent-sexp)
-    (save-excursion
-      (slime-beginning-of-defun)
-      (indent-sexp))))
 
 (defun breeze-get-symbol-package (symbol)
   "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
@@ -621,79 +520,110 @@ arguments. Use to quickly scaffold a bunch of functions."
   "Suggest valid actions to the user based on the point."
   (interactive)
   ;; TODO
-  (let* ((suggestions (breeze-get-quickfix-suggestions))
-	 (commands
-	  (mapcar #'(lambda (command-name)
-		      (let ((command (intern (downcase command-name))))
-			(if (fboundp command)
-			    command
-			  (error "quickfix suggested an invalid command %s" command))))
-		  suggestions)))
-    (if suggestions
-	(breeze-choose-and-call-command "Choose a quickfix to apply" commands)
-      (message "No quickfixes found in this context."))))
+  (completing-read "Choose a command: "
+		   (breeze-get-quickfix-suggestions)))
+
 
-(defun breeze-replace-NIL (list)
-  (mapcar #'(lambda (el)
-	      (if (eq el 'NIL)
-		  nil
-		el))
-	  list))
+
+(defun breeze-cl-to-el-list (list)
+  "Convert NIL to nil and T to t.
+Common lisp often returns the symbols capitalized, but emacs
+lisp's reader doesn't convert them."
+  (if (eq list 'NIL)
+      nil
+    (mapcar #'(lambda (el)
+		(case el
+		  (NIL nil)
+		  (T t)
+		  (t el)))
+	    list)))
+
+(defun breeze-command-start (name)
+  (breeze-cl-to-el-list
+   (breeze-eval-list
+    (format "(%s %s)" name (breeze-compute-buffer-args)))))
+
+(defun breeze-command-continue (response send-response-p)
+  (breeze-cl-to-el-list
+   (breeze-eval-list
+    (if send-response-p
+	(format
+	 "(editor-interaction2:continue-command-processing %s)"
+	 (prin1-to-string response))
+      "(editor-interaction2:continue-command-processing)"))))
+
+(defun breeze-command-process-request (request)
+  (pcase (car request)
+    ("choose"
+     (completing-read (second request)
+		      (third request)))
+    ("read-string"
+     (read-string (second request)))
+    ("insert-at"
+     (cl-destructuring-bind (_ position string)
+	 request
+       (when (numberp position) (goto-char position))
+       (insert string)))
+    ("insert-at-saving-excursion"
+     (cl-destructuring-bind (_ position string)
+	 request
+       (save-excursion
+	 (when (numberp position) (goto-char position))
+	 (insert string))))
+    ("insert"
+     (cl-destructuring-bind (_ string) request (insert string)))
+    ("replace"	      ; TODO -saving-excursion variant
+     (cl-destructuring-bind
+	 (point-from point-to replacement-stirng)
+	 (cdr request)
+       ;; TODO
+       ))
+    ("backward-char"
+     (backward-char (second request))
+     ;; Had to do this hack so the cursor is positioned
+     ;; correctly... probably because of aggressive-indent
+     (funcall indent-line-function))
+    ("run-command"
+     (breeze-run-command (second request)))))
 
 ;; (setf debug-on-error t)
 ;; (setf debug-on-error nil)
+(defun breeze-run-command (name)
+  "Runs a \"breeze command\". TODO Improve this docstring."
+  (interactive)
+  (cl-loop
+   ;; guards against infinite loop
+   for i below 1000
+   for
+   ;; Start the command
+   request = (breeze-command-start name)
+   ;; Continue the command
+   then (breeze-command-continue response send-response-p)
+   ;; "Request" might be nil, if it is, we're done
+   while request
+   ;; Wheter or not we need to send arguments to the next callback.
+   for send-response-p = (member (car request)
+				 '("choose" "read-string"))
+   ;; Process the command's request
+   for response = (breeze-command-process-request request)
+   ;; Log request and response (for debugging)
+   do (message "Breeze: request received: %s response to send %s"
+	       (prin1-to-string request)
+	       (prin1-to-string response))))
+
 (defun breeze-quickfix ()
   "SHADOWS the real breeze-quickfix, just for quick prototyping."
   (interactive)
-  (cl-loop
-   for i below 50
-   for
-   request = (breeze-replace-NIL
-	      (breeze-eval-list
-	       (format
-		"(editor-interaction2::insert-defun %s)"
-		(breeze-compute-buffer-args))))
-   then (breeze-replace-NIL
-	 (breeze-eval-list
-	  (if send-response-p
-	      (format
-	       "(editor-interaction2:continue-command-processing %s)"
-	       (prin1-to-string response))
-	    "(editor-interaction2:continue-command-processing)")))
-   while request
-   ;; Wheter or not we need to send a request's response.
-   for send-response-p = (member (car request)
-				 '("choose" "read-string"))
-   for response = (pcase (car request)
-		    ("choose"
-		     (completing-read (second request)
-				      (third request)))
-		    ("read-string"
-		     (read-string (second request)))
-		    ("insert"
-		     (cl-destructuring-bind (_ position string)
-			 request
-		       (when (numberp position) (goto-char position))
-		       (insert string)))
-		    ("insert-saving-excursion"
-		     (cl-destructuring-bind (_ position string)
-			 request
-		       (save-excursion
-			 (when (numberp position) (goto-char position))
-			 (insert string))))
-		    ("replace"	      ; TODO -saving-excursion variant
-		     (cl-destructuring-bind
-			 (point-from point-to replacement-stirng)
-			 (cdr request)
-		       ;; TODO
-		       ))
-		    ("backward-char"
-		     (backward-char (second request))
-		     (indent-for-tab-command) ;; Had to do this hack so the cursor is positioned correctly... probably because of aggressive-indent
-		     ))
-   do (message "Resquest received: %s response to send %s"
-	       (prin1-to-string request)
-	       (prin1-to-string response))))
+  (case 1
+    (1
+     (breeze-run-command
+      "editor-interaction2::quickfix"))
+    (2
+     (breeze-run-command
+      "editor-interaction2::dummy-loop"))
+    (3
+     (breeze-run-command
+      "editor-interaction2::insert-defun"))))
 
 
 ;;; code evaluation

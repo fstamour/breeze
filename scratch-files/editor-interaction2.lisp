@@ -11,7 +11,7 @@
 (defparameter *state* ())
 (defparameter *next* ())
 
-(defun process-command (command args)
+(defun process-command (args command)
   (setf *next* command
 	;; Assuming args is a plist...
 	*state* (alexandria:plist-alist args))
@@ -56,20 +56,34 @@
      `("read-string" ,prompt)
      callback)))
 
-;; TODO We should probably specify the buffer name
-(defun insert (position string save-excursion-p &optional callback)
+(defun insert-at (position string save-excursion-p &optional callback)
   "Send a message to the editor telling it to insert STRING at POSITION.
 Set SAVE-EXCURSION-P to non-nil to keep the current position."
   (lambda ()
     (values (list
 	     (if save-excursion-p
-		 "insert-saving-excursion"
-		 "insert")
+		 "insert-at-saving-excursion"
+		 "insert-at")
 	     position
 	     string)
 	    callback)))
 
-;; TODO We should probably specify the buffer name
+(defun insert (string-spec &optional callback)
+  "Send a message to the editor telling it to insert STRING at POSITION.
+Set SAVE-EXCURSION-P to non-nil to keep the current position."
+  (lambda ()
+    (values (list "insert"
+		  (if (listp string-spec)
+		      (apply #'format nil string-spec)
+		      string-spec))
+	    callback)))
+
+(defun read-string-then-insert (prompt control-string
+				&optional callback)
+  (read-string prompt
+	       (lambda (string)
+		 (insert (list control-string string) callback))))
+
 (defun replace-region (position-from position-to
 		       replacement-string
 		       save-excursion-p
@@ -86,7 +100,7 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 	     replacement-string)
 	    callback)))
 
-(defun backward-char (n &optional callback)
+(defun backward-char (&optional n callback)
   (lambda ()
     (values (list "backward-char" n)
 	    callback)))
@@ -110,12 +124,12 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 	    (insert (point) "hi " nil))))
 
 
-(process-command #'simple-command '(:point 42))
+(process-command '(:point 42) #'simple-command)
 ;; => ("insert" 42 "hi")
 ;; *next* is nil
 ;; *state* => ((:POINT . 42))
 
-(process-command #'command-with-2-actions '(:point 42))
+(process-command '(:point 42) #'command-with-2-actions)
 ;; => ("insert" 42 "bob")
 ;; *next* contains a lambda
 (continue-command-processing)
@@ -129,7 +143,7 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
   (loop
     ;; guards against infinite loop
     for i below 10
-    for request = (process-command command args)
+    for request = (process-command args command)
       then (if send-response-p
 	       (funcall #'continue-command-processing response)
 	       (funcall #'continue-command-processing))
@@ -174,6 +188,7 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 		   point-min
 		   point-max))
   (process-command
+   all
    (choose "Which command?" '("hi" "greetings")
 	   (lambda (choice)
 	     (cond
@@ -183,8 +198,7 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 				     (lambda (name)
 				       (insert nil (format nil " ~a" name) nil)))))
 	       ((string= choice "greetings")
-		(insert nil "Generic greetings to you!" nil)))))
-   all))
+		(insert nil "Generic greetings to you!" nil)))))))
 
 ;;; Much better interface :)
 ;;;
@@ -196,41 +210,146 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 ;;; Hint: use reduce for chaining. (values command t) for simple loops
 
 
-(defun insert-defun (&rest all)
+(defun insert-defun-shaped (form-name all)
   (process-command
-   (insert nil "(defun " nil
-	   (read-string
-	    "Function name: "
-	    (lambda (name)
-	      (insert nil (format nil "~a (" name) nil
-		      (read-string
-		       ;; Who needs to loop...?
-		       "Enter the arguments: "
-		       (lambda (lambda-list)
-			 (insert nil (format nil "~a)~%)" lambda-list) nil
-				 (backward-char nil)
-				 )))))))
-   all))
-
+   all
+   (chain
+     (insert (list "(~a " form-name))
+     (read-string-then-insert "Name: " "~a (")
+     (read-string-then-insert
+      ;; Who needs to loop...?
+      "Enter the arguments: " "~a)~%)")
+     (backward-char))))
 
 (defun insert-defun (&rest all)
+  (insert-defun-shaped "defun" all))
+
+(defun insert-defmacro (&rest all)
+  (insert-defun-shaped "defmacro" all))
+
+(defmacro defcommand (name &body commands)
+  "Macro to define _simple_ commands."
+  `(defun ,name (&rest all
+		 &key
+		   buffer-string
+		   buffer-name
+		   buffer-file-name
+		   point
+		   point-min
+		   point-max)
+     (declare (ignorable buffer-string
+			 buffer-name
+			 buffer-file-name
+			 point
+			 point-min
+			 point-max))
+     (process-command
+      all
+      (chain
+	,@commands))))
+
+(defcommand insert-loop-clause-for-on-list
+  (insert " :for ")
+  (read-string-then-insert
+   "Enter the variable name for the iterator: " "~a :on ")
+  (read-string-then-insert
+   "Enter the the list to iterate on: " "~a"))
+
+(defcommand insert-loop-clause-for-in-list
+  (insert " :for ")
+  (read-string-then-insert
+   "Enter the variable name for the iterator: " "~a :in ")
+  (read-string-then-insert
+   "Enter the the list to iterate on: " "~a"))
+
+(defcommand insert-loop-clause-for-in-list
+  (insert " :for ")
+  (read-string-then-insert
+   "Enter the variable name for the iterator: " "~a :in ")
+  (read-string-then-insert
+   "Enter the the list to iterate on: " "~a"))
+
+(defcommand insert-loop-clause-for-hash
+  (insert " :for ")
+  (read-string-then-insert
+   "Enter the variable name for the key: "
+   "~a :being :the :hash-key :of ")
+  (read-string-then-insert
+   "Enter the variable name for the hash-table: "
+   "~a :using (hash-value ")
+  (read-string-then-insert
+   "Enter the variable name for the value: "
+   "~a)"))
+
+
+;; TODO insert-let (need to loop probably)
+
+(define-skeleton breeze-insert-defvar
+  "Insert a defvar form."
+  "" ;; Empty prompt. Ignored.
+  > "(defvar *"
+  (skeleton-read "Name: ") "* "
+  (skeleton-read "Initial value: ") \n
+  > "\"" (skeleton-read "Documentation string: ") "\")")
+
+(defun insert-defvar-shaped (form-name all)
   (process-command
-   (insert nil "(defun " nil
-	   (insert nil ")" t))
-   all))
+   all
+   (chain
+     (insert (list "(~a " form-name))
+     ;; TODO Check if name is surrounded by "*"
+     (read-string-then-insert "Name: " "*~a* ")
+     (read-string-then-insert "Initial value: " "~a~%")
+     (read-string-then-insert "Documentation string " "\"~a\")"))))
+
+(defun insert-defvar (&rest all)
+  (insert-defvar-shaped "defvar" all))
+
+(defun insert-defparameter (&rest all)
+  (insert-defvar-shaped "defparameter" all))
+
+(defun insert-defconstant (&rest all)
+  (insert-defvar-shaped "defconstant" all))
+
+;; TODO Add "alexandria" when the symbol is not interned
+(defun insert-define-constant (&rest all)
+  (insert-defvar-shaped "define-constant" all))
 
 
-(insert-defun)
-;; ("insert" NIL "(defun ")
-(continue-command-processing)
-;; => ("read-string" "Function name: ")
-(continue-command-processing "foo")
-;; ("insert" NIL "foo (")
-(continue-command-processing)
-;; => ("read-string" "Enter the arguments: ")
-(continue-command-processing "x y")
-;; => ("insert" NIL "x y)
-;; ")
-(continue-command-processing)
-;; => ("insert-saving-excursion" NIL ")")
-(continue-command-processing)
+(defun quickfix (&rest all
+		 &key
+		   buffer-string
+		   buffer-name
+		   buffer-file-name
+		   point
+		   point-min
+		   point-max)
+  (declare (ignorable all buffer-string buffer-name buffer-file-name
+		      point point-min point-max))
+  (let ((commands
+	  '((insert-loop-clause-for-in-list
+	     "Insert a loop clause to iterate in a list.")
+	    (insert-loop-clause-for-on-list
+	     "Insert a loop clause to iterate on a list.")
+	    (insert-loop-clause-for-hash
+	     "Insert a loop clause to iterate on a hash-table.")
+	    (insert-defun
+	     "Insert a defun form.")
+	    (insert-macro
+	     "Insert a defmacro form."))))
+    (process-command
+     all
+     (choose "Choose a command: "
+	     (mapcar #'second commands)
+	     (lambda (choice)
+	       (list "run-command"
+		     (let ((*print-escape* t)
+			   (*package* (find-package "KEYWORD"))
+			   (function (car (find choice commands
+						:key #'second
+						:test #'string=))))
+		       (prin1-to-string function)
+		       #+nil
+		       (format nil "(~s)" function))))))))
+
+(defun dummy-loop)

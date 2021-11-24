@@ -13,6 +13,10 @@ Actually explain what breeze *do*.
 
 Start by documenting how to start using breeze, then automate it.
 
+** TODO Add links to all the "TODOs" in the documentation
+
+grep TODO -h | to_github_url | to_html
+
 ** TODO It's too easy to kill the test-runner                       :impl:ux:
 
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl   :impl:

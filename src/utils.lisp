@@ -14,7 +14,8 @@
    #:whitespacep
    #:stream-size
    #:read-stream-range
-   #:positivep))
+   #:positivep
+   #:symbol-package-qualified-name))
 
 (in-package #:breeze.utils)
 
@@ -159,3 +160,10 @@ sytsem-files"
 
 (defun positivep (x)
   (> x 0))
+
+
+(defun symbol-package-qualified-name (symbol)
+  "Given a SYMBOL return a string of the form package:symbol."
+  (let ((*print-escape* t)
+	(*package* (find-package "KEYWORD")))
+    (prin1-to-string symbol)))
