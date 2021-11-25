@@ -227,6 +227,18 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 (defun insert-defmacro (&rest all)
   (insert-defun-shaped "defmacro" all))
 
+(defmacro chain (&body forms)
+  (reduce (lambda (acc next)
+	    (append acc (list next)))
+	  (butlast forms)
+	  :initial-value (alexandria:lastcar forms)
+	  :from-end t))
+
+(chain (1)
+       (2)
+       (3)
+       (4))
+
 (defmacro defcommand (name &body commands)
   "Macro to define _simple_ commands."
   `(defun ,name (&rest all

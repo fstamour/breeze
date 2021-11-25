@@ -19,28 +19,33 @@
 	       ;; For documentation generation
 	       #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
 	       #:eclector)
-  :serial t
+  ;; :serial t
   :components
   ((:module "src"
     :components
-    ((:file "utils")
-     (:file "reader")
-     (:file "definition")
-     (:file "test")
+    ((:file "utils" :depends-on ())
+     (:file "reader" :depends-on ("utils"))
+     (:file "definition" :depends-on ())
+     (:file "test" :depends-on ())
      (:file "worker")
-     (:file "test-runner")
-     (:file "xref")
-     (:file "documentation")
-     (:file "asdf")
-     (:file "breeze-swank")
-     (:file "refactor")
-     (:file "quickfix")
-     (:file "user")))
+     (:file "test-runner" :depends-on ("test" "worker"))
+     (:file "xref" :depends-on ("utils" "test" "definition"))
+     (:file "documentation" :depends-on ("xref" "definition"))
+     (:file "asdf" :depends-on ())
+     (:file "breeze-swank" :depends-on ("xref"))
+     (:file "command" :depends-on ())
+     (:file "refactor" :depends-on ("reader" "command" "utils"))
+     (:file "user" :depends-on ("test-runner"
+				"xref"
+				"documentation"
+				"refactor"
+				"asdf"))))
    ;; TODO move this into its own system (breeze.selftest.asd)
    (:module "tests"
     :components
     ((:file "utils")
      (:file "reader")
+     (:file "command")
      (:file "dummy-package")
      (:file "test")
      (:file "user")

@@ -29,7 +29,7 @@
 
 (defun walk-list (tree fn &optional (recurse-p (constantly t)))
   "Walk a tree and call fn on each list parts"
-  (when (listp tree)
+  (when (and (listp tree) (listp (cdr tree)))
     (funcall fn tree)
     (dolist (node tree)
       (when (funcall recurse-p node)
