@@ -1,5 +1,6 @@
 *.fasl
 *.core
+*.svg
 
 
 githooks/*.sample
