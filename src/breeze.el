@@ -111,16 +111,25 @@ First lead:
 (cl-defun breeze/check-if-slime-is-connected (&optional verbosep)
   "Make sure that slime is connected, signals an error otherwise."
   (if (slime-current-connection)
-      (when verbosep
-	(message "Slime already started."))
+      (progn
+	(when verbosep
+	  (message "Slime already started."))
+	t)
     (progn
       (when verbosep
 	(message "Starting slime..."))
       (slime))))
 
+(defun breeze/validate-if-package-exists (package)
+  "Returns true if the package PACKAGE exists in the inferior-lisp."
+  (breeze-eval-predicate
+   (format "(and (or (find-package \"%s\") (find-package \"%s\")) t)"
+	   (downcase package) (upcase package))))
+;; (breeze/validate-if-package-exists "cl")
+
 (defun breeze/validate-if-breeze-package-exists ()
   "Returns true if the package \"breeze\" exists in the inferior-lisp."
-  (breeze-eval-predicate "(and (or (find-package \"BREEZE\") (find-package \"breeze\")) t)"))
+  (breeze/validate-if-package-exists "breeze"))
 
 ;; (breeze/validate-if-breeze-package-exists)
 
@@ -150,6 +159,14 @@ First lead:
 
 ;; See slime--setup-contribs, I named this breeze-init so it _could_ be added to slime-contrib,
 ;; I haven't tested it yet though.
+(defun breeze-init (&optional verbosep)
+  "Ensure that breeze is initialized correctly on swank's side."
+  (interactive)
+  (breeze/check-if-slime-is-connected)
+  (breeze/ensure-breeze verbosep)
+  (breeze-interactive-eval "(breeze.user::initialize)")
+  (when verbosep
+    (message "Breeze initialized.")))
 
 
 (defmacro breeze/with-slime (&rest body)
@@ -297,17 +314,6 @@ Othewise, return the position of the character."
   > ":components ())" \n
   > "(:module \"tests\"" \n
   > ":components ())))")
-
-(define-skeleton breeze-insert-loop-clause-for-hash
-  "Skeleton to insert a loop clause to iterate on a hash-table."
-  "" ;; Empty prompt. Ignored.
-  > " :for "
-  (skeleton-read "Enter the variable name for the key: ")
-  " :being :the :hash-key :of "
-  (skeleton-read "Enter the name of the hash-table: ")
-  " :using (hash-value "
-  (skeleton-read "Enter the variable name for the value: ")
-  ")")
 
 ;; TODO RIP
 (defun breeze-insert ()
@@ -761,6 +767,8 @@ lisp's reader doesn't convert them."
 	  (append mode-line-format
 		  '((breeze/status  ("--> " breeze/status " <--")))))))
 
+;; (breeze/configure-mode-line)
+
 
 ;;; mode
 
@@ -801,6 +809,8 @@ lisp's reader doesn't convert them."
 
 (add-hook 'breeze-mode-hook 'breeze/configure-mode-line)
 (add-hook 'breeze-mode-hook 'breeze-init)
+;; TODO This should be in the users' config
+(add-hook 'slime-lisp-mode-hook 'breeze-init)
 
 (defun breeze ()
   "Start slime and breeze"
