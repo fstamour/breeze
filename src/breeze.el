@@ -150,7 +150,8 @@ First lead:
     (when verbosep
       (message "Loading breeze's system..."))
     (breeze-interactive-eval
-     (format "(progn (load \"%s\") (require 'breeze))"
+     (format "(progn (load \"%s\") (require 'breeze)
+        (format t \"~&Breeze loaded!~%%\"))"
 	     (breeze/system-definition))))
   (when verbosep
     (message "Breeze loaded in inferior-lisp.")))
@@ -808,9 +809,10 @@ lisp's reader doesn't convert them."
   (breeze-mode -1))
 
 (add-hook 'breeze-mode-hook 'breeze/configure-mode-line)
-(add-hook 'breeze-mode-hook 'breeze-init)
+;; (add-hook 'breeze-mode-hook 'breeze-init)
 ;; TODO This should be in the users' config
-(add-hook 'slime-lisp-mode-hook 'breeze-init)
+;; (add-hook 'slime-lisp-mode-hook 'breeze-init)
+(add-hook 'slime-connected-hook 'breeze-init)
 
 (defun breeze ()
   "Start slime and breeze"
