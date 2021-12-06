@@ -335,3 +335,4 @@ the tests needs more work, etc.
 https://quickdocs.org/cl-scripting
 https://quickdocs.org/repl-utilities
 [[https://github.com/slime/slime/issues/532][slime issue #532: Rename package and all the symbol prefixes]]
+https://blog.cddr.org/posts/2021-11-23-on-new-ides/
