@@ -248,12 +248,13 @@ I'm sure there are tons of other user-case:
 Pieces of code that could be useful
 
 #+begin_src lisp
-(bordeaux-threads:destroy-thread
- (let ((current-thread (bt:current-thread)))
-   (find-if #'(lambda (thread)
-  		(and (not (eq current-thread thread))
-  		     (string= "worker" (bt:thread-name thread))))
-  	    (sb-thread:list-all-threads))))
+  (require 'bordeaux-threads)
+  (bordeaux-threads:destroy-thread
+   (let ((current-thread (bt:current-thread)))
+     (find-if #'(lambda (thread)
+		  (and (not (eq current-thread thread))
+		       (string= "worker" (bt:thread-name thread))))
+	      (sb-thread:list-all-threads))))
 #+end_src
 
 * Prior Arts
@@ -336,3 +337,22 @@ https://quickdocs.org/cl-scripting
 https://quickdocs.org/repl-utilities
 [[https://github.com/slime/slime/issues/532][slime issue #532: Rename package and all the symbol prefixes]]
 https://blog.cddr.org/posts/2021-11-23-on-new-ides/
+
+* Discord
+
+Discussion about =#:=
+https://discord.com/channels/297478281278652417/569524818991644692/915330555334234192
+
+* FAQ from newbies about common lisp
+
+** What's the difference between load and require?
+
+** What's asdf v. quicklisp v. packages v. "os packages"?
+
+** The heck is RPLACA?
+
+** What's the difference between =setf= and =setq=?
+
+** Why use #:symbol (especially in =defpackage=)?
+
+** Why start a file with =(cl:in-package #:cl-user)=?

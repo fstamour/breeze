@@ -193,3 +193,12 @@ prog*
 	    (list
 	     (or x y)
 	     (when (or x y) y))))
+
+
+
+;; Don't mutate a literal
+(rplaca '(1 . 2) 'issh)
+
+;; Infinite recursion
+(defun boom (list)
+  (boom list))
