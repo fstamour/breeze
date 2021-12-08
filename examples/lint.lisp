@@ -82,8 +82,10 @@ inline-function
 ;; nested car and cdr can be replaced by c[ad]+r functions
 (car (cdr (cdr x))) <=> (caddr x)
 
-;; bunch of cdr wrapped with a car can be replaced with nth (up to tenth) or equivalent
-(car (cdr (cdr x))) <=> (caddr x) <=> (third x) <=> (nth 2 x) <=> (elt x 2)
+;; bunch of cdr wrapped with a car can be replaced with nth (up to
+;; tenth) or equivalent
+(car (cdr (cdr x))) <=> (caddr x) <=> (third x) <=> (nth 2 x)
+<=> (elt x 2)
 
 ;; first/rest == car/cdr
 (first x) <=> (car x)
@@ -116,7 +118,8 @@ inline-function
 ;; can be replaced by
 (curry 'fn 42)
 
-;;; it can be useful too to replace curry, #'identity, constantly, etc by an actual lambda
+;;; it can be useful too to replace curry, #'identity, constantly, etc
+;;; by an actual lambda
 
 ;; extract a lambda into a defun
 (lambda (x)
@@ -129,7 +132,8 @@ inline-function
 
 
 
-;; sometimes it can be useful to switch between 'find{,-if,-if-not} and 'position{,-if,-if-not}
+;; sometimes it can be useful to switch between 'find{,-if,-if-not}
+;; and 'position{,-if,-if-not}
 (find ...) <=> (position ...)
 (find-if ...) <=> (position-if  ...)
 (find-if-not ...) <=> (position-if-not  ...)
@@ -174,7 +178,8 @@ prog*
 
 ;; TODO Convert defstruct <=> defclass (when possible)
 
-;; Given a (defvar ) or (defparameter ), you might want to define a bunch of accessors on it
+;; Given a (defvar ) or (defparameter ), you might want to define a
+;; bunch of accessors on it
 (defvar *g* '((:a 1) (:b 3)))
 
 (defun g (key)
@@ -202,3 +207,11 @@ prog*
 ;; Infinite recursion
 (defun boom (list)
   (boom list))
+
+;; The docstring can be put anywhere amongst the declarations
+(defun foo (_)
+  (declare (ignore _))
+  "a docstring"
+  (declare (ignore _)))
+
+;; Look for duplicated code...

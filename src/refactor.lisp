@@ -4,12 +4,17 @@
 (in-package #:common-lisp-user)
 
 (defpackage #:breeze.refactor
-  (:use :cl)
+  (:use #:cl #:breeze.command)
   (:import-from
    #:breeze.utils
    #:whitespacep)
+  (:import-from
+   #:breeze.reader
+   #:parse-string
+   #:node-source)
   (:export
-   #:form-at-point))
+   #:form-at-point
+   #:quickfix))
 
 (in-package #:breeze.refactor)
 
@@ -106,45 +111,46 @@
 (defgeneric describe-command (command)
   (:documentation "Give a user-friendly description for a command.")
   (:method ((command symbol))
-	   (symbol-package-qualified-name command))
+    (symbol-package-qualified-name command))
   (:method ((command (eql 'insert-defpackage)))
-	   "Insert a defpackage form."))
+    "Insert a defpackage form."))
 
-
+#+nil
 (defun quickfix (&rest all
-		       &key
-		       buffer-string
-		       buffer-name
-		       buffer-file-name
-		       point
-		       point-min
-		       point-max)
+		 &key
+		   buffer-string
+		   buffer-name
+		   buffer-file-name
+		   point
+		   point-min
+		   point-max)
   (declare (ignorable all buffer-string buffer-name buffer-file-name
 		      point point-min point-max))
+  "Given the context, suggest some applicable commands."
   (let* (;; Parse the buffer
 	 (nodes (parse-string buffer-string))
 	 ;; Find the top-level form "at point"
 	 (current-top-level-node
-	  (find-if #'(lambda (node)
-		       (destructuring-bind (start . end)
-			   (node-source node)
-			 (and
-			  (<= start point end)
-			  (< point end))))
-		   nodes))
+	   (find-if #'(lambda (node)
+			(destructuring-bind (start . end)
+			    (node-source node)
+			  (and
+			   (<= start point end)
+			   (< point end))))
+		    nodes))
 	 ;; Accumulate a list of commands that make sense to run in
 	 ;; the current context
 	 (commands
-	  (uiop:while-collecting
-	   (push-command)
-	   ;; Suggest to insert a "defpackage" when the buffer is "empty".
-	   (when (emptyp nodes) (push-command 'insert-defpackage))
-	   ;; Suggest
-	   (when (or (null current-top-level-node)
-		     (typep current-top-level-node
-			    'breeze.reader:skipped-node))
-	     (push-command 'insert-defun))
-	   )))
+	   (uiop:while-collecting
+	       (push-command)
+	     ;; Suggest to insert a "defpackage" when the buffer is "empty".
+	     (when (emptyp nodes) (push-command 'insert-defpackage))
+	     ;; Suggest
+	     (when (or (null current-top-level-node)
+		       (typep current-top-level-node
+			      'breeze.reader:skipped-node))
+	       (push-command 'insert-defun))
+	     )))
     ;; (format t "~&Current node: ~a" current-top-level-node)
     ;; (format t "~&Is current node a defpackage ~a" (defpackage-node-p current-top-level-node))
     ;; (format t "~&positions ~a" (mapcar #'node-source nodes))
@@ -155,4 +161,41 @@
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
-					;
+
+(defun quickfix (&rest all
+		 &key
+		   buffer-string
+		   buffer-name
+		   buffer-file-name
+		   point
+		   point-min
+		   point-max)
+  (declare (ignorable all buffer-string buffer-name buffer-file-name
+		      point point-min point-max))
+  "THIS ONE IS FOR PROTOTYPING
+Given the context, suggest some applicable commands."
+  (let ((commands
+	  '((insert-loop-clause-for-in-list
+	     "Insert a loop clause to iterate in a list.")
+	    (insert-loop-clause-for-on-list
+	     "Insert a loop clause to iterate on a list.")
+	    (insert-loop-clause-for-hash
+	     "Insert a loop clause to iterate on a hash-table.")
+	    (insert-defun
+	     "Insert a defun form.")
+	    (insert-defmacro
+	     "Insert a defmacro form."))))
+    (start-command
+     all
+     (choose "Choose a command: "
+	     (mapcar #'second commands)
+	     (lambda (choice)
+	       (list "run-command"
+		     (let ((*print-escape* t)
+			   (*package* (find-package "KEYWORD"))
+			   (function (car (find choice commands
+						:key #'second
+						:test #'string=))))
+		       (prin1-to-string function)
+		       #+nil
+		       (format nil "(~s)" function))))))))

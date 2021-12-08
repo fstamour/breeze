@@ -7,7 +7,7 @@
 		#:assoc-value)
   (:export
    #:start-command
-   #:call-next-command
+   #:call-next-callback
    ;; Functions to access the context
    #:command-context*
    #:context-buffer-string
@@ -28,7 +28,17 @@
    #:chain
    #:defcommand
    #:define-simple-command
-   ))
+   ;; Simple commands
+   #:insert-loop-clause-for-on-list
+   #:insert-loop-clause-for-in-list
+   #:insert-loop-clause-for-hash
+   #:insert-defvar
+   #:insert-defparameter
+   #:insert-defconstant
+   #:insert-define-constant
+   #:insert-defun-shaped
+   #:insert-defun
+   #:insert-defmacro))
 
 (in-package #:breeze.command)
 
@@ -127,7 +137,8 @@ It can be null."
 ;;; Basic commands, to be composed
 
 (defun choose (prompt collection &optional callback)
-  "Send a message to the editor to ask the user to choose one element in the collection."
+  "Send a message to the editor to ask the user to choose one element
+in the collection."
   (lambda ()
     (values
      `("choose" ,prompt ,collection)
@@ -141,8 +152,9 @@ It can be null."
      callback)))
 
 (defun insert-at (position string save-excursion-p &optional callback)
-  "Send a message to the editor telling it to insert STRING at POSITION.
-Set SAVE-EXCURSION-P to non-nil to keep the current position."
+  "Send a message to the editor telling it to insert STRING at
+POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
+position."
   (lambda ()
     (values (list
 	     (if save-excursion-p
@@ -153,8 +165,9 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 	    callback)))
 
 (defun insert (string-spec &optional callback)
-  "Send a message to the editor telling it to insert STRING at POSITION.
-Set SAVE-EXCURSION-P to non-nil to keep the current position."
+  "Send a message to the editor telling it to insert STRING at
+POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
+position."
   (lambda ()
     (values (list "insert"
 		  (if (listp string-spec)
@@ -172,8 +185,9 @@ Set SAVE-EXCURSION-P to non-nil to keep the current position."
 		       replacement-string
 		       save-excursion-p
 		       &optional callback)
-  "Send a message to the editor telling it to replace the text between POSITION-FROM POSITION-TO by REPLACEMENT-STRING.
-Set SAVE-EXCURSION-P to non-nil to keep the current position."
+  "Send a message to the editor telling it to replace the text between
+POSITION-FROM POSITION-TO by REPLACEMENT-STRING. Set SAVE-EXCURSION-P
+to non-nil to keep the current position."
   (lambda ()
     (values (list
 	     (if save-excursion-p
@@ -226,8 +240,81 @@ arguments, which is nice."
 (defmacro define-simple-command (name &body commands)
   "Macro to define simple commands consisting of a chain of composable
 commands."
-  `(defcommand ,name
-       (start-command
-	context
-	(chain
-	  ,@commands))))
+  `(defcommand ,name ()
+     (start-command
+      context
+      (chain
+	,@commands))))
+
+
+;;; Define some simple commands (snippets).
+
+(define-simple-command insert-loop-clause-for-on-list
+  (insert " :for ")
+  (read-string-then-insert
+   "Enter the variable name for the iterator: " "~a :on ")
+  (read-string-then-insert
+   "Enter the the list to iterate on: " "~a"))
+
+(define-simple-command insert-loop-clause-for-in-list
+  (insert " :for ")
+  (read-string-then-insert
+   "Enter the variable name for the iterator: " "~a :in ")
+  (read-string-then-insert
+   "Enter the the list to iterate on: " "~a"))
+
+(define-simple-command insert-loop-clause-for-hash
+  (insert " :for ")
+  (read-string-then-insert
+   "Enter the variable name for the key: "
+   "~a :being :the :hash-key :of ")
+  (read-string-then-insert
+   "Enter the variable name for the hash-table: "
+   "~a :using (hash-value ")
+  (read-string-then-insert
+   "Enter the variable name for the value: "
+   "~a)"))
+
+(defun insert-defvar-shaped (form-name all)
+  (start-command
+   all
+   (chain
+     (insert (list "(~a " form-name))
+     ;; TODO Check if name is surrounded by "*"
+     (read-string-then-insert "Name: " "*~a* ")
+     (read-string-then-insert "Initial value: " "~a~%")
+     (read-string-then-insert "Documentation string " "\"~a\")"))))
+
+(defun insert-defvar (&rest all)
+  (insert-defvar-shaped "defvar" all))
+
+(defun insert-defparameter (&rest all)
+  (insert-defvar-shaped "defparameter" all))
+
+(defun insert-defconstant (&rest all)
+  (insert-defvar-shaped "defconstant" all))
+
+;; TODO Add "alexandria" when the symbol is not interned
+;;      ^^^ that should go in "refactor.lisp"
+(defun insert-define-constant (&rest all)
+  (insert-defvar-shaped "define-constant" all))
+
+
+(defun insert-defun-shaped (form-name all)
+  (start-command
+   all
+   (chain
+     (insert (list "(~a " form-name))
+     (read-string-then-insert "Name: " "~a (")
+     (read-string-then-insert
+      ;; Who needs to loop...?
+      "Enter the arguments: " "~a)~%)")
+     (backward-char))))
+
+(defun insert-defun (&rest all)
+  (insert-defun-shaped "defun" all))
+
+(defun insert-defmacro (&rest all)
+  (insert-defun-shaped "defmacro" all))
+
+;; TODO insert-let (need to loop probably)

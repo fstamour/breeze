@@ -551,13 +551,17 @@ lisp's reader doesn't convert them."
     (format "(%s %s)" name (breeze-compute-buffer-args)))))
 
 (defun breeze-command-continue (response send-response-p)
-  (breeze-cl-to-el-list
-   (breeze-eval-list
-    (if send-response-p
-	(format
-	 "(editor-interaction2:continue-command-processing %s)"
-	 (prin1-to-string response))
-      "(editor-interaction2:continue-command-processing)"))))
+  (let ((request
+	  (breeze-cl-to-el-list
+	   (breeze-eval-list
+	    (if send-response-p
+		(format
+		 "(breeze.command:call-next-callback %s)"
+		 (prin1-to-string response))
+	      "(breeze.command:call-next-callback)")))))
+    (message "Breeze: request received: %s"
+	     (prin1-to-string request))
+    request))
 
 (defun breeze-command-process-request (request)
   (pcase (car request)
@@ -624,7 +628,7 @@ lisp's reader doesn't convert them."
   (case 1
     (1
      (breeze-run-command
-      "editor-interaction2::quickfix"))
+      "breeze.refactor:quickfix"))
     (2
      (breeze-run-command
       "editor-interaction2::dummy-loop"))
