@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t -*-
 
 (package-refresh-contents)
 (package-install 'selectrum)
@@ -22,26 +23,18 @@
 ;; Can use this to pass arguments to the script
 ;; (print argv)
 
-(defvar hardcopy-counter 0)
-
-(defun screen-hardcopy ()
-  (interactive)
-  (shell-command
-   (format
-    "screen -X hardcopy -h demo/%s.hardcopy" hardcopy-counter))
-  (incf hardcopy-counter))
-
-(defun tmux-capture-pane ()
+(defun capture (name)
   (interactive)
   (shell-command
    (format
     "tmux capture-pane -e -p > %s/%s.capture" *demo-root*
-    hardcopy-counter))
-  (incf hardcopy-counter))
+    name)))
 
-(defun capture ()
-  (interactive)
-  (tmux-capture-pane))
+(defun call-capture (name)
+  (let ((name name))
+    `(:call ,#'(lambda ()
+		 (interactive)
+		 (capture name)))))
 
 (director-run
  :version 1
@@ -68,7 +61,7 @@
 		 (require 'breeze)
 		 ;; Start slime
 		 (slime-connect "localhost" 40050))
- :steps '((:call capture)
+ :steps `(,(call-capture "slime-initialized")
 	  (:type "\M-x")
 	  (:type "breeze")
 	  (:type [return])
@@ -82,10 +75,10 @@
 	  ;; Breeze-mode
 	  (:call lisp-mode)
 	  (:call breeze-mode)
-	  (:call capture)
+	  ,(call-capture "breeze-example-buffer")
 	  ;; Calling quickfix
 	  (:call breeze-quickfix)
-	  (:call capture))
+	  ,(call-capture "breeze-quickfix-menu-1"))
  :typing-style 'human
  :log-target (cons 'file (concat *demo-root* "/demo.log"))
  :delay-between-steps 0.5
