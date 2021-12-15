@@ -115,7 +115,21 @@
   (:method ((command (eql 'insert-defpackage)))
     "Insert a defpackage form."))
 
-#+nil
+(defparameter *commands-applicable-at-toplevel*
+  ;; Add insert-package
+  '((insert-defun
+     "Insert a defun form.")
+    (insert-defmacro
+     "Insert a defmacro form.")))
+
+(defparameter *commands-applicable-in-a-loop-form*
+  '((insert-loop-clause-for-in-list
+     "Insert a loop clause to iterate in a list.")
+    (insert-loop-clause-for-on-list
+     "Insert a loop clause to iterate on a list.")
+    (insert-loop-clause-for-hash
+     "Insert a loop clause to iterate on a hash-table.")))
+
 (defun quickfix (&rest all
 		 &key
 		   buffer-string
@@ -140,51 +154,21 @@
 		    nodes))
 	 ;; Accumulate a list of commands that make sense to run in
 	 ;; the current context
-	 (commands
-	   (uiop:while-collecting
-	       (push-command)
-	     ;; Suggest to insert a "defpackage" when the buffer is "empty".
-	     (when (emptyp nodes) (push-command 'insert-defpackage))
-	     ;; Suggest
-	     (when (or (null current-top-level-node)
-		       (typep current-top-level-node
-			      'breeze.reader:skipped-node))
-	       (push-command 'insert-defun))
-	     )))
+	 (commands))
+    (when (emptyp nodes)
+      (setf commands
+	    (append *commands-applicable-at-toplevel* commands)))
+
+    (when (or (null current-top-level-node)
+	      (typep current-top-level-node
+		     'breeze.reader:skipped-node))
+      (setf commands
+	    (append *commands-applicable-at-toplevel* commands)))
+
     ;; (format t "~&Current node: ~a" current-top-level-node)
     ;; (format t "~&Is current node a defpackage ~a" (defpackage-node-p current-top-level-node))
     ;; (format t "~&positions ~a" (mapcar #'node-source nodes))
     ;; (format t "~&nodes ~a" nodes)
-    (mapcar #'(lambda (command-name)
-		(describe-command command-name))
-	    (remove-duplicates commands))))
-
-#+nil
-(quickfix :buffer-string "   " :point 3)
-
-(defun quickfix (&rest all
-		 &key
-		   buffer-string
-		   buffer-name
-		   buffer-file-name
-		   point
-		   point-min
-		   point-max)
-  (declare (ignorable all buffer-string buffer-name buffer-file-name
-		      point point-min point-max))
-  "THIS ONE IS FOR PROTOTYPING
-Given the context, suggest some applicable commands."
-  (let ((commands
-	  '((insert-loop-clause-for-in-list
-	     "Insert a loop clause to iterate in a list.")
-	    (insert-loop-clause-for-on-list
-	     "Insert a loop clause to iterate on a list.")
-	    (insert-loop-clause-for-hash
-	     "Insert a loop clause to iterate on a hash-table.")
-	    (insert-defun
-	     "Insert a defun form.")
-	    (insert-defmacro
-	     "Insert a defmacro form."))))
     (start-command
      all
      (choose "Choose a command: "
@@ -199,3 +183,6 @@ Given the context, suggest some applicable commands."
 		       (prin1-to-string function)
 		       #+nil
 		       (format nil "(~s)" function))))))))
+
+#+nil
+(quickfix :buffer-string "   " :point 3)
