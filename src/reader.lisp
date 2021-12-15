@@ -16,12 +16,22 @@
    #:list-node
    #:function-node
 
+   ;; Type predicates
+   #:skipped-node-p
+   #:symbol-node-p
+   #:read-eval-node-p
+   #:character-node-p
+   #:list-node-p
+   #:function-node-p
+
+   ;; Node accessors
    #:node-content
    #:node-prefix
    #:node-source
    #:node-raw
 
-   #:parse-stream
+   ;; Parse and unparse list of forms
+   #:parse
    #:parse-string
    #:unparse-to-stream
    #:unparse-to-string
@@ -87,6 +97,22 @@
 (defclass function-node (node)
   ()
   (:documentation "Syntax node for #'expression."))
+
+
+(defmacro define-node-type-predicates (types)
+  `(progn
+     ,@(loop :for type :in types
+	     :collect
+	     `(defun ,(alexandria:symbolicate type '-p) (node)
+		(typep node ',type)))))
+
+(define-node-type-predicates
+    (skipped-node
+     symbol-node
+     read-eval-node
+     character-node
+     list-node
+     function-node))
 
 (defgeneric non-terminal-p (node)
   (:documentation "Can a node contain other nodes.")
