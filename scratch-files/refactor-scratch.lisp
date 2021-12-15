@@ -5,28 +5,105 @@
 (defpackage #:refactor-scratch
   (:use :cl)
   (:import-from #:breeze.reader
+		#:node-content
 		#:parse-string
-		#:list-node
+		#:unparse-to-string
+
+		;; Types of node
+		#:skipped-node
 		#:symbol-node
-		#:node-content)
-  (:shadowing-import-from #:breeze.reader
-			  #:read-from-string))
+		#:read-eval-node
+		#:character-node
+		#:list-node
+		#:function-node
+
+		;; Type predicates
+		#:skipped-node-p
+		#:symbol-node-p
+		#:read-eval-node-p
+		#:character-node-p
+		#:list-node-p
+		#:function-node-p)
+  (:import-from #:breeze.test
+		#:deftest
+		#:is))
 
 (in-package #:refactor-scratch)
 
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
+(defun node-first (node)
+  (first (node-content node)))
+
+(defun node-lastcar (node)
+  (alexandria:lastcar (node-content node)))
+
+(defun node-string-equal (string node)
+  (string-equal string (node-content node)))
+
+(defun null-node-p (node)
+  (and (symbol-node-p node)
+       (node-string-equal "nil" node)))
+
+#+nil
+(let ((node (first
+	     (breeze.reader:parse-string "(if x nil)"))))
+  (null-node-p
+   (node-lastcar node)))
+
+(defun node-length (node &optional (ignore-skipped-p t))
+  (and (list-node-p node)
+       (length
+	(if ignore-skipped-p
+	    (remove-if #'skipped-node-p (node-content node))
+	    (node-content node)))))
+
+(defun node-symbol= (symbol node)
+  (and (symbol-node-p node)
+       (node-string-equal (symbol-name symbol)
+			  node)))
+
+(defun if-p (node)
+  (and (list-node-p node)
+       (node-symbol= 'if (node-first node))))
+
+(read-from-string "(if x nil)")
+
+(defun test-refactor-if (string)
+  (let ((node (first (parse-string string))))
+    (when (and (if-p node)
+	       (= 3 (node-length node)))
+      (setf (node-content (first (node-content node)))
+	    (if (null-node-p (node-lastcar node))
+		"unless"
+		"when"))
+      (unparse-to-string (list node)))))
+
+(test-refactor-if "(if x nil)")
+"(unless x nil)"
+
+(test-refactor-if "(if x 32)")
+"(when x 32)"
+
+(test-refactor-if
+ "(if #| comment |# 'x NIL)")
+"(unless #| comment |# 'x nil)"
+
+(test-refactor-if
+ "(IF
+    'x NIL)")
+"(unless
+    'x nil)" ;; FIXME it should be "NIL"
+
 (defun defpackage-node-p (node)
   (and
-   (typep node 'list-node)
-   (let ((car (car (node-content node))))
-     (and (typep car 'symbol-node)
-	  (string-equal "defpackage" (node-content car))))))
+   (list-node-p node)
+   (node-symbol= 'defpackage (node-first node))))
 
-(matchp
- '(defpackage *)
- (make-instance 'list-node :content (make-instance 'symbol-node :content "defpackage")))
+(let ((node (first
+	     (breeze.reader:parse-string "(defpackage )"))))
+  (defpackage-node-p node))
 
-(read-from-string "(defpackage name)")
-;; #<LIST-NODE (#<SYMBOL-NODE DEFPACKAGE> #<SYMBOL-NODE NAME>)>
 
 (defclass defpackage-node (list-node)
   ())
