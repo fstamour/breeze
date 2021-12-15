@@ -185,15 +185,7 @@ First lead:
 		      (cl-member
 		       command
 		       '((breeze-insert-asdf "asdf:defsystem" "insert %s")
-			 (breeze-insert-defpackage "defpackage" "insert %s")
-			 (breeze-insert-defun "defun" "insert %s")
-			 (breeze-insert-defvar "defvar" "insert %s")
-			 (breeze-insert-defparameter "defparameter" "insert %s")
-			 (breeze-insert-let "let" "insert %s")
-			 (breeze-insert-defmacro "defmacro" "insert %s")
-			 (breeze-insert-loop-clause-for-hash "loop clause: hash-table iteration" "insert %s")
-			 (breeze-insert-loop-clause-for-on-list "loop clause: iterate ON list" "insert %s")
-			 (breeze-insert-loop-clause-for-in-list "loop clause: iterate IN list" "insert %s"))
+			 (breeze-insert-defpackage "defpackage" "insert %s"))
 		       :key #'car))))
     (when description
       (if shortp
@@ -281,16 +273,11 @@ Othewise, return the position of the character."
 	  (skeleton-read "Package name: "
 			 (if buffer-file-name
 			     (breeze-infer-package-name-from-file)
-			   ""))))
-	(nicknames
-	 (cl-loop for nickname = (string-trim (skeleton-read "Package nickname: "))
-		  while (not (zerop (length nickname)))
-		  collect (format ":%s" nickname))))
+			   "")))))
     (concat
-     "(in-package #:common-lisp-user)\n\n"
+     "(cl:in-package #:common-lisp-user)\n\n"
      "(defpackage #:" package-name "\n"
-     (when nicknames
-       (concat "  " (prin1-to-string `(:nicknames ,@nicknames)) "\n"))
+
      "  (:use :cl))\n\n"
      "(in-package #:" package-name ")\n\n")))
 
