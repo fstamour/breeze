@@ -1,5 +1,5 @@
 
-(in-package #:common-lisp-user)
+(cl:in-package #:common-lisp-user)
 
 (defpackage #:breeze.reader.test
   (:use :cl #:breeze.reader)
@@ -89,3 +89,11 @@
 		  expected got))
 	;; (is ok?)
 	))))
+
+;; Trying to read all files in a system, using breeze's reader.
+#+nil
+(loop :for file :in (breeze.asdf:system-files 'breeze)
+      :do
+	 (with-open-file (stream file)
+	   (parse stream))
+	 (format t "~&~s parsed." file))
