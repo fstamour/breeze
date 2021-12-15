@@ -30,6 +30,8 @@ grep TODO -h | to_github_url | to_html
 e.g not suggest "slot-exists-p" when trying to eval
 "this-really-doesnt-exists".
 
+*** TODO Make a "string distance" function that stops after a threshold
+
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl   :impl:
 ** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :impl:
 ** TODO Document how to use breeze:defun                                :doc:
