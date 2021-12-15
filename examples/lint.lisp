@@ -215,3 +215,19 @@ prog*
   (declare (ignore _)))
 
 ;; Look for duplicated code...
+
+
+(x - y)
+;; Probably meant
+(- x y)
+
+(defun is-bla ())
+;; should be
+(defun blap ())
+;; or
+(defun bla-p ())
+
+
+(trace 'fun)
+;; should be
+(trace fun)

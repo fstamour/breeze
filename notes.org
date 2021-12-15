@@ -1,6 +1,12 @@
 
 * Tasks
 
+** TODO Use header-line in emacs to show the test results
+
+Instead of a lighter
+
+The lighter could still be used though, it could be a ✓ or χ.
+
 ** TODO Better explain what Breeze currently is in the readme           :doc:
 
 As opposed to explain the principles, goals, non-goals, etc.
@@ -18,6 +24,11 @@ Start by documenting how to start using breeze, then automate it.
 grep TODO -h | to_github_url | to_html
 
 ** TODO It's too easy to kill the test-runner                       :impl:ux:
+
+** TODO Breeze shouldn't suggest symbol that are "too far"
+
+e.g not suggest "slot-exists-p" when trying to eval
+"this-really-doesnt-exists".
 
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl   :impl:
 ** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :impl:
@@ -102,6 +113,10 @@ when the edit-distance is not too great, or we would get some wild quickfixes.
 ** TODO Maybe add this document (notes.org) to the documentation?       :doc:
 
 ** TODO Maybe split the documentaion in multiple pages                  :doc:
+
+** Follow up on issues
+
+*** TODO https://github.com/slime/slime/issues/645
 
 * Design decisions
 
@@ -308,6 +323,12 @@ tools/libraries for Java.
 For python, there's the ast module, but I don't know if it can
 preserve the formatting. There's a bunch of tools to format the code.
 
+** Zulu.inuoe's attempt - clution
+
+- https://github.com/Zulu-Inuoe/clution
+- https://github.com/Zulu-Inuoe/clution.lib
+- https://github.com/Zulu-Inuoe/lob
+
 * Breeze on the internets
 
 ** Lisp project of the day
@@ -337,6 +358,11 @@ https://quickdocs.org/cl-scripting
 https://quickdocs.org/repl-utilities
 [[https://github.com/slime/slime/issues/532][slime issue #532: Rename package and all the symbol prefixes]]
 https://blog.cddr.org/posts/2021-11-23-on-new-ides/
+https://common-lisp.net/project/slime/doc/html/Contributed-Packages.html
+
+https://quickdocs.org/external-symbol-not-found
+https://github.com/Bike/compiler-macro
+https://quickdocs.org/dotenv
 
 * Discord
 
@@ -356,3 +382,19 @@ https://discord.com/channels/297478281278652417/569524818991644692/9153305553342
 ** Why use #:symbol (especially in =defpackage=)?
 
 ** Why start a file with =(cl:in-package #:cl-user)=?
+
+** Why interactivity is important?
+
+They don't actually ask that, they usually just don't think or know
+about it.
+
+Here's something that does an OK job at explaining the importance:
+https://technotales.wordpress.com/2007/10/03/like-slime-for-vim/
+
+** What's the difference between ~defvar~ and ~defparameter~?
+
+** Something about using ~setf~ to create variables...
+
+** When coming from another language
+
+*** How to create a function-local variable?
