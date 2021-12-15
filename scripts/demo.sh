@@ -7,4 +7,6 @@ set -e
 cd "$(git rev-parse --show-toplevel)"
 
 termtosvg demo.svg -c 'emacs -nw -Q -l scripts/emacs-director/util/director-bootstrap.el -l scripts/demo.el'
-firefox demo.svg
+# firefox demo.svg
+
+tail demo.log
