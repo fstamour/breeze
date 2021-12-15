@@ -49,7 +49,8 @@
 (defparameter *recent-forms* ()
   "A list of recently-evaluated forms (as strings).")
 
-
+;; TODO Use a heap to get the N smallest values!
+;; TODO Put that into utils?
 (defmacro minimizing ((var) &body body)
   (check-type var symbol)
   (with-gensyms (score)
@@ -130,6 +131,7 @@
 (defun call-with-correction-suggestion (function)
   "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
   (handler-bind
+      ;; TODO Also bind "sb-int:simple-reader-package-error e.g. (cl:this-really-doesnt-exists)
       ((undefined-function
 	 #'(lambda (condition)
 	     (let* ((input (string-downcase (cell-error-name condition)))
