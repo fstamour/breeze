@@ -34,11 +34,11 @@
   (slime-mode)
   (breeze-mode)
   ;; Use breeze's command to insert a package definition
-  (breeze/test/with-read-string
+  (breeze/demo/with-read-string
    '("demo" "")
    (breeze-insert-defpackage))
   ;; Use breeze's command to insert a function
-  (breeze/test/with-read-string
+  (breeze/demo/with-read-string
    '("foo" "")
    (breeze-insert-defun))
   ;; Write the function's body
