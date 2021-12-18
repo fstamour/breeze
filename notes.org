@@ -366,6 +366,9 @@ https://quickdocs.org/external-symbol-not-found
 https://github.com/Bike/compiler-macro
 https://quickdocs.org/dotenv
 
+https://quickdocs.org/slite - SLIME based Test-runner for FiveAM tests
+(and possibly others in the future)
+
 * Discord
 
 Discussion about =#:=
