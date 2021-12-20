@@ -13,6 +13,8 @@
 ;;; Scratch section
 ;; (defun breeze-eval-defun )
 
+;; (setf debug-on-error t)
+;; (setf debug-on-error nil)
 
 
 ;;; Requires
@@ -23,45 +25,6 @@
 ;;; Groups and customs
 (defgroup breeze nil
   "breeze")
-
-(defcustom breeze-default-author ""
-  "The default author when generating asdf system."
-  :type 'string
-  :group 'breeze)
-
-(defcustom breeze-default-licence "GNU GPLv3"
-  "The default licence when generating asdf system."
-  :type 'string
-  :group 'breeze)
-
-(defcustom breeze-capture-folder "~/breeze-capture"
-  "The folder where to save scratch files."
-  :type 'directory
-  :group 'breeze)
-
-(defcustom breeze-capture-template
-"
-
-(ql:quickload '(alexandria))
-
-;; Make it easier to debug
-(declaim (optimize (speed 0) (safety 3) (debug 3)))
-
-#|
-
-Goal:
-
-Motivation:
-
-First lead:
-
-|#
-
-"
-  "The fixed template to insert in a new scratch file."
-  :type 'string
-  :group 'breeze)
-
 
 
 ;;; Variables
@@ -137,7 +100,8 @@ First lead:
   "Path to \"breeze.el\".")
 
 (defun breeze/system-definition ()
-  "Get the path to \"breeze.asd\" based on the (load-time) location of \"breeze.el\"."
+  "Get the path to \"breeze.asd\" based on the (load-time) location
+of \"breeze.el\"."
   (expand-file-name
    (concat
     (file-name-directory
@@ -158,7 +122,8 @@ First lead:
 
 ;; (breeze/ensure-breeze)
 
-;; See slime--setup-contribs, I named this breeze-init so it _could_ be added to slime-contrib,
+;; See slime--setup-contribs, I named this breeze-init so it _could_
+;; be added to slime-contrib,
 ;; I haven't tested it yet though.
 (defun breeze-init (&optional verbosep)
   "Ensure that breeze is initialized correctly on swank's side."
@@ -281,48 +246,6 @@ Othewise, return the position of the character."
      "  (:use :cl))\n\n"
      "(in-package #:" package-name ")\n\n")))
 
-(define-skeleton breeze-insert-asdf
-  "Skeleton for an asdf file."
-  "" ;; Empty prompt. Ignored.
-  "(defpackage #:" (setq v1 (skeleton-read "System name: ")) ".asd" \n
-  > "(:use :cl :asdf))" \n
-  \n
-  > "(in-package #:" v1 ".asd)" \n
-  \n
-  > "(asdf:defsystem \"" v1 "\"" \n
-  > ":description \"\"" \n
-  > ":version \"0.1.0\"" \n
-  ;; TODO Use emacs' built-in user-name?
-  > ":author \"" (skeleton-read "Author name: " breeze-default-author) "\"" \n
-  > ":licence \"" (skeleton-read "Licence name: " breeze-default-licence) "\"" \n
-  > ":depends-on ()" \n
-  > ":serial t" \n
-  > ":components" \n
-  > "((:module \"src\"" \n
-  > ":components ())" \n
-  > "(:module \"tests\"" \n
-  > ":components ())))")
-
-;; TODO RIP
-(defun breeze-insert ()
-  "Choose someting to insert."
-  (interactive)
-  ;; TODO filter the choices based on the context
-  (if (or
-       (= 1 (point))
-       (breeze-new-buffer-p))
-      (call-interactively 'breeze-insert-defpackage)
-    (breeze-choose-and-call-command
-     "What do you want to insert? "
-     '(breeze-insert-asdf
-       breeze-insert-defpackage
-       ;; TODO
-       ;; defclass
-       ;; slots
-       ;; defgeneric
-       ;; defmethod
-       ))))
-
 
 ;;; code modification
 
@@ -379,27 +302,6 @@ Othewise, return the position of the character."
 	(goto-char (point-min)) ;; Go to the start of the buffer
 	(while (re-search-forward symbol nil t)
 	  (replace-match symbol-name))))))
-
-
-;; (slime-goto-package-source-definition "breeze")
-;; (slime-goto-xref)
-
-;; (slime-rex (var ...) (sexp &optional package thread) clauses ...)
-
-;; (slime-interactive-eval "(breeze.swank:)")
-
-;; (global-set-key
-;;  (kbd "<f5>")
-;;  (lambda ()
-;;    (interactive)
-;;    (slime-interactive-eval
-;;     (concat "(breeze.swank::insert-let "
-;; 	    (replace-match "\\\""  "fixedcase" "literal")
-;; 	    (slime-defun-at-point)
-;; 	    "4"
-;; 	    ")"))))
-
-;; Idea: (defun breeze-wrap-with-let-form ())
 
 (defun breeze-move-form-into-let ()
   "Move the current form into the nearest parent \"let\" form."
@@ -504,18 +406,6 @@ arguments. Use to quickly scaffold a bunch of functions."
 		  (point-min)
 		  (point-max)))))
 
-(defun breeze-get-quickfix-suggestions ()
-  (breeze-eval-list
-   (format
-    "(breeze.quickfix:quickfix %s)"
-    (breeze-compute-buffer-args))))
-
-(defun breeze-quickfix ()
-  "Suggest valid actions to the user based on the point."
-  (interactive)
-  ;; TODO
-  (completing-read "Choose a command: "
-		   (breeze-get-quickfix-suggestions)))
 
 
 
@@ -584,8 +474,7 @@ lisp's reader doesn't convert them."
     ("run-command"
      (breeze-run-command (second request)))))
 
-;; (setf debug-on-error t)
-;; (setf debug-on-error nil)
+
 (defun breeze-run-command (name)
   "Runs a \"breeze command\". TODO Improve this docstring."
   (interactive)
@@ -621,7 +510,7 @@ lisp's reader doesn't convert them."
       "editor-interaction2::dummy-loop"))
     (3
      (breeze-run-command
-      "editor-interaction2::insert-defun"))))
+      "breeze.command::insert-asdf"))))
 
 
 ;;; code evaluation

@@ -38,7 +38,8 @@
    #:insert-define-constant
    #:insert-defun-shaped
    #:insert-defun
-   #:insert-defmacro))
+   #:insert-defmacro
+   #:insert-asdf))
 
 (in-package #:breeze.command)
 
@@ -237,10 +238,17 @@ arguments, which is nice."
 	  :initial-value (alexandria:lastcar forms)
 	  :from-end t))
 
-(defmacro define-simple-command (name &body commands)
+(defmacro chain* (&body forms)
+  (alexandria:with-gensyms (callback)
+    `(lambda (,callback)
+       (chain ,@forms ,callback))))
+
+(defmacro define-simple-command (name docstring &body commands)
   "Macro to define simple commands consisting of a chain of composable
 commands."
+  (check-type docstring string)
   `(defcommand ,name ()
+     ,docstring
      (start-command
       context
       (chain
@@ -250,6 +258,7 @@ commands."
 ;;; Define some simple commands (snippets).
 
 (define-simple-command insert-loop-clause-for-on-list
+    "Insert a loop clause to iterate on a list."
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :on ")
@@ -257,6 +266,7 @@ commands."
    "Enter the the list to iterate on: " "~a"))
 
 (define-simple-command insert-loop-clause-for-in-list
+    "Insert a loop clause to iterate in a list."
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :in ")
@@ -264,6 +274,7 @@ commands."
    "Enter the the list to iterate on: " "~a"))
 
 (define-simple-command insert-loop-clause-for-hash
+    "Insert a loop clause to iterate on a hash-table."
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the key: "
@@ -276,6 +287,8 @@ commands."
    "~a)"))
 
 (defun insert-defvar-shaped (form-name all)
+  "Start a command to insert a form that has the same shape as a
+defvar."
   (start-command
    all
    (chain
@@ -286,21 +299,27 @@ commands."
      (read-string-then-insert "Documentation string " "\"~a\")"))))
 
 (defun insert-defvar (&rest all)
+  "Insert a defvar form."
   (insert-defvar-shaped "defvar" all))
 
 (defun insert-defparameter (&rest all)
+  "Insert a defparameter form."
   (insert-defvar-shaped "defparameter" all))
 
 (defun insert-defconstant (&rest all)
+  "Insert a defconstant form."
   (insert-defvar-shaped "defconstant" all))
 
 ;; TODO Add "alexandria" when the symbol is not interned
 ;;      ^^^ that should go in "refactor.lisp"
 (defun insert-define-constant (&rest all)
+  "Insert a alexandria:define-constant form."
   (insert-defvar-shaped "define-constant" all))
 
 
 (defun insert-defun-shaped (form-name all)
+  "Start a command to insert a form that has the same shape as a
+defun."
   (start-command
    all
    (chain
@@ -312,9 +331,46 @@ commands."
      (backward-char))))
 
 (defun insert-defun (&rest all)
+  "Insert a defun form."
   (insert-defun-shaped "defun" all))
 
 (defun insert-defmacro (&rest all)
+  "Insert a defmacro form."
   (insert-defun-shaped "defmacro" all))
 
 ;; TODO insert-let (need to loop probably)
+
+(defcommand insert-asdf ()
+  "Insert an asdf system definition."
+  (start-command
+   context
+   (read-string
+    "Name of the system: "
+    (lambda (system-name)
+      (read-string
+       "Author: "
+       (lambda (author)
+	 (read-string
+	  "Licence name: "
+	  (lambda (licence)
+	    (chain
+	      (insert '("(cl:in-package #:cl)~%~%"))
+	      (insert (list
+		       "(defpackage #:~a.asd~%  (:use :cl :asdf))~%~%"
+		       system-name))
+	      (insert (list
+		       "(in-package #:~a.asd)~%~%"
+		       system-name))
+	      (insert (list
+		       "(defsystem \"~a\"~{  ~a~%~}"
+		       system-name
+		       `(":description \"\""
+			 ":version \"0.0.1\""
+			 ,(format nil ":author \"~a\"" author)
+			 ,(format nil ":licence \"~a\"" licence)
+			 ":serial t"
+			 "  :components
+    ((:module \"src\"
+      :components ())
+     (:module \"tests\"
+      :components ())))"))))))))))))

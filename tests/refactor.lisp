@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (defpackage #:breeze.refactor.test
-  (:use :cl)
+  (:use :cl #:breeze.refactor)
   (:import-from #:breeze.test
 		#:deftest
 		#:is)
@@ -27,3 +27,22 @@
 		#:function-node-p))
 
 (in-package #:breeze.refactor.test)
+
+
+(defparameter *directory* "./")
+
+(defun test-quickfix (buffer-name pre post)
+  (let ((buffer-file-name (merge-pathnames buffer-name *directory*))
+	(point (length pre))
+	(buffer-string (concatenate 'string pre post)))
+    (quickfix
+     :buffer-name buffer-name
+     :buffer-file-name buffer-file-name
+     :buffer-string buffer-string
+     :point point
+     :point-min 0
+     :point-max (length buffer-string))))
+
+(test-quickfix
+ "mapcar.lisp"
+ "(mapcar " ")")

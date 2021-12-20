@@ -55,6 +55,4 @@ git diff-index --check --cached $against --
 # generate the docs
 ./scripts/doc.sh
 
-git add docs/
-
 echo "Pre-commit hook done"

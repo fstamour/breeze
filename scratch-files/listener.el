@@ -60,3 +60,26 @@
 ("" "(SLIME-EVAL `(SWANK:INTERACTIVE-EVAL \"(print 'hi)\"))
 128")
 ;; Same results, good.
+
+
+
+
+;;; Other stuff to look at
+
+;; (slime-goto-package-source-definition "breeze")
+;; (slime-goto-xref)
+
+;; (slime-rex (var ...) (sexp &optional package thread) clauses ...)
+
+;; (slime-interactive-eval "(breeze.swank:)")
+
+;; (global-set-key
+;;  (kbd "<f5>")
+;;  (lambda ()
+;;    (interactive)
+;;    (slime-interactive-eval
+;;     (concat "(breeze.swank::insert-let "
+;; 	    (replace-match "\\\""  "fixedcase" "literal")
+;; 	    (slime-defun-at-point)
+;; 	    "4"
+;; 	    ")"))))

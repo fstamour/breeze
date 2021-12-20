@@ -1,6 +1,17 @@
 
 * Tasks
 
+** TODO Add command "go to next missing documentation"
+
+** TODO Add command "got to next documentation"
+
+To help revision
+
+** TODO Add command "next todo"
+
+Don't reimplement it, just figure out which how to configure the
+editor to do that.
+
 ** TODO Use header-line in emacs to show the test results
 
 Instead of a lighter
@@ -115,6 +126,24 @@ when the edit-distance is not too great, or we would get some wild quickfixes.
 ** TODO Maybe add this document (notes.org) to the documentation?       :doc:
 
 ** TODO Maybe split the documentaion in multiple pages                  :doc:
+
+** Commands
+
+*** wrap with
+
+**** TODO let
+
+**** TODO multiple-value-bind
+
+*** TODO add import-from
+
+already has a prototype in emacs lisp
+
+*** TODO move-form-into-let
+
+already has a prototype in emacs lisp
+
+*** TODO Comment current form
 
 ** Follow up on issues
 

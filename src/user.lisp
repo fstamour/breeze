@@ -2,7 +2,7 @@
 (uiop:define-package #:breeze.user
     (:use :cl)
   (:documentation "Use this package.")
-  (:nicknames :br :br-user :breeze)
+  (:nicknames :br-user :breeze)
   (:shadowing-import-from #:breeze.definition
                           #:defun
                           #:fmakunbound)
@@ -63,6 +63,21 @@
    #:dogfood))
 
 (in-package #:breeze.user)
+
+
+;;; Configurations
+
+(defparameter *breeze-default-author* ""
+  "The default author when generating asdf system.")
+
+(defparameter *breeze-default-system-author* "Public"
+  "The default licence when generating asdf system.")
+
+(defparameter *breeze-capture-folder* "~/breeze-capture"
+  "The folder where to save scratch files.")
+
+
+
 
 (cl:defun run-test-for-function (function-name)
   (ensure-test-runner)

@@ -12,9 +12,11 @@
 		#:start-command
 		#:call-next-callback
 		;; symbols not exported
+		#:command-context*
 		#:command-context
 		#:command-callback
-		#:*current-command*))
+		#:*current-command*
+		#:chain))
 
 (in-package #:breeze.command.test)
 
@@ -78,21 +80,31 @@
       (is (= 6 result)))))
 
 
-#|
-TODO add tests for
-#:command-context*
-#:context-buffer-string
-#:context-buffer-name
-#:context-buffer-file-name
-#:context-point
-#:context-point-min
-#:context-point-max
 
-#:choose
-#:read-string
-#:insert-at
-#:insert
-#:read-string-then-insert
-#:replace-region
-#:backward-char
-|#
+
+;; TODO add tests for
+(deftest command-context*
+  (is (eq (command-context*)
+	  (command-context *current-command*))))
+
+(deftest context-buffer-string
+  (let (())))
+(deftest context-buffer-name)
+(deftest context-buffer-file-name)
+(deftest context-point)
+(deftest context-point-min)
+(deftest context-point-max)
+
+
+(deftest choose)
+(deftest read-string)
+(deftest insert-at)
+(deftest insert)
+(deftest read-string-then-insert)
+(deftest replace-region)
+(deftest backward-char)
+
+(deftest chain
+  (is (equalp
+       '(a (b (c)))
+       (macroexpand-1 `(chain (a) (b) (c))))))
