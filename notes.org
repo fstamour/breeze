@@ -1,6 +1,15 @@
 
 * Tasks
 
+** Showcase/demo                                                        :doc:
+
+*** TODO Show the integration with quickproject
+
+*** TODO Show how breeze can help create a project from a file
+
+e.g. you made a "capture" with breeze, and now you want to turn that
+into a project.
+
 ** TODO Add command "go to next missing documentation"
 
 ** TODO Add command "got to next documentation"
@@ -35,6 +44,8 @@ Start by documenting how to start using breeze, then automate it.
 grep TODO -h | to_github_url | to_html
 
 ** TODO It's too easy to kill the test-runner                       :impl:ux:
+
+** TODO [#A] The test-runner's result interfere with swank normal usage :bug:
 
 ** TODO Breeze shouldn't suggest symbol that are "too far"
 
@@ -144,6 +155,8 @@ already has a prototype in emacs lisp
 already has a prototype in emacs lisp
 
 *** TODO Comment current form
+
+*** TODO Move top-level form up/down
 
 ** Follow up on issues
 

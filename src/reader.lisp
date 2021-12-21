@@ -384,3 +384,5 @@
    (let ((car (car (node-content node))))
      (and (typep car 'symbol-node)
 	  (string-equal "defpackage" (node-content car))))))
+
+;; TODO symbol-qualified-p : is the symbol "package-qualified"
