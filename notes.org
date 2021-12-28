@@ -1,6 +1,8 @@
 
 * Tasks
 
+* TODO Rename breeze-swank to breeze-listener
+
 ** Showcase/demo                                                        :doc:
 
 *** TODO Show the integration with quickproject
