@@ -558,8 +558,8 @@ lisp's reader doesn't convert them."
 	;; project directories.  see (read-directory-name "directory: ").
 	(directory (breeze-choose-local-project-directories))
 	;; TODO let the user choose
-	(author breeze-default-author)
-	(licence breeze-default-licence)
+	(author user-full-name)
+	(licence "Public domain")
 	;; TODO depends-on
 	;; TODO include-copyright
 	;; TODO template-directory

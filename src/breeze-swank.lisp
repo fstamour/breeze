@@ -20,8 +20,9 @@
 ;;; project scaffolding
 
 (defun make-project (&rest args
-		     &key depends-on author include-copyright license name template-directory template-parameters)
-  (declare (ignore depends-on author include-copyright license name template-directory template-parameters))
+		     ;&key depends-on author include-copyright license name template-directory template-parameters &allow-other-keys
+														    )
+  ;(declare (ignore depends-on author include-copyright license name template-directory template-parameters))
   "Scaffold a project. Currently it's just a wrapper on quickproject's make-project."
   (apply #'quickproject:make-project args))
 
