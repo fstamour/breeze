@@ -45,7 +45,6 @@
 	      '((symbol-node nil a "a")
 		(skipped-node nil " ;; hello" nil))))
 
-
 (deftest parse-unparse-roundtrip
   (dolist (expected
 	   '("1"
@@ -80,7 +79,10 @@
 	     "#.()"
 	     "#.(+ 1 2)"
 	     "#'print"
-	     ))
+	     "#-(or) 1"
+	     "#+nil 1 "
+	     "#+(and) 2"
+	     "#+(and) (bla)"))
     (let ((*break-on-signals* #+nil 'error))
       (let* ((got (unparse-to-string (parse-string expected)))
 	     (ok? (string= expected got)))
@@ -89,6 +91,7 @@
 		  expected got))
 	;; (is ok?)
 	))))
+
 
 ;; Trying to read all files in a system, using breeze's reader.
 #+nil

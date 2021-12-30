@@ -94,6 +94,13 @@
   ()
   (:documentation "Syntax node for lists."))
 
+(defclass feature-expression-node (node)
+  ((feature-expression
+    :initform nil
+    :initarg :feature-expression
+    :accessor node-feature-expression))
+  (:documentation "Syntax node for a feature expression."))
+
 (defclass function-node (node)
   ()
   (:documentation "Syntax node for #'expression."))
@@ -103,11 +110,17 @@
   `(progn
      ,@(loop :for type :in types
 	     :collect
-	     `(defun ,(alexandria:symbolicate type '-p) (node)
+	     `(defun ,(alexandria:symbolicate
+		       type
+		       (if (position #\- (symbol-name type))
+			   '-p
+			   'p))
+		  (node)
 		(typep node ',type)))))
 
 (define-node-type-predicates
-    (skipped-node
+    (node
+     skipped-node
      symbol-node
      read-eval-node
      character-node
@@ -125,27 +138,15 @@
   (:documentation "Can a node contain other nodes.") (:method ((node node)) (not (non-terminal-p node))))
 
 (defmethod print-object ((node node) stream)
-  (print-unreadable-object
-      (node stream :type t :identity nil)
-    (if (node-prefix node)
-	(format stream "~s ~s"
-		(node-prefix node)
-		(node-content node)))
-    (format stream "~s"
-	    (node-content node))))
-
-#+nil
-(defmethod print-object ((node reader-macro-node) stream)
-  (print-unreadable-object
-      (node stream :type t :identity nil)
-    (if (node-prefix node)
-	(format stream "~s ~c ~s"
-		(node-prefix node)
-		(node-char node)
-		(node-content node)))
-    (format stream "~c ~s"
-	    (node-char node)
-	    (node-content node))))
+  (let ((*print-circle* t))
+    (print-unreadable-object
+	(node stream :type t :identity nil)
+      (when (node-prefix node)
+	(format stream "~s "
+		(node-prefix node)))
+      (format stream "~s :raw ~s"
+	      (node-content node)
+	      (node-raw node)))))
 
 (defmethod print-object ((node symbol-node) stream)
   (print-unreadable-object
@@ -163,44 +164,72 @@
     (format stream "~s"
 	    (node-raw node))))
 
+(defmethod print-object ((node feature-expression-node) stream)
+  (let ((*print-circle* t))
+    (print-unreadable-object
+	(node stream :type t :identity nil)
+      (when (node-prefix node)
+	(format stream "~s "
+		(node-prefix node)))
+      (format stream "~s ~s :raw ~s"
+	      (node-feature-expression node)
+	      (node-content node)
+	      (node-raw node)))))
+
 
 ;;; Parser "client"
 
 ;; Define a class representing the "parse result client"
 (defclass breeze-client (eclector.parse-result:parse-result-client)
-  ()
+  ((source
+    :initarg :source
+    :initform nil
+    :type (or nil string input-stream)
+    :accessor source))
   (:documentation
    "Controls how the reader construct the parse-results."))
 
+(defun raw (breeze-client start end)
+  (alexandria:if-let ((source (source breeze-client)))
+    (etypecase source
+      (string (subseq source start end))
+      (stream (read-stream-range source start end)))))
 
 (defmethod eclector.parse-result:make-expression-result
     ((client breeze-client) (result t) (children t) (source t))
   "Create an expression result"
-  (dbg "~&result: ~s source: ~s" result source)
-  (cond
-    (;; If result is a node, populate it's source and content.
-     (typep result 'node)
-     (setf (node-source result) source)
-     (when children
-       (setf (node-content result) children))
-     result)
-    (;; If result is a symbol, make a symbol-node
-     (symbolp result)
-     (make-instance 'symbol-node
-		    :content result
-		    :source source))
-    #+nil (;; TODO Might not need this
-	   (and (listp result)
-		(member (car result) +mapping+ :key #'car))
-	   (make-instance (cdar (member (car result) +mapping+
-					:key #'car))
-			  :content children ;; result
-			  :source source))
-    (;; Else, make a generic node
-     t
-     (make-instance 'node
-		    :content (or children result)
-		    :source source))))
+  (let* ((raw (raw client (car source) (cdr source)))
+	 (node
+	   (progn
+	     (dbg "~&make-expression result: ~s children: ~s source: ~s raw: ~s" result children source raw)
+	     (cond
+	       ((or (alexandria:starts-with-subseq "#+" raw)
+		    (alexandria:starts-with-subseq "#-" raw))
+		;; (let ((content (node-content))))
+		(make-instance 'feature-expression-node
+			       :feature-expression (first children)
+			       :content
+			       (if (nodep result)
+				   result ;;(node-content result)
+				   (cdr children))))
+	       (;; If result is a node, populate it
+		(typep result 'node)
+		(when children
+		  (setf (node-content result) children))
+		result)
+	       (;; If result is a symbol, make a symbol-node
+		(symbolp result)
+		(make-instance 'symbol-node
+			       :content result))
+	       (;; Else, make a generic node
+		t
+		(make-instance 'node
+			       ;; :content (or children result)
+			       ))))))
+    (setf (node-source node) source
+	  (node-raw node) raw)
+    (dbg "~&new-node: ~s" node)
+    node))
 
 ;; Create a "make skipped input result" method for our custom client
 (defmethod eclector.parse-result:make-skipped-input-result
@@ -219,6 +248,18 @@
   (make-instance 'read-eval-node
 		 :content expression))
 
+(defmethod eclector.reader:evaluate-feature-expression
+    ((client breeze-client) feature-expression)
+  (if (typep feature-expression 'node)
+      ;; This is very hacky ¯\_(ツ)_/¯
+      (eclector.reader:call-with-current-package
+       client
+       #'(lambda ()
+	   (eclector.reader:evaluate-feature-expression
+	    client
+	    (cl:read-from-string (node-raw feature-expression))))
+       :keyword)
+      (call-next-method)))
 
 (defmethod eclector.reader:find-character ((client breeze-client)
 					   designator)
@@ -244,20 +285,15 @@
   "Create a syntax node for #' ."
   (make-instance 'function-node :content name))
 
-(defun maybe-source (form eof)
-  (and
-   form
-   (not (eq eof form))
-   (node-source form)))
-
 (defun read-from-string (string &optional (eof-error-p t)
-				eof-value
-				&key
-				(start 0)
-				end
-				preserve-whitespace)
+				  eof-value
+			 &key
+			   (start 0)
+			   end
+			   preserve-whitespace)
   (eclector.parse-result:read-from-string
-   (make-instance 'breeze-client)
+   (make-instance 'breeze-client
+		  :source string)
    string
    eof-error-p
    eof-value
@@ -269,18 +305,19 @@
 (defun read-all-forms (stream)
   (let ((eof (gensym "eof")))
     (loop for form =
-	  (eclector.parse-result:read-preserving-whitespace
-	   (make-instance 'breeze-client)
-	   stream
-	   nil
-	   eof)
+		   (eclector.parse-result:read-preserving-whitespace
+		    (make-instance 'breeze-client
+				   :source stream)
+		    stream
+		    nil
+		    eof)
 	  until (eq eof form)
 	  collect form)))
 
 ;; end-at is not used, its purpose is to help find trailing characters
 ;; but I haven't implemented that because I'm not sure it's the way to go.
 (defun post-process-nodes! (stream forms &optional (start-at 0) end-at)
-  "Update each nodes in FORMS to include their prefix and raw (extracted from STREAM)."
+  "Update each nodes in FORMS to include their prefix (extracted from STREAM)."
   (declare (ignore end-at))
   (let ((previous nil))
     (loop
@@ -289,27 +326,18 @@
       for end = (car (node-source form))
       for prefix = (unless (zerop (- end start))
 		     (read-stream-range stream start end))
-      for raw = (destructuring-bind (from . to)
-		    (node-source form)
-		  (read-stream-range stream from to))
       do
-	 (dbg "~&node: ~a raw: ~s" form raw)
 	 ;; update FORM
 	 (setf
 	  ;; Add the prefix
-	  (node-prefix form) prefix
-	  ;; Add the raw
-	  (node-raw form) raw)
-      #+nil
-       (cond
-	 ((string= "#'" )))
-       ;; recurse
-       (unless (terminalp form)
-	 (post-process-nodes! stream (node-content form)
-			      (car (node-source form))
-			      (cdr (node-source form))))
-       ;; update loop variables
-       (setf previous form))))
+	  (node-prefix form) prefix)
+	 ;; recurse
+	 (unless (terminalp form)
+	   (post-process-nodes! stream (node-content form)
+				(car (node-source form))
+				(cdr (node-source form))))
+	 ;; update loop variables
+	 (setf previous form))))
 
 (defun get-tail (stream forms &optional (end (stream-size stream)))
   "Given a list of forms, extract any trailing characters that were ignored."

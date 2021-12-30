@@ -138,14 +138,14 @@ sytsem-files"
 (defun whitespacep (char)
   (member char '(#\Space #\Newline #\Backspace #\Tab #\Newline #\Page #\Return #\Rubout)))
 
-(defun read-stream-range (stream from to)
-  "Read a subsequence from STREAM between FROM and TO."
+(defun read-stream-range (stream start end)
+  "Read a subsequence from STREAM between START and END."
   (let ((current-position (file-position stream)))
     (unwind-protect
-	(let ((sequence (make-string (- to from))))
-	  (file-position stream from)
-	  (read-sequence sequence stream)
-	  sequence)
+	 (let ((sequence (make-string (- end start))))
+	   (file-position stream start)
+	   (read-sequence sequence stream)
+	   sequence)
       (file-position stream current-position))))
 
 (defun stream-size (stream)
