@@ -93,17 +93,99 @@
 		 (and (list-node-p node)
 		      (node-symbol= ',type (node-first node))))))))
 
-(define-node-form-predicates
+
+
+(defun find-node (position nodes)
+  (find-if #'(lambda (node)
+	       (destructuring-bind (start . end)
+		   (node-source node)
+		 (and
+		  (<= start position end)
+		  (<= position end))))
+	   nodes))
+
+(defun find-path-to-node (position nodes)
+  (loop :for node = (find-node position nodes)
+	  :then (and (listp (node-content node))
+		     (car (node-content node))
+		     (find-node position (node-content node)))
+	:while node
+	;; :do (format t "~%~%~s" node)
+	:collect node))
+
+(defun find-nearest-sibling-form (nodes current-node predicate)
+  "Find the nearest sibling form that match the predicate."
+  (loop :with result
+	:for node :in nodes
+	:when (eq node current-node)
+	  :do (return result)
+	:when (funcall predicate node)
+	  :do (setf result node)))
+
+(defmacro define-find-nearest-sibling-form (types)
+  `(progn
+     ,@(loop :for type :in types
+	     :collect
+	     `(export
+	       (defun ,(alexandria:symbolicate
+			'find-nearest-sibling type '-form)
+		   (nodes current-node)
+		 ,(format
+		   nil "Find the nearest sibling form of type \"~a\"."
+		   type)
+		 (find-nearest-sibling-form
+		  nodes current-node
+		  #',(alexandria:symbolicate type '-form-p)))))))
+
+(defun find-nearest-parent-form (path predicate)
+  "Find the nearest parent form that match the predicate."
+  (loop :with result
+	:for node :in path
+	:when (funcall predicate node)
+	  :do (setf result node)
+	:finally (return result)))
+
+(defmacro define-find-nearest-parent-form (types)
+  `(progn
+     ,@(loop :for type :in types
+	     :collect
+	     `(export
+	       (defun ,(alexandria:symbolicate
+			'find-nearest-parent type '-form)
+		   (path)
+		 ,(format
+		   nil "Find the nearest parent form of type \"~a\"."
+		   type)
+		 (find-nearest-parent-form
+		  path
+		  #',(alexandria:symbolicate type '-form-p)))))))
+
+
+
+(defmacro define-node-utilities (types)
+  `(progn
+     (define-node-form-predicates ,types)
+     (define-find-nearest-sibling-form ,types)
+     (define-find-nearest-parent-form ,types)))
+
+(define-node-utilities
     (if
+     when unless
      defpackage
      in-package
      defparameter
      defvar
-     loop))
-
-;; WIP
-(defun breeze-buffer-has-defpackage ()
-  "Check if a buffer already contains a defpackage form.")
+     loop
+     defun
+     defmacro
+     defmethod
+     defgeneric
+     defconstant
+     defclass
+     let
+     flet
+     labels
+     lambda))
 
 ;; WIP
 (defun breeze-in-loop ()
@@ -293,39 +375,6 @@ defun."
 	    insert-loop-clause-for-on-list
 	    insert-loop-clause-for-hash)))
 
-(defun find-node (position nodes)
-  (find-if #'(lambda (node)
-	       (destructuring-bind (start . end)
-		   (node-source node)
-		 (and
-		  (<= start position end)
-		  (<= position end))))
-	   nodes))
-
-(defun find-path-to-node (position nodes)
-  (loop :for node = (find-node position nodes)
-	  :then (and (listp (node-content node))
-		     (car (node-content node))
-		     (find-node position (node-content node)))
-	;; guard against infinite loop
-	:repeat 100
-	:while node
-	;; :do (format t "~%~%~s" node)
-	:collect node))
-
-(defun find-nearest-sibling-form (nodes current-node predicate)
-  (loop :with result
-	:for node :in nodes
-	:when (eq node current-node)
-	  :do (return result)
-	:when (funcall predicate node)
-	  :do (setf result node)))
-
-(defun find-nearest-in-package (nodes top-level-node)
-  (find-nearest-sibling-form
-   nodes top-level-node
-   #'(lambda (node)
-       )))
 
 (defparameter *qf* nil
   "Data from the latest quickfix invocation.
@@ -344,7 +393,8 @@ For debugging purposes ONLY.")
 	  (node-start inner-node)
 	  (node-end inner-node))
   (format t "~%~a"
-	  (breeze.reader:unparse-to-string inner-node)))
+	  (breeze.reader:unparse-to-string inner-node))
+  (format t "~%~a" (find-nearest-in-package-form nodes outer-node)))
 
 #+(or)
 (in-package-form-p
