@@ -5,7 +5,7 @@
   (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name
-   #:whitespacep)
+   #:before-last)
   (:import-from
    #:breeze.reader
    #:parse-string
@@ -96,22 +96,23 @@
 
 
 (defun find-node (position nodes)
-  (find-if #'(lambda (node)
-	       (destructuring-bind (start . end)
-		   (node-source node)
-		 (and
-		  (<= start position end)
-		  (<= position end))))
-	   nodes))
+  (loop :for node :in nodes
+	:for (start . end) = (node-source node)
+	:for i :from 0
+	:when (and
+	       (<= start position end)
+	       (<= position end))
+	  :do
+	     (return (cons node i))))
 
 (defun find-path-to-node (position nodes)
-  (loop :for node = (find-node position nodes)
-	  :then (and (listp (node-content node))
-		     (car (node-content node))
-		     (find-node position (node-content node)))
-	:while node
-	;; :do (format t "~%~%~s" node)
-	:collect node))
+  (loop :for found = (find-node position nodes)
+	  :then (let ((node (car found)))
+		  (and (listp (node-content node))
+		       (car (node-content node))
+		       (find-node position (node-content node))))
+	:while found
+	:collect found))
 
 (defun find-nearest-sibling-form (nodes current-node predicate)
   "Find the nearest sibling form that match the predicate."
@@ -385,16 +386,20 @@ For debugging purposes ONLY.")
        (pos (1- (getf *qf* :point)))
        (nodes (getf *qf* :nodes))
        (path (find-path-to-node pos nodes))
-       (outer-node (car path))
-       (inner-node (alexandria:lastcar path)))
-  (loop :for node :in path
-	:do (format t "~%===~%~s" node))
-  (format t "~%~d-~d"
+       (outer-node (caar path))
+       (parent-node (car (before-last path)))
+       (inner-node (car (alexandria:lastcar path))))
+  (loop :for (node . index) :in path
+	:for i :from 0
+	:do (format t "~%=== Path part #~d, index ~d ===~%~s"
+		    i index node))
+  (format t "~%innore-node source: ~d-~d"
 	  (node-start inner-node)
 	  (node-end inner-node))
-  (format t "~%~a"
+  (format t "~%unparsed inner-node: ~s"
 	  (breeze.reader:unparse-to-string inner-node))
-  (format t "~%~a" (find-nearest-in-package-form nodes outer-node)))
+  (format t "~%nearest in-package: ~a" (find-nearest-in-package-form nodes outer-node))
+  (format t "~%parent node: ~a" parent-node))
 
 #+(or)
 (in-package-form-p
