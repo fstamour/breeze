@@ -70,3 +70,9 @@
   (is (positivep 1))
   (is (not (positivep -1)))
   (is (not (positivep 0))))
+
+(deftest before-last
+  (is (null (before-last '())))
+  (is (null (before-last '(a))))
+  (is (eq 'a (before-last '(a b))))
+  (is (eq 'b (before-last '(a b c)))))

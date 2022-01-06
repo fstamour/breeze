@@ -15,7 +15,8 @@
    #:stream-size
    #:read-stream-range
    #:positivep
-   #:symbol-package-qualified-name))
+   #:symbol-package-qualified-name
+   #:before-last))
 
 (in-package #:breeze.utils)
 
@@ -167,3 +168,11 @@ sytsem-files"
   (let ((*print-escape* t)
 	(*package* (find-package "KEYWORD")))
     (prin1-to-string symbol)))
+
+(defun before-last (list)
+  (loop :for rest :on list
+	:for ahead = (cddr list) :then (cdr ahead)
+	:while ahead
+	:finally (return
+		   (when (cdr rest)
+		     (car rest)))))
