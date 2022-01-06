@@ -401,9 +401,8 @@ For debugging purposes ONLY.")
   (format t "~%nearest in-package: ~a" (find-nearest-in-package-form nodes outer-node))
   (format t "~%parent node: ~a" parent-node))
 
-#+(or)
-(in-package-form-p
- (car (getf *qf* :nodes)))
+#+(or) (in-package-form-p
+	(car (getf *qf* :nodes)))
 
 (defun quickfix (&rest all
 		 &key
@@ -418,8 +417,10 @@ For debugging purposes ONLY.")
   "Given the context, suggest some applicable commands."
   (let* (;; Parse the buffer
 	 (nodes (parse-string buffer-string))
+	 ;; Emacs's point starts at 1
+	 (position (1- point))
 	 ;; Find the top-level form "at point"
-	 (current-top-level-node (find-node (1- point) nodes))
+	 (current-top-level-node (find-node position nodes))
 	 ;; Accumulate a list of commands that make sense to run in
 	 ;; the current context
 	 (commands))
@@ -432,8 +433,8 @@ For debugging purposes ONLY.")
 	   ;; in-between forms
 	   (null current-top-level-node)
 	   ;; just at the start or end of a form
-	   (= (1- point) (node-start current-top-level-node))
-	   (= (1- point) (node-end current-top-level-node))
+	   (= position (node-start current-top-level-node))
+	   (= position (node-end current-top-level-node))
 	   ;; inside a comment (or a form disabled by a
 	   ;; feature-expression)
 	   (typep current-top-level-node
@@ -449,7 +450,7 @@ For debugging purposes ONLY.")
       (format *debug-io* "~&Current node: ~a"
 	      (breeze.reader:unparse-to-string current-top-level-node))
       ;; (format *debug-io* "~&Is current node a defpackage ~a" (defpackage-node-p current-top-level-node))
-      (format *debug-io* "~&point ~a" point)
+      (format *debug-io* "~&position ~a" position)
       (format *debug-io* "~&positions ~a" (mapcar #'node-source nodes))
       ;; (format *debug-io* "~&nodes ~a" nodes)
       )
