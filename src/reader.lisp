@@ -380,12 +380,6 @@
 	(write-string prefix stream)))
     (unparse-node stream node)))
 
-(defun unparse-to-string (nodes)
-  "Print a list of NODES as a STRING."
-  (with-output-to-string
-      (stream)
-    (unparse-to-stream stream nodes)))
-
 (defgeneric unparse-node (stream node)
   (:documentation "Print a NODE into STREAM.")
   (:method (stream (node node))
@@ -404,13 +398,12 @@
     (unparse-to-stream% stream (node-content node))
     (write-char #\) stream)))
 
-
-
-(defun defpackage-node-p (node)
-  (and
-   (typep node 'list-node)
-   (let ((car (car (node-content node))))
-     (and (typep car 'symbol-node)
-	  (string-equal "defpackage" (node-content car))))))
-
-;; TODO symbol-qualified-p : is the symbol "package-qualified"
+(defun unparse-to-string (nodes)
+  "Print a list of NODES as a STRING."
+  (with-output-to-string
+      (stream)
+    (etypecase nodes
+      (list
+       (unparse-to-stream stream nodes))
+      (node
+       (unparse-node stream nodes)))))
