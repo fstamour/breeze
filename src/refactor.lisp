@@ -9,10 +9,25 @@
   (:import-from
    #:breeze.reader
    #:parse-string
+   ;; Accessors
    #:node-source
    #:node-start
    #:node-end
-   #:node-content)
+   #:node-content
+   ;; Types of node
+   #:skipped-node
+   #:symbol-node
+   #:read-eval-node
+   #:character-node
+   #:list-node
+   #:function-node
+   ;; Type predicates
+   #:skipped-node-p
+   #:symbol-node-p
+   #:read-eval-node-p
+   #:character-node-p
+   #:list-node-p
+   #:function-node-p)
   (:export
    ;; Simple commands
    #:insert-loop-clause-for-on-list
@@ -36,6 +51,56 @@
 
 ;;; Utility function
 
+(defun node-first (node)
+  "Return the first element from a NODE's content."
+  (first (node-content node)))
+
+(defun node-lastcar (node)
+  "Return the last element from a NODE's content."
+  (alexandria:lastcar (node-content node)))
+
+(defun node-string-equal (string node)
+  "Compare the content of a NODE to a STRING, case-insensitive."
+  (string-equal string (node-content node)))
+
+(defun node-length (node &optional (ignore-skipped-p t))
+  "Returns the length of a NODE's content."
+  (and (list-node-p node)
+       (length
+	(if ignore-skipped-p
+	    (remove-if #'skipped-node-p (node-content node))
+	    (node-content node)))))
+
+(defun node-symbol= (symbol node)
+  "Does NODE represent the symbol SYMBOL."
+  (and (symbol-node-p node)
+       (node-string-equal (symbol-name symbol)
+			  node)))
+
+(defun null-node-p (node)
+  "Does NODE represent the symbol \"nil\"."
+  (node-symbol= 'nil node))
+
+
+(defmacro define-node-form-predicates (types)
+  `(progn
+     ,@(loop :for type :in types
+	     :collect
+	     `(export
+	       (defun ,(alexandria:symbolicate type '-form-p)
+		   (node)
+		 ,(format nil "Does NODE represent an \"~a\" form." type)
+		 (and (list-node-p node)
+		      (node-symbol= ',type (node-first node))))))))
+
+(define-node-form-predicates
+    (if
+     defpackage
+     in-package
+     defparameter
+     defvar
+     loop))
+
 ;; WIP
 (defun breeze-buffer-has-defpackage ()
   "Check if a buffer already contains a defpackage form.")
@@ -51,13 +116,6 @@
 	     (typep node 'breeze.reader:skipped-node))
 	 nodes))
 
-
-(defun defpackage-node-p (node)
-  (and
-   (typep node 'list-node)
-   (let ((car (car (node-content node))))
-     (and (typep car 'symbol-node)
-	  (string-equal "defpackage" (node-content car))))))
 
 ;; TODO symbol-qualified-p : is the symbol "package-qualified"
 
@@ -255,15 +313,42 @@ defun."
 	;; :do (format t "~%~%~s" node)
 	:collect node))
 
+(defun find-nearest-sibling-form (nodes current-node predicate)
+  (loop :with result
+	:for node :in nodes
+	:when (eq node current-node)
+	  :do (return result)
+	:when (funcall predicate node)
+	  :do (setf result node)))
+
+(defun find-nearest-in-package (nodes top-level-node)
+  (find-nearest-sibling-form
+   nodes top-level-node
+   #'(lambda (node)
+       )))
+
 (defparameter *qf* nil
   "Data from the latest quickfix invocation.
 For debugging purposes ONLY.")
 
 #+ (or)
-(let* ((pos (1- (getf *qf* :point)))
-       (nodes (getf *qf* :nodes)))
-  (loop :for node :in (find-path-to-node pos nodes)
-	:do (format t "~%===~%~s" node)))
+(let* ((*standard-output* *debug-io*)
+       (pos (1- (getf *qf* :point)))
+       (nodes (getf *qf* :nodes))
+       (path (find-path-to-node pos nodes))
+       (outer-node (car path))
+       (inner-node (alexandria:lastcar path)))
+  (loop :for node :in path
+	:do (format t "~%===~%~s" node))
+  (format t "~%~d-~d"
+	  (node-start inner-node)
+	  (node-end inner-node))
+  (format t "~%~a"
+	  (breeze.reader:unparse-to-string inner-node)))
+
+#+(or)
+(in-package-form-p
+ (car (getf *qf* :nodes)))
 
 (defun quickfix (&rest all
 		 &key
