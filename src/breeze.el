@@ -641,17 +641,13 @@ lisp's reader doesn't convert them."
   :keymap breeze-mode-map)
 
 ;; Analoguous to org-insert-structure-template
-(define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
+;; (define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
 
 ;; Analoguous to org-goto
 (define-key breeze-mode-map (kbd "C-c C-j") #'imenu)
 
 ;; Analoguous to Visual Studio Code's "quickfix"
 (define-key breeze-mode-map (kbd "C-.") #'breeze-quickfix)
-
-;; I think the reason I needed that was because of a conflict of keybindings,
-;; paredit's M-q seems to do the job.
-;; (define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
 
 ;; eval keymap - because we might want to keep an history
 (defvar breeze/eval-map (make-sparse-keymap))
