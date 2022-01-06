@@ -4,13 +4,15 @@
   (:use #:cl #:breeze.command)
   (:import-from
    #:breeze.utils
+   #:symbol-package-qualified-name
    #:whitespacep)
   (:import-from
    #:breeze.reader
    #:parse-string
    #:node-source
    #:node-start
-   #:node-end)
+   #:node-end
+   #:node-content)
   (:export
    ;; Simple commands
    #:insert-loop-clause-for-on-list
@@ -233,7 +235,7 @@ defun."
 	    insert-loop-clause-for-on-list
 	    insert-loop-clause-for-hash)))
 
-(defun find-top-level-node (position nodes)
+(defun find-node (position nodes)
   (find-if #'(lambda (node)
 	       (destructuring-bind (start . end)
 		   (node-source node)
@@ -241,6 +243,27 @@ defun."
 		  (<= start position end)
 		  (<= position end))))
 	   nodes))
+
+(defun find-path-to-node (position nodes)
+  (loop :for node = (find-node position nodes)
+	  :then (and (listp (node-content node))
+		     (car (node-content node))
+		     (find-node position (node-content node)))
+	;; guard against infinite loop
+	:repeat 100
+	:while node
+	;; :do (format t "~%~%~s" node)
+	:collect node))
+
+(defparameter *qf* nil
+  "Data from the latest quickfix invocation.
+For debugging purposes ONLY.")
+
+#+ (or)
+(let* ((pos (1- (getf *qf* :point)))
+       (nodes (getf *qf* :nodes)))
+  (loop :for node :in (find-path-to-node pos nodes)
+	:do (format t "~%===~%~s" node)))
 
 (defun quickfix (&rest all
 		 &key
@@ -256,7 +279,7 @@ defun."
   (let* (;; Parse the buffer
 	 (nodes (parse-string buffer-string))
 	 ;; Find the top-level form "at point"
-	 (current-top-level-node (find-top-level-node (1- point)))
+	 (current-top-level-node (find-node (1- point) nodes))
 	 ;; Accumulate a list of commands that make sense to run in
 	 ;; the current context
 	 (commands))
@@ -290,21 +313,24 @@ defun."
       (format *debug-io* "~&positions ~a" (mapcar #'node-source nodes))
       ;; (format *debug-io* "~&nodes ~a" nodes)
       )
+    ;; Deduplicate commands
     (setf commands (remove-duplicates commands :key #'car))
+    ;; Save some information for debugging
+    (setf *qf* `(,@all
+		 :nodes ,nodes
+		 :current-top-level-node ,current-top-level-node
+		 :commands ,commands))
+    ;; Ask the user to choose a command
     (start-command
      all
      (choose "Choose a command: "
 	     (mapcar #'second commands)
 	     (lambda (choice)
 	       (list "run-command"
-		     (let ((*print-escape* t)
-			   (*package* (find-package "KEYWORD"))
-			   (function (car (find choice commands
-						:key #'second
-						:test #'string=))))
-		       (prin1-to-string function)
-		       #+nil
-		       (format nil "(~s)" function))))))))
+		     (symbol-package-qualified-name
+		      (car (find choice commands
+				 :key #'second
+				 :test #'string=)))))))))
 
 #+nil
 (quickfix :buffer-string "   " :point 3)

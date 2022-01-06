@@ -1,6 +1,8 @@
 
 * Tasks
 
+** TODO docstrings are not kept in (unparse (parse ...))                :bug:
+
 ** TODO read-string should accept a default value
 
 ** TODO Basic commands should send the buffer
