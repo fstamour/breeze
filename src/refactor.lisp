@@ -76,6 +76,7 @@ insert
 	    (list f (documentation f 'function)))
 	  '(insert-defun
 	    insert-defmacro
+	    insert-defpackage
 	    insert-asdf)))
 
 (defparameter *commands-applicable-in-a-loop-form*
@@ -124,6 +125,7 @@ insert
     ;; (format t "~&Is current node a defpackage ~a" (defpackage-node-p current-top-level-node))
     ;; (format t "~&positions ~a" (mapcar #'node-source nodes))
     ;; (format t "~&nodes ~a" nodes)
+    (setf commands (remove-duplicates commands :key #'car))
     (start-command
      all
      (choose "Choose a command: "

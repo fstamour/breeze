@@ -39,6 +39,7 @@
    #:insert-defun-shaped
    #:insert-defun
    #:insert-defmacro
+   #:insert-defpackage
    #:insert-asdf))
 
 (in-package #:breeze.command)
@@ -125,14 +126,14 @@ It can be null."
 The point-min is the position of the beggining of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (alexandria:assoc-value (command-context*) :point))
+  (alexandria:assoc-value (command-context*) :point-min))
 
 (defun context-point-max ()
   "Get the \"point-max\" from the *current-command*'s context.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (alexandria:assoc-value (command-context*) :point))
+  (alexandria:assoc-value (command-context*) :point-max))
 
 
 ;;; Basic commands, to be composed
@@ -338,6 +339,16 @@ defun."
   "Insert a defmacro form."
   (insert-defun-shaped "defmacro" all))
 
+(defun insert-defpackage (&rest all)
+  "Insert a defpackage form."
+  (start-command
+   all
+   (read-string "Name of the package: "
+		(lambda (package-name)
+		  (insert (list "(cl:in-package #:common-lisp-user)~%
+(defpackage #:~a~%  (:use #:cl))~%~%
+(in-package #:~a)" package-name package-name))))))
+
 ;; TODO insert-let (need to loop probably)
 
 (defcommand insert-asdf ()
@@ -368,6 +379,7 @@ defun."
 			 ":version \"0.0.1\""
 			 ,(format nil ":author \"~a\"" author)
 			 ,(format nil ":licence \"~a\"" licence)
+			 ":depends-on '()"
 			 ":serial t"
 			 "  :components
     ((:module \"src\"
