@@ -419,8 +419,14 @@ For debugging purposes ONLY.")
 	 (nodes (parse-string buffer-string))
 	 ;; Emacs's point starts at 1
 	 (position (1- point))
+	 (path (find-path-to-node position nodes))
 	 ;; Find the top-level form "at point"
-	 (current-top-level-node (find-node position nodes))
+	 (outer-node (caar path))
+	 ;; Find the innermost form "at point"
+	 (inner-node (car (alexandria:lastcar path)))
+	 (inner-node-index (cdr (alexandria:lastcar path)))
+	 ;; Find the innermost form's parent
+	 (parent-node (car (before-last path)))
 	 ;; Accumulate a list of commands that make sense to run in
 	 ;; the current context
 	 (commands))
@@ -431,25 +437,25 @@ For debugging purposes ONLY.")
 	    (append *commands-applicable-at-toplevel* commands)))
     (when (or
 	   ;; in-between forms
-	   (null current-top-level-node)
+	   (null outer-node)
 	   ;; just at the start or end of a form
-	   (= position (node-start current-top-level-node))
-	   (= position (node-end current-top-level-node))
+	   (= position (node-start outer-node))
+	   (= position (node-end outer-node))
 	   ;; inside a comment (or a form disabled by a
 	   ;; feature-expression)
-	   (typep current-top-level-node
+	   (typep outer-node
 		  'breeze.reader:skipped-node))
       (setf commands
 	    (append *commands-applicable-at-toplevel* commands)))
     ;; Print debug information
     (when t
-      (when current-top-level-node
+      (when outer-node
 	(format *debug-io* "~&Current top-level node's raw: ~s"
-		(breeze.reader:node-raw current-top-level-node)))
+		(breeze.reader:node-raw outer-node)))
       #+ (or)
       (format *debug-io* "~&Current node: ~a"
-	      (breeze.reader:unparse-to-string current-top-level-node))
-      ;; (format *debug-io* "~&Is current node a defpackage ~a" (defpackage-node-p current-top-level-node))
+	      (breeze.reader:unparse-to-string outer-node))
+      ;; (format *debug-io* "~&Is current node a defpackage ~a" (defpackage-node-p outer-node))
       (format *debug-io* "~&position ~a" position)
       (format *debug-io* "~&positions ~a" (mapcar #'node-source nodes))
       ;; (format *debug-io* "~&nodes ~a" nodes)
@@ -459,7 +465,6 @@ For debugging purposes ONLY.")
     ;; Save some information for debugging
     (setf *qf* `(,@all
 		 :nodes ,nodes
-		 :current-top-level-node ,current-top-level-node
 		 :commands ,commands))
     ;; Ask the user to choose a command
     (start-command
