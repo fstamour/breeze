@@ -7,7 +7,7 @@
 		#:stream-size
 		#:positivep)
   (:export
-   ;; Syntax tree
+   ;; Syntax tree types
    #:node
    #:skipped-node
    #:symbol-node
@@ -29,6 +29,8 @@
    #:node-prefix
    #:node-source
    #:node-raw
+   #:node-start
+   #:node-end
 
    ;; Parse and unparse list of forms
    #:parse
@@ -70,6 +72,14 @@
     :initarg :raw
     :accessor node-raw))
   (:documentation "Base class for the parse-results (syntax tree)."))
+
+(defun node-start (node)
+  "Return the position where NODE starts."
+  (car (node-source node)))
+
+(defun node-end (node)
+  "Return the positiion where NODE ends."
+  (cdr (node-source node)))
 
 (defclass skipped-node (node)
   ()
@@ -406,4 +416,4 @@
       (list
        (unparse-to-stream stream nodes))
       (node
-       (unparse-node stream nodes)))))
+       (unparse-to-stream stream (list nodes))))))
