@@ -1,7 +1,13 @@
 
 * Tasks
 
-* TODO Rename breeze-swank to breeze-listener
+** TODO read-string should accept a default value
+
+** TODO Rename breeze-swank to breeze-listener
+
+We will want to support sly and probably other.
+
+Also, most stuff in there is not "listener-specific".
 
 ** Showcase/demo                                                        :doc:
 
@@ -11,6 +17,12 @@
 
 e.g. you made a "capture" with breeze, and now you want to turn that
 into a project.
+
+*** TODO Create a demo to show how to install breeze
+
+*** TODO Create mock demos
+
+This should help implementing the right thing.
 
 ** TODO Add command "go to next missing documentation"
 
@@ -55,6 +67,10 @@ e.g not suggest "slot-exists-p" when trying to eval
 "this-really-doesnt-exists".
 
 *** TODO Make a "string distance" function that stops after a threshold
+
+*** TODO Use a heap to find the N closest matches
+
+Maybe look into VP-trees (Vantage-Point trees)
 
 ** TODO Advising swank-interactive-eval doesn't override emacs' repl   :impl:
 ** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :impl:
