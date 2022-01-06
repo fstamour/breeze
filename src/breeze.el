@@ -144,30 +144,25 @@ of \"breeze.el\"."
 
 ;;; Utilities
 
-(cl-defun breeze-command-description (command &optional shortp)
+(cl-defun breeze-command-description (command)
   "Take a symbol COMMAND and return a user-friendly description (to use with completions)."
   (let ((description (car
 		      (cl-member
 		       command
-		       '((breeze-insert-asdf "asdf:defsystem" "insert %s")
-			 (breeze-insert-defpackage "defpackage" "insert %s"))
+		       '(
+			 ;; No more commands to describe!!!  They were
+			 ;; all migrated to common-lisp
+			 )
 		       :key #'car))))
     (when description
-      (if shortp
-	  (second description)
-	(format (third description) (second description))))))
+      (format (second description)))))
 
-;; (breeze-command-description 'breeze-insert-asdf t)
-;; => "asdf:defsystem"
-;; (breeze-command-description 'breeze-insert-asdf)
-;; => "insert asdf:defsystem"
-
-(cl-defun breeze-command-ensure-alist (commands &optional shortp)
+(cl-defun breeze-command-ensure-alist (commands)
   "Transform a list of command symbols COMMANDS to an alist (symbol . description)"
   (mapcar #'(lambda (command)
 	      (if (consp command)
 		  command
-		(cons (breeze-command-description command shortp) command)))
+		(cons (breeze-command-description command) command)))
 	  commands))
 ;; (breeze-command-ensure-alist '(breeze-insert-asdf breeze-insert-defpackage))
 ;; => (("insert asdf:defsystem" . breeze-insert-asdf) ("insert defpackage" . breeze-insert-defpackage))
@@ -195,6 +190,7 @@ Othewise, return the position of the character."
 
 ;;; Insertion commands (mostly skeletons)
 
+;; TODO Move to common lisp
 (defun breeze-infer-project-name ()
   "Try to find the project's name"
   ;; TODO look at current *package*
@@ -207,6 +203,7 @@ Othewise, return the position of the character."
 
 ;; (breeze-infer-project-name)
 
+;; TODO Move to common lisp
 (defun breeze-is-in-test-directory ()
   "Try to figure out if the current file is in the test directory."
   (when buffer-file-name
@@ -217,6 +214,7 @@ Othewise, return the position of the character."
 	buffer-file-name)))
      '("test" "tests" "t"))))
 
+;; TODO Move to common lisp
 (defun breeze-infer-package-name-from-file (&optional file-name)
   "Given a FILE-NAME or the buffer's file name, infer a proper package name."
   (let ((project (breeze-infer-project-name))
@@ -229,22 +227,6 @@ Othewise, return the position of the character."
     (when testp
       (setf result (concat result ".test")))
     result))
-
-(define-skeleton breeze-insert-defpackage
-  "Skeleton for a CL package"
-  "" ;; Empty prompt. Ignored.
-  (let ((package-name
-	 (breeze-sanitize-symbol
-	  (skeleton-read "Package name: "
-			 (if buffer-file-name
-			     (breeze-infer-package-name-from-file)
-			   "")))))
-    (concat
-     "(cl:in-package #:common-lisp-user)\n\n"
-     "(defpackage #:" package-name "\n"
-
-     "  (:use :cl))\n\n"
-     "(in-package #:" package-name ")\n\n")))
 
 
 ;;; code modification

@@ -44,22 +44,6 @@ insert
 " ")"
 "~&(let (()))"))
 
-(defun insert-let (string position)
-"Insert a let form at POSITION in STRING."
-(insert-at string
-"~&(let (()))"
-position))
-
-;; TODO invert: (not X) <=> X
-;; TODO invert: when <=> unless
-
-(defun next-non-whitespace (string &optional (point 0))
-(loop :for i :from point :upto (length string)
-:for c = (aref string i)
-:while (whitespacep c)
-:finally (return i)))
-
-;; (next-non-whitespace "  3") => 2
 |#
 
 
