@@ -1,6 +1,10 @@
 
 * Tasks
 
+** TODO Add basic command to show a message
+
+e.g. "There is no applicable quickfixes in the current context"
+
 ** TODO docstrings are not kept in (unparse (parse ...))                :bug:
 
 ** TODO read-string should accept a default value
