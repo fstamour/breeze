@@ -231,3 +231,12 @@ prog*
 (trace 'fun)
 ;; should be
 (trace fun)
+
+
+
+
+(let ((x y))
+  (setf place x)
+  x)
+;; is equivalent to just
+(setf place y)

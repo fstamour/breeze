@@ -301,8 +301,8 @@ defun."
 			   package-name package-name))))))
 
 (define-simple-command insert-in-package-cl-user
-    "Insert (in-package #:cl-user)"
-  (insert "(in-package #:cl-user)"))
+    "Insert (cl:in-package #:cl-user)"
+  (insert "(cl:in-package #:cl-user)"))
 
 ;; TODO insert-let (need to loop probably)
 
@@ -321,6 +321,7 @@ defun."
 	  (lambda (licence)
 	    (chain
 	      (insert '("(cl:in-package #:cl)~%~%"))
+	      ;; TODO don't insert a defpackage if it already exists
 	      (insert (list
 		       "(defpackage #:~a.asd~%  (:use :cl :asdf))~%~%"
 		       system-name))
@@ -328,19 +329,17 @@ defun."
 		       "(in-package #:~a.asd)~%~%"
 		       system-name))
 	      (insert (list
-		       "(defsystem \"~a\"~{  ~a~%~}"
+		       "(asdf:defsystem #:~a~%~{  ~a~%~}"
 		       system-name
 		       `(":description \"\""
 			 ":version \"0.0.1\""
 			 ,(format nil ":author \"~a\"" author)
 			 ,(format nil ":licence \"~a\"" licence)
 			 ":depends-on '()"
+			 ";; :pathname src"
 			 ":serial t"
 			 "  :components
-    ((:module \"src\"
-      :components ())
-     (:module \"tests\"
-      :components ())))"))))))))))))
+    (#+(or) (:file \"todo.lisp\")))"))))))))))))
 
 
 ;;; Quickfix
@@ -430,6 +429,7 @@ For debugging purposes ONLY.")
 	 ;; Accumulate a list of commands that make sense to run in
 	 ;; the current context
 	 (commands))
+    (declare (ignorable inner-node inner-node-index parent-node))
     ;; When the buffer is empty, or only contains comments and
     ;; whitespaces.
     (when (emptyp nodes)

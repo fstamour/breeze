@@ -140,7 +140,7 @@
       (find-package package-designator))
      ((listp package-designator)
       (loop :for designator :in package-designator
-	 :append (current-packages designator)))
+	    :append (current-packages designator)))
      ((stringp package-designator)
       (find-packages-by-regex package-designator))
      ((when (functionp package-designator)
@@ -183,8 +183,8 @@
   "Load and run breeze's selftests."
   (terpri)
   (loop
-     :for package :in (current-packages "^breeze\\.[^.]+.test$")
-     :do
+    :for package :in (current-packages "^breeze\\.[^.]+.test$")
+    :do
        (format t "~&Testing package \"~(~A~)\"." (package-name package))
        (run-all-tests (package-test package))))
 

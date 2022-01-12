@@ -19,35 +19,46 @@
 	       ;; For documentation generation
 	       #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
 	       #:eclector)
-  ;; :serial t
+  :pathname "src"
   :components
-  ((:module "src"
-    :components
-    ((:file "utils" :depends-on ())
-     (:file "reader" :depends-on ("utils"))
-     (:file "definition" :depends-on ())
-     (:file "test" :depends-on ())
-     (:file "worker")
-     (:file "test-runner" :depends-on ("test" "worker"))
-     (:file "xref" :depends-on ("utils" "test" "definition"))
-     (:file "documentation" :depends-on ("xref" "definition"))
-     (:file "asdf" :depends-on ())
-     (:file "breeze-swank" :depends-on ("xref"))
-     (:file "command" :depends-on ())
-     (:file "refactor" :depends-on ("reader" "command" "utils"))
-     (:file "user" :depends-on ("test-runner"
-				"xref"
-				"documentation"
-				"refactor"
-				"asdf"))))
-   ;; TODO move this into its own system (breeze.selftest.asd)
-   (:module "tests"
-    :components
-    ((:file "utils")
-     (:file "reader")
-     (:file "command")
-     (:file "dummy-package")
-     (:file "test")
-     (:file "user")
-     (:file "xref")
-     (:file "documentation")))))
+  ((:file "utils" :depends-on ())
+   (:file "reader" :depends-on ("utils"))
+   (:file "definition" :depends-on ())
+   (:file "test" :depends-on ())
+   (:file "worker")
+   (:file "test-runner" :depends-on ("test" "worker"))
+   (:file "xref" :depends-on ("utils" "test" "definition"))
+   (:file "documentation" :depends-on ("xref" "definition"))
+   (:file "asdf" :depends-on ())
+   (:file "breeze-swank" :depends-on ("xref"))
+   (:file "command" :depends-on ())
+   (:file "refactor" :depends-on ("reader" "command" "utils"))
+   (:file "user" :depends-on ("test-runner"
+			      "xref"
+			      "documentation"
+			      "refactor"
+			      "asdf")))
+  :in-order-to ((test-op (load-op #:breeze/test)))
+  :perform
+  (test-op (o c)
+	   (symbol-call
+	    '#:breeze.user '#:selftest)))
+
+
+(defsystem "breeze/test"
+  :description ""
+  :version "0"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :depends-on (#:breeze)
+  :pathname "tests"
+  :serial t
+  :components
+  ((:file "utils")
+   (:file "reader")
+   (:file "command")
+   (:file "dummy-package")
+   (:file "test")
+   (:file "user")
+   (:file "xref")
+   (:file "documentation")))

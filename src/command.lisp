@@ -4,7 +4,8 @@
   (:use :cl)
   (:import-from #:alexandria
 		#:plist-alist
-		#:assoc-value)
+		#:assoc-value
+		#:symbolicate)
   (:export
    #:start-command
    #:call-next-callback
@@ -199,25 +200,34 @@ to non-nil to keep the current position."
   "Macro to define command with the basic context.
 It is not necessary, but it makes it possible to close over the
 arguments, which is nice."
-  `(defun ,name (&rest context
-		 &key
-		   buffer-string
-		   buffer-name
-		   buffer-file-name
-		   point
-		   point-min
-		   point-max
-		   ,@key-arguments)
-     (declare (ignorable buffer-string
-			 buffer-name
-			 buffer-file-name
-			 point
-			 point-min
-			 point-max
-			 ,@(loop for karg in key-arguments
-				 collect (or (and (symbolp karg) karg)
-					     (first karg)))))
-     ,@body))
+  (let ((context (symbolicate 'context))
+	(buffer-string (symbolicate 'buffer-string))
+	(buffer-name (symbolicate 'buffer-name))
+	(buffer-file-name (symbolicate 'buffer-file-name))
+	(point (symbolicate 'point))
+	(point-min (symbolicate 'point-min))
+	(point-max (symbolicate 'point-max)))
+    `(defun ,name (&rest ,context
+		   &key
+		     ,buffer-string
+		     ,buffer-name
+		     ,buffer-file-name
+		     ,point
+		     ,point-min
+		     ,point-max
+		     ,@key-arguments)
+       (declare (ignorable
+		 ,context
+		 ,buffer-string
+		 ,buffer-name
+		 ,buffer-file-name
+		 ,point
+		 ,point-min
+		 ,point-max
+		 ,@(loop for karg in key-arguments
+			 collect (or (and (symbolp karg) karg)
+				     (first karg)))))
+       ,@body)))
 
 (defmacro chain (&body forms)
   (reduce (lambda (acc next)
@@ -238,6 +248,6 @@ commands."
   `(defcommand ,name ()
      ,docstring
      (start-command
-      context
+      ,(symbolicate 'context)
       (chain
 	,@commands))))

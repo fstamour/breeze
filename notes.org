@@ -15,6 +15,10 @@ e.g. If the common-lisp side ask the editor to insert a string, but
 the user changed buffer, the editor will insert the string in the
 wrong buffer.
 
+OR the "client" should be responsible to always execute the commands
+with on the "intial" buffer, unless stated otherwise (but that would
+add even more state on the protocol).
+
 ** TODO Rename breeze-swank to breeze-listener
 
 We will want to support sly and probably other.

@@ -180,41 +180,41 @@
 (defun render-reference ()
   (spinneret:with-html
     (let ((packages
-	   (sort
-	    (breeze.xref:find-packages-by-regex "^breeze\\.[^.]+$")
-	    #'string<
-	    :key #'package-name)))
+	    (sort
+	     (breeze.xref:find-packages-by-regex "^breeze\\.[^.]+$")
+	     #'string<
+	     :key #'package-name)))
       #+nil
       (progn
 	(:h1 "Packages' documentation")
 	(loop
-	   :for package :in packages
-	   :for package-name = (string-downcase (package-name package))
-	   :for docfile = (relative-pathname
-			   (format nil "docs/~a.md" package-name))
-	   :do
+	  :for package :in packages
+	  :for package-name = (string-downcase (package-name package))
+	  :for docfile = (relative-pathname
+			  (format nil "docs/~a.md" package-name))
+	  :do
 	     (if (probe-file docfile)
 		 (progn
-		   (:h2 (:a :name package-name package-name))
+		   (:h2 (:a :id package-name package-name))
 		   (render-markdown docfile))
 		 (warn "Could not find \"~a\"." docfile))))
-      (:h1 (:a :name "reference" "Reference"))
+      (:h1 (:a :id "reference" "Reference"))
       ;; Package index
       (:dl
        (loop
-	  :for package :in packages
-	  :for package-name = (string-downcase (package-name package))
-	  :do
+	 :for package :in packages
+	 :for package-name = (string-downcase (package-name package))
+	 :do
 	    (:dt (:a :href (format nil "#~A" package-name) package-name))
 	    (:dd
 	     (if-let (doc (documentation package t))
 	       (summarize doc)))))
       (loop
-	 :for package :in packages
-	 :for package-name = (string-downcase (package-name package))
-	 :for docfile = (relative-pathname
-			 (format nil "docs/~a.md" package-name))
-	 :do
+	:for package :in packages
+	:for package-name = (string-downcase (package-name package))
+	:for docfile = (relative-pathname
+			(format nil "docs/~a.md" package-name))
+	:do
 	   (macrolet ((gen (title
 			    predicate-body
 			    documentation-type)
@@ -228,7 +228,7 @@
 			   (:dd (or (documentation symbol
 						   ,documentation-type)
 				    "No documentation.")))))
-	     (:h2 (:a :name package-name package-name))
+	     (:h2 (:a :id package-name package-name))
 	     (:p (or (documentation package t) "No description."))
 	     (gen "Special variables" (specialp symbol) 'variable)
 	     (gen "Classes" (classp symbol) 'type)
