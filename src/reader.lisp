@@ -145,7 +145,8 @@
   (:method ((node character-node)) nil))
 
 (defgeneric terminalp (node)
-  (:documentation "Can a node contain other nodes.") (:method ((node node)) (not (non-terminal-p node))))
+  (:documentation "Can a node contain other nodes.")
+  (:method ((node node)) (not (non-terminal-p node))))
 
 (defmethod print-object ((node node) stream)
   (let ((*print-circle* t))

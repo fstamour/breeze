@@ -307,7 +307,7 @@ defun."
 ;; TODO insert-let (need to loop probably)
 
 (defcommand insert-asdf ()
-  "Insert an asdf system definition."
+  "Insert an asdf system definition form."
   (start-command
    context
    (read-string
@@ -341,6 +341,52 @@ defun."
 			 "  :components
     (#+(or) (:file \"todo.lisp\")))"))))))))))))
 
+;; TODO How could I re-use an hypothetical "insert-slot" command?
+(defcommand insert-defclass ()
+  "Insert a defclass form."
+  (start-command
+   context
+   (read-string-then-insert
+    "Name of the class: "
+    "(defclass ~a ()~
+   ~%  ((slot~
+   ~%    :initform nil~
+   ~%    :initarg :slot~
+   ~%    :accessor ~@*~a-slot))~
+   ~%  (:documentation \"\"))")))
+
+(defcommand insert-defgeneric ()
+  "Insert a defgeneric form."
+  (start-command
+   context
+   (read-string-then-insert
+    "Name of the generic: "
+    "(defgeneric ~a ()~
+   ~%  (:documentation \"\")~
+   ~%  (:method () ()))")))
+
+(defcommand insert-print-unreadable-object-boilerplate ()
+  "Insert a print-object method form."
+  (start-command
+   context
+   (read-string
+    "Name of the object (paramater name of the method): "
+    (lambda (name)
+      (read-string
+       "Type of the object: "
+       (lambda (type)
+	 (insert
+	  (list
+	   "(defmethod print-object ((~a ~a) stream)~
+          ~%  (print-unreadable-object~
+          ~%      (~a stream :type t :identity nil)~
+          ~%    (format stream \"~~s\" (~a-something ~a))))"
+	   name type
+	   name
+	   type name))))))))
+
+;; TODO quick-insert (format *debug-io* "~&")
+
 
 ;;; Quickfix
 
@@ -367,7 +413,12 @@ defun."
 	    insert-defun
 	    insert-defmacro
 	    insert-defpackage
-	    insert-in-package-cl-user)))
+	    insert-in-package-cl-user
+	    insert-defvar
+	    insert-defparameter
+	    insert-defclass
+	    insert-defgeneric
+	    insert-print-unreadable-object-boilerplate)))
 
 (defparameter *commands-applicable-in-a-loop-form*
   (mapcar #'command-description
