@@ -152,7 +152,7 @@
 	     :collect
 	     `(export
 	       (defun ,(alexandria:symbolicate
-			'find-nearest-parent type '-form)
+			'find-nearest-parent- type '-form)
 		   (path)
 		 ,(format
 		   nil "Find the nearest parent form of type \"~a\"."
