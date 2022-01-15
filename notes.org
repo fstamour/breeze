@@ -1,13 +1,20 @@
 
 * Tasks
 
+
+** TODO Use with-branching to define optimal-string-alignment-distance
+
+Instead of having 2 definitions
+
+https://github.com/phoe/with-branching
+
 ** TODO Add basic command to show a message
 
 e.g. "There is no applicable quickfixes in the current context"
 
 ** TODO docstrings are not kept in (unparse (parse ...))                :bug:
 
-** TODO read-string should accept a default value
+** TODO read-string command should accept a default value
 
 ** TODO Basic commands should send the buffer
 
@@ -77,14 +84,14 @@ grep TODO -h | to_github_url | to_html
 
 ** TODO [#A] The test-runner's result interfere with swank normal usage :bug:
 
-** TODO Breeze shouldn't suggest symbol that are "too far"
+** DONE Breeze shouldn't suggest symbol that are "too far"
 
 e.g not suggest "slot-exists-p" when trying to eval
 "this-really-doesnt-exists".
 
-*** TODO Make a "string distance" function that stops after a threshold
+** DONE Make a "string distance" function that stops after a threshold
 
-*** TODO Use a heap to find the N closest matches
+** TODO Use a heap to find the N closest matches
 
 Maybe look into VP-trees (Vantage-Point trees)
 
@@ -459,6 +466,8 @@ https://discord.com/channels/297478281278652417/569524818991644692/9153305553342
 ** The heck is RPLACA?
 
 ** What's the difference between =setf= and =setq=?
+
+https://stackoverflow.com/questions/869529/difference-between-set-setq-and-setf-in-common-lisp
 
 ** Why use #:symbol (especially in =defpackage=)?
 
