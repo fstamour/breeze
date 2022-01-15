@@ -93,10 +93,33 @@
 	))))
 
 
-;; Trying to read all files in a system, using breeze's reader.
-#+nil
-(loop :for file :in (breeze.asdf:system-files 'breeze)
-      :do
-	 (with-open-file (stream file)
-	   (parse stream))
-	 (format t "~&~s parsed." file))
+#+ (or)
+(progn
+  (eclector.reader:read-from-string "#+ (or) asdf")
+
+  (let ((eclector.reader:*client*))
+    (eclector.reader:read-from-string "#+(or) t"))
+
+  (parse-string "#+ (and) t")
+
+  ;; Trying to read all files in a system, using breeze's reader.
+  (time
+   (loop :for file :in (breeze.asdf:system-files 'breeze)
+	 :for content = (alexandria:read-file-into-string file)
+	 :do
+	    (with-open-file (stream file)
+	      (let* ((nodes (parse stream))
+		     #+nil
+		     (unparse-content (unparse-to-string nodes)))
+		#+nil
+		(unless (string= content unparse-content)
+		  (format t "~&Failed to roundtrip file ~s." file))))
+	    (format t "~&~s parsed." file))))
+
+
+#+ (or)
+(parse-string
+ (alexandria:read-file-into-string #P"..../breeze/src/utils.lisp"))
+
+#+ (or)
+(breeze.asdf:system-files 'breeze)
