@@ -2,6 +2,7 @@
 #
 # Script to upload documentation to s3, effectively publishing it.
 #
+# nix-shell -p awscli
 
 set -e
 
