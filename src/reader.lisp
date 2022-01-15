@@ -173,7 +173,7 @@
   (print-unreadable-object
       (node stream :type t :identity nil)
     (format stream "~s"
-	    (node-raw node))))
+	    (node-content node))))
 
 (defmethod print-object ((node feature-expression-node) stream)
   (let ((*print-circle* t))
@@ -206,6 +206,18 @@
       (string (subseq source start end))
       (stream (read-stream-range source start end)))))
 
+;; WIP another version of "raw" that doens't support streams, but can
+;; use displaced arrays
+#+ (or)
+(defun raw (breeze-client start end)
+  (alexandria:if-let ((source (source breeze-client)))
+    (let* ((end (min end (length source)))
+	   (size (- end start)))
+      (make-array size
+		  :element-type (array-element-type source)
+		  :displaced-to source
+		  :displaced-index-offset start))))
+
 (defmethod eclector.parse-result:make-expression-result
     ((client breeze-client) (result t) (children t) (source t))
   "Create an expression result"
@@ -235,8 +247,7 @@
 	       (;; Else, make a generic node
 		t
 		(make-instance 'node
-			       ;; :content (or children result)
-			       ))))))
+			       :content (or children result)))))))
     (setf (node-source node) source
 	  (node-raw node) raw)
     (dbg "~&new-node: ~s" node)
@@ -247,9 +258,15 @@
     ((client breeze-client) (stream t) (reason t) (source t))
   "Create a skipped-node parse result."
   (make-instance 'skipped-node
-		 :content (read-stream-range stream
-					     (car source)
-					     (cdr source))
+		 :content
+		 (read-stream-range stream
+				    (car source)
+				    (cdr source))
+		 ;; WIP using string only, instead of stream
+		 #+ (or)
+		 (raw client
+		      (car source)
+		      (cdr source))
 		 :source source))
 
 
@@ -314,16 +331,23 @@
 
 
 (defun read-all-forms (stream)
-  (let ((eof (gensym "eof")))
-    (loop for form =
-		   (eclector.parse-result:read-preserving-whitespace
-		    (make-instance 'breeze-client
-				   :source stream)
-		    stream
-		    nil
-		    eof)
-	  until (eq eof form)
-	  collect form)))
+  (let ((eof (gensym "eof"))
+	(client (make-instance
+		 'breeze-client
+		 :source
+		 stream
+		 #+ (or)
+		 (prog1 (alexandria:read-stream-content-into-string stream)
+		   (file-position stream 0)))))
+    (loop
+      for form =
+	       (eclector.parse-result:read-preserving-whitespace
+		client
+		stream
+		nil
+		eof)
+      until (eq eof form)
+      collect form)))
 
 ;; end-at is not used, its purpose is to help find trailing characters
 ;; but I haven't implemented that because I'm not sure it's the way to go.
@@ -418,3 +442,17 @@
        (unparse-to-stream stream nodes))
       (node
        (unparse-to-stream stream (list nodes))))))
+
+
+#+ (or)
+(sb-profile:profile
+ parse
+ read-all-forms
+ read-from-string
+ make-instance
+ eclector.parse-result:make-expression-result
+ eclector.parse-result:read-preserving-whitespace
+ post-process-nodes!
+ raw)
+
+;; #+ (or) (sb-profile:report)

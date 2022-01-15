@@ -12,6 +12,7 @@
 		#:start-command
 		#:call-next-callback
 		;; symbols not exported
+		#:command-state
 		#:command-context*
 		#:command-context
 		#:command-callback
@@ -84,11 +85,13 @@
 
 ;; TODO add tests for
 (deftest command-context*
-  (is (eq (command-context*)
-	  (command-context *current-command*))))
+  (let ((*current-command*
+	  (make-instance 'command-state
+			 :context (make-hash-table))))
+    (is (eq (command-context*)
+	    (command-context *current-command*)))))
 
-(deftest context-buffer-string
-  (let (())))
+(deftest context-buffer-string)
 (deftest context-buffer-name)
 (deftest context-buffer-file-name)
 (deftest context-point)

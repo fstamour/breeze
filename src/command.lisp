@@ -41,7 +41,7 @@
     :accessor command-context)))
 
 ;; No, I won't support multiple client/command at the same time, for
-;; now.
+;; now™.
 (defparameter *current-command* nil
   "The command that is currently being executed.")
 
@@ -82,7 +82,8 @@
 
 (defun command-context* ()
   "Get the *current-command*'s context."
-  (command-context *current-command*))
+  (when *current-command*
+    (command-context *current-command*)))
 
 (defun context-buffer-string ()
   "Get the \"buffer-string\" from the *current-command*'s context.
