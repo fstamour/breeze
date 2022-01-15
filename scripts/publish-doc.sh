@@ -5,6 +5,13 @@
 
 set -e
 
+if [ "$(git rev-parse --abbrev-ref HEAD)" == "master" ]; then
+    target=""
+else
+    target="dev/"
+fi
+
+
 cd "$(git rev-parse --show-toplevel)/docs"
 
 files="index.html \
@@ -16,5 +23,5 @@ for file in $files; do
 done
 
 for file in $files; do
-    aws s3 cp --acl public-read $file s3://www.fstamour.com/breeze/
+    aws s3 cp --acl public-read $file s3://www.fstamour.com/breeze/$target
 done
