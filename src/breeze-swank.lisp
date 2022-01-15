@@ -308,3 +308,20 @@ of the instance of that had the smallest score."
 	:for i :below 50
 	:do (format t "~&~a~%"
 		    (remove #\newline form))))
+
+(defun find-worker-threads ()
+  (let ((current-thread (bt:current-thread)))
+    (remove-if-not #'(lambda (thread)
+		       (and (not (eq current-thread thread))
+			    (string= "worker" (bt:thread-name thread))))
+		   (sb-thread:list-all-threads))))
+
+(defun kill-worker-threads ()
+  (let ((threads (find-worker-threads)))
+    (when threads
+      (mapcar #'bordeaux-threads:destroy-thread threads))
+    (format t "Killed ~d threads." (length threads))))
+
+#|
+(kill-worker-threads)
+|#
