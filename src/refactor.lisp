@@ -129,7 +129,7 @@
 	     :collect
 	     `(export
 	       (defun ,(alexandria:symbolicate
-			'find-nearest-sibling type '-form)
+			'find-nearest-sibling- type '-form)
 		   (nodes current-node)
 		 ,(format
 		   nil "Find the nearest sibling form of type \"~a\"."
