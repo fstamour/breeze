@@ -498,6 +498,12 @@ For debugging purposes ONLY.")
 		  'breeze.reader:skipped-node))
       (setf commands
 	    (append *commands-applicable-at-toplevel* commands)))
+    (when
+	(or
+	 (loop-form-p parent-node)
+	 (loop-form-p inner-node))
+      (setf commands
+	    (append commands *commands-applicable-in-a-loop-form*)))
     ;; Print debug information
     (when t
       (when outer-node
