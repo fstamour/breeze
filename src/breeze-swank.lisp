@@ -182,7 +182,7 @@ of the instance of that had the smallest score."
 	  package-designator
 	  #+sbcl ;; only tested on sbcl
 	  (car
-	   (slot-value *condition*
+	   (slot-value condition
 		       'sb-kernel::format-arguments)))))
   #+sbcl
   (:method ((condition sb-ext:package-does-not-exist))
