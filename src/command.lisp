@@ -35,10 +35,19 @@
 (defclass command-state ()
   ((callback
     :initarg :callback
-    :accessor command-callback)
+    :accessor command-callback
+    :documentation
+    "The function to call to continue processing the command.")
+   (channel
+    :initarg :channel
+    :accessor command-channel
+    :documentation
+    "The channel to communicate with the command's thread.")
    (context
     :initarg :context
     :accessor command-context)))
+
+
 
 ;; No, I won't support multiple client/command at the same time, for
 ;; now™.
@@ -46,6 +55,8 @@
   "The command that is currently being executed.")
 
 (defun run-callback (callback arguments)
+  "Apply ARGUMENTS to CALLBACK, decide which callback to run next
+(update *current-command*."
   (multiple-value-bind (result-or-another-callback next-callback)
       (when callback
 	(apply callback arguments))
@@ -76,6 +87,11 @@
 (defun call-next-callback (&rest arguments)
   "Continue procressing *current-command*."
   (run-callback (command-callback *current-command*) arguments))
+
+
+
+(defun command-send (value)
+  (chanl:send (command-channel *current-command*) value))
 
 
 ;;; Utilities to get common stuff from the context
@@ -126,6 +142,11 @@ It can be null."
 
 
 ;;; Basic commands, to be composed
+
+(defun insert* (control-string &rest args)
+  "Like insert, but using tasklet."
+  (chanl:send *channel*
+	      (apply #'format t control-string args)))
 
 (defun choose (prompt collection &optional callback)
   "Send a message to the editor to ask the user to choose one element
