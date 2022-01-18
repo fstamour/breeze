@@ -5,7 +5,8 @@
   (:import-from #:alexandria
 		#:plist-alist
 		#:assoc-value
-		#:symbolicate)
+		#:symbolicate
+		#:with-gensyms)
   (:export
    #:start-command
    #:call-next-callback
@@ -18,34 +19,48 @@
    #:context-point-min
    #:context-point-max
    ;; Basic composables commands
-   #:choose
-   #:read-string
-   #:insert-at
    #:insert
+   #:read-string
+   #:choose
    #:read-string-then-insert
+   #:insert-at
    #:replace-region
    #:backward-char
    ;; Utilities to create commands
-   #:chain
-   #:defcommand
-   #:define-simple-command))
+   #:define-command
+   #:handle))
 
 (in-package #:breeze.command)
 
+(defclass tasklet (chanl:task)
+  ((channel-in
+    :initform nil
+    :accessor tasklet-channel-in
+    :type (or null chanl:channel))
+   (channel-out
+    :initform nil
+    :accessor tasklet-channel-out
+    :type (or null chanl:channel)))
+  (:documentation "A task (thread) with a channel."))
+
 (defclass command-state ()
-  ((callback
-    :initarg :callback
-    :accessor command-callback
+  ((tasklet
+    :initform nil
+    :initarg :tasklet
+    :accessor command-tasklet
     :documentation
-    "The function to call to continue processing the command.")
-   (channel
-    :initarg :channel
-    :accessor command-channel
-    :documentation
-    "The channel to communicate with the command's thread.")
+    "The tasklet that process the command.")
    (context
     :initarg :context
     :accessor command-context)))
+
+(defmethod command-channel-in ((command-state command-state))
+  (tasklet-channel-in
+   (command-tasklet command-state)))
+
+(defmethod command-channel-out ((command-state command-state))
+  (tasklet-channel-out
+   (command-tasklet command-state)))
 
 
 
@@ -54,44 +69,76 @@
 (defparameter *current-command* nil
   "The command that is currently being executed.")
 
-(defun run-callback (callback arguments)
-  "Apply ARGUMENTS to CALLBACK, decide which callback to run next
-(update *current-command*."
-  (multiple-value-bind (result-or-another-callback next-callback)
-      (when callback
-	(apply callback arguments))
-    (if (functionp result-or-another-callback)
-	;; A callback can return another functions, this is used to
-	;; pass arguments to further callbacks by closing over the
-	;; arguments.
-	(run-callback result-or-another-callback nil)
-	(progn
-	  ;; Update *current-comand*'s callback
-	  (cond	  ; using "cond" instead of "if" for future expansions
-	    ;; Don't update, we'll loop on the current callback
-	    ((eq t next-callback))
-	    (t
-	     (setf (command-callback *current-command*)
-		   next-callback)))
-	  ;; Return the result
-	  result-or-another-callback))))
+(defparameter *channel-in* nil
+  "The channel use to send data to the command's tasklet.")
 
-(defun start-command (context-alist first-callback)
+(defparameter *channel-out* nil
+  "The channel used to receive data from the command's tasklet.")
+
+(defmacro make-tasklet (() &body body)
+  "Creates a thread, return a channel to communicate with it."
+  (with-gensyms (channel-in channel-out task)
+    `(let* ((,channel-in (make-instance 'chanl:bounded-channel))
+	    (,channel-out (make-instance 'chanl:bounded-channel))
+	    (,task
+	      (chanl:pcall
+	       #'(lambda ()
+		   (let ((*channel-in* ,channel-in)
+			 (*channel-out* ,channel-out))
+		     ,@body))
+	       :name "breeze command"
+	       :initial-bindings (acons '*current-command*
+					(list *current-command*)
+					chanl:*default-special-bindings*))))
+       (change-class ,task 'tasklet)
+       (setf (tasklet-channel-in ,task) ,channel-in
+	     (tasklet-channel-out ,task) ,channel-out)
+       ,task)))
+
+#+ (or)
+(make-tasklet ()
+  (format t "~&hi!"))
+
+(defun donep (command)
+  (and (chanl:recv-blocks-p (command-channel-out command))
+       (not (chanl:task-thread (command-tasklet command)))))
+
+(defun %recv (channel)
+  "To help with tracing."
+  (chanl:recv channel))
+
+(defun %send (channel value)
+  "To help with tracing."
+  (chanl:send channel value))
+
+(defun command-recv (command)
+  (let ((request (%recv (command-channel-out command))))
+    (and (listp request) request)))
+
+(defun command-send (command value)
+  (%send (command-channel-in command) value))
+
+(defun run-callback (command arguments)
+  "Receive request from the command tasklet, process them..."
+  (unless (donep command)
+    (when arguments
+      (command-send command arguments))
+    (command-recv command)))
+
+(defun start-command (context-alist thunk)
   "Start processing a command, initializing *current-command*."
   (setf *current-command* (make-instance
 			   'command-state
-			   :callback first-callback
+			   :tasklet (make-tasklet ()
+				      (funcall thunk))
 			   :context context-alist))
-  (run-callback first-callback nil))
+  (run-callback *current-command* nil))
 
 (defun call-next-callback (&rest arguments)
   "Continue procressing *current-command*."
-  (run-callback (command-callback *current-command*) arguments))
+  (run-callback *current-command* arguments))
 
-
-
-(defun command-send (value)
-  (chanl:send (command-channel *current-command*) value))
+;; (call-next-callback)
 
 
 ;;; Utilities to get common stuff from the context
@@ -141,87 +188,99 @@ It can be null."
   (alexandria:assoc-value (command-context*) :point-max))
 
 
+
+(defmacro handle (lambda-list &body body)
+  "Wait for a message from *channel*, process it and return a the
+result of the last form on *channel*."
+  `(destructuring-bind ,lambda-list
+       (%recv *channel-in*)
+     ,@body))
+
+(defun send (request &rest data)
+  (chanl:send *channel-out* `(,request ,@data)))
+
+
 ;;; Basic commands, to be composed
 
-(defun insert* (control-string &rest args)
-  "Like insert, but using tasklet."
-  (chanl:send *channel*
-	      (apply #'format t control-string args)))
+(defun insert (control-string &rest args)
+  "Send a message to the editor telling it to insert STRING at
+POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
+position."
+  (send
+   "insert"
+   (apply #'format nil control-string args)))
 
-(defun choose (prompt collection &optional callback)
+#+ (or)
+(define-command insert-test
+    nil
+  ""
+  (start-command context
+		 (lambda ()
+                   (insert "Test"))))
+
+(defun read-string (prompt)
+  "Send a message to the editor to ask the user to enter a string."
+  (send "read-string" prompt))
+
+(defun read-string-then-insert (prompt control-string)
+  (read-string prompt)
+  (handle (string)
+    (insert control-string string)))
+
+#+ (or)
+(define-command read-string-then-insert-test
+    nil
+  ""
+  (start-command
+   context
+   (lambda ()
+     (read-string-then-insert "? " "-> ~a <-"))))
+
+
+
+(defun choose (prompt collection)
   "Send a message to the editor to ask the user to choose one element
 in the collection."
-  (lambda ()
-    (values
-     `("choose" ,prompt ,collection)
-     callback)))
+  (send "choose" prompt collection))
 
-(defun read-string (prompt &optional callback)
-  "Send a message to the editor to ask the user to enter a string."
-  (lambda ()
-    (values
-     `("read-string" ,prompt)
-     callback)))
-
-(defun insert-at (position string save-excursion-p &optional callback)
+(defun insert-at (position string save-excursion-p)
   "Send a message to the editor telling it to insert STRING at
 POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
 position."
-  (lambda ()
-    (values (list
-	     (if save-excursion-p
-		 "insert-at-saving-excursion"
-		 "insert-at")
-	     position
-	     string)
-	    callback)))
-
-(defun insert (string-spec &optional callback)
-  "Send a message to the editor telling it to insert STRING at
-POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
-position."
-  (lambda ()
-    (values (list "insert"
-		  (if (listp string-spec)
-		      (apply #'format nil string-spec)
-		      string-spec))
-	    callback)))
-
-(defun read-string-then-insert (prompt control-string
-				&optional callback)
-  (read-string prompt
-	       (lambda (string)
-		 (insert (list control-string string) callback))))
+  (send
+   (if save-excursion-p
+       "insert-at-saving-excursion"
+       "insert-at")
+   position
+   string))
 
 (defun replace-region (position-from position-to
 		       replacement-string
-		       save-excursion-p
-		       &optional callback)
+		       save-excursion-p)
   "Send a message to the editor telling it to replace the text between
 POSITION-FROM POSITION-TO by REPLACEMENT-STRING. Set SAVE-EXCURSION-P
 to non-nil to keep the current position."
-  (lambda ()
-    (values (list
-	     (if save-excursion-p
-		 "replace-saving-excursion"
-		 "replace")
-	     position-from
-	     position-to
-	     replacement-string)
-	    callback)))
+  (send
+   (if save-excursion-p
+       "replace-saving-excursion"
+       "replace")
+   position-from
+   position-to
+   replacement-string))
 
-(defun backward-char (&optional n callback)
-  (lambda ()
-    (values (list "backward-char" n)
-	    callback)))
+(defun backward-char (&optional n)
+  (send "backward-char" n))
 
 
 ;;; Utilities to help creating commands less painful.
 
-(defmacro defcommand (name (&rest key-arguments) &body body)
+(defmacro define-command (name (&rest key-arguments)
+			  docstring ;; TODO use alexandria to correctly parse-body and extract the docstring
+			  &body body)
   "Macro to define command with the basic context.
 It is not necessary, but it makes it possible to close over the
 arguments, which is nice."
+  (check-type docstring string)
   (let ((context (symbolicate 'context))
 	(buffer-string (symbolicate 'buffer-string))
 	(buffer-name (symbolicate 'buffer-name))
@@ -249,27 +308,25 @@ arguments, which is nice."
 		 ,@(loop for karg in key-arguments
 			 collect (or (and (symbolp karg) karg)
 				     (first karg)))))
-       ,@body)))
+       ,docstring
+       (start-command
+	,context
+	(lambda ()
+	  ,@body)))))
 
-(defmacro chain (&body forms)
-  (reduce (lambda (acc next)
-	    (append acc (list next)))
-	  (butlast forms)
-	  :initial-value (alexandria:lastcar forms)
-	  :from-end t))
+#+ (or)
+(trace
+ insert*
+ ;; start-command ; don't: too verbose
+ call-next-callback
+ run-callback
+ command-recv
+ command-send
+ donep
 
-(defmacro chain* (&body forms)
-  (alexandria:with-gensyms (callback)
-    `(lambda (,callback)
-       (chain ,@forms ,callback))))
+ %recv
+ %send
 
-(defmacro define-simple-command (name docstring &body commands)
-  "Macro to define simple commands consisting of a chain of composable
-commands."
-  (check-type docstring string)
-  `(defcommand ,name ()
-     ,docstring
-     (start-command
-      ,(symbolicate 'context)
-      (chain
-	,@commands))))
+ insert
+ read-string
+ read-string-then-insert)

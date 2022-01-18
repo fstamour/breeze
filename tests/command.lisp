@@ -11,22 +11,33 @@
   (:import-from #:breeze.command
 		#:start-command
 		#:call-next-callback
+		#:defcommand
+		#:read-string-then-insert
 		;; symbols not exported
+		#:make-tasklet
 		#:command-state
 		#:command-context*
 		#:command-context
-		#:command-callback
+		#:command-tasklet
 		#:*current-command*
 		#:chain))
 
 (in-package #:breeze.command.test)
 
-(deftest command-nil
-  (let ((*current-command*))
-    (start-command nil nil)
-    (is *current-command*)
-    (is (null (command-context *current-command*)))
-    (is (null (command-callback *current-command*)))))
+#+ (or)
+(progn
+  (make-instance
+   'command-state
+   :tasklet (make-tasklet ()
+	      (format t "~&hi"))
+   :context nil)
+
+  (chanl:task-thread
+   (command-tasklet *current-command*))
+
+  )
+
+
 
 (deftest command-first-callback-is-run-on-start
   (let ((*current-command*)
@@ -35,7 +46,7 @@
 			 (incf x)))
     (is *current-command*)
     (is (null (command-context *current-command*)))
-    (is (null (command-callback *current-command*)))
+    ;; (is (null (command-callback *current-command*)))
     (is (= 1 x))))
 
 (deftest command-context-is-set

@@ -240,3 +240,7 @@ prog*
   x)
 ;; is equivalent to just
 (setf place y)
+
+
+;; I lost a bunch of time because I made a typo in the (:export ) of a
+;; defpackage.

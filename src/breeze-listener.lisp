@@ -216,6 +216,7 @@ of the instance of that had the smallest score."
      package
      class))
 
+#+ (or)
 (trace suggest-symbol
        suggest-package
        suggest-class)
@@ -237,6 +238,10 @@ of the instance of that had the smallest score."
 (defparameter *condition* *last-condition*
   "Just a quick way to save the last-condition.")
 
+#+ (or)
+(type-of *condition*)
+;; => SB-PCL::MISSING-SLOT
+
 (defun call-with-correction-suggestion (function)
   "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
   (handler-bind
@@ -248,6 +253,7 @@ of the instance of that had the smallest score."
 	((undefined-function #'suggest-symbol)
 	 #+sbcl (sb-ext:package-does-not-exist #'suggest-package)
 	 #+sbcl (sb-int:simple-reader-package-error #'suggest-symbol)
+	 #+ (or)
 	 (package-error #'suggest-package)
 	 #+sbcl
 	 (sb-pcl:class-not-found-error #'suggest-class))

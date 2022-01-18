@@ -489,10 +489,13 @@ lisp's reader doesn't convert them."
       "breeze.refactor:quickfix"))
     (2
      (breeze-run-command
-      "editor-interaction2::dummy-loop"))
+      "breeze.command::read-string-then-insert-test"))
     (3
      (breeze-run-command
-      "breeze.command::insert-asdf"))))
+      "breeze.refactor::insert-asdf"))
+    (4
+     (breeze-run-command
+      "breeze.refactor::insert-defpackage"))))
 
 
 ;;; code evaluation

@@ -206,25 +206,24 @@
 
 ;;; Insertion commands
 
-
-(define-simple-command insert-loop-clause-for-on-list
-    "Insert a loop clause to iterate on a list."
+(define-command insert-loop-clause-for-on-list ()
+		"Insert a loop clause to iterate on a list."
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :on ")
   (read-string-then-insert
    "Enter the the list to iterate on: " "~a"))
 
-(define-simple-command insert-loop-clause-for-in-list
-    "Insert a loop clause to iterate in a list."
+(define-command insert-loop-clause-for-in-list ()
+  "Insert a loop clause to iterate in a list."
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :in ")
   (read-string-then-insert
    "Enter the the list to iterate on: " "~a"))
 
-(define-simple-command insert-loop-clause-for-hash
-    "Insert a loop clause to iterate on a hash-table."
+(define-command insert-loop-clause-for-hash ()
+  "Insert a loop clause to iterate on a hash-table."
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the key: "
@@ -236,17 +235,14 @@
    "Enter the variable name for the value: "
    "~a)"))
 
-(defun insert-defvar-shaped (form-name all)
-  "Start a command to insert a form that has the same shape as a
+(define-command insert-defvar-shaped (form-name all)
+		"Start a command to insert a form that has the same shape as a
 defvar."
-  (start-command
-   all
-   (chain
-     (insert (list "(~a " form-name))
-     ;; TODO Check if name is surrounded by "*"
-     (read-string-then-insert "Name: " "*~a* ")
-     (read-string-then-insert "Initial value: " "~a~%")
-     (read-string-then-insert "Documentation string " "\"~a\")"))))
+  (insert "(~a " form-name)
+  ;; TODO Check if name is surrounded by "*"
+  (read-string-then-insert "Name: " "*~a* ")
+  (read-string-then-insert "Initial value: " "~a~%")
+  (read-string-then-insert "Documentation string " "\"~a\")"))
 
 (defun insert-defvar (&rest all)
   "Insert a defvar form."
@@ -267,18 +263,15 @@ defvar."
   (insert-defvar-shaped "define-constant" all))
 
 
-(defun insert-defun-shaped (form-name all)
-  "Start a command to insert a form that has the same shape as a
+(define-command insert-defun-shaped (form-name all)
+		"Start a command to insert a form that has the same shape as a
 defun."
-  (start-command
-   all
-   (chain
-     (insert (list "(~a " form-name))
-     (read-string-then-insert "Name: " "~a (")
-     (read-string-then-insert
-      ;; Who needs to loop...?
-      "Enter the arguments: " "~a)~%)")
-     (backward-char))))
+  (insert "(~a " form-name)
+  (read-string-then-insert "Name: " "~a (")
+  (read-string-then-insert
+   ;; Who needs to loop...?
+   "Enter the arguments: " "~a)~%)")
+  (backward-char))
 
 (defun insert-defun (&rest all)
   "Insert a defun form."
@@ -288,102 +281,85 @@ defun."
   "Insert a defmacro form."
   (insert-defun-shaped "defmacro" all))
 
-(defun insert-defpackage (&rest all)
-  "Insert a defpackage form."
-  (start-command
-   all
-   (read-string "Name of the package: "
-		(lambda (package-name)
-		  (insert (list
-			   "(cl:in-package #:common-lisp-user)~%~%~
+(define-command insert-defpackage ()
+		"Insert a defpackage form."
+  (read-string "Name of the package: ")
+  (handle (package-name)
+    (insert
+     "(cl:in-package #:common-lisp-user)~%~%~
                             (defpackage #:~a~%  (:use #:cl))~%~
                             ~%(in-package #:~a)"
-			   package-name package-name))))))
+     package-name package-name)))
 
-(define-simple-command insert-in-package-cl-user
-    "Insert (cl:in-package #:cl-user)"
+(define-command insert-in-package-cl-user ()
+		"Insert (cl:in-package #:cl-user)"
   (insert "(cl:in-package #:cl-user)"))
 
 ;; TODO insert-let (need to loop probably)
 
-(defcommand insert-asdf ()
-  "Insert an asdf system definition form."
-  (start-command
-   context
-   (read-string
-    "Name of the system: "
-    (lambda (system-name)
-      (read-string
-       "Author: "
-       (lambda (author)
-	 (read-string
-	  "Licence name: "
-	  (lambda (licence)
-	    (chain
-	      (insert '("(cl:in-package #:cl)~%~%"))
-	      ;; TODO don't insert a defpackage if it already exists
-	      (insert (list
-		       "(defpackage #:~a.asd~%  (:use :cl :asdf))~%~%"
-		       system-name))
-	      (insert (list
-		       "(in-package #:~a.asd)~%~%"
-		       system-name))
-	      (insert (list
-		       "(asdf:defsystem #:~a~%~{  ~a~%~}"
-		       system-name
-		       `(":description \"\""
-			 ":version \"0.0.1\""
-			 ,(format nil ":author \"~a\"" author)
-			 ,(format nil ":licence \"~a\"" licence)
-			 ":depends-on '()"
-			 ";; :pathname src"
-			 ":serial t"
-			 "  :components
-    (#+(or) (:file \"todo.lisp\")))"))))))))))))
+(define-command insert-asdf ()
+		"Insert an asdf system definition form."
+  (read-string "Name of the system: ")
+  (handle (system-name)
+    (read-string "Author: ")
+    (handle (author)
+      (read-string "Licence name: ")
+      (handle (licence)
+	(insert "(cl:in-package #:cl)~%~%")
+	;; TODO don't insert a defpackage if it already exists
+	(insert "(defpackage #:~a.asd~%  (:use :cl :asdf))~%~%"
+		system-name)
+	(insert "(in-package #:~a.asd)~%~%" system-name)
+	(insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
+		system-name
+		`(":description \"\""
+		  ":version \"0.0.1\""
+		  ,(format nil ":author \"~a\"" author)
+		  ,(format nil ":licence \"~a\"" licence)
+		  ":depends-on '()"
+		  ";; :pathname src"
+		  ":serial t"
+		  "  :components
+    (#+(or) (:file \"todo.lisp\")))"))))))
+
+
 
 ;; TODO How could I re-use an hypothetical "insert-slot" command?
-(defcommand insert-defclass ()
-  "Insert a defclass form."
-  (start-command
-   context
-   (read-string-then-insert
-    "Name of the class: "
-    "(defclass ~a ()~
+(define-command insert-defclass ()
+		"Insert a defclass form."
+  (read-string-then-insert
+   "Name of the class: "
+   "(defclass ~a ()~
    ~%  ((slot~
    ~%    :initform nil~
    ~%    :initarg :slot~
    ~%    :accessor ~@*~a-slot))~
-   ~%  (:documentation \"\"))")))
+   ~%  (:documentation \"\"))"))
 
-(defcommand insert-defgeneric ()
-  "Insert a defgeneric form."
-  (start-command
-   context
-   (read-string-then-insert
-    "Name of the generic: "
-    "(defgeneric ~a ()~
+(define-command insert-defgeneric ()
+		"Insert a defgeneric form."
+  (read-string-then-insert
+   "Name of the generic: "
+   "(defgeneric ~a ()~
    ~%  (:documentation \"\")~
-   ~%  (:method () ()))")))
+   ~%  (:method () ()))"))
 
-(defcommand insert-print-unreadable-object-boilerplate ()
-  "Insert a print-object method form."
-  (start-command
-   context
-   (read-string
-    "Name of the object (paramater name of the method): "
-    (lambda (name)
-      (read-string
-       "Type of the object: "
-       (lambda (type)
-	 (insert
-	  (list
-	   "(defmethod print-object ((~a ~a) stream)~
+(define-command insert-print-unreadable-object-boilerplate ()
+		"Insert a print-object method form."
+  (read-string
+   "Name of the object (paramater name of the method): ")
+  (handle (name)
+    (read-string
+     "Type of the object: ")
+    (handle (type)
+      (insert
+       "(defmethod print-object ((~a ~a) stream)~
           ~%  (print-unreadable-object~
           ~%      (~a stream :type t :identity nil)~
           ~%    (format stream \"~~s\" (~a-something ~a))))"
-	   name type
-	   name
-	   type name))))))))
+       name type
+       name
+       type name))))
 
 ;; TODO quick-insert (format *debug-io* "~&")
 
@@ -454,17 +430,8 @@ For debugging purposes ONLY.")
 #+(or) (in-package-form-p
 	(car (getf *qf* :nodes)))
 
-(defun quickfix (&rest all
-		 &key
-		   buffer-string
-		   buffer-name
-		   buffer-file-name
-		   point
-		   point-min
-		   point-max)
-  (declare (ignorable all buffer-string buffer-name buffer-file-name
-		      point point-min point-max))
-  "Given the context, suggest some applicable commands."
+(define-command quickfix ()
+		"Given the context, suggest some applicable commands."
   (let* (;; Parse the buffer
 	 (nodes (parse-string buffer-string))
 	 ;; Emacs's point starts at 1
@@ -520,20 +487,23 @@ For debugging purposes ONLY.")
     ;; Deduplicate commands
     (setf commands (remove-duplicates commands :key #'car))
     ;; Save some information for debugging
-    (setf *qf* `(,@all
+    (setf *qf* `(,@context
 		 :nodes ,nodes
 		 :commands ,commands))
     ;; Ask the user to choose a command
-    (start-command
-     all
-     (choose "Choose a command: "
-	     (mapcar #'second commands)
-	     (lambda (choice)
-	       (list "run-command"
-		     (symbol-package-qualified-name
-		      (car (find choice commands
-				 :key #'second
-				 :test #'string=)))))))))
+    (choose "Choose a command: "
+	    (mapcar #'second commands))
+    (handle (choice)
+      (let ((command-function (car (find choice commands
+					 :key #'second
+					 :test #'string=))))
+	#+ (or)
+	(progn
+	  (format *debug-io* "~&Command function: ~s" command-function)
+	  (finish-output))
+	(funcall command-function))
+      ;; TODO no need for "run-command" anymore...
+      )))
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
