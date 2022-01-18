@@ -2,7 +2,7 @@
 
 (in-package #:common-lisp-user)
 
-(defpackage #:breeze.swank
+(defpackage #:breeze.listener
   (:use :cl #:alexandria)
   (:documentation "Backend side of integration with swank")
   (:export
@@ -16,7 +16,7 @@
   (:import-from #:breeze.utils
 		#:optimal-string-alignment-distance*))
 
-(in-package #:breeze.swank)
+(in-package #:breeze.listener)
 
 
 ;;; project scaffolding

@@ -501,7 +501,7 @@ lisp's reader doesn't convert them."
   "Get recently evaluated forms from the server."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
-		    "(breeze.swank:get-recent-interactively-evaluated-forms)"))
+		    "(breeze.listener:get-recent-interactively-evaluated-forms)"))
     (split-string output "\n")))
 
 (defun breeze-reevaluate-form ()
@@ -520,7 +520,7 @@ lisp's reader doesn't convert them."
    (read-from-string
     (cl-destructuring-bind (output value)
 	(slime-eval `(swank:eval-and-grab-output
-		      ,(format "%s" `(breeze.swank:get-ql-local-project-directories))))
+		      ,(format "%s" `(breeze.listener:get-ql-local-project-directories))))
       value))))
 
 (defun breeze-choose-local-project-directories ()
@@ -549,7 +549,7 @@ lisp's reader doesn't convert them."
 	)
     (slime-interactive-eval
      (concat
-      "(breeze.swank:make-project \"" directory name "\""
+      "(breeze.listener:make-project \"" directory name "\""
       " :author \"" author "\""
       " :license \"" licence "\""
       ")"))

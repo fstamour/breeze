@@ -1,5 +1,5 @@
 
-(in-package #:breeze.swank)
+(in-package #:breeze.listener)
 
 (subtypep 'sb-int:simple-reader-package-error 'cl:package-error)
 
@@ -35,4 +35,25 @@
   (prin t))
 
 (check-condition-type (#+sbcl sb-pcl:class-not-found-error)
-  (make-instance 'typos))
+		      (make-instance 'typos))
+
+
+(defpackage #:foo (:use) (:export #:bar))
+(handler-bind
+    ((simple-condition ;; simple-warning
+       #'(lambda (condition)
+	   (describe condition))))
+  (defpackage #:foo (:use)))
+
+SB-INT:PACKAGE-AT-VARIANCE
+
+
+use-package
+
+(package-use-list (find-package :cl-user))
+#|
+(#<PACKAGE "COMMON-LISP"> #<PACKAGE "SB-ALIEN"> #<PACKAGE "SB-DEBUG">
+#<PACKAGE "SB-EXT"> #<PACKAGE "SB-GRAY"> #<PACKAGE "SB-PROFILE">)
+|#
+
+defpackage

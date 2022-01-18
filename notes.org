@@ -1,6 +1,9 @@
 
 * Tasks
 
+** TODO breeze-capture is broken
+
+I removed breeze-capture-folder variable.
 
 ** TODO Use with-branching to define optimal-string-alignment-distance
 
@@ -26,7 +29,7 @@ OR the "client" should be responsible to always execute the commands
 with on the "intial" buffer, unless stated otherwise (but that would
 add even more state on the protocol).
 
-** TODO Rename breeze-swank to breeze-listener
+** DONE Rename breeze.swank to breeze.listener
 
 We will want to support sly and probably other.
 

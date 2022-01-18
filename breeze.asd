@@ -30,7 +30,7 @@
    (:file "xref" :depends-on ("utils" "test" "definition"))
    (:file "documentation" :depends-on ("xref" "definition"))
    (:file "asdf" :depends-on ())
-   (:file "breeze-swank" :depends-on ("xref"))
+   (:file "breeze-listener" :depends-on ("xref"))
    (:file "command" :depends-on ())
    (:file "refactor" :depends-on ("reader" "command" "utils"))
    (:file "user" :depends-on ("test-runner"
