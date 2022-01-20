@@ -207,7 +207,7 @@
 ;;; Insertion commands
 
 (define-command insert-loop-clause-for-on-list ()
-		"Insert a loop clause to iterate on a list."
+  "Insert a loop clause to iterate on a list."
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :on ")
@@ -236,7 +236,7 @@
    "~a)"))
 
 (define-command insert-defvar-shaped (form-name all)
-		"Start a command to insert a form that has the same shape as a
+  "Start a command to insert a form that has the same shape as a
 defvar."
   (insert "(~a " form-name)
   ;; TODO Check if name is surrounded by "*"
@@ -264,7 +264,7 @@ defvar."
 
 
 (define-command insert-defun-shaped (form-name all)
-		"Start a command to insert a form that has the same shape as a
+  "Start a command to insert a form that has the same shape as a
 defun."
   (insert "(~a " form-name)
   (read-string-then-insert "Name: " "~a (")
@@ -282,7 +282,7 @@ defun."
   (insert-defun-shaped "defmacro" all))
 
 (define-command insert-defpackage ()
-		"Insert a defpackage form."
+  "Insert a defpackage form."
   (read-string "Name of the package: ")
   (handle (package-name)
     (insert
@@ -292,13 +292,13 @@ defun."
      package-name package-name)))
 
 (define-command insert-in-package-cl-user ()
-		"Insert (cl:in-package #:cl-user)"
+  "Insert (cl:in-package #:cl-user)"
   (insert "(cl:in-package #:cl-user)"))
 
 ;; TODO insert-let (need to loop probably)
 
 (define-command insert-asdf ()
-		"Insert an asdf system definition form."
+  "Insert an asdf system definition form."
   (read-string "Name of the system: ")
   (handle (system-name)
     (read-string "Author: ")
@@ -326,7 +326,7 @@ defun."
 
 ;; TODO How could I re-use an hypothetical "insert-slot" command?
 (define-command insert-defclass ()
-		"Insert a defclass form."
+  "Insert a defclass form."
   (read-string-then-insert
    "Name of the class: "
    "(defclass ~a ()~
@@ -337,7 +337,7 @@ defun."
    ~%  (:documentation \"\"))"))
 
 (define-command insert-defgeneric ()
-		"Insert a defgeneric form."
+  "Insert a defgeneric form."
   (read-string-then-insert
    "Name of the generic: "
    "(defgeneric ~a ()~
@@ -345,7 +345,7 @@ defun."
    ~%  (:method () ()))"))
 
 (define-command insert-print-unreadable-object-boilerplate ()
-		"Insert a print-object method form."
+  "Insert a print-object method form."
   (read-string
    "Name of the object (paramater name of the method): ")
   (handle (name)
@@ -431,7 +431,7 @@ For debugging purposes ONLY.")
 	(car (getf *qf* :nodes)))
 
 (define-command quickfix ()
-		"Given the context, suggest some applicable commands."
+  "Given the context, suggest some applicable commands."
   (let* (;; Parse the buffer
 	 (nodes (parse-string buffer-string))
 	 ;; Emacs's point starts at 1

@@ -280,12 +280,10 @@ to non-nil to keep the current position."
 ;;; Utilities to help creating commands less painful.
 
 (defmacro define-command (name (&rest key-arguments)
-			  docstring ;; TODO use alexandria to correctly parse-body and extract the docstring
 			  &body body)
   "Macro to define command with the basic context.
 It is not necessary, but it makes it possible to close over the
 arguments, which is nice."
-  (check-type docstring string)
   (let ((context (symbolicate 'context))
 	(buffer-string (symbolicate 'buffer-string))
 	(buffer-name (symbolicate 'buffer-name))
@@ -293,33 +291,36 @@ arguments, which is nice."
 	(point (symbolicate 'point))
 	(point-min (symbolicate 'point-min))
 	(point-max (symbolicate 'point-max)))
-    `(defun ,name (&rest ,context
-		   &key
-		     (,buffer-string (context-buffer-string*))
-		     (,buffer-name (context-buffer-name*))
-		     (,buffer-file-name (context-buffer-file-name*))
-		     (,point (context-point*))
-		     (,point-min (context-point-max*))
-		     (,point-max (context-point-max*))
-		     ,@key-arguments)
-       (declare (ignorable
-		 ,context
-		 ,buffer-string
-		 ,buffer-name
-		 ,buffer-file-name
-		 ,point
-		 ,point-min
-		 ,point-max
-		 ,@(loop for karg in key-arguments
-			 collect (or (and (symbolp karg) karg)
-				     (first karg)))))
-       ,docstring
-       (if *current-command*
-	   (progn ,@body)
-	   (start-command
-	    ,context
-	    (lambda ()
-	      ,@body))))))
+    (multiple-value-bind (remaining-forms declarations docstring)
+	(alexandria:parse-body body)
+      `(defun ,name (&rest ,context
+		     &key
+		       (,buffer-string (context-buffer-string*))
+		       (,buffer-name (context-buffer-name*))
+		       (,buffer-file-name (context-buffer-file-name*))
+		       (,point (context-point*))
+		       (,point-min (context-point-max*))
+		       (,point-max (context-point-max*))
+		       ,@key-arguments)
+	 (declare (ignorable
+		   ,context
+		   ,buffer-string
+		   ,buffer-name
+		   ,buffer-file-name
+		   ,point
+		   ,point-min
+		   ,point-max
+		   ,@(loop for karg in key-arguments
+			   collect (or (and (symbolp karg) karg)
+				       (first karg)))))
+	 ,declarations
+	 ,docstring
+	 (if *current-command*
+	     (progn ,@remaining-forms)
+	     (start-command
+	      ,context
+	      (lambda ()
+		,@remaining-forms)))))))
 
 #+ (or)
 (trace
