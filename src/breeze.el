@@ -452,9 +452,7 @@ lisp's reader doesn't convert them."
      (backward-char (second request))
      ;; Had to do this hack so the cursor is positioned
      ;; correctly... probably because of aggressive-indent
-     (funcall indent-line-function))
-    ("run-command"
-     (breeze-run-command (second request)))))
+     (funcall indent-line-function))))
 
 
 (defun breeze-run-command (name)

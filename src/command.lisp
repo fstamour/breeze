@@ -3,7 +3,7 @@
 (defpackage #:breeze.command
   (:use :cl)
   (:import-from #:alexandria
-		#:plist-alist
+		#:plist-hash-table
 		#:assoc-value
 		#:symbolicate
 		#:with-gensyms)
@@ -12,12 +12,12 @@
    #:call-next-callback
    ;; Functions to access the context
    #:command-context*
-   #:context-buffer-string
-   #:context-buffer-name
-   #:context-buffer-file-name
-   #:context-point
-   #:context-point-min
-   #:context-point-max
+   #:context-buffer-string*
+   #:context-buffer-name*
+   #:context-buffer-file-name*
+   #:context-point*
+   #:context-point-min*
+   #:context-point-max*
    ;; Basic composables commands
    #:insert
    #:read-string
@@ -120,21 +120,26 @@
 
 (defun run-callback (command arguments)
   "Receive request from the command tasklet, process them..."
-  (unless (donep command)
-    (when arguments
-      (command-send command arguments))
-    (command-recv command)))
+  (if (donep command)
+      (setf *current-command* nil)
+      (progn
+	(when arguments
+	  (command-send command arguments))
+	(command-recv command))))
 
-(defun start-command (context-alist thunk)
+(defun start-command (context-plist thunk)
   "Start processing a command, initializing *current-command*."
+  ;; TODO We should (setf *current-command* nil) when there's an error
   (setf *current-command* (make-instance
 			   'command-state
-			   :tasklet (make-tasklet ()
-				      (funcall thunk))
-			   :context context-alist))
+			   :context (plist-hash-table context-plist)))
+  (setf (command-tasklet *current-command*)
+	(make-tasklet ()
+	  (funcall thunk)))
   (run-callback *current-command* nil))
 
 (defun call-next-callback (&rest arguments)
+  ;; TODO We should (setf *current-command* nil) when there's an error
   "Continue procressing *current-command*."
   (run-callback *current-command* arguments))
 
@@ -148,44 +153,44 @@
   (when *current-command*
     (command-context *current-command*)))
 
-(defun context-buffer-string ()
+(defun context-buffer-string* ()
   "Get the \"buffer-string\" from the *current-command*'s context.
 The buffer-string is the content of the buffer.
 It can be null."
-  (alexandria:assoc-value (command-context*) :buffer-string))
+  (gethash :buffer-string (command-context*)))
 
-(defun context-buffer-name ()
+(defun context-buffer-name* ()
   "Get the \"buffer-name\" from the *current-command*'s context.
 The buffer-name is the name of the buffer.
 It can be null."
-  (alexandria:assoc-value (command-context*) :buffer-name))
+  (gethash :buffer-name (command-context*)))
 
-(defun context-buffer-file-name ()
+(defun context-buffer-file-name* ()
   "Get the \"buffer-file-name\" from the *current-command*'s context.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
-  (alexandria:assoc-value (command-context*) :buffer-string))
+  (gethash :buffer-string (command-context*)))
 
-(defun context-point ()
+(defun context-point* ()
   "Get the \"point\" from the *current-command*'s context.
 The point is the position of the cursor.
 It can be null."
-  (alexandria:assoc-value (command-context*) :point))
+  (gethash :point (command-context*)))
 
-(defun context-point-min ()
+(defun context-point-min* ()
   "Get the \"point-min\" from the *current-command*'s context.
 The point-min is the position of the beggining of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (alexandria:assoc-value (command-context*) :point-min))
+  (gethash :point-min (command-context*)))
 
-(defun context-point-max ()
+(defun context-point-max* ()
   "Get the \"point-max\" from the *current-command*'s context.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (alexandria:assoc-value (command-context*) :point-max))
+  (gethash :point-max (command-context*)))
 
 
 
@@ -290,12 +295,12 @@ arguments, which is nice."
 	(point-max (symbolicate 'point-max)))
     `(defun ,name (&rest ,context
 		   &key
-		     ,buffer-string
-		     ,buffer-name
-		     ,buffer-file-name
-		     ,point
-		     ,point-min
-		     ,point-max
+		     (,buffer-string (context-buffer-string*))
+		     (,buffer-name (context-buffer-name*))
+		     (,buffer-file-name (context-buffer-file-name*))
+		     (,point (context-point*))
+		     (,point-min (context-point-max*))
+		     (,point-max (context-point-max*))
 		     ,@key-arguments)
        (declare (ignorable
 		 ,context
@@ -309,10 +314,12 @@ arguments, which is nice."
 			 collect (or (and (symbolp karg) karg)
 				     (first karg)))))
        ,docstring
-       (start-command
-	,context
-	(lambda ()
-	  ,@body)))))
+       (if *current-command*
+	   (progn ,@body)
+	   (start-command
+	    ,context
+	    (lambda ()
+	      ,@body))))))
 
 #+ (or)
 (trace
