@@ -3,8 +3,6 @@
 (defpackage #:breeze.command
   (:use :cl)
   (:import-from #:alexandria
-		#:plist-hash-table
-		#:assoc-value
 		#:symbolicate
 		#:with-gensyms)
   (:export
@@ -100,8 +98,17 @@
   (format t "~&hi!"))
 
 (defun donep (command)
-  (and (chanl:recv-blocks-p (command-channel-out command))
-       (not (chanl:task-thread (command-tasklet command)))))
+  (or
+   (null command)
+   (and (chanl:recv-blocks-p (command-channel-out command))
+	(not (chanl:task-thread (command-tasklet command))))))
+
+(defun current-command* ()
+  "Helper to get the current command, or correctly set it to nil."
+  (when *current-command*
+    (if (donep *current-command*)
+	(setf *current-command* nil)
+	*current-command*)))
 
 (defun %recv (channel)
   "To help with tracing."
@@ -127,21 +134,55 @@
 	  (command-send command arguments))
 	(command-recv command))))
 
+(defmacro reset-current-command-on-unwind (&body body)
+  `(handler-bind
+       ((error #'(lambda (condition)
+		   (declare (ignore condition))
+		   (setf *current-command* nil))))
+     (progn ,@body)))
+
+(defun context-plist-to-hash-table (context-plist)
+  (loop
+    :with ht = (make-hash-table)
+    :for (key value) :on context-plist :by #'cddr
+    :for normalized-key = (if (member (symbol-name key)
+				      '#.(mapcar #'symbol-name
+						 '(buffer-string
+						   buffer-name
+						   buffer-file-name
+						   point
+						   point-min
+						   point-max))
+				      :test #'string=)
+			      (intern (symbol-name key) :keyword)
+			      key)
+    :when value
+      :do (setf (gethash normalized-key ht) value)
+    :finally (return ht)))
+
+;; TODO unit test
+#+ (or)
+(alexandria:hash-table-plist
+ (context-plist-to-hash-table '(buffer-string "asdf" ok 42)))
+;; => (OK 42 :BUFFER-STRING "asdf")
+
 (defun start-command (context-plist thunk)
   "Start processing a command, initializing *current-command*."
-  ;; TODO We should (setf *current-command* nil) when there's an error
-  (setf *current-command* (make-instance
-			   'command-state
-			   :context (plist-hash-table context-plist)))
-  (setf (command-tasklet *current-command*)
-	(make-tasklet ()
-	  (funcall thunk)))
-  (run-callback *current-command* nil))
+  (reset-current-command-on-unwind
+    (setf *current-command*
+	  (make-instance
+	   'command-state
+	   :context (context-plist-to-hash-table context-plist)))
+    (setf (command-tasklet *current-command*)
+	  (make-tasklet ()
+	    (reset-current-command-on-unwind
+	      (funcall thunk))))
+    (run-callback *current-command* nil)))
 
 (defun call-next-callback (&rest arguments)
-  ;; TODO We should (setf *current-command* nil) when there's an error
   "Continue procressing *current-command*."
-  (run-callback *current-command* arguments))
+  (reset-current-command-on-unwind
+    (run-callback *current-command* arguments)))
 
 ;; (call-next-callback)
 
@@ -150,8 +191,8 @@
 
 (defun command-context* ()
   "Get the *current-command*'s context."
-  (when *current-command*
-    (command-context *current-command*)))
+  (when (current-command*)
+    (command-context (current-command*))))
 
 (defun context-buffer-string* ()
   "Get the \"buffer-string\" from the *current-command*'s context.
@@ -282,41 +323,38 @@ to non-nil to keep the current position."
 (defmacro define-command (name (&rest key-arguments)
 			  &body body)
   "Macro to define command with the basic context.
-It is not necessary, but it makes it possible to close over the
-arguments, which is nice."
+More special-purpose context can be passed, but it must be done so
+using keyword arguments."
   (let ((context (symbolicate 'context))
-	(buffer-string (symbolicate 'buffer-string))
-	(buffer-name (symbolicate 'buffer-name))
-	(buffer-file-name (symbolicate 'buffer-file-name))
-	(point (symbolicate 'point))
-	(point-min (symbolicate 'point-min))
-	(point-max (symbolicate 'point-max)))
+	(basic-context-variables (mapcar #'symbolicate
+					 '(buffer-string
+					   buffer-name
+					   buffer-file-name
+					   point
+					   point-min
+					   point-max))))
     (multiple-value-bind (remaining-forms declarations docstring)
-	(alexandria:parse-body body)
+	(alexandria:parse-body body :documentation t)
+      ;; Docstring are mandatory for commands
+      (check-type docstring string)
       `(defun ,name (&rest ,context
 		     &key
-		       (,buffer-string (context-buffer-string*))
-		       (,buffer-name (context-buffer-name*))
-		       (,buffer-file-name (context-buffer-file-name*))
-		       (,point (context-point*))
-		       (,point-min (context-point-max*))
-		       (,point-max (context-point-max*))
+		       ,@basic-context-variables
 		       ,@key-arguments)
 	 (declare (ignorable
 		   ,context
-		   ,buffer-string
-		   ,buffer-name
-		   ,buffer-file-name
-		   ,point
-		   ,point-min
-		   ,point-max
+		   ,@basic-context-variables
 		   ,@(loop for karg in key-arguments
 			   collect (or (and (symbolp karg) karg)
 				       (first karg)))))
-	 ,declarations
+	 ,@(when declarations (list declarations))
 	 ,docstring
-	 (if *current-command*
-	     (progn ,@remaining-forms)
+	 (if (current-command*)
+	     (progn
+	       ,@(loop :for var :in basic-context-variables
+		       :collect `(unless ,var
+				   (setf ,var (,(symbolicate 'context- var '*)))))
+	       ,@remaining-forms)
 	     (start-command
 	      ,context
 	      (lambda ()
