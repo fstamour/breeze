@@ -57,3 +57,13 @@ use-package
 |#
 
 defpackage
+
+
+(handler-bind
+    ((simple-condition ;; simple-warning
+       #'(lambda (condition)
+	   (describe condition))))
+  (eval
+   `(lambda ()
+      (this-in-an-undefinded-function))))
+;; #<SB-INT:SIMPLE-STYLE-WARNING ... >#

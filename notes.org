@@ -204,7 +204,17 @@ already has a prototype in emacs lisp
 
 ** Follow up on issues
 
-*** TODO https://github.com/slime/slime/issues/645
+*** TODO [[https://github.com/slime/slime/issues/645][Is there a way to run a function when slime's repl is ready #645]]
+
+In [[https://github.com/slime/slime][Slime]]
+
+*** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structual sharing #4]]
+
+In [[https://github.com/phoe-trash/value-semantics-utils][phoe-trash/value-semantics-utils]]
+
+*** TODO [[https://github.com/phoe/trivial-method-combinations/issues/4][Add method-combination-name-p #4]]
+
+In [[https://github.com/phoe/trivial-method-combinations][phoe/trivial-method-combinations]]
 
 * Design decisions
 
@@ -454,6 +464,16 @@ https://quickdocs.org/dotenv
 
 https://quickdocs.org/slite - SLIME based Test-runner for FiveAM tests
 (and possibly others in the future)
+
+In SLIME's debugger, press ~v~ to navigate to its definition.
+
+https://github.com/melisgl/journal - for logging and trace-based
+testing
+https://github.com/melisgl/try/ - for a test framework that looks a
+lot with what I want from a test framework.
+
+For a pretty nice review of existing testing framework:
+https://sabracrolleton.github.io/testing-framework
 
 * Discord
 
