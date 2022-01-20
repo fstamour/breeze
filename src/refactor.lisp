@@ -188,10 +188,6 @@
      labels
      lambda))
 
-;; WIP
-(defun breeze-in-loop ()
-  "Check if it's a valid place to add a loop clause.")
-
 ;; TODO A "skipped node" can also be a form hidden behing a feature (#+/-)
 (defun emptyp (nodes)
   "Whether a list of node contains no code."
@@ -205,6 +201,26 @@
 
 
 ;;; Insertion commands
+
+;; Dogfood'ing to the max!
+(define-command insert-breeze-define-command ()
+  "Insert a breeze:define-command form."
+  (read-string "Name of the command (symbol): ")
+  (handle (name)
+    (insert
+     "(define-command ~a ()~
+    ~%  \"~@(~a~).\"~
+    ~%  )"
+     name
+     (substitute #\Space #\- name))))
+
+(define-command insert-handler-bind-form ()
+  "Insert handler bind form."
+  (insert
+   "(handler-bind
+      ((error #'(lambda (condition)
+		  (describe condition *debug-io*))))
+    (frobnicate))"))
 
 (define-command insert-loop-clause-for-on-list ()
   "Insert a loop clause to iterate on a list."
@@ -394,13 +410,19 @@ defun."
 	    insert-defparameter
 	    insert-defclass
 	    insert-defgeneric
-	    insert-print-unreadable-object-boilerplate)))
+	    insert-print-unreadable-object-boilerplate
+	    insert-breeze-define-command)))
 
 (defparameter *commands-applicable-in-a-loop-form*
   (mapcar #'command-description
 	  '(insert-loop-clause-for-in-list
 	    insert-loop-clause-for-on-list
 	    insert-loop-clause-for-hash)))
+
+;; That's some Java-level variable name
+(defparameter *commands-applicable-inside-another-form-or-at-toplevel*
+  (mapcar #'command-description
+	  '(insert-handler-bind-form)))
 
 
 (defparameter *qf* nil
@@ -452,7 +474,15 @@ For debugging purposes ONLY.")
     ;; whitespaces.
     (when (emptyp nodes)
       (setf commands
-	    (append *commands-applicable-at-toplevel* commands)))
+	    (append *commands-applicable-at-toplevel*
+		    commands)))
+
+    ;; All the time?
+    (setf commands
+	  (append
+	   *commands-applicable-inside-another-form-or-at-toplevel*
+	   commands))
+
     (when (or
 	   ;; in-between forms
 	   (null outer-node)
@@ -480,6 +510,7 @@ For debugging purposes ONLY.")
       (format *debug-io* "~&Current node: ~a"
 	      (breeze.reader:unparse-to-string outer-node))
       ;; (format *debug-io* "~&Is current node a defpackage ~a" (defpackage-node-p outer-node))
+
       (format *debug-io* "~&position ~a" position)
       (format *debug-io* "~&positions ~a" (mapcar #'node-source nodes))
       ;; (format *debug-io* "~&nodes ~a" nodes)
