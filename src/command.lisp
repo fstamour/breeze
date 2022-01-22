@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
-(defpackage #:breeze.command
-  (:use :cl)
+(uiop:define-package #:breeze.command
+    (:use :cl)
   (:import-from #:alexandria
 		#:symbolicate
 		#:with-gensyms
@@ -11,12 +11,21 @@
    #:cancel-command
    #:continue-command
    ;; Functions to access the context
+   #:command-context
    #:command-context*
+   #:context-get
+   #:context-set
+   #:context-buffer-string
    #:context-buffer-string*
+   #:context-buffer-name
    #:context-buffer-name*
+   #:context-buffer-file-name
    #:context-buffer-file-name*
+   #:context-point
    #:context-point*
+   #:context-point-min
    #:context-point-min*
+   #:context-point-max
    #:context-point-max*
    ;; Basic composables commands
    #:insert
@@ -204,44 +213,89 @@
   (when (current-command*)
     (command-context (current-command*))))
 
+(defun context-get (context key)
+  (gethash key context))
+
+(defun context-set (context key value)
+  (setf (gethash key context) value))
+
+(defun context-buffer-string (context)
+  "Get the \"buffer-string\" from the CONTEXT.
+The buffer-string is the content of the buffer.
+It can be null."
+  (context-get context :buffer-string))
+
 (defun context-buffer-string* ()
   "Get the \"buffer-string\" from the *current-command*'s context.
 The buffer-string is the content of the buffer.
 It can be null."
-  (gethash :buffer-string (command-context*)))
+  (context-get (command-context*) :buffer-string))
+
+(defun context-buffer-name (context)
+  "Get the \"buffer-name\" from the CONTEXT.
+The buffer-name is the name of the buffer.
+It can be null."
+  (context-get context :buffer-name))
 
 (defun context-buffer-name* ()
   "Get the \"buffer-name\" from the *current-command*'s context.
 The buffer-name is the name of the buffer.
 It can be null."
-  (gethash :buffer-name (command-context*)))
+  (context-get (command-context*) :buffer-name))
+
+(defun context-buffer-file-name (context)
+  "Get the \"buffer-file-name\" the CONTEXT.
+The buffer-file-name is the name of the file that the buffer is
+visiting.
+It can be null."
+  (context-get context :buffer-string))
 
 (defun context-buffer-file-name* ()
   "Get the \"buffer-file-name\" from the *current-command*'s context.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
-  (gethash :buffer-string (command-context*)))
+  (context-get (command-context*) :buffer-string))
+
+(defun context-point (context)
+  "Get the \"point\" from the CONTEXT.
+The point is the position of the cursor.
+It can be null."
+  (context-get context :point))
 
 (defun context-point* ()
   "Get the \"point\" from the *current-command*'s context.
 The point is the position of the cursor.
 It can be null."
-  (gethash :point (command-context*)))
+  (context-get (command-context*) :point))
+
+(defun context-point-min (context)
+  "Get the \"point-min\" from the CONTEXT.
+The point-min is the position of the beggining of buffer-string.
+See \"narrowing\" in Emacs.
+It can be null."
+  (context-get context :point-min))
 
 (defun context-point-min* ()
   "Get the \"point-min\" from the *current-command*'s context.
 The point-min is the position of the beggining of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (gethash :point-min (command-context*)))
+  (context-get (command-context*) :point-min))
+
+(defun context-point-max (context)
+  "Get the \"point-max\" from the CONTEXT.
+The point-max is the position of the end of buffer-string.
+See \"narrowing\" in Emacs.
+It can be null."
+  (context-get context :point-max))
 
 (defun context-point-max* ()
   "Get the \"point-max\" from the *current-command*'s context.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (gethash :point-max (command-context*)))
+  (context-get (command-context*) :point-max))
 
 
 
