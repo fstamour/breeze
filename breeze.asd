@@ -1,5 +1,10 @@
 
-(asdf:defsystem #:breeze
+(defpackage #:breeze.asd
+  (:use :cl :asdf))
+
+(in-package #:breeze.asd)
+
+(defsystem #:breeze
   :name "breeze"
   :version "0"
   :maintainer "Francis St-Amour"
@@ -41,7 +46,7 @@
   :in-order-to ((test-op (load-op #:breeze/test)))
   :perform
   (test-op (o c)
-	   (symbol-call
+	   (uiop:symbol-call
 	    '#:breeze.user '#:selftest)))
 
 

@@ -1,7 +1,7 @@
 (in-package #:common-lisp-user)
 
-(defpackage #:breeze.refactor
-  (:use #:cl #:breeze.command)
+(uiop:define-package #:breeze.refactor
+    (:use #:cl #:breeze.command)
   (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name
@@ -277,10 +277,10 @@ defvar."
 ;;      ^^^ that should go in "refactor.lisp"
 (define-command insert-define-constant ()
   "Insert a alexandria:define-constant form."
-  (insert-defvar-shaped "define-constant" all))
+  (insert-defvar-shaped "define-constant"))
 
 
-(define-command insert-defun-shaped (form-name all)
+(defun insert-defun-shaped (form-name)
   "Start a command to insert a form that has the same shape as a
 defun."
   (insert "(~a " form-name)
@@ -290,13 +290,13 @@ defun."
    "Enter the arguments: " "~a)~%)")
   (backward-char))
 
-(defun insert-defun (&rest all)
+(define-command insert-defun ()
   "Insert a defun form."
-  (insert-defun-shaped "defun" all))
+  (insert-defun-shaped "defun"))
 
-(defun insert-defmacro (&rest all)
+(define-command insert-defmacro ()
   "Insert a defmacro form."
-  (insert-defun-shaped "defmacro" all))
+  (insert-defun-shaped "defmacro"))
 
 (defparameter *insert-defpackage/cl-user-prefix* nil
   "Whether to include (in-package #:cl-user) before a defpackage form.")

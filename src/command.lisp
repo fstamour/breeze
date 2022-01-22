@@ -4,7 +4,8 @@
   (:use :cl)
   (:import-from #:alexandria
 		#:symbolicate
-		#:with-gensyms)
+		#:with-gensyms
+		#:if-let)
   (:export
    #:start-command
    #:cancel-command
@@ -42,7 +43,7 @@
     :type (or null chanl:channel)))
   (:documentation "A task (thread) with a channel."))
 
-(defclass command-state ()
+(defclass command-handler ()
   ((tasklet
     :initform nil
     :initarg :tasklet
@@ -53,13 +54,16 @@
     :initarg :context
     :accessor command-context)))
 
-(defmethod command-channel-in ((command-state command-state))
-  (tasklet-channel-in
-   (command-tasklet command-state)))
+(defmethod tasklet-channer-in ((_ (eql nil))) nil)
+(defmethod tasklet-channer-out ((_ (eql nil))) nil)
 
-(defmethod command-channel-out ((command-state command-state))
-  (tasklet-channel-out
-   (command-tasklet command-state)))
+(defmethod command-channel-in ((command-handler command-handler))
+  (if-let ((tasklet (command-tasklet command-handler)))
+    (tasklet-channel-in tasklet)))
+
+(defmethod command-channel-out ((command-handler command-handler))
+  (if-let ((tasklet (command-tasklet command-handler)))
+    (tasklet-channel-out tasklet)))
 
 
 
@@ -98,11 +102,14 @@
 (make-tasklet ()
   (format t "~&hi!"))
 
+;; TODO This function the festival of race conditions
 (defun donep (command)
   (or
    (null command)
-   (and (chanl:recv-blocks-p (command-channel-out command))
-	(not (chanl:task-thread (command-tasklet command))))))
+   (and
+    (if-let ((channel (command-channel-out command)))
+      (chanl:recv-blocks-p channel))
+    (not (chanl:task-thread (command-tasklet command))))))
 
 (defun current-command* ()
   "Helper to get the current command, or correctly set it to nil."
@@ -172,7 +179,7 @@
   (reset-current-command-on-unwind
     (setf *current-command*
 	  (make-instance
-	   'command-state
+	   'command-handler
 	   :context (context-plist-to-hash-table context-plist)))
     (setf (command-tasklet *current-command*)
 	  (make-tasklet ()
