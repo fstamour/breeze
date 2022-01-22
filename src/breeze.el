@@ -409,15 +409,20 @@ lisp's reader doesn't convert them."
    (breeze-eval-list
     (format "(%s %s)" name (breeze-compute-buffer-args)))))
 
+(defun breeze-command-cancel ()
+  (breeze-eval
+   (format "(breeze.command:cancel-command)"))
+  (message "Breeze: command canceled."))
+
 (defun breeze-command-continue (response send-response-p)
   (let ((request
 	  (breeze-cl-to-el-list
 	   (breeze-eval-list
 	    (if send-response-p
 		(format
-		 "(breeze.command:call-next-callback %s)"
+		 "(breeze.command:continue-command %s)"
 		 (prin1-to-string response))
-	      "(breeze.command:call-next-callback)")))))
+	      "(breeze.command:continue-command)")))))
     (message "Breeze: request received: %s"
 	     (prin1-to-string request))
     request))
@@ -458,25 +463,28 @@ lisp's reader doesn't convert them."
 (defun breeze-run-command (name)
   "Runs a \"breeze command\". TODO Improve this docstring."
   (interactive)
-  (cl-loop
-   ;; guards against infinite loop
-   for i below 1000
-   for
-   ;; Start the command
-   request = (breeze-command-start name)
-   ;; Continue the command
-   then (breeze-command-continue response send-response-p)
-   ;; "Request" might be nil, if it is, we're done
-   while request
-   ;; Wheter or not we need to send arguments to the next callback.
-   for send-response-p = (member (car request)
-				 '("choose" "read-string"))
-   ;; Process the command's request
-   for response = (breeze-command-process-request request)
-   ;; Log request and response (for debugging)
-   do (message "Breeze: request received: %s response to send %s"
-	       (prin1-to-string request)
-	       (prin1-to-string response))))
+  (condition-case condition
+      (cl-loop
+       ;; guards against infinite loop
+       for i below 1000
+       for
+       ;; Start the command
+       request = (breeze-command-start name)
+       ;; Continue the command
+       then (breeze-command-continue response send-response-p)
+       ;; "Request" might be nil, if it is, we're done
+       while request
+       ;; Wheter or not we need to send arguments to the next callback.
+       for send-response-p = (member (car request)
+				     '("choose" "read-string"))
+       ;; Process the command's request
+       for response = (breeze-command-process-request request)
+       ;; Log request and response (for debugging)
+       do (message "Breeze: request received: %s response to send %s"
+		   (prin1-to-string request)
+		   (prin1-to-string response)))
+    (t
+     (breeze-command-cancel))))
 
 (defun breeze-quickfix ()
   "SHADOWS the real breeze-quickfix, just for quick prototyping."

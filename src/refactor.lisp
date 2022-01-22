@@ -5,7 +5,8 @@
   (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name
-   #:before-last)
+   #:before-last
+   #:positivep)
   (:import-from
    #:breeze.reader
    #:parse-string
@@ -251,7 +252,7 @@
    "Enter the variable name for the value: "
    "~a)"))
 
-(define-command insert-defvar-shaped (form-name all)
+(defun insert-defvar-shaped (form-name)
   "Start a command to insert a form that has the same shape as a
 defvar."
   (insert "(~a " form-name)
@@ -260,21 +261,21 @@ defvar."
   (read-string-then-insert "Initial value: " "~a~%")
   (read-string-then-insert "Documentation string " "\"~a\")"))
 
-(defun insert-defvar (&rest all)
+(define-command insert-defvar ()
   "Insert a defvar form."
-  (insert-defvar-shaped "defvar" all))
+  (insert-defvar-shaped "defvar"))
 
-(defun insert-defparameter (&rest all)
+(define-command insert-defparameter ()
   "Insert a defparameter form."
-  (insert-defvar-shaped "defparameter" all))
+  (insert-defvar-shaped "defparameter"))
 
-(defun insert-defconstant (&rest all)
+(define-command insert-defconstant ()
   "Insert a defconstant form."
-  (insert-defvar-shaped "defconstant" all))
+  (insert-defvar-shaped "defconstant"))
 
 ;; TODO Add "alexandria" when the symbol is not interned
 ;;      ^^^ that should go in "refactor.lisp"
-(defun insert-define-constant (&rest all)
+(define-command insert-define-constant ()
   "Insert a alexandria:define-constant form."
   (insert-defvar-shaped "define-constant" all))
 
@@ -297,15 +298,36 @@ defun."
   "Insert a defmacro form."
   (insert-defun-shaped "defmacro" all))
 
+(defparameter *insert-defpackage/cl-user-prefix* nil
+  "Whether to include (in-package #:cl-user) before a defpackage form.")
+
 (define-command insert-defpackage ()
   "Insert a defpackage form."
   (read-string "Name of the package: ")
   (handle (package-name)
+    (when *insert-defpackage/cl-user-prefix*
+      (insert
+       "(cl:in-package #:cl-user)~%~%~"))
     (insert
-     "(cl:in-package #:common-lisp-user)~%~%~
-                            (defpackage #:~a~%  (:use #:cl))~%~
-                            ~%(in-package #:~a)"
+     "(defpackage #:~a~
+    ~%  (:use #:cl)~
+    ~%  (:documentation \"\"))~
+    ~%~
+    ~%(in-package #:~a)"
      package-name package-name)))
+
+(define-command insert-local-nicknames ()
+  "Insert local nicknames."
+  (insert
+   "(:local-nicknames ~{~a~^~%~})"
+   (loop :for name =
+	 ;; TODO This form is not ideal...
+		   (progn (read-string "Name of the package to alias: ")
+			  (handle (name) name))
+	 :while (positivep (length name)) ; TODO there's a better function for that somewhere too..
+	 :for alias = (progn (read-string "Alias of the package: ")
+			     (handle (name) name))
+	 :collect (format nil "(#:~a #:~a)" alias name))))
 
 (define-command insert-in-package-cl-user ()
   "Insert (cl:in-package #:cl-user)"
@@ -476,52 +498,63 @@ For debugging purposes ONLY.")
       (setf commands
 	    (append *commands-applicable-at-toplevel*
 		    commands)))
+    (flet ((append-commands (cmds)
+	     (setf commands (append cmds commands)))
+	   (push-function (fn)
+	     (push (command-description fn) commands)))
 
-    ;; All the time?
-    (setf commands
-	  (append
-	   *commands-applicable-inside-another-form-or-at-toplevel*
-	   commands))
+      ;; All the time?
+      (append-commands
+       *commands-applicable-inside-another-form-or-at-toplevel*)
 
-    (when (or
-	   ;; in-between forms
-	   (null outer-node)
-	   ;; just at the start or end of a form
-	   (= position (node-start outer-node))
-	   (= position (node-end outer-node))
-	   ;; inside a comment (or a form disabled by a
-	   ;; feature-expression)
-	   (typep outer-node
-		  'breeze.reader:skipped-node))
-      (setf commands
-	    (append *commands-applicable-at-toplevel* commands)))
-    (when
-	(or
-	 (loop-form-p parent-node)
-	 (loop-form-p inner-node))
-      (setf commands
-	    (append commands *commands-applicable-in-a-loop-form*)))
-    ;; Print debug information
-    (when t
-      (when outer-node
-	(format *debug-io* "~&Current top-level node's raw: ~s"
-		(breeze.reader:node-raw outer-node)))
-      #+ (or)
-      (format *debug-io* "~&Current node: ~a"
-	      (breeze.reader:unparse-to-string outer-node))
-      ;; (format *debug-io* "~&Is current node a defpackage ~a" (defpackage-node-p outer-node))
+      (when (or
+	     ;; in-between forms
+	     (null outer-node)
+	     ;; just at the start or end of a form
+	     (= position (node-start outer-node))
+	     (= position (node-end outer-node))
+	     ;; inside a comment (or a form disabled by a
+	     ;; feature-expression)
+	     (typep outer-node
+		    'breeze.reader:skipped-node))
+	(append-commands *commands-applicable-at-toplevel*))
 
-      (format *debug-io* "~&position ~a" position)
-      (format *debug-io* "~&positions ~a" (mapcar #'node-source nodes))
-      ;; (format *debug-io* "~&nodes ~a" nodes)
-      )
+      (when
+	  (or
+	   (loop-form-p parent-node)
+	   (loop-form-p inner-node))
+	(append-commands *commands-applicable-in-a-loop-form*))
+
+
+      (when (defpackage-form-p inner-node)
+	(push-function 'insert-local-nicknames))
+
+      ;; Print debug information
+
+      (when t
+	(when outer-node
+	  (format *debug-io* "~&Current top-level node's raw: ~s"
+		  (breeze.reader:node-raw outer-node)))
+	#+ (or)
+	(format *debug-io* "~&Current node: ~a"
+		(breeze.reader:unparse-to-string outer-node))
+	;; (format *debug-io* "~&Is current node a defpackage ~a" (defpackage-node-p outer-node))
+
+	(format *debug-io* "~&position ~a" position)
+	(format *debug-io* "~&positions ~a" (mapcar #'node-source nodes))
+	;; (format *debug-io* "~&nodes ~a" nodes)
+	))
+
     ;; Deduplicate commands
+
     (setf commands (remove-duplicates commands :key #'car))
     ;; Save some information for debugging
+
     (setf *qf* `(,@context
 		 :nodes ,nodes
 		 :commands ,commands))
     ;; Ask the user to choose a command
+
     (choose "Choose a command: "
 	    (mapcar #'second commands))
     (handle (choice)

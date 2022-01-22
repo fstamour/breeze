@@ -7,7 +7,8 @@
 		#:with-gensyms)
   (:export
    #:start-command
-   #:call-next-callback
+   #:cancel-command
+   #:continue-command
    ;; Functions to access the context
    #:command-context*
    #:context-buffer-string*
@@ -179,12 +180,14 @@
 	      (funcall thunk))))
     (run-callback *current-command* nil)))
 
-(defun call-next-callback (&rest arguments)
+(defun cancel-command ()
+  ;; TODO Kill the associated thread.
+  (setf *current-command* nil))
+
+(defun continue-command (&rest arguments)
   "Continue procressing *current-command*."
   (reset-current-command-on-unwind
     (run-callback *current-command* arguments)))
-
-;; (call-next-callback)
 
 
 ;;; Utilities to get common stuff from the context
@@ -364,7 +367,8 @@ using keyword arguments."
 (trace
  insert*
  ;; start-command ; don't: too verbose
- call-next-callback
+ cancel-command
+ continue-command
  run-callback
  command-recv
  command-send
