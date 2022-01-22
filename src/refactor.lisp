@@ -3,10 +3,14 @@
 (uiop:define-package #:breeze.refactor
     (:use #:cl #:breeze.command)
   (:import-from
+   #:alexandria
+   #:if-let)
+  (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name
    #:before-last
-   #:positivep)
+   #:positivep
+   #:find-version-control-root)
   (:import-from
    #:breeze.reader
    #:parse-string
@@ -301,9 +305,44 @@ defun."
 (defparameter *insert-defpackage/cl-user-prefix* nil
   "Whether to include (in-package #:cl-user) before a defpackage form.")
 
+(defun directory-name (pathname)
+  (alexandria:lastcar (pathname-directory pathname)))
+
+(defun infer-project-name (path)
+  "Try to infer the name of the project from the PATH."
+  ;; Infer project-name by location .git folder
+  (when path
+    (if-let ((vc-root (find-version-control-root path)))
+      (directory-name vc-root))))
+
+(defun infer-is-test-file (path)
+  "Try to infer if a file is part of the tests."
+  (when path
+    (member
+     (directory-name path)
+     '("test" "tests" "t")
+     :test #'string-equal)))
+
+(defun infer-package-name-from-file (file-pathname)
+  "Given a FILE-PATHNAME, infer a proper package name."
+  (when file-pathname
+    (let ((project (infer-project-name file-pathname))
+	  (test (when (infer-is-test-file file-pathname)
+		  "test"))
+	  (name (pathname-name file-pathname)))
+      (format nil "~{~a~^.~}"
+	      (remove-if #'null (list project test name))))))
+
+#+ (or)
+(trace
+ infer-project-name
+ infer-is-test-file
+ infer-package-name-from-file)
+
 (define-command insert-defpackage ()
   "Insert a defpackage form."
-  (read-string "Name of the package: ")
+  (read-string "Name of the package: "
+	       (infer-package-name-from-file buffer-file-name))
   (handle (package-name)
     (when *insert-defpackage/cl-user-prefix*
       (insert
@@ -474,6 +513,25 @@ For debugging purposes ONLY.")
 #+(or) (in-package-form-p
 	(car (getf *qf* :nodes)))
 
+(defun augment-context-by-parsing-the-buffer (context)
+  (let* ((buffer-string (context-buffer-string context))
+	 ;; Emacs's point starts at 1
+	 (position (1- (context-point context)))
+	 ;; Parse the buffer
+	 (nodes (parse-string buffer-string))
+	 (path (find-path-to-node position nodes))
+	 ;; Find the top-level form "at point"
+	 (outer-node (caar path))
+	 ;; Find the innermost form "at point"
+	 (inner-node (car (alexandria:lastcar path)))
+	 (inner-node-index (cdr (alexandria:lastcar path)))
+	 ;; Find the innermost form's parent
+	 (parent-node (car (before-last path))))
+    #. `(progn ,@(loop :for key in '(position nodes path outer-node
+				     inner-node inner-node-index parent-node)
+		       :collect
+		       `(context-set context ',key ,key)))))
+
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (let* (;; Parse the buffer
@@ -492,82 +550,63 @@ For debugging purposes ONLY.")
 	 ;; the current context
 	 (commands))
     (declare (ignorable inner-node inner-node-index parent-node))
-    ;; When the buffer is empty, or only contains comments and
-    ;; whitespaces.
-    (when (emptyp nodes)
-      (setf commands
-	    (append *commands-applicable-at-toplevel*
-		    commands)))
-    (flet ((append-commands (cmds)
-	     (setf commands (append cmds commands)))
-	   (push-function (fn)
-	     (push (command-description fn) commands)))
 
-      ;; All the time?
-      (append-commands
-       *commands-applicable-inside-another-form-or-at-toplevel*)
+    (labels ((append-commands (cmds)
+	       (setf commands (append cmds commands)))
+	     (push-function (fn)
+	       (push (command-description fn) commands))
+	     (push-function* (&rest fns)
+	       (mapcar #'push-function fns)))
+      (cond
+	;; When the buffer is empty, or only contains comments and
+	;; whitespaces.
+	((emptyp nodes)
+	 (push-function*
 
-      (when (or
-	     ;; in-between forms
-	     (null outer-node)
-	     ;; just at the start or end of a form
-	     (= position (node-start outer-node))
-	     (= position (node-end outer-node))
-	     ;; inside a comment (or a form disabled by a
-	     ;; feature-expression)
-	     (typep outer-node
-		    'breeze.reader:skipped-node))
-	(append-commands *commands-applicable-at-toplevel*))
-
-      (when
-	  (or
-	   (loop-form-p parent-node)
-	   (loop-form-p inner-node))
-	(append-commands *commands-applicable-in-a-loop-form*))
-
-
-      (when (defpackage-form-p inner-node)
-	(push-function 'insert-local-nicknames))
-
-      ;; Print debug information
-
-      (when t
-	(when outer-node
-	  (format *debug-io* "~&Current top-level node's raw: ~s"
-		  (breeze.reader:node-raw outer-node)))
-	#+ (or)
-	(format *debug-io* "~&Current node: ~a"
-		(breeze.reader:unparse-to-string outer-node))
-	;; (format *debug-io* "~&Is current node a defpackage ~a" (defpackage-node-p outer-node))
-
-	(format *debug-io* "~&position ~a" position)
-	(format *debug-io* "~&positions ~a" (mapcar #'node-source nodes))
-	;; (format *debug-io* "~&nodes ~a" nodes)
-	))
+	  'insert-defpackage))
+	;; TODO Check if files ends with ".asd"
+	;; (push-function 'insert-asdf)
+	((or
+	  ;; in-between forms
+	  (null outer-node)
+	  ;; just at the start or end of a form
+	  (= position (node-start outer-node))
+	  (= position (node-end outer-node))
+	  ;; inside a comment (or a form disabled by a
+	  ;; feature-expression)
+	  (typep outer-node
+		 'breeze.reader:skipped-node))
+	 (append-commands *commands-applicable-at-toplevel*))
+	((or
+	  (loop-form-p parent-node)
+	  (loop-form-p inner-node))
+	 (append-commands *commands-applicable-in-a-loop-form*))
+	((defpackage-form-p inner-node)
+	 (push-function 'insert-local-nicknames))
+	(t
+	 (append-commands
+	  *commands-applicable-inside-another-form-or-at-toplevel*))))
 
     ;; Deduplicate commands
-
     (setf commands (remove-duplicates commands :key #'car))
+
     ;; Save some information for debugging
-
     (setf *qf* `(,@context
-		 :nodes ,nodes
-		 :commands ,commands))
-    ;; Ask the user to choose a command
+		 (:nodes ,nodes)
+		 (:outer-node ,outer-node)
+		 (:inner-node ,inner-node)
+		 (:parent-node ,parent-node)
+		 (:commands ,commands)))
 
+    ;; Ask the user to choose a command
     (choose "Choose a command: "
 	    (mapcar #'second commands))
     (handle (choice)
       (let ((command-function (car (find choice commands
 					 :key #'second
 					 :test #'string=))))
-	#+ (or)
-	(progn
-	  (format *debug-io* "~&Command function: ~s" command-function)
-	  (finish-output))
-	(funcall command-function))
-      ;; TODO no need for "run-command" anymore...
-      )))
+	(funcall command-function)))))
+
 
 #+nil
 (quickfix :buffer-string "   " :point 3)

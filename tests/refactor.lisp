@@ -43,6 +43,12 @@
      :point-min 0
      :point-max (length buffer-string))))
 
+#+ (or)
 (test-quickfix
  "mapcar.lisp"
  "(mapcar " ")")
+
+#+ (or)
+(context-buffer-string
+ (alexandria:plist-hash-table
+  '(:buffer-string "asdf")))

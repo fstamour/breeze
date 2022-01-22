@@ -63,8 +63,12 @@
     :initarg :context
     :accessor command-context)))
 
-(defmethod tasklet-channer-in ((_ (eql nil))) nil)
-(defmethod tasklet-channer-out ((_ (eql nil))) nil)
+(defmethod tasklet-channer-in ((_ (eql nil)))
+  (warn "tasklet-channer-in called on nil.")
+  nil)
+(defmethod tasklet-channer-out ((_ (eql nil)))
+  (warn "tasklet-channer-out called on nil.")
+  nil)
 
 (defmethod command-channel-in ((command-handler command-handler))
   (if-let ((tasklet (command-tasklet command-handler)))
@@ -111,20 +115,29 @@
 (make-tasklet ()
   (format t "~&hi!"))
 
+(defun cancel-command (&optional reason)
+  ;; TODO Kill the associated thread.
+  (setf *current-command* nil)
+  (when reason
+    ;; TODO We probably don't want that...
+    (error reason))
+  ;; (format *debug-io* "~&*current-command* reset.")
+  )
+nil
+
+(trace chanl:task-thread)
+
 ;; TODO This function the festival of race conditions
 (defun donep (command)
   (or
    (null command)
-   (and
-    (if-let ((channel (command-channel-out command)))
-      (chanl:recv-blocks-p channel))
-    (not (chanl:task-thread (command-tasklet command))))))
+   (not (chanl:task-thread (command-tasklet command)))))
 
 (defun current-command* ()
   "Helper to get the current command, or correctly set it to nil."
   (when *current-command*
     (if (donep *current-command*)
-	(setf *current-command* nil)
+	(cancel-command "Done")
 	*current-command*)))
 
 (defun %recv (channel)
@@ -142,21 +155,30 @@
 (defun command-send (command value)
   (%send (command-channel-in command) value))
 
-(defun run-callback (command arguments)
+(defun run-command (command arguments)
   "Receive request from the command tasklet, process them..."
   (if (donep command)
-      (setf *current-command* nil)
+      (cancel-command)
       (progn
 	(when arguments
 	  (command-send command arguments))
-	(command-recv command))))
+	(let ((request
+		(command-recv command)))
+	  (unless request
+	    (cancel-command "Request is null."))
+	  request))))
 
-(defmacro reset-current-command-on-unwind (&body body)
-  `(handler-bind
-       ((error #'(lambda (condition)
-		   (declare (ignore condition))
-		   (setf *current-command* nil))))
-     (progn ,@body)))
+(defun call-with-cancel-command-on-error (thunk)
+  (handler-bind
+      ((error #'(lambda (condition)
+		  ;; (declare (ignore condition))
+		  (format *debug-io* "~&An error occured: ~a" condition)
+		  (cancel-command condition))))
+    (funcall thunk)))
+
+(defmacro cancel-command-on-error (&body body)
+  `(call-with-cancel-command-on-error
+    (lambda () ,@body)))
 
 (defun context-plist-to-hash-table (context-plist)
   (loop
@@ -183,27 +205,36 @@
  (context-plist-to-hash-table '(buffer-string "asdf" ok 42)))
 ;; => (OK 42 :BUFFER-STRING "asdf")
 
+;; (setf *break-on-signals* 'error)
+
 (defun start-command (context-plist thunk)
   "Start processing a command, initializing *current-command*."
-  (reset-current-command-on-unwind
+  (cancel-command-on-error
+    ;; Create the command handler with the right context
     (setf *current-command*
 	  (make-instance
 	   'command-handler
 	   :context (context-plist-to-hash-table context-plist)))
+    ;; Create the thread for the command handler
     (setf (command-tasklet *current-command*)
 	  (make-tasklet ()
-	    (reset-current-command-on-unwind
+	    (cancel-command-on-error
+	      ;; Send a message to tell the thread is up and running
+	      (chanl:send *channel-out* :started)
 	      (funcall thunk))))
-    (run-callback *current-command* nil)))
+    ;; Wait for the thread to be up and running
+    (chanl:recv
+     (command-channel-out *current-command*))
+    ;; Get the thread's request and return it.
+    (run-command *current-command* nil)))
 
-(defun cancel-command ()
-  ;; TODO Kill the associated thread.
-  (setf *current-command* nil))
 
 (defun continue-command (&rest arguments)
   "Continue procressing *current-command*."
-  (reset-current-command-on-unwind
-    (run-callback *current-command* arguments)))
+  (unless *current-command*
+    (error "Continue-command called when no commands are currently running."))
+  (cancel-command-on-error
+    (run-command *current-command* arguments)))
 
 
 ;;; Utilities to get common stuff from the context
@@ -248,14 +279,14 @@ It can be null."
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
-  (context-get context :buffer-string))
+  (context-get context :buffer-file-name))
 
 (defun context-buffer-file-name* ()
   "Get the \"buffer-file-name\" from the *current-command*'s context.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
-  (context-get (command-context*) :buffer-string))
+  (context-get (command-context*) :buffer-file-name))
 
 (defun context-point (context)
   "Get the \"point\" from the CONTEXT.
@@ -328,9 +359,9 @@ position."
 		 (lambda ()
                    (insert "Test"))))
 
-(defun read-string (prompt)
+(defun read-string (prompt &optional initial-input)
   "Send a message to the editor to ask the user to enter a string."
-  (send "read-string" prompt))
+  (send "read-string" prompt initial-input))
 
 (defun read-string-then-insert (prompt control-string)
   (read-string prompt)
@@ -426,11 +457,22 @@ using keyword arguments."
 
 #+ (or)
 (trace
+ start-command
+ continue-command
+ run-command
+ call-with-cancel-command-on-error
+ cancel-command
+ donep)
+
+;; (untrace)
+
+#+ (or)
+(trace
  insert*
  ;; start-command ; don't: too verbose
  cancel-command
  continue-command
- run-callback
+ run-command
  command-recv
  command-send
  donep
@@ -440,4 +482,5 @@ using keyword arguments."
 
  insert
  read-string
- read-string-then-insert)
+ read-string-then-insert
+ choose)

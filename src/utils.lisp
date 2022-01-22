@@ -17,7 +17,8 @@
    #:read-stream-range
    #:positivep
    #:symbol-package-qualified-name
-   #:before-last))
+   #:before-last
+   #:find-version-control-root))
 
 (in-package #:breeze.utils)
 
@@ -236,3 +237,25 @@ sytsem-files"
 	:finally (return
 		   (when (cdr rest)
 		     (car rest)))))
+
+
+(defun find-witness-in-parent-directories (starting-path witness)
+  (loop
+    :repeat 1000 ; guard against infinite loop
+    :for oldpath = nil :then path
+    :for path = (uiop:pathname-directory-pathname starting-path)
+      :then
+      (uiop:pathname-parent-directory-pathname path)
+    :for git-directory = (uiop:directory-exists-p
+			  (merge-pathnames witness path))
+    :until (or
+	    git-directory
+	    (equal oldpath path))
+    :finally (return git-directory)))
+
+(defun find-git-witness-folder (path)
+  (find-witness-in-parent-directories path ".git/"))
+
+(defun find-version-control-root (path)
+  (alexandria:if-let ((git-witness-directory (find-git-witness-folder path)))
+    (uiop:pathname-parent-directory-pathname git-witness-directory)))

@@ -46,6 +46,7 @@
 (defun breeze-eval-value-only (string)
   (cl-destructuring-bind (output value)
       (breeze-eval string)
+    (message "Breeze: got the value: %S" value)
     value))
 
 (defun breeze-eval-predicate (string)
@@ -62,8 +63,10 @@
   (let ((list (car
 	       (read-from-string
 		(breeze-eval-value-only string)))))
-    (when (listp list)
-      list)))
+    (if (listp list)
+	list
+      (message "Breeze: expected a list got: %S" list)
+      nil)))
 
 (defun breeze-interactive-eval (string)
   (slime-eval `(swank:interactive-eval ,string)))
@@ -186,47 +189,6 @@ Othewise, return the position of the character."
   (if (breeze-contains-space-or-capital name)
       (concat "|" name "|")
     name))
-
-
-;;; Insertion commands (mostly skeletons)
-
-;; TODO Move to common lisp
-(defun breeze-infer-project-name ()
-  "Try to find the project's name"
-  ;; TODO look at current *package*
-  ;; TODO look at git's remotes' url
-  ;; TODO look at .asd file <===
-  (when (vc-root-dir) ;; TODO this doesn't always work :(
-    (file-name-nondirectory
-     (directory-file-name
-      (vc-root-dir)))))
-
-;; (breeze-infer-project-name)
-
-;; TODO Move to common lisp
-(defun breeze-is-in-test-directory ()
-  "Try to figure out if the current file is in the test directory."
-  (when buffer-file-name
-    (member
-     (file-name-nondirectory
-      (directory-file-name
-       (file-name-directory
-	buffer-file-name)))
-     '("test" "tests" "t"))))
-
-;; TODO Move to common lisp
-(defun breeze-infer-package-name-from-file (&optional file-name)
-  "Given a FILE-NAME or the buffer's file name, infer a proper package name."
-  (let ((project (breeze-infer-project-name))
-	(testp (breeze-is-in-test-directory))
-	(result
-	 (file-name-base (or file-name buffer-file-name))))
-    (message "project \"%s\"" project)
-    (when project
-      (setf result (concat project "." result)))
-    (when testp
-      (setf result (concat result ".test")))
-    result))
 
 
 ;;; code modification
@@ -405,14 +367,22 @@ lisp's reader doesn't convert them."
 	    list)))
 
 (defun breeze-command-start (name)
-  (breeze-cl-to-el-list
-   (breeze-eval-list
-    (format "(%s %s)" name (breeze-compute-buffer-args)))))
+  (message "Breeze: starting command: %s." name)
+  (let ((request
+	  (breeze-cl-to-el-list
+	   (breeze-eval-list
+	    (format "(%s %s)" name (breeze-compute-buffer-args))))))
+    (message "Breeze: got the request: %S" request)
+    (if request
+	request
+      (progn (message "Breeze: start-command returned nil")
+	     nil))))
 
 (defun breeze-command-cancel ()
   (breeze-eval
    (format "(breeze.command:cancel-command)"))
   (message "Breeze: command canceled."))
+;; (breeze-command-cancel)
 
 (defun breeze-command-continue (response send-response-p)
   (let ((request
@@ -420,11 +390,9 @@ lisp's reader doesn't convert them."
 	   (breeze-eval-list
 	    (if send-response-p
 		(format
-		 "(breeze.command:continue-command %s)"
-		 (prin1-to-string response))
+		 "(breeze.command:continue-command %S)" response)
 	      "(breeze.command:continue-command)")))))
-    (message "Breeze: request received: %s"
-	     (prin1-to-string request))
+    (message "Breeze: request received: %S" request)
     request))
 
 (defun breeze-command-process-request (request)
@@ -433,7 +401,7 @@ lisp's reader doesn't convert them."
      (completing-read (second request)
 		      (third request)))
     ("read-string"
-     (read-string (second request)))
+     (apply #'read-string (rest request)))
     ("insert-at"
      (cl-destructuring-bind (_ position string)
 	 request
@@ -457,7 +425,8 @@ lisp's reader doesn't convert them."
      (backward-char (second request))
      ;; Had to do this hack so the cursor is positioned
      ;; correctly... probably because of aggressive-indent
-     (funcall indent-line-function))))
+     (funcall indent-line-function))
+    (_ (error "Invalid request: %S" request) )))
 
 
 (defun breeze-run-command (name)
@@ -480,10 +449,11 @@ lisp's reader doesn't convert them."
        ;; Process the command's request
        for response = (breeze-command-process-request request)
        ;; Log request and response (for debugging)
-       do (message "Breeze: request received: %s response to send %s"
-		   (prin1-to-string request)
-		   (prin1-to-string response)))
+       do (message "Breeze: request received: %S response to send %S"
+		   request
+		   response))
     (t
+     (message "Breeze run command: got the condition %s" condition)
      (breeze-command-cancel))))
 
 (defun breeze-quickfix ()

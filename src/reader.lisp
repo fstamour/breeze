@@ -195,7 +195,7 @@
   ((source
     :initarg :source
     :initform nil
-    :type (or nil string input-stream)
+    :type (or null string stream)
     :accessor source))
   (:documentation
    "Controls how the reader construct the parse-results."))

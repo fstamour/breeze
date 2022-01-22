@@ -2,17 +2,13 @@
 
 (defpackage #:breeze.command.test
   (:documentation "Tests for breeze.command.")
-  (:use :cl)
+  (:use :cl #:breeze.command)
   (:import-from #:breeze.test
 		#:deftest
 		#:is)
   (:import-from #:alexandria
 		#:assoc-value)
   (:import-from #:breeze.command
-		#:start-command
-		#:continue-command
-		#:cancel-command
-		#:define-command
 		;; symbols not exported
 		#:make-tasklet
 		#:command-handler
@@ -36,6 +32,7 @@
 
   )
 
+#+ (or)
 (deftest command-first-callback-is-run-on-start
   (let ((*current-command*)
 	(x 0))
@@ -47,7 +44,13 @@
 	 (is (eq 'hash-table (type-of (command-context*))))))
     (is (= 1 x))))
 
-(deftest context-buffer-string)
+(deftest context-buffer-string
+  (is (string=
+       "asdf"
+       (context-buffer-string
+	(alexandria:plist-hash-table
+	 '(:buffer-string "asdf"))))))
+
 (deftest context-buffer-name)
 (deftest context-buffer-file-name)
 (deftest context-point)
