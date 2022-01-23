@@ -10,7 +10,7 @@
 
 
 
-(define-condition external-symbol-not-found (error)
+(define-condition external-symbol-not-found (simple-error)
   ((package
     :reader external-symbol-not-found-package
     :initarg :package
@@ -59,47 +59,43 @@ Backtrace:
  --more--
 |#
 
-(handler-case (progn
-                (unless (find-package 'temp)
-                  (make-package 'temp :use nil))
-                (read-from-string "temp:symbol"))
-  (error (e)
-    (when (esnf:external-symbol-not-found-p e)
-      (error
-       (make-condition 'external-symbol-not-found
-		       :package (esnf:external-symbol-not-found-package e)
-		       :symbol (esnf:external-symbol-not-found-symbol-name e)
-		       :condition e)))))
+(handler-bind
+    ((error
+       #'(lambda (e)
+	   (when (esnf:external-symbol-not-found-p e)
+	     (let ((new-condition
+	      (make-condition 'external-symbol-not-found
+			      :package (esnf:external-symbol-not-found-package e)
+			      :symbol (esnf:external-symbol-not-found-symbol-name e)
+			      :condition e
+			      :format-control (simple-condition-format-control e)
+			      :format-arguments (simple-condition-format-arguments e))))
+	       (error new-condition))))))
+  (progn
+    (unless (find-package 'temp)
+      (make-package 'temp :use nil))
+    (read-from-string "temp:symbol")))
+
 
 #|
-Condition BREEZE.EXTERNAL-SYMBOL-NOT-FOUND::EXTERNAL-SYMBOL-NOT-FOUND was signalled.
+Symbol "SYMBOL" not found in the TEMP package.
    [Condition of type EXTERNAL-SYMBOL-NOT-FOUND]
 
 Restarts:
  0: [RETRY] Retry SLIME interactive evaluation request.
  1: [*ABORT] Return to SLIME's top level.
- 2: [ABORT] abort thread (#<THREAD "worker" RUNNING {101A8CE0C3}>)
+ 2: [ABORT] abort thread (#<THREAD "worker" RUNNING {101CC92193}>)
 
 Backtrace:
-  0: ((LAMBDA ()))
-  1: (SB-INT:SIMPLE-EVAL-IN-LEXENV (HANDLER-CASE (PROGN (UNLESS # #) (READ-FROM-STRING "temp:symbol")) (ERROR (E) (WHEN # #))) #<NULL-LEXENV>)
-  2: (EVAL (HANDLER-CASE (PROGN (UNLESS # #) (READ-FROM-STRING "temp:symbol")) (ERROR (E) (WHEN # #))))
-  3: ((LAMBDA NIL :IN SWANK:INTERACTIVE-EVAL))
-  4: (SWANK::CALL-WITH-RETRY-RESTART "Retry SLIME interactive evaluation request." #<FUNCTION (LAMBDA NIL :IN SWANK:INTERACTIVE-EVAL) {101A88FC7B}>)
-  5: (SWANK::CALL-WITH-BUFFER-SYNTAX NIL #<FUNCTION (LAMBDA NIL :IN SWANK:INTERACTIVE-EVAL) {101A88FC5B}>)
-  6: (SB-INT:SIMPLE-EVAL-IN-LEXENV (SWANK:INTERACTIVE-EVAL "(handler-case (progn ..)
-  7: (EVAL (SWANK:INTERACTIVE-EVAL "(handler-case (progn ..)
-  8: (SWANK:EVAL-FOR-EMACS (SWANK:INTERACTIVE-EVAL "(handler-case (progn ..)
-  9: ((LAMBDA NIL :IN SWANK::SPAWN-WORKER-THREAD))
- 10: (SWANK/SBCL::CALL-WITH-BREAK-HOOK #<FUNCTION SWANK:SWANK-DEBUGGER-HOOK> #<FUNCTION (LAMBDA NIL :IN SWANK::SPAWN-WORKER-THREAD) {2273525B}>)
- 11: ((FLET SWANK/BACKEND:CALL-WITH-DEBUGGER-HOOK :IN "/usr/home/fstamour/.config/stumpwm/slime/swank/sbcl.lisp") #<FUNCTION SWANK:SWANK-DEBUGGER-HOOK> #<FUNCTION (LAMBDA NIL :IN SWANK::SPAWN-WORKER-THREAD..
- 12: (SWANK::CALL-WITH-BINDINGS ((*STANDARD-INPUT* . #<SWANK/GRAY::SLIME-INPUT-STREAM {101587D213}>)) #<FUNCTION (LAMBDA NIL :IN SWANK::SPAWN-WORKER-THREAD) {227354CB}>)
- 13: ((LAMBDA NIL :IN SWANK::SPAWN-WORKER-THREAD))
- 14: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
- 15: ((FLET "WITHOUT-INTERRUPTS-BODY-11" :IN SB-THREAD::RUN))
- 16: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
- 17: ((FLET "WITHOUT-INTERRUPTS-BODY-4" :IN SB-THREAD::RUN))
- 18: (SB-THREAD::RUN)
- 19: ("foreign function: call_into_lisp")
- 20: ("foreign function: funcall1")
+  0: (SB-IMPL::READ-TOKEN #<SB-IMPL::STRING-INPUT-STREAM {804DFF173}> #\t)
+  1: (SB-IMPL::READ-MAYBE-NOTHING #<SB-IMPL::STRING-INPUT-STREAM {804DFF173}> #\t)
+  2: (SB-IMPL::%READ-PRESERVING-WHITESPACE #<SB-IMPL::STRING-INPUT-STREAM {804DFF173}> T (NIL) T)
+  3: (SB-IMPL::%READ-PRESERVING-WHITESPACE #<SB-IMPL::STRING-INPUT-STREAM {804DFF173}> T (NIL) NIL)
+  4: (READ #<SB-IMPL::STRING-INPUT-STREAM {804DFF173}> T NIL NIL)
+  5: (SB-IMPL::%READ-FROM-STRING "temp:symbol" T NIL 0 NIL NIL)
+  6: ((LAMBDA ()))
+  7: (SB-INT:SIMPLE-EVAL-IN-LEXENV (HANDLER-BIND ((ERROR #)) (PROGN (UNLESS # #) (READ-FROM-STRING "temp:symbol"))) #<NULL-LEXENV>)
+  8: (EVAL (HANDLER-BIND ((ERROR #)) (PROGN (UNLESS # #) (READ-FROM-STRING "temp:symbol"))))
+  9: ((LAMBDA NIL :IN SWANK:INTERACTIVE-EVAL))
+ --more--
 |#
