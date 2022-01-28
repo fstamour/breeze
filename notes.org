@@ -331,6 +331,7 @@ https://github.com/neil-lindquist/SLIMA
 
 - https://egraphs-good.github.io/
 - https://colab.research.google.com/drive/1tNOQijJqe5tw-Pk9iqd6HHb2abC5aRid?usp=sharing
+- https://arxiv.org/pdf/2004.03082.pdf
 
 * Libraries we might need in the future
 
@@ -507,6 +508,21 @@ https://technotales.wordpress.com/2007/10/03/like-slime-for-vim/
 ** What's the difference between ~defvar~ and ~defparameter~?
 
 ** Something about using ~setf~ to create variables...
+
+** A symbol can represent many things
+
+- variables/symbol macros
+- functions/macros
+- classes/conditions/types
+- method combinations
+- block names
+- catch tags
+- tagbody tags
+- restarts
+- packages
+- compiler macros
+- slot names
+- compiler macros
 
 ** When coming from another language
 
