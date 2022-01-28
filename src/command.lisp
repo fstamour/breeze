@@ -123,9 +123,8 @@
     (error reason))
   ;; (format *debug-io* "~&*current-command* reset.")
   )
-nil
 
-(trace chanl:task-thread)
+
 
 ;; TODO This function the festival of race conditions
 (defun donep (command)

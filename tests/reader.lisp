@@ -123,3 +123,11 @@
 
 #+ (or)
 (breeze.asdf:system-files 'breeze)
+
+
+#|
+This is a valid syntax:
+#p
+#+smth "..."
+#-smth2 "..."
+|#

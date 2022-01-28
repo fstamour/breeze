@@ -1,4 +1,5 @@
 
+
 * Tasks
 
 ** TODO breeze-capture is broken
@@ -204,17 +205,27 @@ already has a prototype in emacs lisp
 
 ** Follow up on issues
 
-*** TODO [[https://github.com/slime/slime/issues/645][Is there a way to run a function when slime's repl is ready #645]]
+*** In [[https://github.com/slime/slime][Slime]]
 
-In [[https://github.com/slime/slime][Slime]]
+**** TODO [[https://github.com/slime/slime/issues/645][Is there a way to run a function when slime's repl is ready #645]]
 
-*** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structual sharing #4]]
+*** In [[https://github.com/phoe-trash/value-semantics-utils][phoe-trash/value-semantics-utils]]
 
-In [[https://github.com/phoe-trash/value-semantics-utils][phoe-trash/value-semantics-utils]]
+**** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structual sharing #4]]
 
-*** TODO [[https://github.com/phoe/trivial-method-combinations/issues/4][Add method-combination-name-p #4]]
+**** TODO [[https://github.com/phoe/trivial-method-combinations/issues/4][Add method-combination-name-p #4]]
 
-In [[https://github.com/phoe/trivial-method-combinations][phoe/trivial-method-combinations]]
+*** In [[https://github.com/phoe/external-symbol-not-found/][phoe/external-symbol-not-found]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/1][Improve tests #1]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/2][Add CI pipeline #2]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/3][Add a macro that transforms the conditions into portable conditions #3]]
+
+*** In [[https://github.com/40ants/ci/issues/7][40ants/ci]]
+
+**** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
 
 * Design decisions
 
@@ -527,3 +538,7 @@ https://technotales.wordpress.com/2007/10/03/like-slime-for-vim/
 ** When coming from another language
 
 *** How to create a function-local variable?
+
+** Proclaim v.s. Declaim v.s. Declare
+
+http://www.lispworks.com/documentation/lw50/LWUG/html/lwuser-90.htm

@@ -88,6 +88,7 @@
 
 
 (defmacro define-node-form-predicates (types)
+  "Helper macro to define lots of predicates."
   `(progn
      ,@(loop :for type :in types
 	     :collect
@@ -101,6 +102,7 @@
 
 
 (defun find-node (position nodes)
+  "Given a list of NODES, return which node contains the POSITION."
   (loop :for node :in nodes
 	:for (start . end) = (node-source node)
 	:for i :from 0
@@ -111,6 +113,7 @@
 	     (return (cons node i))))
 
 (defun find-path-to-node (position nodes)
+  "Given a list of NODES, return a path (list of cons (node . index))"
   (loop :for found = (find-node position nodes)
 	  :then (let ((node (car found)))
 		  (and (listp (node-content node))
@@ -129,6 +132,7 @@
 	  :do (setf result node)))
 
 (defmacro define-find-nearest-sibling-form (types)
+  "Helper macro to define lots of predicates."
   `(progn
      ,@(loop :for type :in types
 	     :collect
@@ -152,6 +156,7 @@
 	:finally (return result)))
 
 (defmacro define-find-nearest-parent-form (types)
+  "Helper macro to define lots of predicates."
   `(progn
      ,@(loop :for type :in types
 	     :collect
@@ -169,6 +174,7 @@
 
 
 (defmacro define-node-utilities (types)
+  "Helper macro to define lots of predicates."
   `(progn
      (define-node-form-predicates ,types)
      (define-find-nearest-sibling-form ,types)
@@ -191,7 +197,10 @@
      let
      flet
      labels
-     lambda))
+     lambda
+     map
+     mapcar
+     mapcond))
 
 ;; TODO A "skipped node" can also be a form hidden behing a feature (#+/-)
 (defun emptyp (nodes)
@@ -438,6 +447,11 @@ defun."
        name
        type name))))
 
+
+(define-command insert-lambda ()
+  "Insert a lambda form."
+  (insert "#'(lambda ())"))
+
 ;; TODO quick-insert (format *debug-io* "~&")
 
 
@@ -451,6 +465,7 @@ defun."
     "Insert a defpackage form."))
 
 (defun command-description (function)
+  "Return a list of 2 elements: (FUNCTION its-docstring)"
   (let ((doc (documentation function 'function)))
     (unless doc
       (error
@@ -460,30 +475,26 @@ defun."
     (list function doc)))
 
 (defparameter *commands-applicable-at-toplevel*
-  ;; Add insert-package
-  (mapcar #'command-description
-	  '(insert-asdf
-	    insert-defun
-	    insert-defmacro
-	    insert-defpackage
-	    insert-in-package-cl-user
-	    insert-defvar
-	    insert-defparameter
-	    insert-defclass
-	    insert-defgeneric
-	    insert-print-unreadable-object-boilerplate
-	    insert-breeze-define-command)))
+  '(insert-asdf
+    insert-defun
+    insert-defmacro
+    insert-defpackage
+    insert-in-package-cl-user
+    insert-defvar
+    insert-defparameter
+    insert-defclass
+    insert-defgeneric
+    insert-print-unreadable-object-boilerplate
+    insert-breeze-define-command))
 
 (defparameter *commands-applicable-in-a-loop-form*
-  (mapcar #'command-description
-	  '(insert-loop-clause-for-in-list
-	    insert-loop-clause-for-on-list
-	    insert-loop-clause-for-hash)))
+  '(insert-loop-clause-for-in-list
+    insert-loop-clause-for-on-list
+    insert-loop-clause-for-hash))
 
 ;; That's some Java-level variable name
 (defparameter *commands-applicable-inside-another-form-or-at-toplevel*
-  (mapcar #'command-description
-	  '(insert-handler-bind-form)))
+  '(insert-handler-bind-form))
 
 
 (defparameter *qf* nil
@@ -553,19 +564,19 @@ For debugging purposes ONLY.")
 
     (labels ((append-commands (cmds)
 	       (setf commands (append cmds commands)))
-	     (push-function (fn)
-	       (push (command-description fn) commands))
-	     (push-function* (&rest fns)
-	       (mapcar #'push-function fns)))
+	     (push-command (fn)
+	       (push fn commands))
+	     (push-command* (&rest fns)
+	       (mapcar #'push-command fns)))
       (cond
 	;; When the buffer is empty, or only contains comments and
 	;; whitespaces.
 	((emptyp nodes)
-	 (push-function*
+	 (push-command*
 
 	  'insert-defpackage))
 	;; TODO Check if files ends with ".asd"
-	;; (push-function 'insert-asdf)
+	;; (push-command 'insert-asdf)
 	((or
 	  ;; in-between forms
 	  (null outer-node)
@@ -576,27 +587,39 @@ For debugging purposes ONLY.")
 	  ;; feature-expression)
 	  (typep outer-node
 		 'breeze.reader:skipped-node))
-	 (append-commands *commands-applicable-at-toplevel*))
+	 (append-commands *commands-applicable-at-toplevel*)
+	 (append-commands
+	  *commands-applicable-inside-another-form-or-at-toplevel*))
+	;; Loop form
 	((or
 	  (loop-form-p parent-node)
 	  (loop-form-p inner-node))
 	 (append-commands *commands-applicable-in-a-loop-form*))
+	;; Defpackage form
 	((defpackage-form-p inner-node)
-	 (push-function 'insert-local-nicknames))
+	 (push-command 'insert-local-nicknames))
+	((and (mapcar-form-p inner-node)
+	      )
+
+	 (push-command 'insert-lambda))
 	(t
 	 (append-commands
 	  *commands-applicable-inside-another-form-or-at-toplevel*))))
 
     ;; Deduplicate commands
-    (setf commands (remove-duplicates commands :key #'car))
+    (setf commands (remove-duplicates commands))
+
+    ;; Augment the commands with their descriptions.
+    (setf commands (mapcar #'command-description commands))
 
     ;; Save some information for debugging
-    (setf *qf* `(,@context
-		 (:nodes ,nodes)
-		 (:outer-node ,outer-node)
-		 (:inner-node ,inner-node)
-		 (:parent-node ,parent-node)
-		 (:commands ,commands)))
+    (setf *qf* `((:context . ,context)
+		 (:nodes . ,nodes)
+		 (:path . ,path)
+		 (:outer-node . ,outer-node)
+		 (:inner-node . ,inner-node)
+		 (:parent-node . ,parent-node)
+		 (:commands . ,commands)))
 
     ;; Ask the user to choose a command
     (choose "Choose a command: "
