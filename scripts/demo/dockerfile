@@ -1,0 +1,9 @@
+FROM breeze-demo-recorder-base:latest
+
+RUN mkdir -p /breeze /tmp
+WORKDIR /breeze
+
+RUN echo | quicklisp init && quicklisp install
+COPY . .
+
+# CMD [ "quicklisp", "run" ]
