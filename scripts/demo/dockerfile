@@ -4,6 +4,7 @@ RUN mkdir -p /breeze /tmp
 WORKDIR /breeze
 
 RUN echo | quicklisp init && quicklisp install
+RUN echo '(load "/quicklisp/setup.lisp")' > /.sbclrc
 COPY . .
 RUN sbcl --load /quicklisp/setup.lisp \
      --script scripts/demo/setup-demo.lisp

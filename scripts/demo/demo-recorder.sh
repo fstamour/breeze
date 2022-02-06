@@ -4,6 +4,11 @@
 #
 
 
+# sbcl --noinform --load breeze.asd \
+#      --eval "(ql:quickload '(#:breeze #:swank))" \
+#      --eval "(swank:create-server :dont-close t :port 40050)" \
+#      &
+
 # xvfb-run emacs -Q \
 # 	 -l scripts/emacs-director/util/director-bootstrap.el \
 # 	 -l scripts/demo.el -- &

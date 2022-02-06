@@ -64,16 +64,20 @@
 		 (setq slime-lisp-implementations
 		       '((sbcl ("sbcl"
 				"--noinform"
-				"--dynamic-space-size" "16000")
+				"--dynamic-space-size" "16000"
+                                "--load" "breeze.asd"
+                                "--eval" "(ql:quickload :breeze)")
 			       :coding-system utf-8-unix))
 		       slime-default-lisp 'sbcl
 		       ;; Autocomplete
 		       slime-complete-symbol-function
 		       'slime-fuzzy-complete-symbol)
 		 ;; Load breeze
-		 (require 'breeze)
+		 ;; (require 'breeze)
 		 ;; Start slime
-		 (slime-connect "localhost" 40050))
+		 ;; (slime-connect "localhost" 40050)
+                 (slime)
+                 )
  :steps `(,(call-capture "slime-initialized")
 	  (:type "\M-x")
 	  (:type "breeze")
