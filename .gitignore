@@ -1,6 +1,7 @@
 *.fasl
 *.core
 *.svg
+result
 
 
 githooks/*.sample

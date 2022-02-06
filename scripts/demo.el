@@ -1,8 +1,19 @@
 ;; -*- lexical-binding: t -*-
 
+(let ((libressl-pem (getenv "LIBRESSL_PEM")))
+  (when libressl-pem
+    (require 'gnutls)
+    (add-to-list 'gnutls-trustfiles
+                 ;; TODO Fix LIBRESSL_PEM in docker.nix, so we can use
+                 ;; that instead of hard-coding this.
+                 ;; P.S. I found that file using `find / -name '*.pem'`
+                 "/nix/store/z9dmcm0b2n25nfgb3csypn7z250y6ihf-libressl-3.4.1/etc/ssl/cert.pem")))
+
+(package-initialize)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-refresh-contents)
 (package-install 'selectrum)
-(package-initialize)
+
 
 (director-bootstrap
  :user-dir "/tmp/director-demo"
@@ -18,6 +29,8 @@
 		      ".git")
 		     "/scripts/demo"))
 
+(server-start)
+
 (defvar *demo-window-config* nil)
 
 ;; Can use this to pass arguments to the script
@@ -27,8 +40,8 @@
   (interactive)
   (shell-command
    (format
-    "tmux capture-pane -e -p > %s/%s.capture" *demo-root*
-    name)))
+    ;; "tmux capture-pane -e -p > %s/%s.capture" *demo-root* name
+    "scrot %s/%s.png -n '%s'" *demo-root* name name)))
 
 (defun call-capture (name)
   (let ((name name))

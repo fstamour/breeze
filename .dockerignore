@@ -1,0 +1,8 @@
+scratch-files/
+.git/
+*.org
+result
+*~
+dockerfile
+.dockerignore
+.gitignore

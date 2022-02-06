@@ -5,5 +5,7 @@ WORKDIR /breeze
 
 RUN echo | quicklisp init && quicklisp install
 COPY . .
+RUN sbcl --load /quicklisp/setup.lisp \
+     --script scripts/demo/setup-demo.lisp
 
-# CMD [ "quicklisp", "run" ]
+CMD [ "scripts/demo/demo-recorder.sh", "run" ]
