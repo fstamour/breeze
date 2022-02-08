@@ -442,7 +442,8 @@ lisp's reader doesn't convert them."
        ;; Continue the command
        then (breeze-command-continue response send-response-p)
        ;; "Request" might be nil, if it is, we're done
-       while request
+       while (and request
+		  (not (string= "done" (car request))))
        ;; Wheter or not we need to send arguments to the next callback.
        for send-response-p = (member (car request)
 				     '("choose" "read-string"))

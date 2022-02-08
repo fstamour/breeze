@@ -445,14 +445,18 @@ using keyword arguments."
 	 ,docstring
 	 (if (current-command*)
 	     (progn
-	       ,@(loop :for var :in basic-context-variables
-		       :collect `(unless ,var
-				   (setf ,var (,(symbolicate 'context- var '*)))))
-	       ,@remaining-forms)
+	       (block nil
+		 ,@(loop :for var :in basic-context-variables
+			 :collect `(unless ,var
+				     (setf ,var (,(symbolicate 'context- var '*)))))
+		 ,@remaining-forms)
+	       "done")
 	     (start-command
 	      ,context
 	      (lambda ()
-		,@remaining-forms)))))))
+		(progn
+		  (block nil ,@remaining-forms)
+		  (send "done")))))))))
 
 #+ (or)
 (trace
