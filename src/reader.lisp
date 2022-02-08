@@ -150,44 +150,66 @@
   (:documentation "Can a node contain other nodes.")
   (:method ((node node)) (not (non-terminal-p node))))
 
+(defun cropped (string &optional (length 25))
+  (str:replace-all #.(coerce (list #\Newline) 'string) "\\n"
+		   (str:shorten length string)))
+
+(defun print-node-type (node stream)
+  (format stream "~@(~a~) "
+	  (if (eq 'node (type-of node))
+	      "Node"
+	      (let ((type (symbol-name (type-of node))))
+		(subseq type 0 (- (length type) #. (length "-node")))
+		;; (subseq type 0 3)
+		))))
+
+(defun print-node-prefix (node stream)
+  (a:if-let (prefix (node-prefix node))
+    (format stream "~s "
+	    (if (every #'breeze.utils:whitespacep prefix)
+		(length prefix)
+		(node-prefix node)))))
+
+(defmacro print-node (&body body)
+  `(let ((*print-circle* t)
+	 (*print-right-margin* nil))
+     (print-unreadable-object
+	 (node stream)
+       ,@body)))
+
 (defmethod print-object ((node node) stream)
-  (let ((*print-circle* t))
-    (print-unreadable-object
-	(node stream :type t :identity nil)
-      (when (node-prefix node)
-	(format stream "~s "
-		(node-prefix node)))
-      (format stream "~s :raw ~s"
-	      (node-content node)
-	      (node-raw node)))))
+  (print-node
+    (print-node-type node stream)
+    (print-node-prefix node stream)
+    (format stream "<~a>~%~:t ~s"
+	    (cropped
+	     (node-raw node))
+	    (node-content node))))
 
 (defmethod print-object ((node symbol-node) stream)
-  (print-unreadable-object
-      (node stream :type t :identity nil)
+  (print-node
+    (print-node-type node stream)
     (format stream "~s " (symbol-package (node-content node)))
-    (when (node-prefix node)
-      (format stream "~s "
-	      (node-prefix node)))
+    (print-node-prefix node stream)
     (format stream "~s"
 	    (or (node-raw node) (node-content node)))))
 
 (defmethod print-object ((node skipped-node) stream)
-  (print-unreadable-object
-      (node stream :type t :identity nil)
+  (print-node
+    (print-node-type node stream)
+    (print-node-prefix node stream)
+    ;; TODO Only print the first 15 characters
     (format stream "~s"
 	    (node-content node))))
 
 (defmethod print-object ((node feature-expression-node) stream)
-  (let ((*print-circle* t))
-    (print-unreadable-object
-	(node stream :type t :identity nil)
-      (when (node-prefix node)
-	(format stream "~s "
-		(node-prefix node)))
-      (format stream "~s ~s :raw ~s"
-	      (node-feature-expression node)
-	      (node-content node)
-	      (node-raw node)))))
+  (print-node
+    (print-node-type node stream)
+    (print-node-prefix node stream)
+    (format stream "~s ~s :raw ~s"
+	    (node-feature-expression node)
+	    (node-content node)
+	    (node-raw node))))
 
 
 ;;; Parser "client"
