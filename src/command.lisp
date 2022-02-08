@@ -103,9 +103,9 @@
 			 (*channel-out* ,channel-out))
 		     ,@body))
 	       :name "breeze command"
-	       :initial-bindings (acons '*current-command*
-					(list *current-command*)
-					chanl:*default-special-bindings*))))
+	       :initial-bindings `((*package* ,*package*)
+				   (*current-command* ,*current-command*)
+				   ,@chanl:*default-special-bindings*))))
        (change-class ,task 'tasklet)
        (setf (tasklet-channel-in ,task) ,channel-in
 	     (tasklet-channel-out ,task) ,channel-out)

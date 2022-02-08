@@ -11,19 +11,28 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
-  :depends-on (#:alexandria
-	       #:anaphora
+  :depends-on (;; Multi-threading
+	       #:bordeaux-threads
 	       #:chanl
+	       ;; To create projects
+	       #:quickproject
+	       ;; Utilities
+	       #:alexandria
+	       #:anaphora
 	       #:cl-hash-util
 	       #:cl-ppcre
 	       #:closer-mop
-	       #:quickproject
 	       #:str
-	       #:swank
 	       #:uiop
 	       ;; For documentation generation
 	       #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
-	       #:eclector)
+	       ;; For reading lisp
+	       #:eclector
+	       #:trivial-package-local-nicknames
+	       ;; Listener(s) stuff
+	       #:swank
+	       ;; Logging
+	       #:log4cl)
   :pathname "src"
   :components
   ((:file "utils" :depends-on ())

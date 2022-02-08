@@ -6,6 +6,8 @@
 		#:read-stream-range
 		#:stream-size
 		#:positivep)
+  (:local-nicknames (#:a #:alexandria)
+		    (#:tpln #:trivial-package-local-nicknames))
   (:export
    ;; Syntax tree types
    #:node
@@ -162,12 +164,12 @@
 (defmethod print-object ((node symbol-node) stream)
   (print-unreadable-object
       (node stream :type t :identity nil)
-    (if (node-prefix node)
-	(format stream "~s ~s"
-		(node-prefix node)
-		(or (node-raw node) (node-content node)))
-	(format stream "~s"
-		(or (node-raw node) (node-content node))))))
+    (format stream "~s " (symbol-package (node-content node)))
+    (when (node-prefix node)
+      (format stream "~s "
+	      (node-prefix node)))
+    (format stream "~s"
+	    (or (node-raw node) (node-content node)))))
 
 (defmethod print-object ((node skipped-node) stream)
   (print-unreadable-object
@@ -268,6 +270,21 @@
 		      (car source)
 		      (cdr source))
 		 :source source))
+
+;; Support package-local-nicknames
+(defmethod eclector.reader:interpret-symbol
+    ((client breeze-client) (stream t)
+     package-indicator symbol-name internp)
+  (unless (case package-indicator
+	    (:current *package*)
+	    (:keyword (find-package "KEYWORD"))
+	    (t (find-package package-indicator)))
+    (a:if-let (actual-package
+	       (cdr (assoc "TPLN"
+			   (tpln:package-local-nicknames *package*)
+			   :test #'string=)))
+      (setf package-indicator actual-package)))
+  (call-next-method))
 
 
 (defmethod eclector.reader:evaluate-expression ((client breeze-client)
