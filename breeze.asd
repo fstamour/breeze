@@ -47,7 +47,7 @@
   :perform
   (test-op (o c)
 	   (uiop:symbol-call
-	    '#:breeze.user '#:selftest)))
+	    '#:breeze.test.main '#:run-breeze-tests)))
 
 
 (defsystem "breeze/test"
@@ -55,7 +55,7 @@
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (#:breeze)
+  :depends-on (#:breeze #:parachute)
   :pathname "tests"
   :serial t
   :components
@@ -66,4 +66,5 @@
    (:file "test")
    (:file "user")
    (:file "xref")
-   (:file "documentation")))
+   (:file "documentation")
+   (:file "main")))

@@ -179,15 +179,6 @@
   (tips-about-failing-tests)
   (tips-about-untested-code))
 
-(defun selftest ()
-  "Load and run breeze's selftests."
-  (terpri)
-  (loop
-    :for package :in (current-packages "^breeze\\.[^.]+.test$")
-    :do
-       (format t "~&Testing package \"~(~A~)\"." (package-name package))
-       (run-all-tests (package-test package))))
-
 (defun dogfood ()
   "Setup breeze to work on breeze."
   (breeze.listener:advise-swank-interactive-eval)
