@@ -543,6 +543,21 @@ For debugging purposes ONLY.")
 		       :collect
 		       `(context-set context ',key ,key)))))
 
+(defun in-package-node-package (in-package-node)
+  (node-content
+   (second (node-content in-package-node))))
+
+(defun validate-nearest-in-package (nodes outer-node)
+  (let* ((previous-in-package-form
+	   (find-nearest-sibling-in-package-form nodes outer-node)))
+    (when previous-in-package-form
+      (let* ((package-designator (in-package-node-package
+				  previous-in-package-form))
+	     (package (find-package package-designator)))
+	(when (null package)
+	  package-designator)))))
+
+
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (let* (;; Parse the buffer
@@ -557,6 +572,7 @@ For debugging purposes ONLY.")
 	 (inner-node-index (cdr (alexandria:lastcar path)))
 	 ;; Find the innermost form's parent
 	 (parent-node (car (before-last path)))
+	 (invalid-in-package (validate-nearest-in-package nodes outer-node))
 	 ;; Accumulate a list of commands that make sense to run in
 	 ;; the current context
 	 (commands))
@@ -569,6 +585,11 @@ For debugging purposes ONLY.")
 	     (push-command* (&rest fns)
 	       (mapcar #'push-command fns)))
       (cond
+	;; When the previous in-package form desginate a package tha
+	;; cannot be found (e.g. the user forgot to define a package.
+	(invalid-in-package
+	 (warn "The nearest in-package form designates a package that doesn't exists: ~s"	       invalid-in-package)
+	 (return))
 	;; When the buffer is empty, or only contains comments and
 	;; whitespaces.
 	((emptyp nodes)
