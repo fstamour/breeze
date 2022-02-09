@@ -1,5 +1,3 @@
-
-
 (defvar breeze-temporary-buffers '())
 
 (defun breeze-make-temporary-buffer ()

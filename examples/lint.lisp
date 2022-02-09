@@ -244,3 +244,14 @@ prog*
 
 ;; I lost a bunch of time because I made a typo in the (:export ) of a
 ;; defpackage.
+
+
+(if (listp x) x (coerce x))
+;; is equivalent to
+(coerce x)
+
+
+(and ... t)
+;; the "t" is useless
+(or ... nil)
+;; the "nil" is useless

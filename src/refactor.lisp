@@ -358,8 +358,8 @@ defun."
        "(cl:in-package #:cl-user)~%~%~"))
     (insert
      "(defpackage #:~a~
-    ~%  (:use #:cl)~
-    ~%  (:documentation \"\"))~
+    ~%  (:documentation \"\")~
+    ~%  (:use #:cl))~
     ~%~
     ~%(in-package #:~a)"
      package-name package-name)))
@@ -455,14 +455,18 @@ defun."
 ;; TODO quick-insert (format *debug-io* "~&")
 
 
+;;;
+
+;; TODO	"Move the current form into the nearest parent \"let\" form."
+;; TODO "Add or update defpackage to \"import-from\" the symbol at point."
+
+
 ;;; Quickfix
 
 (defgeneric describe-command (command)
   (:documentation "Give a user-friendly description for a command.")
   (:method ((command symbol))
-    (symbol-package-qualified-name command))
-  (:method ((command (eql 'insert-defpackage)))
-    "Insert a defpackage form."))
+    (symbol-package-qualified-name command)))
 
 (defun command-description (function)
   "Return a list of 2 elements: (FUNCTION its-docstring)"
@@ -494,7 +498,8 @@ defun."
 
 ;; That's some Java-level variable name
 (defparameter *commands-applicable-inside-another-form-or-at-toplevel*
-  '(insert-handler-bind-form))
+  '(insert-handler-bind-form
+    insert-lambda))
 
 
 (defparameter *qf* nil
@@ -613,15 +618,18 @@ For debugging purposes ONLY.")
 	  *commands-applicable-inside-another-form-or-at-toplevel*))
 	;; Loop form
 	((or
-	  (loop-form-p parent-node)
+	  ;; (loop-form-p parent-node)
 	  (loop-form-p inner-node))
 	 (append-commands *commands-applicable-in-a-loop-form*))
 	;; Defpackage form
 	((defpackage-form-p inner-node)
 	 (push-command 'insert-local-nicknames))
+	;; TODO Use breeze.cl:higher-order-function-p
+	;; TODO Must extract the symbol from the parent-node first
+	;; Higher-order functions
 	((and (mapcar-form-p inner-node)
+	      ;; TODO Find the position inside the form
 	      )
-
 	 (push-command 'insert-lambda))
 	(t
 	 (append-commands

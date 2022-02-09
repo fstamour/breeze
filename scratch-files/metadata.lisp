@@ -107,3 +107,65 @@
 
 ;;;; The byte functions return a newly allocated object (AFAIK) but it always returns equivalent
 ;;;; object given the same paramters. Is it functional???
+
+
+
+
+;;; Trying to get the list of higher-order functions and which
+;;; parameter is another function.
+;;; In order to generate better quickfixes
+
+(sb-introspect:function-arglist #'mapcar)
+
+(loop :for function :in *functions*
+      :for pos = (unless (macro-function function)
+		   (position 'function
+			     (sb-introspect:function-arglist function)))
+      :when pos
+	:collect (cons function pos))
+
+
+((FUNCALL . 0) (MAP-INTO . 1) (MAPCON . 0) (MAPL . 0) (SET-PPRINT-DISPATCH . 1)
+	       (MAPCAR . 0) (REDUCE . 0) (MAPLIST . 0) (COMPLEMENT . 0)
+	       (SHARED-INITIALIZE . 17) (MAP . 1) (MAPCAN . 0) (SET-MACRO-CHARACTER . 1)
+	       (MAPC . 0) (SET-DISPATCH-MACRO-CHARACTER . 2) (APPLY . 0))
+
+;; apart from "shared-initizlize", it looks good
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(:import-from :breeze.xref
+	      #:generic-method-p
+	      #:specialp
+	      #:macrop
+	      #:simple-function-p
+	      #:classp)
+
+
+
+(defun lambda-list-keyword-p (symbol)
+  (and (member symbol cl:lambda-list-keywords) t))
+
+(defparameter *symbols*
+  (flet ((pred (predicate symbol &optional name)
+	   (when (funcall predicate symbol)
+	     `(,(or name (alexandria:make-keyword predicate))))))
+    (loop for symbol being the external-symbols of (find-package 'cl)
+	  collect
+	  `(,symbol ;; Does the symbol have function?
+	    ,@(pred 'fboundp symbol)
+	    ;; Is the symbol a lamba list keyword? (e.g. &optional, &key, etc.)
+	    ,@(pred 'lambda-list-keyword-p symbol)
+	    ;; Is the symbol a variable?
+	    ,@(pred 'boundp symbol)
+	    ;; Is the symbol a type-specifier
+	    #+sbcl
+	    ,@(pred 'sb-ext:valid-type-specifier-p symbol :type-specifier)
+	    ;; Does the symbol represent a class?
+	    ,@(pred 'classp symbol :class)))))
+
+
+(setf (gethash "test" *cl-symbols*) :42)
+(gethash "TEST" *cl-symbols*)

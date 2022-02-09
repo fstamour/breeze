@@ -2,6 +2,8 @@
 
 * Tasks
 
+** TODO [#A] Reader doesn't support local package nicknames
+
 ** TODO breeze-capture is broken
 
 I removed breeze-capture-folder variable.
@@ -203,6 +205,10 @@ already has a prototype in emacs lisp
 
 *** TODO Move top-level form up/down
 
+** TODO trying to find disprecancies between the packages and test packages
+
+or betwee test system and the system under test
+
 ** Follow up on issues
 
 *** In [[https://github.com/slime/slime][Slime]]
@@ -226,6 +232,7 @@ already has a prototype in emacs lisp
 *** In [[https://github.com/40ants/ci/issues/7][40ants/ci]]
 
 **** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
+
 
 * Design decisions
 
@@ -367,6 +374,11 @@ https://github.com/robert-strandh/SICL
 I'm sure there are tons of other user-case:
 - infer types
 - interpret code (symbolically or not)
+
+
+** How froute uses mop to keep track of a set of definitions
+
+[[https://github.com/StephenWakely/froute/blob/3d9ea3114537e1451cccec91f7cbe2321a49a1e0/src/froute-class.lisp][froute-class.lisp]]
 
 * Scratch files
 
@@ -542,3 +554,12 @@ https://technotales.wordpress.com/2007/10/03/like-slime-for-vim/
 ** Proclaim v.s. Declaim v.s. Declare
 
 http://www.lispworks.com/documentation/lw50/LWUG/html/lwuser-90.htm
+
+** How packages and symbols works?
+
+https://flownet.com/ron/packages.pdf
+
+* Resources
+
+- [alexandria](https://alexandria.common-lisp.dev/draft/alexandria.html)
+- [log4cl](https://github.com/7max/log4cl)

@@ -1,3 +1,6 @@
+;;;; I was trying to extract breeze.el's docstring, to include into
+;;;; the documentation.
+
 (in-package #:common-lisp-user)
 
 (defpackage #:generate-el-doc

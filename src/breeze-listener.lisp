@@ -6,8 +6,6 @@
   (:use :cl #:alexandria)
   (:documentation "Backend side of integration with swank")
   (:export
-   #:make-project
-   #:get-ql-local-project-directories
    #:advise-swank-interactive-eval
    #:restore-swank-interactive-eval
    #:get-recent-interactively-evaluated-forms)
@@ -17,34 +15,6 @@
 		#:optimal-string-alignment-distance*))
 
 (in-package #:breeze.listener)
-
-
-;;; project scaffolding
-
-(defun make-project (&rest args
-		       ;; &key depends-on author include-copyright license
-		       ;; name template-directory template-parameters
-		       ;; &allow-other-keys
-		       )
-  ;; (declare (ignore depends-on author include-copyright license name
-  ;; template-directory template-parameters))
-  "Scaffold a projec using quickproject's make-project."
-  (apply #'quickproject:make-project args))
-
-(defun get-ql-local-project-directories ()
-  "Get the list of quicklisp local-projects directories (as strings)."
-  (mapcar #'namestring
-	  ql:*local-project-directories*))
-
-
-;;; introspection
-
-(defun get-symbol-package (symbol)
-  (check-type symbol symbol)
-  (format t "\"~(~a ~a~)\""
-	  (package-name (symbol-package symbol))
-	  (symbol-name symbol)))
-
 
 
 ;;; advising swank

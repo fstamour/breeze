@@ -1,3 +1,5 @@
+;;;; TODO Turn this into doc + tests and remove this file
+
 ;; a.k.a restricted damereau-levenshtein distance
 (defun optimal-string-alignment-distance (vec-a vec-b)
   (let ((d (make-array (list (1+ (length vec-a))

@@ -64,21 +64,6 @@
 
 (in-package #:breeze.user)
 
-
-;;; Configurations
-
-(defparameter *breeze-default-author* ""
-  "The default author when generating asdf system.")
-
-(defparameter *breeze-default-system-author* "Public"
-  "The default licence when generating asdf system.")
-
-(defparameter *breeze-capture-folder* "~/breeze-capture"
-  "The folder where to save scratch files.")
-
-
-
-
 (cl:defun run-test-for-function (function-name)
   (ensure-test-runner)
   (request-to-run-test* (tested-by function-name)))

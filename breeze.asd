@@ -35,7 +35,9 @@
 	       #:log4cl)
   :pathname "src"
   :components
-  ((:file "utils" :depends-on ())
+  ((:file "configuration")
+   (:file "cl")
+   (:file "utils" :depends-on ())
    (:file "reader" :depends-on ("utils"))
    (:file "definition" :depends-on ())
    (:file "test" :depends-on ())
@@ -43,11 +45,16 @@
    (:file "test-runner" :depends-on ("test" "worker"))
    (:file "xref" :depends-on ("utils" "test" "definition"))
    (:file "documentation" :depends-on ("xref" "definition"))
+   (:file "doctor" :depends-on ("configuration"))
    (:file "asdf" :depends-on ())
    (:file "breeze-listener" :depends-on ("xref"))
    (:file "command" :depends-on ())
-   (:file "refactor" :depends-on ("reader" "command" "utils"))
-   (:file "user" :depends-on ("test-runner"
+   (:file "refactor"
+    :depends-on ("configuration" "reader" "command" "utils" "cl"))
+   (:file "project" :depends-on ("configuration" "command"))
+   (:file "capture" :depends-on ("configuration" "command"))
+   (:file "user" :depends-on ("configuration"
+			      "test-runner"
 			      "xref"
 			      "documentation"
 			      "refactor"

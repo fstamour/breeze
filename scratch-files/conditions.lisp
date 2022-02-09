@@ -67,3 +67,6 @@ defpackage
    `(lambda ()
       (this-in-an-undefinded-function))))
 ;; #<SB-INT:SIMPLE-STYLE-WARNING ... >#
+
+
+;; QUICKLISP-CLIENT:SYSTEM-NOT-FOUND
