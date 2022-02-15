@@ -8,7 +8,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;; The code below was copy-pasted from emacs lisp, it work work yet
 
-
+#+ (or)
 (defun breeze-list-lisp-files (directory)
   ;; just the name, no extension, no directory
   (loop for file in
@@ -17,7 +17,7 @@
 		  (string-suffix-p ".lisp" file))
 	  collect (file-name-sans-extension file)))
 
-
+#+ (or)
 (define-skeleton breeze-insert-header-template
   "" ;; TODO docstring
   "" ;; empty prompt. ignored.
@@ -37,6 +37,7 @@
   \n
   "|#")
 
+#+ (or)
 (defun capture ()
   ;; TODO docstring
   (interactive)
