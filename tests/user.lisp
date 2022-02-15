@@ -3,8 +3,8 @@
     (:documentation "Tests for breeze.user.")
   (:mix #:breeze.user #:cl #:alexandria)
   (:import-from #:breeze.test
-		#:deftest
-		#:is))
+                #:deftest
+                #:is))
 
 (in-package #:breeze.user.test)
 
@@ -13,12 +13,12 @@
   (is (equal (list *package*) (current-packages *package*)))
   (is (equal (current-packages 'breeze.user) (list (find-package :breeze.user))))
   (is (equal (mapcar #'find-package '(breeze cl))
-	     (current-packages '(breeze cl))))
+             (current-packages '(breeze cl))))
   (is (equal
        (list
-	(find-package :cl))
+        (find-package :cl))
        (current-packages #'(lambda ()
-			     (find-package :cl)))))
+                             (find-package :cl)))))
   (is
     (equal
      (sort
@@ -26,7 +26,7 @@
       #'string<
       :key #'package-name)
      (list (find-package '#:breeze.user.test)
-	   (find-package '#:breeze.xref.test)))))
+           (find-package '#:breeze.xref.test)))))
 
 ;; (main)
 ;; (next)

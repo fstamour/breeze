@@ -40,10 +40,10 @@
     :initform nil
     :documentation "Channel to get data back from the task.")
    (control-channel
-     :accessor worker-control-channel
-     :initarg :control-channel
-     :initform (make-instance 'chanl:unbounded-channel)
-     :documentation "Channel to ask to stop the task.")
+    :accessor worker-control-channel
+    :initarg :control-channel
+    :initform (make-instance 'chanl:unbounded-channel)
+    :documentation "Channel to ask to stop the task.")
    (interval
     :accessor worker-interval
     :initarg :interval
@@ -168,8 +168,8 @@ To use the worker, you need to subclass the worker class and specialize the \"wo
 
 #|
 (defparameter *test-worker*
-  (make-instance 'worker
-                 :name "test worker"))
+(make-instance 'worker
+:name "test worker"))
 
 (worker-start *test-worker*)
 (worker-stop *test-worker*)

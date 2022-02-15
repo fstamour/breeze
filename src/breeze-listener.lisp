@@ -10,9 +10,9 @@
    #:restore-swank-interactive-eval
    #:get-recent-interactively-evaluated-forms)
   (:import-from #:breeze.xref
-		#:classp)
+                #:classp)
   (:import-from #:breeze.utils
-		#:optimal-string-alignment-distance*))
+                #:optimal-string-alignment-distance*))
 
 (in-package #:breeze.listener)
 
@@ -28,27 +28,27 @@
 ;; TODO Use a heap to get the N smallest values!
 ;; TODO Put that into utils?
 (defmacro minimizing ((var
-		       &key
-			 (score-var (gensym "score"))
-			 tracep)
-		      &body body)
+                       &key
+                         (score-var (gensym "score"))
+                         tracep)
+                      &body body)
   "Creates both a variable (let) and a function (flet) to keep track
 of the instance of that had the smallest score."
   (check-type var symbol)
   `(let  ((,var nil)
-	  (,score-var))
+          (,score-var))
      (flet ((,var (new-candidate new-score)
-	      ,@(when tracep
-		  `((format *debug-io* "~&new-candidate: ~s new-score: ~s"
-			    new-candidate new-score)))
-	      (when (and new-score
-			 (or
-			  ;; if it wasn't intialized already
-			  (null ,var)
-			  ;; it is initialized, but score is better
-			  (< new-score ,score-var)))
-		(setf ,var new-candidate
-		      ,score-var new-score))))
+              ,@(when tracep
+                  `((format *debug-io* "~&new-candidate: ~s new-score: ~s"
+                            new-candidate new-score)))
+              (when (and new-score
+                         (or
+                          ;; if it wasn't intialized already
+                          (null ,var)
+                          ;; it is initialized, but score is better
+                          (< new-score ,score-var)))
+                (setf ,var new-candidate
+                      ,score-var new-score))))
        ,@body
        (values ,var ,score-var))))
 
@@ -57,24 +57,24 @@ of the instance of that had the smallest score."
   (minimizing (candidate)
     (do-symbols (sym)
       (when (fboundp sym)
-	(candidate sym
-		   (breeze.utils:optimal-string-alignment-distance*
-		    input
-		    (string-downcase sym)
-		    3))))))
+        (candidate sym
+                   (breeze.utils:optimal-string-alignment-distance*
+                    input
+                    (string-downcase sym)
+                    3))))))
 
 ;; (find-most-similar-symbol "prin") ;; => princ, 1
 
 (defun find-most-similar-package (input)
   (minimizing (candidate)
     (loop :for package in (list-all-packages)
-	  :for package-name = (package-name package) :do
-	    (loop :for name in `(,package-name ,@(package-nicknames package)) :do
-	      (candidate name
-			 (breeze.utils:optimal-string-alignment-distance*
-			  input
-			  (string-downcase name)
-			  3))))))
+          :for package-name = (package-name package) :do
+            (loop :for name in `(,package-name ,@(package-nicknames package)) :do
+              (candidate name
+                         (breeze.utils:optimal-string-alignment-distance*
+                          input
+                          (string-downcase name)
+                          3))))))
 
 #+ (or)
 (progn
@@ -89,11 +89,11 @@ of the instance of that had the smallest score."
   (minimizing (candidate)
     (do-symbols (sym)
       (when (classp sym)
-	(candidate sym
-		   (breeze.utils:optimal-string-alignment-distance*
-		    input
-		    (string-downcase sym)
-		    3))))))
+        (candidate sym
+                   (breeze.utils:optimal-string-alignment-distance*
+                    input
+                    (string-downcase sym)
+                    3))))))
 
 (defvar *last-invoked-restart* nil
   "For debugging purposes only")
@@ -103,19 +103,19 @@ of the instance of that had the smallest score."
   (unless
       ;; We install a new restart
       (with-simple-restart (use-suggestion
-			    "Use \"~a\" instead of \"~a\"."
-			    candidate input)
-	;; with-simple-restart returns the _last evaluated_ form
-	t
-	;; Then we signal the condition again
-	(error condition))
+                            "Use \"~a\" instead of \"~a\"."
+                            candidate input)
+        ;; with-simple-restart returns the _last evaluated_ form
+        t
+        ;; Then we signal the condition again
+        (error condition))
     ;; with-simple-restart will return nil and t if the restart was
     ;; invoked
     (let ((use-value (find-restart 'use-value condition)))
       (setf *last-invoked-restart* (list candidate))
       (format *debug-io* "~&About to invoke the restart ~s with the value ~s."
-	      use-value
-	      candidate)
+              use-value
+              candidate)
       ;; (describe use-value)
       ;; (inspect use-value)
       (invoke-restart use-value candidate))))
@@ -127,15 +127,15 @@ of the instance of that had the smallest score."
     (let ((restart (find-restart 'use-value condition)))
       (or
        (and restart (resignal-with-suggestion-restart
-		     input candidate condition))
+                     input candidate condition))
        (warn "Did you mean \"~a\"?~%~a"
-	     candidate
-	     (breeze.utils:indent-string
-	      2
-	      (breeze.utils:print-comparison
-	       nil
-	       (string-downcase candidate)
-	       input)))))))
+             candidate
+             (breeze.utils:indent-string
+              2
+              (breeze.utils:print-comparison
+               nil
+               (string-downcase candidate)
+               input)))))))
 
 (defgeneric condition-suggestion-input (condition)
   (:documentation "Get input for \"find-most-similar-*\" functions from a condition")
@@ -147,13 +147,13 @@ of the instance of that had the smallest score."
     (cell-error-name condition))
   (:method ((condition package-error))
     (let ((package-designator
-	    (package-error-package condition)))
+            (package-error-package condition)))
       (if (stringp package-designator)
-	  package-designator
-	  #+sbcl ;; only tested on sbcl
-	  (car
-	   (slot-value condition
-		       'sb-kernel::format-arguments)))))
+          package-designator
+          #+sbcl ;; only tested on sbcl
+          (car
+           (slot-value condition
+                       'sb-kernel::format-arguments)))))
   #+sbcl
   (:method ((condition sb-ext:package-does-not-exist))
     (package-error-package condition))
@@ -166,20 +166,20 @@ of the instance of that had the smallest score."
 (defmacro defun-suggest (types)
   `(progn
      ,@(loop
-	 :for type :in types
-	 :collect
-	 `(defun ,(symbolicate 'suggest- type) (condition)
-	    (let* ((input (string-downcase (condition-suggestion-input condition)))
-		   (candidate (,(symbolicate 'find-most-similar- type) input)))
-	      #+ (or)
-	      (format *debug-io*
-		      ,(format nil
-			       "~~&candidate ~(~a~): ~~s"
-			       type)
-		      candidate)
-	      (if candidate
-		  (suggest input candidate condition)
-		  (error condition)))))))
+         :for type :in types
+         :collect
+         `(defun ,(symbolicate 'suggest- type) (condition)
+            (let* ((input (string-downcase (condition-suggestion-input condition)))
+                   (candidate (,(symbolicate 'find-most-similar- type) input)))
+              #+ (or)
+              (format *debug-io*
+                      ,(format nil
+                               "~~&candidate ~(~a~): ~~s"
+                               type)
+                      candidate)
+              (if candidate
+                  (suggest input candidate condition)
+                  (error condition)))))))
 
 (defun-suggest
     (symbol
@@ -199,7 +199,7 @@ of the instance of that had the smallest score."
   ;; Get the first element of a condition's format arguments
   (car
    (slot-value *condition*
-	       'sb-kernel::format-arguments)) )
+               'sb-kernel::format-arguments)) )
 
 (defvar *last-condition* nil
   "For debugging purposose only.")
@@ -216,17 +216,17 @@ of the instance of that had the smallest score."
   "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
   (handler-bind
       ((error #'(lambda (condition)
-		  (setf *last-condition* condition)
-		  (error condition))))
+                  (setf *last-condition* condition)
+                  (error condition))))
     (handler-bind
-	;; The order is important!!!
-	((undefined-function #'suggest-symbol)
-	 #+sbcl (sb-ext:package-does-not-exist #'suggest-package)
-	 #+sbcl (sb-int:simple-reader-package-error #'suggest-symbol)
-	 #+ (or)
-	 (package-error #'suggest-package)
-	 #+sbcl
-	 (sb-pcl:class-not-found-error #'suggest-class))
+        ;; The order is important!!!
+        ((undefined-function #'suggest-symbol)
+         #+sbcl (sb-ext:package-does-not-exist #'suggest-package)
+         #+sbcl (sb-int:simple-reader-package-error #'suggest-symbol)
+         #+ (or)
+         (package-error #'suggest-package)
+         #+sbcl
+         (sb-pcl:class-not-found-error #'suggest-class))
       (funcall function))))
 
 ;; (prin t)
@@ -246,17 +246,17 @@ of the instance of that had the smallest score."
    (lambda ()
      ;; (swank::with-buffer-syntax () (eval string))
      (prog1
-	 (funcall *original-swank-interactive-eval* string)
+         (funcall *original-swank-interactive-eval* string)
        (loop
-	  :for (name . hook) :in *interactive-eval-hooks*
-	  :do
-	    (handler-case
-		(funcall hook string)
-	      (error (condition)
-		(format *error-output*
-			"~&Error signaled while running \"~a\" interactive-eval hook: ~a~%  "
-			name
-			condition))))))))
+         :for (name . hook) :in *interactive-eval-hooks*
+         :do
+            (handler-case
+                (funcall hook string)
+              (error (condition)
+                (format *error-output*
+                        "~&Error signaled while running \"~a\" interactive-eval hook: ~a~%  "
+                        name
+                        condition))))))))
 
 (defun %interactive-eval (string)
   (funcall 'interactive-eval string))
@@ -269,7 +269,7 @@ of the instance of that had the smallest score."
 (defun restore-swank-interactive-eval ()
   "Unadvise swank:interactive-eval."
   (setf (symbol-function 'swank:interactive-eval)
-	*original-swank-interactive-eval*))
+        *original-swank-interactive-eval*))
 
 ;; (advise-swank-interactive-eval)
 ;; (restore-swank-interactive-eval)
@@ -281,16 +281,16 @@ of the instance of that had the smallest score."
 (defun get-recent-interactively-evaluated-forms ()
   "Get the 50 most recently evaluated forms"
   (loop :for form :in *recent-forms*
-	:for i :below 50
-	:do (format t "~&~a~%"
-		    (remove #\newline form))))
+        :for i :below 50
+        :do (format t "~&~a~%"
+                    (remove #\newline form))))
 
 (defun find-worker-threads ()
   (let ((current-thread (bt:current-thread)))
     (remove-if-not #'(lambda (thread)
-		       (and (not (eq current-thread thread))
-			    (string= "worker" (bt:thread-name thread))))
-		   (sb-thread:list-all-threads))))
+                       (and (not (eq current-thread thread))
+                            (string= "worker" (bt:thread-name thread))))
+                   (sb-thread:list-all-threads))))
 
 (defun kill-worker-threads ()
   (let ((threads (find-worker-threads)))

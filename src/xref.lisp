@@ -1,6 +1,6 @@
 
 (uiop:define-package #:breeze.xref
-  (:documentation "Cross-reference and introspection")
+    (:documentation "Cross-reference and introspection")
   (:mix #:breeze.definition :cl #:breeze.utils #:alexandria)
   (:import-from #:breeze.test
                 #:test-body
@@ -28,29 +28,29 @@
   "Find all tests defined in a pacakge."
   (let ((package (find-package package)))
     (loop
-       :for test-name :being :the :hash-key :of breeze.test:*test*
-       :using (hash-value test-definition)
-       :for test-package = (second test-definition)
-       :when (eq test-package package)
-       :collect test-name)))
+      :for test-name :being :the :hash-key :of breeze.test:*test*
+        :using (hash-value test-definition)
+      :for test-package = (second test-definition)
+      :when (eq test-package package)
+        :collect test-name)))
 
 (defun tests-by-package ()
   "Return a hash-table of tests keyed by package."
   (cl-hash-util:collecting-hash-table (:mode :append)
     (loop
-       :for test-name :being :the :hash-key :of breeze.test:*test*
-       :using (hash-value test-definition)
-       :for package = (second test-definition)
-       :do (cl-hash-util:collect package test-definition))))
+      :for test-name :being :the :hash-key :of breeze.test:*test*
+        :using (hash-value test-definition)
+      :for package = (second test-definition)
+      :do (cl-hash-util:collect package test-definition))))
 
 (defun calls-who (function-name)
   "Take a function name and returns a list of all the functions it calls."
   (uiop:while-collecting (collect)
-      (walk-car
-       (function-body function-name)
-       (lambda (el)
-         (when (function-body el)
-           (collect el))))))
+    (walk-car
+     (function-body function-name)
+     (lambda (el)
+       (when (function-body el)
+         (collect el))))))
 
 (defun test-calls-who (test-name)
   "Take a test name and return a list of all the functions it calls."
@@ -58,15 +58,15 @@
     (walk-car
      (test-body test-name)
      #'(lambda (el)
-	 (when (and (symbolp el) (fboundp el)) ;;(function-body el)
-	   (setf (gethash el function) t))))
+         (when (and (symbolp el) (fboundp el)) ;;(function-body el)
+           (setf (gethash el function) t))))
     (hash-table-keys function)))
 
 (defun tested-by (function-name)
   "Return a list of all the tests that calls FUNCTION-NAME."
   (loop :for test-name :being :the :hash-key :of *test*
-     :when (member function-name (test-calls-who test-name))
-     :collect test-name))
+        :when (member function-name (test-calls-who test-name))
+          :collect test-name))
 
 (defun test-case (function-name)
   "List all the test-cases"
@@ -89,15 +89,15 @@
   (let ((function-called (make-hash-table)))
     ;; For each tests
     (loop :for test-name :being :the :hash-key :of *test*
-       ;; For each function called by this test.
-       :do (loop :for function-name :in (test-calls-who test-name)
-	      ;; accumulate
-              :do (setf (gethash function-name function-called) t)))
+          ;; For each function called by this test.
+          :do (loop :for function-name :in (test-calls-who test-name)
+                    ;; accumulate
+                    :do (setf (gethash function-name function-called) t)))
     ;; For each functions
     (loop :for function-name :being :the :hash-key :of *function*
-       ;; Is it called in any test?
-       :unless (gethash function-name function-called)
-       :collect function-name)))
+          ;; Is it called in any test?
+          :unless (gethash function-name function-called)
+            :collect function-name)))
 
 ;; TODO
 #+todo ;; It's done, but not tested nor used
@@ -116,38 +116,38 @@
 (defun find-packages-by-prefix (prefix)
   "Find all packages whose name starts with the given prefix (case insensitive by default)."
   (loop
-     :with prefix = (string-downcase prefix)
-     :for package :in (list-all-packages)
-     :when (starts-with-subseq prefix
-			       (string-downcase
-				(package-name package)))
-     :collect package))
+    :with prefix = (string-downcase prefix)
+    :for package :in (list-all-packages)
+    :when (starts-with-subseq prefix
+                              (string-downcase
+                               (package-name package)))
+      :collect package))
 
 (defun find-packages-by-regex (regex &optional (case-insensitive-p t))
   "Find all packages whose name match the regex (case insensitive by default)."
   (loop
-     :with scanner = (cl-ppcre:create-scanner regex :case-insensitive-mode
-					      case-insensitive-p)
-     :for package :in (list-all-packages)
-     :when (cl-ppcre:scan scanner
-			  (string-downcase
-			   (package-name package)))
-     :collect package))
+    :with scanner = (cl-ppcre:create-scanner regex :case-insensitive-mode
+                                             case-insensitive-p)
+    :for package :in (list-all-packages)
+    :when (cl-ppcre:scan scanner
+                         (string-downcase
+                          (package-name package)))
+      :collect package))
 
 (defun generic-method-p (symbol)
   "Returns T if SYMBOL designates a generic method"
   (and (fboundp symbol)
        (subtypep
-	(type-of (fdefinition symbol))
-	'standard-generic-function)))
+        (type-of (fdefinition symbol))
+        'standard-generic-function)))
 
 (defun specialp (symbol)
   "Return true if SYMBOL is a special variable."
   (and (symbolp symbol)
        (or (boundp symbol)
-	   (eval `(let (,symbol)
-		    (declare (ignorable ,symbol))
-		    (boundp ',symbol))))))
+           (eval `(let (,symbol)
+                    (declare (ignorable ,symbol))
+                    (boundp ',symbol))))))
 
 (defun macrop (symbol)
   "Return true if SYMBOL designate a macro."

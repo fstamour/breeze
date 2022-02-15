@@ -11,10 +11,10 @@
 (in-package #:breeze.project)
 
 (defun make-project (&rest args
-		       ;; &key depends-on author include-copyright license
-		       ;; name template-directory template-parameters
-		       ;; &allow-other-keys
-		       )
+                       ;; &key depends-on author include-copyright license
+                       ;; name template-directory template-parameters
+                       ;; &allow-other-keys
+                       )
   ;; (declare (ignore depends-on author include-copyright license name
   ;; template-directory template-parameters))
   "Scaffold a projec using quickproject's make-project."
@@ -23,7 +23,7 @@
 (defun get-ql-local-project-directories ()
   "Get the list of quicklisp local-projects directories (as strings)."
   (mapcar #'namestring
-	  ql:*local-project-directories*))
+          ql:*local-project-directories*))
 
 
 ;; TODO defun choose-local-project-directories
@@ -34,17 +34,17 @@
   "Create a project named NAME using quickproject."
   (interactive)
   (let ((name (read-string "Name of the project: "))
-	;; TODO let the user choose a directory outside of quicklisp's local
-	;; project directories.  see (read-directory-name "directory: ").
-	(directory (breeze-choose-local-project-directories))
-	;; TODO let the user choose
-	(author user-full-name)
-	(licence "Public domain")
-	;; TODO depends-on
-	;; TODO include-copyright
-	;; TODO template-directory
-	;; TODO template-parameters
-	)
+        ;; TODO let the user choose a directory outside of quicklisp's local
+        ;; project directories.  see (read-directory-name "directory: ").
+        (directory (breeze-choose-local-project-directories))
+        ;; TODO let the user choose
+        (author user-full-name)
+        (licence "Public domain")
+        ;; TODO depends-on
+        ;; TODO include-copyright
+        ;; TODO template-directory
+        ;; TODO template-parameters
+        )
     (slime-interactive-eval
      (concat
       "(breeze.listener:make-project \"" directory name "\""

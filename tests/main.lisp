@@ -3,11 +3,11 @@
 (defpackage #:breeze.test.main
   (:use #:cl)
   (:import-from #:breeze.user
-		#:current-packages)
+                #:current-packages)
   (:import-from #:breeze.test
-		#:run-all-tests)
+                #:run-all-tests)
   (:import-from #:breeze.xref
-		#:package-test)
+                #:package-test)
   (:documentation "Entry point for all tests in breeze."))
 
 (in-package #:breeze.test.main)

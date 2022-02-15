@@ -12,10 +12,10 @@
 (defun breeze-list-lisp-files (directory)
   ;; just the name, no extension, no directory
   (loop for file in
-		 (directory-files directory)
-	when (and (not (string-prefix-p "." file))
-		  (string-suffix-p ".lisp" file))
-	  collect (file-name-sans-extension file)))
+                 (directory-files directory)
+        when (and (not (string-prefix-p "." file))
+                  (string-suffix-p ".lisp" file))
+          collect (file-name-sans-extension file)))
 
 #+ (or)
 (define-skeleton breeze-insert-header-template
@@ -44,10 +44,10 @@
   ;; TODO check if directory exists, creates it if not.
   ;;   (mkdir breeze-capture-folder)
   (let* ((name (completing-read
-		"name of the file and package: "
-		(breeze-list-lisp-files breeze-capture-folder)))
-	 (file (concat breeze-capture-folder "/" name ".lisp"))
-	 (file-exists (file-exists-p file)))
+                "name of the file and package: "
+                (breeze-list-lisp-files breeze-capture-folder)))
+         (file (concat breeze-capture-folder "/" name ".lisp"))
+         (file-exists (file-exists-p file)))
     (find-file file)
     (unless file-exists
       (breeze-insert-defpackage))))

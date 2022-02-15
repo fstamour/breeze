@@ -17,11 +17,13 @@
   (unless
       (cl-remove-if-not
        #'(lambda (el)
-	   (and (listp el)
-		(eq 'breeze/status (car el))))
+           (and (listp el)
+                (eq 'breeze/status (car el))))
        mode-line-format)
     (setf mode-line-format
-	  (append mode-line-format
-		  '((breeze/status  ("--> " breeze/status " <--")))))))
+          (append mode-line-format
+                  '((breeze/status  ("--> " breeze/status " <--")))))))
 
 ;; (breeze/configure-mode-line)
+
+;; (add-hook 'breeze-mode-hook 'breeze/configure-mode-line)

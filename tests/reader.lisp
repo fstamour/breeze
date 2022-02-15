@@ -4,13 +4,13 @@
 (defpackage #:breeze.reader.test
   (:use :cl #:breeze.reader)
   (:import-from #:breeze.test
-		#:deftest
-		#:is))
+                #:deftest
+                #:is))
 
 (in-package #:breeze.reader.test)
 
 (defun test-node (node type prefix content raw)
-  (is (typep node 'node)) 		; just making sure
+  (is (typep node 'node))   ; just making sure
   (is (typep node type))
   (if prefix
       (is (string= prefix (node-prefix node)))
@@ -21,76 +21,76 @@
 
 (defun test-node* (nodes spec-list)
   (mapcar #'(lambda (node spec)
-	      (apply #'test-node node spec))
-	  nodes
-	  spec-list)
+              (apply #'test-node node spec))
+          nodes
+          spec-list)
   t)
 
 (deftest parse-string
   (is (null (parse-string "")))
   (test-node* (parse-string "1")
-	      '((node nil 1 "1")))
+              '((node nil 1 "1")))
   (test-node* (parse-string " 1")
-	      '((node " " 1 "1")))
+              '((node " " 1 "1")))
   (test-node* (parse-string " 1 ")
-	      '((node " " 1 "1")
-		(skipped-node nil " " nil)))
+              '((node " " 1 "1")
+                (skipped-node nil " " nil)))
   (test-node* (parse-string "\"hi\"")
-	      '((node nil "hi" "\"hi\"")))
+              '((node nil "hi" "\"hi\"")))
   (test-node* (parse-string ";; hello")
-	      '((skipped-node nil ";; hello" nil)))
+              '((skipped-node nil ";; hello" nil)))
   (test-node* (parse-string " ;; hello")
-	      '((skipped-node nil " ;; hello" nil)))
+              '((skipped-node nil " ;; hello" nil)))
   (test-node* (parse-string "a ;; hello")
-	      '((symbol-node nil a "a")
-		(skipped-node nil " ;; hello" nil))))
+              '((symbol-node nil a "a")
+                (skipped-node nil " ;; hello" nil))))
 
 (deftest parse-unparse-roundtrip
   (dolist (expected
-	   '("1"
-	     " 1 "
-	     "()"
-	     " ( 2 )"
-	     "\"hi\""
-	     ";; hello"
-	     " #| hello |#"
-	     "a ;; hello"
-	     "b  #| hello |#"
-	     "(1 #|comment|# \"string\")"
-	     "`(,a ,b)"
-	     "(1 . 2)"
-	     "#.(+ 1 2)"
-	     "#+nil ingored"
-	     "#\\Space"
-	     "a"
-	     "A"
-	     " nil "
-	     " NiL "
-	     " () "
-	     " ( ) "
-	     " '() "
-	     "(((a)))"
-	     "(quote a b c)"
-	     "'a"
-	     "`a"
-	     "`(,a)"
-	     "`(,@a)"
-	     "()"
-	     "#.()"
-	     "#.(+ 1 2)"
-	     "#'print"
-	     "#-(or) 1"
-	     "#+nil 1 "
-	     "#+(and) 2"
-	     "#+(and) (bla)"))
+           '("1"
+             " 1 "
+             "()"
+             " ( 2 )"
+             "\"hi\""
+             ";; hello"
+             " #| hello |#"
+             "a ;; hello"
+             "b  #| hello |#"
+             "(1 #|comment|# \"string\")"
+             "`(,a ,b)"
+             "(1 . 2)"
+             "#.(+ 1 2)"
+             "#+nil ingored"
+             "#\\Space"
+             "a"
+             "A"
+             " nil "
+             " NiL "
+             " () "
+             " ( ) "
+             " '() "
+             "(((a)))"
+             "(quote a b c)"
+             "'a"
+             "`a"
+             "`(,a)"
+             "`(,@a)"
+             "()"
+             "#.()"
+             "#.(+ 1 2)"
+             "#'print"
+             "#-(or) 1"
+             "#+nil 1 "
+             "#+(and) 2"
+             "#+(and) (bla)"))
     (let ((*break-on-signals* #+nil 'error))
       (let* ((got (unparse-to-string (parse-string expected)))
-	     (ok? (string= expected got)))
-	(unless ok?
-	  (format t "~&Expected: ~s, got ~s"
-		  expected got))
-	;; (is ok?)
-	))))
+             (ok? (string= expected got)))
+        (unless ok?
+          (format t "~&Expected: ~s, got ~s"
+                  expected got))
+        ;; (is ok?)
+        ))))
 
 
 #+ (or)
@@ -105,16 +105,16 @@
   ;; Trying to read all files in a system, using breeze's reader.
   (time
    (loop :for file :in (breeze.asdf:system-files 'breeze)
-	 :for content = (alexandria:read-file-into-string file)
-	 :do
-	    (with-open-file (stream file)
-	      (let* ((nodes (parse stream))
-		     #+nil
-		     (unparse-content (unparse-to-string nodes)))
-		#+nil
-		(unless (string= content unparse-content)
-		  (format t "~&Failed to roundtrip file ~s." file))))
-	    (format t "~&~s parsed." file))))
+         :for content = (alexandria:read-file-into-string file)
+         :do
+            (with-open-file (stream file)
+              (let* ((nodes (parse stream))
+                     #+nil
+                     (unparse-content (unparse-to-string nodes)))
+                #+nil
+                (unless (string= content unparse-content)
+                  (format t "~&Failed to roundtrip file ~s." file))))
+            (format t "~&~s parsed." file))))
 
 
 #+ (or)

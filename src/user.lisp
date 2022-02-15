@@ -7,7 +7,7 @@
                           #:defun
                           #:fmakunbound)
   (:import-from #:breeze.documentation
-		#:find-undocumented-symbols)
+                #:find-undocumented-symbols)
   (:import-from #:breeze.definition
                 #:*function-redifinition-hooks*
                 #:function-body)
@@ -26,13 +26,13 @@
                 #:request-to-run-test
                 #:request-to-run-test*)
   (:import-from #:breeze.xref
-		#:package-test
+                #:package-test
                 #:calls-who
                 #:test-calls-who
                 #:tested-by
                 #:test-case
-		#:find-packages-by-prefix
-		#:find-packages-by-regex)
+                #:find-packages-by-prefix
+                #:find-packages-by-regex)
   (:export
    ;; definition
    #:defun
@@ -70,7 +70,7 @@
 
 (defun maybe-tips-about-test-runner (&optional (stream *standard-output*))
   (unless (breeze.worker:worker-alive-p
-	   breeze.test-runner::*test-runner*)
+           breeze.test-runner::*test-runner*)
     (format stream "~&Use (br:ensure-test-runner) or (br:start-test-runner) to be able to run tests automatically in the background.")))
 
 (defun welcome ()
@@ -79,14 +79,14 @@
 
   (format t "~%Tips:~%")
   (format t "~&~{ * ~A~%~}"
-	  (remove-if #'null
-		     `(#+later "Remember to use the emacs mode if applicable."
-		       "Use (br:next) to get hints on what to do next."
-		       "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
-		       "Use (require 'swank) followed by (swank:create-server) to start swank."
-		       "Once swank is started, call (breeze.listener:advise-swank-interactive-eval)"
-		       "Use (br:dogfood) to start hacking on breeze."
-		       ,(maybe-tips-about-test-runner nil))))
+          (remove-if #'null
+                     `(#+later "Remember to use the emacs mode if applicable."
+                       "Use (br:next) to get hints on what to do next."
+                       "Use \"br\" as a nickname for \"breeze.user\" (e.g. `br:main` instead of `breeze.user:main`)."
+                       "Use (require 'swank) followed by (swank:create-server) to start swank."
+                       "Once swank is started, call (breeze.listener:advise-swank-interactive-eval)"
+                       "Use (br:dogfood) to start hacking on breeze."
+                       ,(maybe-tips-about-test-runner nil))))
   "Breeze started!")
 
 (defun initialize ()
@@ -106,7 +106,7 @@
   "If *package* contains a dot \".\", returns all packages with the same prefix, else return the current package."
   (let ((name (package-name *package*)))
     (alexandria:if-let
-	(pos (position #\. name))
+        (pos (position #\. name))
       (find-packages-by-prefix (subseq name 0 pos))
       *package*)))
 
@@ -125,11 +125,11 @@
       (find-package package-designator))
      ((listp package-designator)
       (loop :for designator :in package-designator
-	    :append (current-packages designator)))
+            :append (current-packages designator)))
      ((stringp package-designator)
       (find-packages-by-regex package-designator))
      ((when (functionp package-designator)
-	(funcall package-designator))))))
+        (funcall package-designator))))))
 
 (defun cheers ()
   "Bravo!")
@@ -137,15 +137,15 @@
 (defun tips-about-undocumented-symbols ()
   "Tell the user there are undocumented symbols."
   (let ((missing-documentation
-	  (loop
-	    :for package :in (current-packages)
-	    :append (find-undocumented-symbols package))))
+          (loop
+            :for package :in (current-packages)
+            :append (find-undocumented-symbols package))))
     (if missing-documentation
-	(progn
-	  (format t "~&There are undocumented symbols in current packages:")
-	  (format t "~&~{ * ~A~%~}"
-		  missing-documentation))
-	(format t "~&No undocumented symbols found ~{~A~}. ~A" (current-packages) (cheers)))))
+        (progn
+          (format t "~&There are undocumented symbols in current packages:")
+          (format t "~&~{ * ~A~%~}"
+                  missing-documentation))
+        (format t "~&No undocumented symbols found ~{~A~}. ~A" (current-packages) (cheers)))))
 
 (defun tips-about-failing-tests ()
   "Tell the user about currently failiing tests."

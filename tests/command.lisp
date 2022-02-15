@@ -4,18 +4,18 @@
   (:documentation "Tests for breeze.command.")
   (:use :cl #:breeze.command)
   (:import-from #:breeze.test
-		#:deftest
-		#:is)
+                #:deftest
+                #:is)
   (:import-from #:alexandria
-		#:assoc-value)
+                #:assoc-value)
   (:import-from #:breeze.command
-		;; symbols not exported
-		#:make-tasklet
-		#:command-handler
-		#:command-context*
-		#:command-context
-		#:command-tasklet
-		#:*current-command*))
+                ;; symbols not exported
+                #:make-tasklet
+                #:command-handler
+                #:command-context*
+                #:command-context
+                #:command-tasklet
+                #:*current-command*))
 
 (in-package #:breeze.command.test)
 
@@ -24,7 +24,7 @@
   (make-instance
    'command-handler
    :tasklet (make-tasklet ()
-	      (format t "~&hi"))
+              (format t "~&hi"))
    :context nil)
 
   (chanl:task-thread
@@ -35,21 +35,21 @@
 #+ (or)
 (deftest command-first-callback-is-run-on-start
   (let ((*current-command*)
-	(x 0))
+        (x 0))
     (start-command
      nil
      #'(lambda ()
-	 (incf x)
-	 (is *current-command*)
-	 (is (eq 'hash-table (type-of (command-context*))))))
+         (incf x)
+         (is *current-command*)
+         (is (eq 'hash-table (type-of (command-context*))))))
     (is (= 1 x))))
 
 (deftest context-buffer-string
   (is (string=
        "asdf"
        (context-buffer-string
-	(alexandria:plist-hash-table
-	 '(:buffer-string "asdf"))))))
+        (alexandria:plist-hash-table
+         '(:buffer-string "asdf"))))))
 
 (deftest context-buffer-name)
 (deftest context-buffer-file-name)

@@ -3,8 +3,8 @@
 (uiop:define-package #:breeze.dummy.test
     (:mix :breeze.definition :cl)
   (:import-from #:breeze.test
-		#:deftest
-		#:is)
+                #:deftest
+                #:is)
   (:nicknames :dum)
   (:export
    ;; Documented symbols

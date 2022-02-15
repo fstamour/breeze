@@ -2,7 +2,7 @@
   (:documentation "Syntax tree data structure")
   (:use #:cl)
   (:local-nicknames (#:a #:alexandria)
-		    (#:tpln #:trivial-package-local-nicknames))
+                    (#:tpln #:trivial-package-local-nicknames))
   (:export
    ;; Syntax tree types
    #:node
@@ -20,6 +20,7 @@
    #:character-node-p
    #:list-node-p
    #:function-node-p
+   #:terminalp
 
    ;; Node accessors
    #:node-content
@@ -100,29 +101,29 @@
 
 (defun cropped (string &optional (length 25))
   (str:replace-all #.(coerce (list #\Newline) 'string) "\\n"
-		   (str:shorten length string)))
+                   (str:shorten length string)))
 
 (defun print-node-type (node stream)
   (format stream "~@(~a~) "
-	  (if (eq 'node (type-of node))
-	      "Node"
-	      (let ((type (symbol-name (type-of node))))
-		(subseq type 0 (- (length type) #. (length "-node")))
-		;; (subseq type 0 3)
-		))))
+          (if (eq 'node (type-of node))
+              "Node"
+              (let ((type (symbol-name (type-of node))))
+                (subseq type 0 (- (length type) #. (length "-node")))
+                ;; (subseq type 0 3)
+                ))))
 
 (defun print-node-prefix (node stream)
   (a:if-let (prefix (node-prefix node))
     (format stream "~s "
-	    (if (every #'breeze.utils:whitespacep prefix)
-		(length prefix)
-		(node-prefix node)))))
+            (if (every #'breeze.utils:whitespacep prefix)
+                (length prefix)
+                (node-prefix node)))))
 
 (defmacro print-node (&body body)
   `(let ((*print-circle* t)
-	 (*print-right-margin* nil))
+         (*print-right-margin* nil))
      (print-unreadable-object
-	 (node stream)
+         (node stream)
        ,@body)))
 
 (defmethod print-object ((node node) stream)
@@ -130,9 +131,9 @@
     (print-node-type node stream)
     (print-node-prefix node stream)
     (format stream "<~a>~%~:t ~s"
-	    (cropped
-	     (node-raw node))
-	    (node-content node))))
+            (cropped
+             (node-raw node))
+            (node-content node))))
 
 (defmethod print-object ((node symbol-node) stream)
   (print-node
@@ -140,7 +141,7 @@
     (format stream "~s " (symbol-package (node-content node)))
     (print-node-prefix node stream)
     (format stream "~s"
-	    (or (node-raw node) (node-content node)))))
+            (or (node-raw node) (node-content node)))))
 
 (defmethod print-object ((node skipped-node) stream)
   (print-node
@@ -148,16 +149,16 @@
     (print-node-prefix node stream)
     ;; TODO Only print the first 15 characters
     (format stream "~s"
-	    (node-content node))))
+            (node-content node))))
 
 (defmethod print-object ((node feature-expression-node) stream)
   (print-node
     (print-node-type node stream)
     (print-node-prefix node stream)
     (format stream "~s ~s :raw ~s"
-	    (node-feature-expression node)
-	    (node-content node)
-	    (node-raw node))))
+            (node-feature-expression node)
+            (node-content node)
+            (node-raw node))))
 
 
 ;;; Type predicates
@@ -165,14 +166,14 @@
 (defmacro define-node-type-predicates (types)
   `(progn
      ,@(loop :for type :in types
-	     :collect
-	     `(defun ,(alexandria:symbolicate
-		       type
-		       (if (position #\- (symbol-name type))
-			   '-p
-			   'p))
-		  (node)
-		(typep node ',type)))))
+             :collect
+             `(defun ,(alexandria:symbolicate
+                       type
+                       (if (position #\- (symbol-name type))
+                           '-p
+                           'p))
+                  (node)
+                (typep node ',type)))))
 
 (define-node-type-predicates
     (node

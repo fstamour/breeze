@@ -3,9 +3,9 @@
 (uiop:define-package #:breeze.command
     (:use :cl)
   (:import-from #:alexandria
-		#:symbolicate
-		#:with-gensyms
-		#:if-let)
+                #:symbolicate
+                #:with-gensyms
+                #:if-let)
   (:export
    #:start-command
    #:cancel-command
@@ -95,20 +95,20 @@
   "Creates a thread, return a channel to communicate with it."
   (with-gensyms (channel-in channel-out task)
     `(let* ((,channel-in (make-instance 'chanl:bounded-channel))
-	    (,channel-out (make-instance 'chanl:bounded-channel))
-	    (,task
-	      (chanl:pcall
-	       #'(lambda ()
-		   (let ((*channel-in* ,channel-in)
-			 (*channel-out* ,channel-out))
-		     ,@body))
-	       :name "breeze command"
-	       :initial-bindings `((*package* ,*package*)
-				   (*current-command* ,*current-command*)
-				   ,@chanl:*default-special-bindings*))))
+            (,channel-out (make-instance 'chanl:bounded-channel))
+            (,task
+              (chanl:pcall
+               #'(lambda ()
+                   (let ((*channel-in* ,channel-in)
+                         (*channel-out* ,channel-out))
+                     ,@body))
+               :name "breeze command"
+               :initial-bindings `((*package* ,*package*)
+                                   (*current-command* ,*current-command*)
+                                   ,@chanl:*default-special-bindings*))))
        (change-class ,task 'tasklet)
        (setf (tasklet-channel-in ,task) ,channel-in
-	     (tasklet-channel-out ,task) ,channel-out)
+             (tasklet-channel-out ,task) ,channel-out)
        ,task)))
 
 #+ (or)
@@ -136,8 +136,8 @@
   "Helper to get the current command, or correctly set it to nil."
   (when *current-command*
     (if (donep *current-command*)
-	(cancel-command "Done")
-	*current-command*)))
+        (cancel-command "Done")
+        *current-command*)))
 
 (defun %recv (channel)
   "To help with tracing."
@@ -159,20 +159,20 @@
   (if (donep command)
       (cancel-command)
       (progn
-	(when arguments
-	  (command-send command arguments))
-	(let ((request
-		(command-recv command)))
-	  (unless request
-	    (cancel-command "Request is null."))
-	  request))))
+        (when arguments
+          (command-send command arguments))
+        (let ((request
+                (command-recv command)))
+          (unless request
+            (cancel-command "Request is null."))
+          request))))
 
 (defun call-with-cancel-command-on-error (thunk)
   (handler-bind
       ((error #'(lambda (condition)
-		  ;; (declare (ignore condition))
-		  (format *debug-io* "~&An error occured: ~a" condition)
-		  (cancel-command condition))))
+                  ;; (declare (ignore condition))
+                  (format *debug-io* "~&An error occured: ~a" condition)
+                  (cancel-command condition))))
     (funcall thunk)))
 
 (defmacro cancel-command-on-error (&body body)
@@ -184,16 +184,16 @@
     :with ht = (make-hash-table)
     :for (key value) :on context-plist :by #'cddr
     :for normalized-key = (if (member (symbol-name key)
-				      '#.(mapcar #'symbol-name
-						 '(buffer-string
-						   buffer-name
-						   buffer-file-name
-						   point
-						   point-min
-						   point-max))
-				      :test #'string=)
-			      (intern (symbol-name key) :keyword)
-			      key)
+                                      '#.(mapcar #'symbol-name
+                                                 '(buffer-string
+                                                   buffer-name
+                                                   buffer-file-name
+                                                   point
+                                                   point-min
+                                                   point-max))
+                                      :test #'string=)
+                              (intern (symbol-name key) :keyword)
+                              key)
     :when value
       :do (setf (gethash normalized-key ht) value)
     :finally (return ht)))
@@ -211,16 +211,16 @@
   (cancel-command-on-error
     ;; Create the command handler with the right context
     (setf *current-command*
-	  (make-instance
-	   'command-handler
-	   :context (context-plist-to-hash-table context-plist)))
+          (make-instance
+           'command-handler
+           :context (context-plist-to-hash-table context-plist)))
     ;; Create the thread for the command handler
     (setf (command-tasklet *current-command*)
-	  (make-tasklet ()
-	    (cancel-command-on-error
-	      ;; Send a message to tell the thread is up and running
-	      (chanl:send *channel-out* :started)
-	      (funcall thunk))))
+          (make-tasklet ()
+            (cancel-command-on-error
+              ;; Send a message to tell the thread is up and running
+              (chanl:send *channel-out* :started)
+              (funcall thunk))))
     ;; Wait for the thread to be up and running
     (chanl:recv
      (command-channel-out *current-command*))
@@ -355,7 +355,7 @@ position."
     nil
   ""
   (start-command context
-		 (lambda ()
+                 (lambda ()
                    (insert "Test"))))
 
 (defun read-string (prompt &optional initial-input)
@@ -395,8 +395,8 @@ position."
    string))
 
 (defun replace-region (position-from position-to
-		       replacement-string
-		       save-excursion-p)
+                       replacement-string
+                       save-excursion-p)
   "Send a message to the editor telling it to replace the text between
 POSITION-FROM POSITION-TO by REPLACEMENT-STRING. Set SAVE-EXCURSION-P
 to non-nil to keep the current position."
@@ -415,48 +415,48 @@ to non-nil to keep the current position."
 ;;; Utilities to help creating commands less painful.
 
 (defmacro define-command (name (&rest key-arguments)
-			  &body body)
+                          &body body)
   "Macro to define command with the basic context.
 More special-purpose context can be passed, but it must be done so
 using keyword arguments."
   (let ((context (symbolicate 'context))
-	(basic-context-variables (mapcar #'symbolicate
-					 '(buffer-string
-					   buffer-name
-					   buffer-file-name
-					   point
-					   point-min
-					   point-max))))
+        (basic-context-variables (mapcar #'symbolicate
+                                         '(buffer-string
+                                           buffer-name
+                                           buffer-file-name
+                                           point
+                                           point-min
+                                           point-max))))
     (multiple-value-bind (remaining-forms declarations docstring)
-	(alexandria:parse-body body :documentation t)
+        (alexandria:parse-body body :documentation t)
       ;; Docstring are mandatory for commands
       (check-type docstring string)
       `(defun ,name (&rest ,context
-		     &key
-		       ,@basic-context-variables
-		       ,@key-arguments)
-	 (declare (ignorable
-		   ,context
-		   ,@basic-context-variables
-		   ,@(loop for karg in key-arguments
-			   collect (or (and (symbolp karg) karg)
-				       (first karg)))))
-	 ,@(when declarations (list declarations))
-	 ,docstring
-	 (if (current-command*)
-	     (progn
-	       (block nil
-		 ,@(loop :for var :in basic-context-variables
-			 :collect `(unless ,var
-				     (setf ,var (,(symbolicate 'context- var '*)))))
-		 ,@remaining-forms)
-	       "done")
-	     (start-command
-	      ,context
-	      (lambda ()
-		(progn
-		  (block nil ,@remaining-forms)
-		  (send "done")))))))))
+                     &key
+                       ,@basic-context-variables
+                       ,@key-arguments)
+         (declare (ignorable
+                   ,context
+                   ,@basic-context-variables
+                   ,@(loop for karg in key-arguments
+                           collect (or (and (symbolp karg) karg)
+                                       (first karg)))))
+         ,@(when declarations (list declarations))
+         ,docstring
+         (if (current-command*)
+             (progn
+               (block nil
+                 ,@(loop :for var :in basic-context-variables
+                         :collect `(unless ,var
+                                     (setf ,var (,(symbolicate 'context- var '*)))))
+                 ,@remaining-forms)
+               "done")
+             (start-command
+              ,context
+              (lambda ()
+                (progn
+                  (block nil ,@remaining-forms)
+                  (send "done")))))))))
 
 #+ (or)
 (trace

@@ -2,9 +2,11 @@
 
 (uiop:define-package #:breeze.refactor
     (:use #:cl #:breeze.command)
+  (:local-nicknames (#:a #:alexandria))
   (:import-from
    #:alexandria
-   #:if-let)
+   #:if-let
+   #:symbolicate)
   (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name
@@ -62,7 +64,7 @@
 
 (defun node-lastcar (node)
   "Return the last element from a NODE's content."
-  (alexandria:lastcar (node-content node)))
+  (a:lastcar (node-content node)))
 
 (defun node-string-equal (string node)
   "Compare the content of a NODE to a STRING, case-insensitive."
@@ -72,104 +74,111 @@
   "Returns the length of a NODE's content."
   (and (list-node-p node)
        (length
-	(if ignore-skipped-p
-	    (remove-if #'skipped-node-p (node-content node))
-	    (node-content node)))))
+        (if ignore-skipped-p
+            (remove-if #'skipped-node-p (node-content node))
+            (node-content node)))))
 
 (defun node-symbol= (symbol node)
   "Does NODE represent the symbol SYMBOL."
   (and (symbol-node-p node)
        (node-string-equal (symbol-name symbol)
-			  node)))
+                          node)))
 
 (defun null-node-p (node)
   "Does NODE represent the symbol \"nil\"."
   (node-symbol= 'nil node))
 
-
 (defmacro define-node-form-predicates (types)
   "Helper macro to define lots of predicates."
   `(progn
      ,@(loop :for type :in types
-	     :collect
-	     `(export
-	       (defun ,(alexandria:symbolicate type '-form-p)
-		   (node)
-		 ,(format nil "Does NODE represent an \"~a\" form." type)
-		 (and (list-node-p node)
-		      (node-symbol= ',type (node-first node))))))))
-
-
+             :for package = (symbol-package type)
+             :for cl-package-p = (eq (find-package :cl) package)
+             :for function-name
+               = (if cl-package-p
+                     (symbolicate type '#:-form-p)
+                     (symbolicate (package-name package)
+                                  '#:-- type '#:-form-p))
+             :collect
+             `(export
+               (defun ,function-name
+                   (node)
+                 ,(format nil "Does NODE represent an \"~a\" form."
+                          (if cl-package-p
+                              type
+                              (symbol-package-qualified-name type)))
+                 (and (list-node-p node)
+                      (node-symbol= ',type (node-first node))))))))
 
 (defun find-node (position nodes)
   "Given a list of NODES, return which node contains the POSITION."
   (loop :for node :in nodes
-	:for (start . end) = (node-source node)
-	:for i :from 0
-	:when (and
-	       (<= start position end)
-	       (<= position end))
-	  :do
-	     (return (cons node i))))
+        :for (start . end) = (node-source node)
+        :for i :from 0
+        :when (and
+               (<= start position end)
+               (<= position end))
+          :do
+             (return (cons node i))))
 
 (defun find-path-to-node (position nodes)
   "Given a list of NODES, return a path (list of cons (node . index))"
   (loop :for found = (find-node position nodes)
-	  :then (let ((node (car found)))
-		  (and (listp (node-content node))
-		       (car (node-content node))
-		       (find-node position (node-content node))))
-	:while found
-	:collect found))
+          :then (let ((node (car found)))
+                  (and (listp (node-content node))
+                       (car (node-content node))
+                       (find-node position (node-content node))))
+        :while found
+        :collect found))
 
 (defun find-nearest-sibling-form (nodes current-node predicate)
   "Find the nearest sibling form that match the predicate."
   (loop :with result
-	:for node :in nodes
-	:when (eq node current-node)
-	  :do (return result)
-	:when (funcall predicate node)
-	  :do (setf result node)))
+        :for node :in nodes
+        :when (eq node current-node)
+          :do (return result)
+        :when (funcall predicate node)
+          :do (setf result node)))
 
 (defmacro define-find-nearest-sibling-form (types)
   "Helper macro to define lots of predicates."
   `(progn
      ,@(loop :for type :in types
-	     :collect
-	     `(export
-	       (defun ,(alexandria:symbolicate
-			'find-nearest-sibling- type '-form)
-		   (nodes current-node)
-		 ,(format
-		   nil "Find the nearest sibling form of type \"~a\"."
-		   type)
-		 (find-nearest-sibling-form
-		  nodes current-node
-		  #',(alexandria:symbolicate type '-form-p)))))))
+             :collect
+             `(export
+               (defun ,(symbolicate '#:find-nearest-sibling- type
+                                    '#:-form)
+                   (nodes current-node)
+                 ,(format
+                   nil "Find the nearest sibling form of type \"~a\"."
+                   type)
+                 (find-nearest-sibling-form
+                  nodes current-node
+                  #',(symbolicate type '#:-form-p)))))))
 
 (defun find-nearest-parent-form (path predicate)
   "Find the nearest parent form that match the predicate."
   (loop :with result
-	:for node :in path
-	:when (funcall predicate node)
-	  :do (setf result node)
-	:finally (return result)))
+        :for node :in path
+        :when (funcall predicate node)
+          :do (setf result node)
+        :finally (return result)))
 
 (defmacro define-find-nearest-parent-form (types)
   "Helper macro to define lots of predicates."
   `(progn
      ,@(loop :for type :in types
-	     :collect
-	     `(export
-	       (defun ,(alexandria:symbolicate
-			'find-nearest-parent- type '-form)
-		   (path)
-		 ,(format
-		   nil "Find the nearest parent form of type \"~a\"."
-		   type)
-		 (find-nearest-parent-form
-		  path
-		  #',(alexandria:symbolicate type '-form-p)))))))
+             :collect
+             `(export
+               (defun ,(symbolicate '#:find-nearest-parent- type
+                                    '#:-form)
+                   (path)
+                 ,(format
+                   nil "Find the nearest parent form of type \"~a\"."
+                   type)
+                 (find-nearest-parent-form
+                  path
+                  #',(symbolicate type '#:-form-p)))))))
 
 
 
@@ -202,12 +211,14 @@
      mapcar
      mapcond))
 
+(define-node-form-predicates (uiop:define-package))
+
 ;; TODO A "skipped node" can also be a form hidden behing a feature (#+/-)
 (defun emptyp (nodes)
   "Whether a list of node contains no code."
   (every #'(lambda (node)
-	     (typep node 'breeze.reader:skipped-node))
-	 nodes))
+             (typep node 'breeze.reader:skipped-node))
+         nodes))
 
 
 ;; TODO symbol-qualified-p : is the symbol "package-qualified"
@@ -233,7 +244,7 @@
   (insert
    "(handler-bind
       ((error #'(lambda (condition)
-		  (describe condition *debug-io*))))
+    (describe condition *debug-io*))))
     (frobnicate))"))
 
 (define-command insert-loop-clause-for-on-list ()
@@ -315,7 +326,7 @@ defun."
   "Whether to include (in-package #:cl-user) before a defpackage form.")
 
 (defun directory-name (pathname)
-  (alexandria:lastcar (pathname-directory pathname)))
+  (a:lastcar (pathname-directory pathname)))
 
 (defun infer-project-name (path)
   "Try to infer the name of the project from the PATH."
@@ -336,11 +347,11 @@ defun."
   "Given a FILE-PATHNAME, infer a proper package name."
   (when file-pathname
     (let ((project (infer-project-name file-pathname))
-	  (test (when (infer-is-test-file file-pathname)
-		  "test"))
-	  (name (pathname-name file-pathname)))
+          (test (when (infer-is-test-file file-pathname)
+                  "test"))
+          (name (pathname-name file-pathname)))
       (format nil "~{~a~^.~}"
-	      (remove-if #'null (list project test name))))))
+              (remove-if #'null (list project test name))))))
 
 #+ (or)
 (trace
@@ -351,7 +362,7 @@ defun."
 (define-command insert-defpackage ()
   "Insert a defpackage form."
   (read-string "Name of the package: "
-	       (infer-package-name-from-file buffer-file-name))
+               (infer-package-name-from-file buffer-file-name))
   (handle (package-name)
     (when *insert-defpackage/cl-user-prefix*
       (insert
@@ -369,13 +380,13 @@ defun."
   (insert
    "(:local-nicknames ~{~a~^~%~})"
    (loop :for name =
-	 ;; TODO This form is not ideal...
-		   (progn (read-string "Name of the package to alias: ")
-			  (handle (name) name))
-	 :while (positivep (length name)) ; TODO there's a better function for that somewhere too..
-	 :for alias = (progn (read-string "Alias of the package: ")
-			     (handle (name) name))
-	 :collect (format nil "(#:~a #:~a)" alias name))))
+         ;; TODO This form is not ideal...
+                   (progn (read-string "Name of the package to alias: ")
+                          (handle (name) name))
+         :while (positivep (length name)) ; TODO there's a better function for that somewhere too..
+         :for alias = (progn (read-string "Alias of the package: ")
+                             (handle (name) name))
+         :collect (format nil "(#:~a #:~a)" alias name))))
 
 (define-command insert-in-package-cl-user ()
   "Insert (cl:in-package #:cl-user)"
@@ -390,23 +401,22 @@ defun."
     (read-string "Author: ")
     (handle (author)
       (read-string "Licence name: ")
-      (handle (licence)
-	(insert "(cl:in-package #:cl)~%~%")
-	;; TODO don't insert a defpackage if it already exists
-	(insert "(defpackage #:~a.asd~%  (:use :cl :asdf))~%~%"
-		system-name)
-	(insert "(in-package #:~a.asd)~%~%" system-name)
-	(insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
-		system-name
-		`(":description \"\""
-		  ":version \"0.0.1\""
-		  ,(format nil ":author \"~a\"" author)
-		  ,(format nil ":licence \"~a\"" licence)
-		  ":depends-on '()"
-		  ";; :pathname src"
-		  ":serial t"
-		  "  :components
-    (#+(or) (:file \"todo.lisp\")))"))))))
+      (handle (licence) (insert "(cl:in-package #:cl)~%~%")
+        ;; TODO don't insert a defpackage if it already exists
+        (insert "(defpackage #:~a.asd~% (:use :cl :asdf))~%~%"
+                system-name)
+        (insert "(in-package #:~a.asd)~%~%" system-name)
+        (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
+                system-name
+                `(":description \"\""
+                  ":version \"0.0.1\""
+                  ,(format nil ":author \"~a\"" author)
+                  ,(format nil ":licence \"~a\"" licence)
+                  ":depends-on ()"
+                  ";; :pathname \"src\""
+                  ":serial t"
+                  "  :components
+    (#+(or) (:file \"todo\")))"))))))
 
 
 
@@ -457,7 +467,7 @@ defun."
 
 ;;;
 
-;; TODO	"Move the current form into the nearest parent \"let\" form."
+;; TODO "Move the current form into the nearest parent \"let\" form."
 ;; TODO "Add or update defpackage to \"import-from\" the symbol at point."
 
 
@@ -506,6 +516,11 @@ defun."
   "Data from the latest quickfix invocation.
 For debugging purposes ONLY.")
 
+(let ((inner-node (assoc :inner-node *qf*)))
+  inner-node
+  ;; (node-symbol= 'uiop:define-package inner-node)
+  )
+
 #+ (or)
 (let* ((*standard-output* *debug-io*)
        (pos (1- (getf *qf* :point)))
@@ -513,40 +528,40 @@ For debugging purposes ONLY.")
        (path (find-path-to-node pos nodes))
        (outer-node (caar path))
        (parent-node (car (before-last path)))
-       (inner-node (car (alexandria:lastcar path))))
+       (inner-node (car (a:lastcar path))))
   (loop :for (node . index) :in path
-	:for i :from 0
-	:do (format t "~%=== Path part #~d, index ~d ===~%~s"
-		    i index node))
+        :for i :from 0
+        :do (format t "~%=== Path part #~d, index ~d ===~%~s"
+                    i index node))
   (format t "~%innore-node source: ~d-~d"
-	  (node-start inner-node)
-	  (node-end inner-node))
+          (node-start inner-node)
+          (node-end inner-node))
   (format t "~%unparsed inner-node: ~s"
-	  (breeze.reader:unparse-to-string inner-node))
+          (breeze.reader:unparse-to-string inner-node))
   (format t "~%nearest in-package: ~a" (find-nearest-in-package-form nodes outer-node))
   (format t "~%parent node: ~a" parent-node))
 
 #+(or) (in-package-form-p
-	(car (getf *qf* :nodes)))
+        (car (getf *qf* :nodes)))
 
 (defun augment-context-by-parsing-the-buffer (context)
   (let* ((buffer-string (context-buffer-string context))
-	 ;; Emacs's point starts at 1
-	 (position (1- (context-point context)))
-	 ;; Parse the buffer
-	 (nodes (parse-string buffer-string))
-	 (path (find-path-to-node position nodes))
-	 ;; Find the top-level form "at point"
-	 (outer-node (caar path))
-	 ;; Find the innermost form "at point"
-	 (inner-node (car (alexandria:lastcar path)))
-	 (inner-node-index (cdr (alexandria:lastcar path)))
-	 ;; Find the innermost form's parent
-	 (parent-node (car (before-last path))))
+         ;; Emacs's point starts at 1
+         (position (1- (context-point context)))
+         ;; Parse the buffer
+         (nodes (parse-string buffer-string))
+         (path (find-path-to-node position nodes))
+         ;; Find the top-level form "at point"
+         (outer-node (caar path))
+         ;; Find the innermost form "at point"
+         (inner-node (car (a:lastcar path)))
+         (inner-node-index (cdr (a:lastcar path)))
+         ;; Find the innermost form's parent
+         (parent-node (car (before-last path))))
     #. `(progn ,@(loop :for key in '(position nodes path outer-node
-				     inner-node inner-node-index parent-node)
-		       :collect
-		       `(context-set context ',key ,key)))))
+                                     inner-node inner-node-index parent-node)
+                       :collect
+                       `(context-set context ',key ,key)))))
 
 (defun in-package-node-package (in-package-node)
   (node-content
@@ -554,86 +569,86 @@ For debugging purposes ONLY.")
 
 (defun validate-nearest-in-package (nodes outer-node)
   (let* ((previous-in-package-form
-	   (find-nearest-sibling-in-package-form nodes outer-node)))
+           (find-nearest-sibling-in-package-form nodes outer-node)))
     (when previous-in-package-form
       (let* ((package-designator (in-package-node-package
-				  previous-in-package-form))
-	     (package (find-package package-designator)))
-	(when (null package)
-	  package-designator)))))
+                                  previous-in-package-form))
+             (package (find-package package-designator)))
+        (when (null package)
+          package-designator)))))
 
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (let* (;; Parse the buffer
-	 (nodes (parse-string buffer-string))
-	 ;; Emacs's point starts at 1
-	 (position (1- point))
-	 (path (find-path-to-node position nodes))
-	 ;; Find the top-level form "at point"
-	 (outer-node (caar path))
-	 ;; Find the innermost form "at point"
-	 (inner-node (car (alexandria:lastcar path)))
-	 (inner-node-index (cdr (alexandria:lastcar path)))
-	 ;; Find the innermost form's parent
-	 (parent-node (car (before-last path)))
-	 (invalid-in-package (validate-nearest-in-package nodes outer-node))
-	 ;; Accumulate a list of commands that make sense to run in
-	 ;; the current context
-	 (commands))
+         (nodes (parse-string buffer-string))
+         ;; Emacs's point starts at 1
+         (position (1- point))
+         (path (find-path-to-node position nodes))
+         ;; Find the top-level form "at point"
+         (outer-node (caar path))
+         ;; Find the innermost form "at point"
+         (inner-node (car (a:lastcar path)))
+         (inner-node-index (cdr (a:lastcar path)))
+         ;; Find the innermost form's parent
+         (parent-node (car (before-last path)))
+         (invalid-in-package (validate-nearest-in-package nodes outer-node))
+         ;; Accumulate a list of commands that make sense to run in
+         ;; the current context
+         (commands))
     (declare (ignorable inner-node inner-node-index parent-node))
 
     (labels ((append-commands (cmds)
-	       (setf commands (append cmds commands)))
-	     (push-command (fn)
-	       (push fn commands))
-	     (push-command* (&rest fns)
-	       (mapcar #'push-command fns)))
+               (setf commands (append cmds commands)))
+             (push-command (fn)
+               (push fn commands))
+             (push-command* (&rest fns)
+               (mapcar #'push-command fns)))
       (cond
-	;; When the previous in-package form desginate a package tha
-	;; cannot be found (e.g. the user forgot to define a package.
-	(invalid-in-package
-	 (warn "The nearest in-package form designates a package that doesn't exists: ~s"	       invalid-in-package)
-	 (return))
-	;; When the buffer is empty, or only contains comments and
-	;; whitespaces.
-	((emptyp nodes)
-	 (push-command*
-
-	  'insert-defpackage))
-	;; TODO Check if files ends with ".asd"
-	;; (push-command 'insert-asdf)
-	((or
-	  ;; in-between forms
-	  (null outer-node)
-	  ;; just at the start or end of a form
-	  (= position (node-start outer-node))
-	  (= position (node-end outer-node))
-	  ;; inside a comment (or a form disabled by a
-	  ;; feature-expression)
-	  (typep outer-node
-		 'breeze.reader:skipped-node))
-	 (append-commands *commands-applicable-at-toplevel*)
-	 (append-commands
-	  *commands-applicable-inside-another-form-or-at-toplevel*))
-	;; Loop form
-	((or
-	  ;; (loop-form-p parent-node)
-	  (loop-form-p inner-node))
-	 (append-commands *commands-applicable-in-a-loop-form*))
-	;; Defpackage form
-	((defpackage-form-p inner-node)
-	 (push-command 'insert-local-nicknames))
-	;; TODO Use breeze.cl:higher-order-function-p
-	;; TODO Must extract the symbol from the parent-node first
-	;; Higher-order functions
-	((and (mapcar-form-p inner-node)
-	      ;; TODO Find the position inside the form
-	      )
-	 (push-command 'insert-lambda))
-	(t
-	 (append-commands
-	  *commands-applicable-inside-another-form-or-at-toplevel*))))
+        ;; When the previous in-package form desginate a package tha
+        ;; cannot be found (e.g. the user forgot to define a package.
+        (invalid-in-package
+         (warn "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
+         (return))
+        ((a:ends-with-subseq ".asd" buffer-file-name
+                             :test #'string-equal)
+         (push-command 'insert-asdf))
+        ;; When the buffer is empty, or only contains comments and
+        ;; whitespaces.
+        ((emptyp nodes)
+         (push-command* 'insert-defpackage))
+        ((or
+          ;; in-between forms
+          (null outer-node)
+          ;; just at the start or end of a form
+          (= position (node-start outer-node))
+          (= position (node-end outer-node))
+          ;; inside a comment (or a form disabled by a
+          ;; feature-expression)
+          (typep outer-node
+                 'breeze.reader:skipped-node))
+         (append-commands *commands-applicable-at-toplevel*)
+         (append-commands
+          *commands-applicable-inside-another-form-or-at-toplevel*))
+        ;; Loop form
+        ((or
+          ;; (loop-form-p parent-node)
+          (loop-form-p inner-node))
+         (append-commands *commands-applicable-in-a-loop-form*))
+        ;; Defpackage form
+        ((or (defpackage-form-p inner-node)
+             (uiop/package--define-package-form-p inner-node))
+         (push-command 'insert-local-nicknames))
+        ;; TODO Use breeze.cl:higher-order-function-p
+        ;; TODO Must extract the symbol from the parent-node first
+        ;; Higher-order functions
+        ((and (mapcar-form-p inner-node)
+              ;; TODO Find the position inside the form
+              )
+         (push-command 'insert-lambda))
+        (t
+         (append-commands
+          *commands-applicable-inside-another-form-or-at-toplevel*))))
 
     ;; Deduplicate commands
     (setf commands (remove-duplicates commands))
@@ -643,21 +658,21 @@ For debugging purposes ONLY.")
 
     ;; Save some information for debugging
     (setf *qf* `((:context . ,context)
-		 (:nodes . ,nodes)
-		 (:path . ,path)
-		 (:outer-node . ,outer-node)
-		 (:inner-node . ,inner-node)
-		 (:parent-node . ,parent-node)
-		 (:commands . ,commands)))
+                 (:nodes . ,nodes)
+                 (:path . ,path)
+                 (:outer-node . ,outer-node)
+                 (:inner-node . ,inner-node)
+                 (:parent-node . ,parent-node)
+                 (:commands . ,commands)))
 
     ;; Ask the user to choose a command
     (choose "Choose a command: "
-	    (mapcar #'second commands))
+            (mapcar #'second commands))
     (handle (choice)
       (let ((command-function (car (find choice commands
-					 :key #'second
-					 :test #'string=))))
-	(funcall command-function)))))
+                                         :key #'second
+                                         :test #'string=))))
+        (funcall command-function)))))
 
 
 #+nil

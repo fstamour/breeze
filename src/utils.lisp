@@ -96,61 +96,61 @@
 (defun optimal-string-alignment-distance* (vec-a vec-b max-distance)
   "Compute an edit distance between two vector. Stops as soon as max-distance is reached, returns nil in that case."
   (unless (> (abs (- (length vec-a)
-		     (length vec-b)))
-	     max-distance)
+                     (length vec-b)))
+             max-distance)
     (let* ((m (length vec-a))
-	   (n (length vec-b))
-	   (diff-0 (make-array (list (1+ n)) :element-type 'integer))
-	   (diff-1 (make-array (list (1+ n)) :element-type 'integer))
-	   (diff-2 (make-array (list (1+ n)) :element-type 'integer)))
+           (n (length vec-b))
+           (diff-0 (make-array (list (1+ n)) :element-type 'integer))
+           (diff-1 (make-array (list (1+ n)) :element-type 'integer))
+           (diff-2 (make-array (list (1+ n)) :element-type 'integer)))
 
       (loop :for i :upto n :do
-	(setf (aref diff-1 i) i))
+        (setf (aref diff-1 i) i))
       (setf (aref diff-0 0) 1)
 
       (flet ((a (index) (aref vec-a (1- index)))
-	     (b (index) (aref vec-b (1- index)))
-	     (diff-0 (index) (aref diff-0 index))
-	     (diff-1 (index) (aref diff-1 index))
-	     (diff-2 (index) (aref diff-2 index)))
-	(loop
-	  :for min-distance = nil
-	  :for i :from 1 :upto m :do
-	    (loop :for j :from 1 :upto n
-		  ;; aka substitution-cost
-		  :for cost = (if (eq (a i) (b j)) 0 1)
-		  :do
-		     (setf (aref diff-0 j) (min
-					    ;; deletion
-					    (1+ (diff-1 j))
-					    ;; insertion
-					    (1+ (diff-0 (1- j)))
-					    ;; substitution
-					    (+ cost (diff-1 (1- j)))))
-		     ;; transposition
-		     (when (and (< 1 i) (< 1 j)
-				(eq (a i) (b (1- j)))
-				(eq (a (1- i)) (b j)))
-		       (setf (aref diff-0 j) (min (diff-0 j)
-						  (+ cost (diff-2 (- j 2))))))
-		     (when (or (null min-distance)
-			       (> min-distance (diff-0 j)))
-		       ;; (format *debug-io* "~&new min-distance ~s" min-distance)
-		       (setf min-distance (diff-0 j))))
-	    ;; (format *debug-io* "~&~s ~s" i diff-0)
-	    (when (and (> i 1)
-		       (>= min-distance max-distance))
-	      #+ (or)
-	      (format *debug-io* "~&min-distance ~s > max-distance ~s"
-		      min-distance max-distance)
-	      (return-from optimal-string-alignment-distance*))
-	    (when (/= m i)
-	      (let ((tmp diff-2))
-		(setf diff-2 diff-1
-		      diff-1 diff-0
-		      diff-0 tmp
-		      (aref diff-0 0) (1+ i)))))
-	(diff-0 n)))))
+             (b (index) (aref vec-b (1- index)))
+             (diff-0 (index) (aref diff-0 index))
+             (diff-1 (index) (aref diff-1 index))
+             (diff-2 (index) (aref diff-2 index)))
+        (loop
+          :for min-distance = nil
+          :for i :from 1 :upto m :do
+            (loop :for j :from 1 :upto n
+                  ;; aka substitution-cost
+                  :for cost = (if (eq (a i) (b j)) 0 1)
+                  :do
+                     (setf (aref diff-0 j) (min
+                                            ;; deletion
+                                            (1+ (diff-1 j))
+                                            ;; insertion
+                                            (1+ (diff-0 (1- j)))
+                                            ;; substitution
+                                            (+ cost (diff-1 (1- j)))))
+                     ;; transposition
+                     (when (and (< 1 i) (< 1 j)
+                                (eq (a i) (b (1- j)))
+                                (eq (a (1- i)) (b j)))
+                       (setf (aref diff-0 j) (min (diff-0 j)
+                                                  (+ cost (diff-2 (- j 2))))))
+                     (when (or (null min-distance)
+                               (> min-distance (diff-0 j)))
+                       ;; (format *debug-io* "~&new min-distance ~s" min-distance)
+                       (setf min-distance (diff-0 j))))
+            ;; (format *debug-io* "~&~s ~s" i diff-0)
+            (when (and (> i 1)
+                       (>= min-distance max-distance))
+              #+ (or)
+              (format *debug-io* "~&min-distance ~s > max-distance ~s"
+                      min-distance max-distance)
+              (return-from optimal-string-alignment-distance*))
+            (when (/= m i)
+              (let ((tmp diff-2))
+                (setf diff-2 diff-1
+                      diff-1 diff-0
+                      diff-0 tmp
+                      (aref diff-0 0) (1+ i)))))
+        (diff-0 n)))))
 
 (defun indent-string (indentation string)
   "Prepend INDENTATION spaces at the beginning of each line in STRING."
@@ -158,13 +158,13 @@
   (with-input-from-string (input string)
     (with-output-to-string (output)
       (loop :for line = (read-line input nil nil)
-	    :while line
-	    :do (format output "~a~a~%" (str:repeat indentation " ") line)))))
+            :while line
+            :do (format output "~a~a~%" (str:repeat indentation " ") line)))))
 
 #|
 (indent-string 4 (format nil "a~%b"))
 "    a
-    b
+b
 "
 |#
 
@@ -172,11 +172,11 @@
   "Print two (close) string in a way that the difference are easier to see."
   (let* ((mismatch (mismatch string1 string2)))
     (format stream "~&~a~%~a|~%~a"
-	    string1
-	    (if (null mismatch)
-		""
-		(str:repeat mismatch "="))
-	    string2)))
+            string1
+            (if (null mismatch)
+                ""
+                (str:repeat mismatch "="))
+            string2)))
 
 #|
 (print-comparison nil "abc" "adc")
@@ -184,8 +184,8 @@
 (print-comparison nil "abce" "abcd")
 
 (print-comparison nil
-		  (string-downcase 'system-files)
-		  (string-downcase 'sytsem-files))
+(string-downcase 'system-files)
+(string-downcase 'sytsem-files))
 "system-files
 ==|
 sytsem-files"
@@ -204,10 +204,10 @@ sytsem-files"
   "Read a subsequence from STREAM between START and END."
   (let ((current-position (file-position stream)))
     (unwind-protect
-	 (let ((sequence (make-string (- end start))))
-	   (file-position stream start)
-	   (read-sequence sequence stream)
-	   sequence)
+         (let ((sequence (make-string (- end start))))
+           (file-position stream start)
+           (read-sequence sequence stream)
+           sequence)
       (file-position stream current-position))))
 
 (defun stream-size (stream)
@@ -215,10 +215,10 @@ sytsem-files"
   (let ((current-position (file-position stream)))
     (when current-position
       (unwind-protect
-	  (progn
-	    (file-position stream :end) ;; TODO This might fail
-	    (file-position stream))
-	(file-position stream current-position)))))
+           (progn
+             (file-position stream :end) ;; TODO This might fail
+             (file-position stream))
+        (file-position stream current-position)))))
 
 (defun positivep (x)
   (> x 0))
@@ -227,16 +227,16 @@ sytsem-files"
 (defun symbol-package-qualified-name (symbol)
   "Given a SYMBOL return a string of the form package:symbol."
   (let ((*print-escape* t)
-	(*package* (find-package "KEYWORD")))
+        (*package* (find-package "KEYWORD")))
     (prin1-to-string symbol)))
 
 (defun before-last (list)
   (loop :for rest :on list
-	:for ahead = (cddr list) :then (cdr ahead)
-	:while ahead
-	:finally (return
-		   (when (cdr rest)
-		     (car rest)))))
+        :for ahead = (cddr list) :then (cdr ahead)
+        :while ahead
+        :finally (return
+                   (when (cdr rest)
+                     (car rest)))))
 
 
 (defun find-witness-in-parent-directories (starting-path witness)
@@ -247,10 +247,10 @@ sytsem-files"
       :then
       (uiop:pathname-parent-directory-pathname path)
     :for git-directory = (uiop:directory-exists-p
-			  (merge-pathnames witness path))
+                          (merge-pathnames witness path))
     :until (or
-	    git-directory
-	    (equal oldpath path))
+            git-directory
+            (equal oldpath path))
     :finally (return git-directory)))
 
 (defun find-git-witness-folder (path)

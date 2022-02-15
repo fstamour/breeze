@@ -1,11 +1,11 @@
-(in-package #:common-lisp-user)
+%g(in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.xref.test
     (:documentation "Tests for breeze.xref.")
   (:mix #:breeze.xref #:cl #:alexandria)
   (:import-from #:breeze.test
-		#:deftest
-		#:is))
+                #:deftest
+                #:is))
 
 (in-package #:breeze.xref.test)
 
@@ -25,7 +25,7 @@
   (is (equal (package-test 'dum) (package-test (find-package 'dum)))))
 
 (deftest calls-who
-    (is (equalp (calls-who 'dum:2x) '(dum:mul))))
+  (is (equalp (calls-who 'dum:2x) '(dum:mul))))
 
 ;; (breeze.xref::function-without-test)
 
@@ -48,12 +48,12 @@
 (deftest predicate-dont-signal-any-error
   (do-external-symbols (symbol 'breeze.dummy.test)
     (mapcar #'(lambda (predicate)
-		(funcall predicate symbol))
-	    '(generic-method-p
-	      classp
-	      specialp
-	      macrop
-	      simple-function-p))))
+                (funcall predicate symbol))
+            '(generic-method-p
+              classp
+              specialp
+              macrop
+              simple-function-p))))
 
 (deftest generic-method-p
   (is (not (generic-method-p 'dum:*bound-variable*)))
@@ -96,18 +96,18 @@
 #+nil
 (let* ((fn 'classp)
        (test-cases
-	(with-output-to-string (*standard-output*)
-	  (loop :for symbol :being :the :external-symbol :of 'breeze.dummy.test
-	     :for pass = (funcall fn symbol)
-	     :unless (str:containsp "undocumented" (string-downcase (symbol-name symbol)))
-	     :do
-	       (format t "~&(is ")
-	       (unless pass (format t "(not "))
-	       (format t "(~a 'dum:~a)" fn symbol)
-	       (unless pass (format t ")"))
-	       (format t ")")))))
+         (with-output-to-string (*standard-output*)
+           (loop :for symbol :being :the :external-symbol :of 'breeze.dummy.test
+                 :for pass = (funcall fn symbol)
+                 :unless (str:containsp "undocumented" (string-downcase (symbol-name symbol)))
+                   :do
+                      (format t "~&(is ")
+                      (unless pass (format t "(not "))
+                      (format t "(~a 'dum:~a)" fn symbol)
+                      (unless pass (format t ")"))
+                      (format t ")")))))
   (format t "(deftest ~(~a~%~a~))" fn
-	  (breeze.utils:indent-string 2 test-cases)))
+          (breeze.utils:indent-string 2 test-cases)))
 
 (deftest classp
   (is (not (classp 'dum:*bound-variable*)))

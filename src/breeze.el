@@ -51,10 +51,10 @@
 (defun breeze-eval-list (string)
   ;; TODO check breeze-cl-to-el-list
   (let ((list (car
-	       (read-from-string
-		(breeze-eval-value-only string)))))
+               (read-from-string
+                (breeze-eval-value-only string)))))
     (if (listp list)
-	list
+        list
       (message "Breeze: expected a list got: %S" list)
       nil)))
 
@@ -68,19 +68,19 @@
   "Make sure that slime is connected, signals an error otherwise."
   (if (slime-current-connection)
       (progn
-	(when verbosep
-	  (message "Slime already started."))
-	t)
+        (when verbosep
+          (message "Slime already started."))
+        t)
     (progn
       (when verbosep
-	(message "Starting slime..."))
+        (message "Starting slime..."))
       (slime))))
 
 (defun breeze/validate-if-package-exists (package)
   "Returns true if the package PACKAGE exists in the inferior-lisp."
   (breeze-eval-predicate
    (format "(and (or (find-package \"%s\") (find-package \"%s\")) t)"
-	   (downcase package) (upcase package))))
+           (downcase package) (upcase package))))
 ;; (breeze/validate-if-package-exists "cl")
 
 (defun breeze/validate-if-breeze-package-exists ()
@@ -109,7 +109,7 @@ of \"breeze.el\"."
     (breeze-interactive-eval
      (format "(progn (load \"%s\") (require 'breeze)
         (format t \"~&Breeze loaded!~%%\"))"
-	     (breeze/system-definition))))
+             (breeze/system-definition))))
   (when verbosep
     (message "Breeze loaded in inferior-lisp.")))
 
@@ -142,11 +142,11 @@ lisp's reader doesn't convert them."
   (if (eq list 'NIL)
       nil
     (mapcar #'(lambda (el)
-		(case el
-		  (NIL nil)
-		  (T t)
-		  (t el)))
-	    list)))
+                (case el
+                  (NIL nil)
+                  (T t)
+                  (t el)))
+            list)))
 
 
 ;;; Suggestions
@@ -157,10 +157,10 @@ lisp's reader doesn't convert them."
   (interactive)
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
-		    ;; TODO send more information to "next"
-		    ;; What's the current buffer? does it visit a file?
-		    ;; What's the current package? is it covered by breeze.user:*current-packages*
-		    "(breeze.user:next)"))
+                    ;; TODO send more information to "next"
+                    ;; What's the current buffer? does it visit a file?
+                    ;; What's the current package? is it covered by breeze.user:*current-packages*
+                    "(breeze.user:next)"))
     (message "%s" output)))
 
 
@@ -179,10 +179,10 @@ lisp's reader doesn't convert them."
 
 (defun %breeze-expand-to-defuns (paragraph)
   (cl-loop for line in
-	   (split-string paragraph "\n")
-	   for parts = (split-string line)
-	   collect
-	   (format "(defun %s %s\n)\n" (car parts) (rest parts))))
+           (split-string paragraph "\n")
+           for parts = (split-string line)
+           collect
+           (format "(defun %s %s\n)\n" (car parts) (rest parts))))
 
 (defun %breeze-expand-to-defuns ()
   "Takes a paragraph where each line describes a function, the
@@ -192,39 +192,39 @@ arguments. Use to quickly scaffold a bunch of functions."
   (let ((paragraph (breeze-current-paragraph)))
     (breeze-delete-paragraph)
     (loop for form in (%breeze-expand-to-defuns paragraph)
-	  do (insert form "\n"))))
+          do (insert form "\n"))))
 
 
 ;;; Common lisp driven interactive commands
 
 (defun breeze-compute-buffer-args ()
   (apply 'format
-	 ":buffer-name %s
+         ":buffer-name %s
           :buffer-file-name %s
           :buffer-string %s
           :point %s
           :point-min %s
           :point-max %s"
-	 (mapcar #'prin1-to-string
-		 (list
-		  (buffer-name)
-		  (buffer-file-name)
-		  (buffer-substring-no-properties (point-min) (point-max))
-		  (point)
-		  (point-min)
-		  (point-max)))))
+         (mapcar #'prin1-to-string
+                 (list
+                  (buffer-name)
+                  (buffer-file-name)
+                  (buffer-substring-no-properties (point-min) (point-max))
+                  (point)
+                  (point-min)
+                  (point-max)))))
 
 (defun breeze-command-start (name)
   (message "Breeze: starting command: %s." name)
   (let ((request
-	  (breeze-cl-to-el-list
-	   (breeze-eval-list
-	    (format "(%s %s)" name (breeze-compute-buffer-args))))))
+          (breeze-cl-to-el-list
+           (breeze-eval-list
+            (format "(%s %s)" name (breeze-compute-buffer-args))))))
     (message "Breeze: got the request: %S" request)
     (if request
-	request
+        request
       (progn (message "Breeze: start-command returned nil")
-	     nil))))
+             nil))))
 
 (defun breeze-command-cancel ()
   (breeze-eval
@@ -234,12 +234,12 @@ arguments. Use to quickly scaffold a bunch of functions."
 
 (defun breeze-command-continue (response send-response-p)
   (let ((request
-	  (breeze-cl-to-el-list
-	   (breeze-eval-list
-	    (if send-response-p
-		(format
-		 "(breeze.command:continue-command %S)" response)
-	      "(breeze.command:continue-command)")))))
+          (breeze-cl-to-el-list
+           (breeze-eval-list
+            (if send-response-p
+                (format
+                 "(breeze.command:continue-command %S)" response)
+              "(breeze.command:continue-command)")))))
     (message "Breeze: request received: %S" request)
     request))
 
@@ -247,26 +247,26 @@ arguments. Use to quickly scaffold a bunch of functions."
   (pcase (car request)
     ("choose"
      (completing-read (second request)
-		      (third request)))
+                      (third request)))
     ("read-string"
      (apply #'read-string (rest request)))
     ("insert-at"
      (cl-destructuring-bind (_ position string)
-	 request
+         request
        (when (numberp position) (goto-char position))
        (insert string)))
     ("insert-at-saving-excursion"
      (cl-destructuring-bind (_ position string)
-	 request
+         request
        (save-excursion
-	 (when (numberp position) (goto-char position))
-	 (insert string))))
+         (when (numberp position) (goto-char position))
+         (insert string))))
     ("insert"
      (cl-destructuring-bind (_ string) request (insert string)))
-    ("replace"	      ; TODO -saving-excursion variant
+    ("replace"       ; TODO -saving-excursion variant
      (cl-destructuring-bind
-	 (point-from point-to replacement-stirng)
-	 (cdr request)
+         (point-from point-to replacement-stirng)
+         (cdr request)
        ;; TODO
        ))
     ("backward-char"
@@ -291,16 +291,16 @@ arguments. Use to quickly scaffold a bunch of functions."
        then (breeze-command-continue response send-response-p)
        ;; "Request" might be nil, if it is, we're done
        while (and request
-		  (not (string= "done" (car request))))
+                  (not (string= "done" (car request))))
        ;; Wheter or not we need to send arguments to the next callback.
        for send-response-p = (member (car request)
-				     '("choose" "read-string"))
+                                     '("choose" "read-string"))
        ;; Process the command's request
        for response = (breeze-command-process-request request)
        ;; Log request and response (for debugging)
        do (message "Breeze: request received: %S response to send %S"
-		   request
-		   response))
+                   request
+                   response))
     (t
      (message "Breeze run command: got the condition %s" condition)
      (breeze-command-cancel))))
@@ -320,13 +320,13 @@ arguments. Use to quickly scaffold a bunch of functions."
   "Get recently evaluated forms from the server."
   (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output
-		    "(breeze.listener:get-recent-interactively-evaluated-forms)"))
+                    "(breeze.listener:get-recent-interactively-evaluated-forms)"))
     (split-string output "\n")))
 
 (defun breeze-reevaluate-form ()
   (interactive)
   (let ((form (completing-read  "Choose recently evaluated form: "
-				(breeze-get-recently-evaluated-forms))))
+                                (breeze-get-recently-evaluated-forms))))
     (when form
       (slime-interactive-eval form))))
 
@@ -386,7 +386,6 @@ arguments. Use to quickly scaffold a bunch of functions."
   (interactive)
   (breeze-mode -1))
 
-(add-hook 'breeze-mode-hook 'breeze/configure-mode-line)
 ;; (add-hook 'breeze-mode-hook 'breeze-init)
 ;; TODO This should be in the users' config
 ;; (add-hook 'slime-lisp-mode-hook 'breeze-init)

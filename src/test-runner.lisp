@@ -89,6 +89,6 @@ test-runners.")
 (request-to-run-test 'a)
 (request-to-run-test* '(a b c)))
 (progn
-  (request-to-run-test 'a)
-  (request-to-run-test* '(a b c)))
+(request-to-run-test 'a)
+(request-to-run-test* '(a b c)))
 |#
