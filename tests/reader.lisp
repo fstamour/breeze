@@ -131,3 +131,8 @@ This is a valid syntax:
 #+smth "..."
 #-smth2 "..."
 |#
+
+
+#|
+What about nested feature expressions?
+|#

@@ -25,6 +25,9 @@
 (check-condition-type (#+sbcl sb-int:simple-reader-package-error)
   (read-from-string "(cl:prin)"))
 
+
+(read-from-string "(cl:prin)")
+
 (check-condition-type (#+sbcl sb-int:simple-reader-package-error)
   (read-from-string "(commmon-lisp:print :oups)"))
 

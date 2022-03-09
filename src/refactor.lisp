@@ -2,11 +2,12 @@
 
 (uiop:define-package #:breeze.refactor
     (:use #:cl #:breeze.command)
-  (:local-nicknames (#:a #:alexandria))
   (:import-from
    #:alexandria
+   #:ends-with-subseq
    #:if-let
-   #:symbolicate)
+   #:symbolicate
+   #:lastcar)
   (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name
@@ -64,7 +65,7 @@
 
 (defun node-lastcar (node)
   "Return the last element from a NODE's content."
-  (a:lastcar (node-content node)))
+  (lastcar (node-content node)))
 
 (defun node-string-equal (string node)
   "Compare the content of a NODE to a STRING, case-insensitive."
@@ -326,7 +327,7 @@ defun."
   "Whether to include (in-package #:cl-user) before a defpackage form.")
 
 (defun directory-name (pathname)
-  (a:lastcar (pathname-directory pathname)))
+  (lastcar (pathname-directory pathname)))
 
 (defun infer-project-name (path)
   "Try to infer the name of the project from the PATH."
@@ -405,7 +406,8 @@ defun."
         ;; TODO don't insert a defpackage if it already exists
         (insert "(defpackage #:~a.asd~% (:use :cl :asdf))~%~%"
                 system-name)
-        (insert "(in-package #:~a.asd)~%~%" system-name)
+              (insert "(in-package #:~a.asd)~%~%" system-name)
+              ;; TODO FIXME this doesn't work, it's probably a race condition :(
         (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
                 system-name
                 `(":description \"\""
@@ -528,7 +530,7 @@ For debugging purposes ONLY.")
        (path (find-path-to-node pos nodes))
        (outer-node (caar path))
        (parent-node (car (before-last path)))
-       (inner-node (car (a:lastcar path))))
+       (inner-node (car (lastcar path))))
   (loop :for (node . index) :in path
         :for i :from 0
         :do (format t "~%=== Path part #~d, index ~d ===~%~s"
@@ -554,8 +556,8 @@ For debugging purposes ONLY.")
          ;; Find the top-level form "at point"
          (outer-node (caar path))
          ;; Find the innermost form "at point"
-         (inner-node (car (a:lastcar path)))
-         (inner-node-index (cdr (a:lastcar path)))
+         (inner-node (car (lastcar path)))
+         (inner-node-index (cdr (lastcar path)))
          ;; Find the innermost form's parent
          (parent-node (car (before-last path))))
     #. `(progn ,@(loop :for key in '(position nodes path outer-node
@@ -588,8 +590,8 @@ For debugging purposes ONLY.")
          ;; Find the top-level form "at point"
          (outer-node (caar path))
          ;; Find the innermost form "at point"
-         (inner-node (car (a:lastcar path)))
-         (inner-node-index (cdr (a:lastcar path)))
+         (inner-node (car (lastcar path)))
+         (inner-node-index (cdr (lastcar path)))
          ;; Find the innermost form's parent
          (parent-node (car (before-last path)))
          (invalid-in-package (validate-nearest-in-package nodes outer-node))
@@ -610,7 +612,7 @@ For debugging purposes ONLY.")
         (invalid-in-package
          (warn "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
          (return))
-        ((a:ends-with-subseq ".asd" buffer-file-name
+        ((ends-with-subseq ".asd" buffer-file-name
                              :test #'string-equal)
          (push-command 'insert-asdf))
         ;; When the buffer is empty, or only contains comments and

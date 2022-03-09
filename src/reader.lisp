@@ -3,12 +3,12 @@
 (uiop:define-package #:breeze.reader
     (:use :cl)
   (:use-reexport #:breeze.syntax-tree)
+  (:import-from #:alexandria
+                #:if-let)
   (:import-from #:breeze.utils
                 #:read-stream-range
                 #:stream-size
                 #:positivep)
-  (:local-nicknames (#:a #:alexandria)
-                    (#:tpln #:trivial-package-local-nicknames))
   (:export
    ;; Parse and unparse list of forms
    #:parse
@@ -33,22 +33,22 @@
    "Controls how the reader construct the parse-results."))
 
 (defun raw (breeze-client start end)
-  (alexandria:if-let ((source (source breeze-client)))
-    (etypecase source
-      (string (subseq source start end))
-      (stream (read-stream-range source start end)))))
+  (if-let ((source (source breeze-client)))
+          (etypecase source
+            (string (subseq source start end))
+            (stream (read-stream-range source start end)))))
 
 ;; WIP another version of "raw" that doens't support streams, but can
 ;; use displaced arrays
 #+ (or)
 (defun raw (breeze-client start end)
-  (alexandria:if-let ((source (source breeze-client)))
-    (let* ((end (min end (length source)))
-           (size (- end start)))
-      (make-array size
-                  :element-type (array-element-type source)
-                  :displaced-to source
-                  :displaced-index-offset start))))
+  (if-let ((source (source breeze-client)))
+          (let* ((end (min end (length source)))
+                 (size (- end start)))
+            (make-array size
+                        :element-type (array-element-type source)
+                        :displaced-to source
+                        :displaced-index-offset start))))
 
 (defmethod eclector.parse-result:make-expression-result
     ((client breeze-client) (result t) (children t) (source t))
@@ -111,11 +111,11 @@
             (:current *package*)
             (:keyword (find-package "KEYWORD"))
             (t (find-package package-indicator)))
-    (a:if-let (actual-package
-               (cdr (assoc "TPLN"
-                           (tpln:package-local-nicknames *package*)
-                           :test #'string=)))
-      (setf package-indicator actual-package)))
+    (if-let (actual-package
+             (cdr (assoc "TPLN"
+                         (trivial-package-local-nicknames:package-local-nicknames *package*)
+                         :test #'string=)))
+            (setf package-indicator actual-package)))
   (call-next-method))
 
 
@@ -238,8 +238,8 @@
   (let ((forms (read-all-forms stream)))
     (post-process-nodes! stream forms)
     `(,@forms
-      ,@(alexandria:if-let ((tail (get-tail stream forms)))
-          (list tail)))))
+      ,@(if-let ((tail (get-tail stream forms)))
+                (list tail)))))
 
 (defun parse-string (string)
   "Read STRING entirely using breeze's reader."
