@@ -241,7 +241,7 @@ or betwee test system and the system under test
 As much as possible, so that breeze can easily be ported to different
 platforms and editors.
 
-** Wrap definitions
+** Wrap definitions                                                :obsolete:
 
 Decision: Create wrapper macros (e.g. =br:defun=) to keep the original
   forms for later analysis.
@@ -250,6 +250,17 @@ This decision is really not definitive.
 
 This decision is less than ideal, especially for existing systems, but
 it was the easiest to start with.
+
+** Migrate to parachute 2022-03-08
+
+The test framework and the "wrap definition" parts always were
+proof-of-concepts: I wanted to be able to define some tests, and run
+them when either the test of the system-under-test was redefined. It
+worked, but now that I have a more and more complete common lisp
+parser, I can do the things properly. So I've move the concerned code
+into the folder "scratch-files" and I'll re-introduce them slowly in
+the future. (Because I really want something to run the tests in the
+background, for example.)
 
 *** Alternatives
 

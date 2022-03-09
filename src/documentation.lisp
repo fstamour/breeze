@@ -10,9 +10,6 @@
                 #:macrop
                 #:classp
                 #:simple-function-p)
-  (:shadowing-import-from #:breeze.definition
-                          #:defun
-                          #:fmakunbound)
   (:export
    #:find-undocumented-symbols))
 

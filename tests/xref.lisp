@@ -1,40 +1,20 @@
-%g(in-package #:common-lisp-user)
+(in-package #:common-lisp-user)
 
-(uiop:define-package #:breeze.xref.test
+(uiop:define-package #:breeze.test.xref
     (:documentation "Tests for breeze.xref.")
   (:mix #:breeze.xref #:cl #:alexandria)
-  (:import-from #:breeze.test
-                #:deftest
-                #:is))
+  (:import-from #:parachute
+                #:define-test
+                #:is
+                #:true
+                #:false))
 
-(in-package #:breeze.xref.test)
+(in-package #:breeze.test.xref)
 
-(deftest test-calls-who
-  (is (equalp '(dum:mul = is) (test-calls-who 'dum:mul))))
-
-(deftest tested-by
-  (is (member 'dum:mul (tested-by 'dum:mul)))
-  (is (member 'dum:2x (tested-by 'dum:mul))))
-
-(deftest test-case
-  (is (equal '((dum:mul 2 6) (dum:mul 2 2)) (test-case 'dum:mul))))
-
-
-(deftest package-test
-  (is (equal '(dum:mul dum:2x) (package-test 'dum)))
-  (is (equal (package-test 'dum) (package-test (find-package 'dum)))))
-
-(deftest calls-who
-  (is (equalp (calls-who 'dum:2x) '(dum:mul))))
-
-;; (breeze.xref::function-without-test)
-
-
-
-(deftest find-package
-  (is (equal
-       (find-packages-by-prefix "breeze")
-       (find-packages-by-regex "breeze.*"))))
+(define-test find-package
+  (is equal
+      (find-packages-by-prefix "breeze")
+      (find-packages-by-regex "breeze.*")))
 
 (defparameter *symbols*
   '(dum:*bound-variable*
@@ -45,7 +25,7 @@
     dum:slot
     (setf dum:slot)))
 
-(deftest predicate-dont-signal-any-error
+(define-test predicate-dont-signal-any-error
   (do-external-symbols (symbol 'breeze.dummy.test)
     (mapcar #'(lambda (predicate)
                 (funcall predicate symbol))
@@ -55,41 +35,41 @@
               macrop
               simple-function-p))))
 
-(deftest generic-method-p
-  (is (not (generic-method-p 'dum:*bound-variable*)))
-  (is (not (generic-method-p 'dum:*unbound-variable*)))
-  (is (not (generic-method-p 'dum:a-class)))
-  (is (not (generic-method-p 'dum:a-function)))
-  (is (not (generic-method-p 'dum:a-macro)))
-  (is (generic-method-p 'dum:slot))
-  (is (generic-method-p '(setf dum:slot))))
+(define-test generic-method-p
+  (false (generic-method-p 'dum:*bound-variable*))
+  (false (generic-method-p 'dum:*unbound-variable*))
+  (false (generic-method-p 'dum:a-class))
+  (false (generic-method-p 'dum:a-function))
+  (false (generic-method-p 'dum:a-macro))
+  (true (generic-method-p 'dum:slot))
+  (true (generic-method-p '(setf dum:slot))))
 
-(deftest specialp
-  (is (specialp 'dum:*bound-variable*))
-  (is (specialp 'dum:*unbound-variable*))
-  (is (not (specialp 'dum:a-class)))
-  (is (not (specialp 'dum:a-function)))
-  (is (not (specialp 'dum:a-macro)))
-  (is (not (specialp 'dum:slot)))
-  (is (not (specialp '(setf dum:slot)))))
+(define-test specialp
+  (true (specialp 'dum:*bound-variable*))
+  (true (specialp 'dum:*unbound-variable*))
+  (false (specialp 'dum:a-class))
+  (false (specialp 'dum:a-function))
+  (false (specialp 'dum:a-macro))
+  (false (specialp 'dum:slot))
+  (false (specialp '(setf dum:slot))))
 
-(deftest macrop
-  (is (not (macrop 'dum:*bound-variable*)))
-  (is (not (macrop 'dum:*unbound-variable*)))
-  (is (not (macrop 'dum:a-class)))
-  (is (not (macrop 'dum:a-function)))
-  (is (macrop 'dum:a-macro))
-  (is (not (macrop 'dum:slot)))
-  (is (not (macrop '(setf dum:slot)))))
+(define-test macrop
+  (false (macrop 'dum:*bound-variable*))
+  (false (macrop 'dum:*unbound-variable*))
+  (false (macrop 'dum:a-class))
+  (false (macrop 'dum:a-function))
+  (true (macrop 'dum:a-macro))
+  (false (macrop 'dum:slot))
+  (false (macrop '(setf dum:slot))))
 
-(deftest simple-function-p
-  (is (not (simple-function-p 'dum:*bound-variable*)))
-  (is (not (simple-function-p 'dum:*unbound-variable*)))
-  (is (not (simple-function-p 'dum:a-class)))
-  (is (simple-function-p 'dum:a-function))
-  (is (not (simple-function-p 'dum:a-macro)))
-  (is (not (simple-function-p 'dum:slot)))
-  (is (not (simple-function-p '(setf dum:slot)))))
+(define-test simple-function-p
+  (false (simple-function-p 'dum:*bound-variable*))
+  (false (simple-function-p 'dum:*unbound-variable*))
+  (false (simple-function-p 'dum:a-class))
+  (true (simple-function-p 'dum:a-function))
+  (false (simple-function-p 'dum:a-macro))
+  (false (simple-function-p 'dum:slot))
+  (false (simple-function-p '(setf dum:slot))))
 
 
 ;; I used this to generate the tests fo classp
@@ -106,15 +86,15 @@
                       (format t "(~a 'dum:~a)" fn symbol)
                       (unless pass (format t ")"))
                       (format t ")")))))
-  (format t "(deftest ~(~a~%~a~))" fn
+  (format t "(define-test ~(~a~%~a~))" fn
           (breeze.utils:indent-string 2 test-cases)))
 
-(deftest classp
-  (is (not (classp 'dum:*bound-variable*)))
-  (is (not (classp 'dum:slot)))
-  (is (classp 'dum:a-class))
-  (is (not (classp 'dum:a-generic-function)))
-  (is (not (classp 'dum:a-macro)))
-  (is (not (classp 'dum:another-generic-function)))
-  (is (not (classp 'dum:*unbound-variable*)))
-  (is (not (classp 'dum:a-function))))
+(define-test classp
+  (false (classp 'dum:*bound-variable*))
+  (false (classp 'dum:slot))
+  (true (classp 'dum:a-class))
+  (false (classp 'dum:a-generic-function))
+  (false (classp 'dum:a-macro))
+  (false (classp 'dum:another-generic-function))
+  (false (classp 'dum:*unbound-variable*))
+  (false (classp 'dum:a-function)))

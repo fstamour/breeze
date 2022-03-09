@@ -1,10 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
-(defpackage #:breeze.refactor.test
+(defpackage #:breeze.test.refactor
   (:use :cl #:breeze.refactor)
-  (:import-from #:breeze.test
-                #:deftest
-                #:is)
   (:import-from #:breeze.reader
                 #:node-content
                 #:parse-string
@@ -24,10 +21,12 @@
                 #:read-eval-node-p
                 #:character-node-p
                 #:list-node-p
-                #:function-node-p))
+                #:function-node-p)
+  (:import-from #:parachute
+                #:define-test
+                #:is))
 
-(in-package #:breeze.refactor.test)
-
+(in-package #:breeze.test.refactor)
 
 (defparameter *directory* "./")
 

@@ -1,11 +1,8 @@
 (in-package #:common-lisp-user)
 
-(defpackage #:breeze.command.test
+(defpackage #:breeze.test.command
   (:documentation "Tests for breeze.command.")
   (:use :cl #:breeze.command)
-  (:import-from #:breeze.test
-                #:deftest
-                #:is)
   (:import-from #:alexandria
                 #:assoc-value)
   (:import-from #:breeze.command
@@ -15,9 +12,14 @@
                 #:command-context*
                 #:command-context
                 #:command-tasklet
-                #:*current-command*))
+                #:*current-command*)
+  (:import-from #:parachute
+                #:define-test
+                #:is
+                #:true
+                #:false))
 
-(in-package #:breeze.command.test)
+(in-package #:breeze.test.command)
 
 #+ (or)
 (progn
@@ -33,7 +35,7 @@
   )
 
 #+ (or)
-(deftest command-first-callback-is-run-on-start
+(define-test command-first-callback-is-run-on-start
   (let ((*current-command*)
         (x 0))
     (start-command
@@ -44,24 +46,24 @@
          (is (eq 'hash-table (type-of (command-context*))))))
     (is (= 1 x))))
 
-(deftest context-buffer-string
-  (is (string=
-       "asdf"
-       (context-buffer-string
-        (alexandria:plist-hash-table
-         '(:buffer-string "asdf"))))))
+(define-test context-buffer-string
+  (is string=
+      "asdf"
+      (context-buffer-string
+       (alexandria:plist-hash-table
+        '(:buffer-string "asdf")))))
 
-(deftest context-buffer-name)
-(deftest context-buffer-file-name)
-(deftest context-point)
-(deftest context-point-min)
-(deftest context-point-max)
+(define-test context-buffer-name)
+(define-test context-buffer-file-name)
+(define-test context-point)
+(define-test context-point-min)
+(define-test context-point-max)
 
 
-(deftest choose)
-(deftest read-string)
-(deftest insert-at)
-(deftest insert)
-(deftest read-string-then-insert)
-(deftest replace-region)
-(deftest backward-char)
+(define-test choose)
+(define-test read-string)
+(define-test insert-at)
+(define-test insert)
+(define-test read-string-then-insert)
+(define-test replace-region)
+(define-test backward-char)

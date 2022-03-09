@@ -1,33 +1,42 @@
 
 (cl:in-package #:common-lisp-user)
 
-(defpackage #:breeze.reader.test
+(defpackage #:breeze.test.reader
   (:use :cl #:breeze.reader)
-  (:import-from #:breeze.test
-                #:deftest
-                #:is))
+  (:import-from #:parachute
+                #:define-test
+                #:is
+                #:true
+                #:false))
 
-(in-package #:breeze.reader.test)
+(in-package #:breeze.test.reader)
 
 (defun test-node (node type prefix content raw)
-  (is (typep node 'node))   ; just making sure
-  (is (typep node type))
+  (true (typep node 'node)
+        "~a should be of type node" node)
+  (true (typep node type)
+        "~a should be of type ~a" node type)
   (if prefix
-      (is (string= prefix (node-prefix node)))
-      (is (null (node-prefix node))))
-  (is (equalp content (node-content node)))
-  (is (string= raw (node-raw node)))
-  t)
+      (is string= prefix (node-prefix node)
+          "~a should have a prefix ~a" node (node-prefix node))
+      (false (node-prefix node)
+             "~a should not have a node prefix" node))
+  (is equalp content (node-content node))
+  (is string= raw (node-raw node)))
 
 (defun test-node* (nodes spec-list)
   (mapcar #'(lambda (node spec)
               (apply #'test-node node spec))
           nodes
-          spec-list)
-  t)
+          spec-list))
 
-(deftest parse-string
-  (is (null (parse-string "")))
+;; TODO This is what needs fixing next:
+#+ (or)
+(car
+ (parse-string " ( 2 ) "))
+
+(define-test parse-string
+  (false (parse-string ""))
   (test-node* (parse-string "1")
               '((node nil 1 "1")))
   (test-node* (parse-string " 1")
@@ -45,7 +54,7 @@
               '((symbol-node nil a "a")
                 (skipped-node nil " ;; hello" nil))))
 
-(deftest parse-unparse-roundtrip
+(define-test parse-unparse-roundtrip
   (dolist (expected
            '("1"
              " 1 "
@@ -68,6 +77,8 @@
              " NiL "
              " () "
              " ( ) "
+             " ( a ) "
+             " ( a b  ) "
              " '() "
              "(((a)))"
              "(quote a b c)"
@@ -84,14 +95,10 @@
              "#+(and) 2"
              "#+(and) (bla)"))
     (let ((*break-on-signals* #+nil 'error))
-      (let* ((got (unparse-to-string (parse-string expected)))
-             (ok? (string= expected got)))
-        (unless ok?
-          (format t "~&Expected: ~s, got ~s"
-                  expected got))
-        ;; (is ok?)
-        ))))
-
+      (let* ((nodes (parse-string expected))
+             (got (unparse-to-string nodes)))
+        (is string= expected got
+            "nodes: ~a" nodes)))))
 
 #+ (or)
 (progn

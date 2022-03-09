@@ -1,12 +1,14 @@
 (in-package #:common-lisp-user)
 
-(defpackage #:breeze.documentation.test
+(defpackage #:breeze.test.documentation
   (:use :cl #:breeze.documentation)
-  (:import-from #:breeze.test
-                #:deftest
-                #:is))
+  (:import-from #:parachute
+                #:define-test
+                #:is
+                #:true
+                #:false))
 
-(in-package #:breeze.documentation.test)
+(in-package #:breeze.test.documentation)
 
 (defun find-undocumented-symbols-in-dummy-package ()
   ""
@@ -35,14 +37,14 @@
              ;; Find in Dummy package
              (find-undocumented-symbols 'breeze.dummy.test)))))
 
-(deftest find-undocumented-symbols
+(define-test find-undocumented-symbols
   (let ((undocumented-symbols (find-undocumented-symbols-in-dummy-package)))
     (is
-      (equal undocumented-symbols
-             '((:function breeze.dummy.test:function-undocumented)
-               (:generic-method breeze.dummy.test:generic-function-undocumented)
-               (:method breeze.dummy.test:another-generic-function)
-               (:method breeze.dummy.test:generic-function-undocumented)
-               (:package "BREEZE.DUMMY.TEST")
-               (:special-variable breeze.dummy.test:*bound-variable-undocumented*)
-               (:special-variable breeze.dummy.test:*unbound-variable-undocumented*))))))
+      equal undocumented-symbols
+      '((:function breeze.dummy.test:function-undocumented)
+        (:generic-method breeze.dummy.test:generic-function-undocumented)
+        (:method breeze.dummy.test:another-generic-function)
+        (:method breeze.dummy.test:generic-function-undocumented)
+        (:package "BREEZE.DUMMY.TEST")
+        (:special-variable breeze.dummy.test:*bound-variable-undocumented*)
+        (:special-variable breeze.dummy.test:*unbound-variable-undocumented*)))))

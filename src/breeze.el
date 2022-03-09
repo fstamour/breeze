@@ -123,7 +123,6 @@ of \"breeze.el\"."
   (interactive)
   (breeze/check-if-slime-is-connected)
   (breeze/ensure-breeze verbosep)
-  (breeze-interactive-eval "(breeze.user::initialize)")
   (when verbosep
     (message "Breeze initialized.")))
 
@@ -147,21 +146,6 @@ lisp's reader doesn't convert them."
                   (T t)
                   (t el)))
             list)))
-
-
-;;; Suggestions
-
-;; TODO This should be a command too
-(defun breeze-next ()
-  "Ask breeze for suggestions on what to do next."
-  (interactive)
-  (cl-destructuring-bind (output value)
-      (slime-eval `(swank:eval-and-grab-output
-                    ;; TODO send more information to "next"
-                    ;; What's the current buffer? does it visit a file?
-                    ;; What's the current package? is it covered by breeze.user:*current-packages*
-                    "(breeze.user:next)"))
-    (message "%s" output)))
 
 
 ;;; Prototype: quick scaffolding of defun (and other forms)

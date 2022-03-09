@@ -77,6 +77,10 @@
                 (symbolp result)
                 (make-instance 'symbol-node
                                :content result))
+               (;; If result is a stirng, make a string-node
+                (stringp result)
+                (make-instance 'string-node
+                               :content result))
                (;; Else, make a generic node
                 t
                 (make-instance 'node
@@ -259,9 +263,12 @@
   (dolist (node nodes)
     (alexandria:if-let
         ((prefix (node-prefix node)))
-      (unless (string= "(" prefix)
+      (unless (position #\( prefix)
         (write-string prefix stream)))
     (unparse-node stream node)))
+
+(defun write-raw (stream node)
+  (write-string (node-raw node) stream))
 
 (defgeneric unparse-node (stream node)
   (:documentation "Print a NODE into STREAM.")
@@ -276,10 +283,21 @@
          (princ (node-raw node) stream))
         (t
          (format stream "~a" content)))))
+  (:method (stream (node symbol-node))
+    (write-raw stream node))
+  (:method (stream (node string-node))
+    (write-raw stream node))
+  (:method (stream (node feature-expression-node))
+    (unparse-node stream node-feature-expression) ;; FIXME!!!
+    (unparse-node stream (node-content node)))
   (:method (stream (node list-node))
-    (write-char #\( stream)
-    (unparse-to-stream% stream (node-content node))
-    (write-char #\) stream)))
+    (cond
+      ((null (node-content node))
+       (write-raw stream node))
+      (t
+       (write-char #\( stream)
+       (unparse-to-stream% stream (node-content node))
+       (write-char #\) stream)))))
 
 (defun unparse-to-string (nodes)
   "Print a list of NODES as a STRING."

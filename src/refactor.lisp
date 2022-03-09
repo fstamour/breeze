@@ -210,7 +210,7 @@
      lambda
      map
      mapcar
-     mapcond))
+     mapcon))
 
 (define-node-form-predicates (uiop:define-package))
 

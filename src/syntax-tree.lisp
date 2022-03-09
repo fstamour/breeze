@@ -12,8 +12,11 @@
    #:character-node
    #:list-node
    #:function-node
+   #:feature-expression-node
+   #:string-node
 
    ;; Type predicates
+   #:nodep
    #:skipped-node-p
    #:symbol-node-p
    #:read-eval-node-p
@@ -21,6 +24,7 @@
    #:list-node-p
    #:function-node-p
    #:terminalp
+   ;; TODO feature-expression, string-node
 
    ;; Node accessors
    #:node-content
@@ -69,6 +73,10 @@
 (defclass symbol-node (node)
   ()
   (:documentation "Syntax node for symbols."))
+
+(defclass string-node (node)
+  ()
+  (:documentation "Syntax node for strings."))
 
 (defclass read-eval-node (node)
   ()

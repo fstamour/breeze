@@ -40,26 +40,16 @@
    (:file "utils")
    (:file "syntax-tree")
    (:file "reader" :depends-on ("syntax-tree" "utils"))
-   (:file "definition")
-   (:file "test")
-   (:file "worker")
    (:file "command")
    (:file "asdf")
-   (:file "test-runner" :depends-on ("test" "worker"))
-   (:file "xref" :depends-on ("utils" "test" "definition"))
-   (:file "documentation" :depends-on ("xref" "definition"))
+   (:file "xref" :depends-on ("utils"))
+   (:file "documentation" :depends-on ("xref"))
    (:file "doctor" :depends-on ("configuration"))
    (:file "breeze-listener" :depends-on ("xref"))
    (:file "refactor"
-          :depends-on ("configuration" "reader" "command" "utils" "cl"))
+    :depends-on ("configuration" "reader" "command" "utils" "cl"))
    (:file "project" :depends-on ("configuration" "command"))
-   (:file "capture" :depends-on ("configuration" "command"))
-   (:file "user" :depends-on ("configuration"
-                              "test-runner"
-                              "xref"
-                              "documentation"
-                              "refactor"
-                              "asdf")))
+   (:file "capture" :depends-on ("configuration" "command")))
   :in-order-to ((test-op (load-op #:breeze/test)))
   :perform
   (test-op (o c)
@@ -79,9 +69,9 @@
   ((:file "utils")
    (:file "reader")
    (:file "command")
+   ;; (:file "refactor")
+   ;; (:file "commands")
    (:file "dummy-package")
-   (:file "test")
-   (:file "user")
    (:file "xref")
    (:file "documentation")
    (:file "main")))
