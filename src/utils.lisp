@@ -18,7 +18,8 @@
    #:positivep
    #:symbol-package-qualified-name
    #:before-last
-   #:find-version-control-root))
+   #:find-version-control-root
+   #:subseq-displaced))
 
 (in-package #:breeze.utils)
 
@@ -259,3 +260,12 @@ sytsem-files"
 (defun find-version-control-root (path)
   (alexandria:if-let ((git-witness-directory (find-git-witness-folder path)))
     (uiop:pathname-parent-directory-pathname git-witness-directory)))
+
+
+(defun subseq-displaced (sequence start &optional end)
+  (let* ((end (or end (length sequence)))
+         (size (- end start)))
+    (make-array size
+                :element-type (array-element-type sequence)
+                :displaced-to sequence
+                :displaced-index-offset start)))

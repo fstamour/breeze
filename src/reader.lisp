@@ -6,9 +6,8 @@
   (:import-from #:alexandria
                 #:if-let)
   (:import-from #:breeze.utils
-                #:read-stream-range
-                #:stream-size
-                #:positivep)
+                #:positivep
+                #:subseq-displaced)
   (:export
    ;; Parse and unparse list of forms
    #:parse
@@ -26,29 +25,18 @@
 (defclass breeze-client (eclector.parse-result:parse-result-client)
   ((source
     :initarg :source
-    :initform nil
-    :type (or null string stream)
+    :type string
     :accessor source))
   (:documentation
    "Controls how the reader construct the parse-results."))
 
 (defun raw (breeze-client start end)
-  (if-let ((source (source breeze-client)))
-          (etypecase source
-            (string (subseq source start end))
-            (stream (read-stream-range source start end)))))
+  (let* ((source (source breeze-client))
+         (end (min end (length source))))
+    (subseq-displaced source start end)))
 
-;; WIP another version of "raw" that doens't support streams, but can
-;; use displaced arrays
-#+ (or)
-(defun raw (breeze-client start end)
-  (if-let ((source (source breeze-client)))
-          (let* ((end (min end (length source)))
-                 (size (- end start)))
-            (make-array size
-                        :element-type (array-element-type source)
-                        :displaced-to source
-                        :displaced-index-offset start))))
+
+;;; hooks intro eclector
 
 (defmethod eclector.parse-result:make-expression-result
     ((client breeze-client) (result t) (children t) (source t))
@@ -86,28 +74,26 @@
                 (make-instance 'node
                                :content (or children result)))))))
     (setf (node-source node) source
-          (node-raw node) raw)
+          ;; (node-raw node) raw
+          )
     (log4cl:log-debug node)
     ;; (dbg "~&new-node: ~s" node)
     node))
 
+
+
 ;; Create a "make skipped input result" method for our custom client
 (defmethod eclector.parse-result:make-skipped-input-result
     ((client breeze-client) (stream t) (reason t) (source t))
   "Create a skipped-node parse result."
-  (make-instance 'skipped-node
-                 :content
-                 (read-stream-range stream
-                                    (car source)
-                                    (cdr source))
-                 ;; WIP using string only, instead of stream
-                 #+ (or)
-                 (raw client
-                      (car source)
-                      (cdr source))
-                 :source source))
+  (let ((content (raw client (car source) (cdr source))))
+    (log4cl:log-debug content)
+    (make-instance 'skipped-node
+                   :content content
+                   :source source)))
 
-;; Support package-local-nicknames
+
+;; Local Nicknames
 (defmethod eclector.reader:interpret-symbol
     ((client breeze-client) (stream t)
      package-indicator symbol-name internp)
@@ -119,15 +105,18 @@
              (cdr (assoc "TPLN"
                          (trivial-package-local-nicknames:package-local-nicknames *package*)
                          :test #'string=)))
-            (setf package-indicator actual-package)))
+      (setf package-indicator actual-package)))
   (call-next-method))
 
-
+
+;; #.
 (defmethod eclector.reader:evaluate-expression ((client breeze-client)
                                                 expression)
   "Create a syntax node for #. ."
   (make-instance 'read-eval-node :content expression))
 
+
+;; #+ and #-
 (defmethod eclector.reader:evaluate-feature-expression
     ((client breeze-client) feature-expression)
   (if (typep feature-expression 'node)
@@ -141,6 +130,8 @@
        :keyword)
       (call-next-method)))
 
+
+;; #\
 (defmethod eclector.reader:find-character ((client breeze-client)
                                            designator)
   "Create a syntac node for #\\ ."
@@ -149,8 +140,10 @@
                  :char
                  (call-next-method)))
 
+
+;; _All_ reader macros
 (defmethod eclector.reader:call-reader-macro ((client breeze-client)
-                                              input-stream char
+                                              stream char
                                               readtable)
   "Create a syntax node for lists."
   (case char
@@ -160,73 +153,50 @@
     (t
      (call-next-method))))
 
+
+;; #'
 (defmethod eclector.reader:wrap-in-function ((client breeze-client)
                                              name)
   "Create a syntax node for #' ."
   (make-instance 'function-node :content name))
 
-(defun read-from-string (string &optional (eof-error-p t)
-                                  eof-value
-                         &key
-                           (start 0)
-                           end
-                           preserve-whitespace)
-  (eclector.parse-result:read-from-string
-   (make-instance 'breeze-client
-                  :source string)
-   string
-   eof-error-p
-   eof-value
-   :start start
-   :end end
-   :preserve-whitespace preserve-whitespace))
 
+
+;;; Reading multiple forms + post processing = ""parsing""
 
-(defun read-all-forms (stream)
+(defun read-all-forms (string)
   (let ((eof (gensym "eof"))
         (client (make-instance
                  'breeze-client
-                 :source
-                 stream
-                 #+ (or)
-                 (prog1 (alexandria:read-stream-content-into-string stream)
-                   (file-position stream 0)))))
-    (loop
-      for form =
-               (eclector.parse-result:read-preserving-whitespace
-                client
-                stream
-                nil
-                eof)
-      until (eq eof form)
-      collect form)))
+                 :source string)))
+    (values
+     (loop
+       :with cursor = 0
+       :for (form position orphans) =
+                                    (multiple-value-list
+                                     (eclector.parse-result:read-from-string
+                                      client
+                                      string
+                                      ;; Don't error on eof
+                                      nil
+                                      ;; Return eof instead
+                                      eof
+                                      :start cursor
+                                      :preserve-whitespace t))
+       :until (eq eof form)
+       :do (setf cursor position)
+       :if orphans
+         :append (sort
+                  (append orphans (list form))
+                  #'<
+                  :key (lambda (node)
+                         (car (node-source node))))
+       :else
+         :collect form)
+     client)))
 
-;; end-at is not used, its purpose is to help find trailing characters
-;; but I haven't implemented that because I'm not sure it's the way to go.
-(defun post-process-nodes! (stream forms &optional (start-at 0) end-at)
-  "Update each nodes in FORMS to include their prefix (extracted from STREAM)."
-  (declare (ignore end-at))
-  (let ((previous nil))
-    (loop
-      for form in forms
-      for start = start-at then (cdr (node-source previous))
-      for end = (car (node-source form))
-      for prefix = (unless (zerop (- end start))
-                     (read-stream-range stream start end))
-      do
-         ;; update FORM
-         (setf
-          ;; Add the prefix
-          (node-prefix form) prefix)
-         ;; recurse
-         (unless (terminalp form)
-           (post-process-nodes! stream (node-content form)
-                                (car (node-source form))
-                                (cdr (node-source form))))
-         ;; update loop variables
-         (setf previous form))))
 
-(defun get-tail (stream forms &optional (end (stream-size stream)))
+(defun get-tail (string forms &optional (end (length string)))
   "Given a list of forms, extract any trailing characters that were ignored."
   (let* ((tail (alexandria:lastcar forms))
          (tail-end (if tail
@@ -234,23 +204,63 @@
                        0)))
     (when (positivep (- end tail-end))
       (make-instance 'skipped-node
-                     :content (read-stream-range stream tail-end end)
+                     :content (subseq-displaced string tail-end end)
                      :source (cons tail-end end)))))
 
-(defun parse (stream)
-  "Read STREAM entirely using breeze's reader."
-  (let ((forms (read-all-forms stream)))
-    (post-process-nodes! stream forms)
-    `(,@forms
-      ,@(if-let ((tail (get-tail stream forms)))
-                (list tail)))))
+(defun post-process-nodes! (string forms start-at end-at)
+  "Update each nodes in FORMS to include their prefix (extracted from STRING)."
+  (let ((previous nil))
+    (loop
+      :for rest :on forms
+      :for form :in forms
+      :for lastp = (null (cdr rest))
+      :for (form-start . form-end) = (node-source form)
+      :for prefix-start = start-at then (cdr (node-source previous))
+
+      :for end = (car (node-source form))
+      :for prefix = (unless (zerop (- end prefix-start))
+                      (subseq-displaced string prefix-start end))
+      :for raw = (subseq-displaced string
+                                   prefix-start
+                                   form-end)
+      :do
+         ;; update FORM
+         (setf
+          ;; Add the prefix
+          (node-prefix form) prefix
+          (node-raw form) raw)
+         ;; recurse
+         (unless (terminalp form)
+           (post-process-nodes! string (node-content form)
+                                (car (node-source form))
+                                (cdr (node-source form))))
+         (when (and lastp (/= form-end end-at))
+           (setf (cdr rest)
+                 (cons
+                  (make-instance 'skipped-node
+                                 :content (subseq-displaced
+                                           string form-end end-at)
+                                 :source (cons form-end end-at))
+                  nil)))
+         ;; update loop variables
+         (setf previous form))))
+
 
 (defun parse-string (string)
   "Read STRING entirely using breeze's reader."
-  (with-input-from-string
-      (stream string)
-    (parse stream)))
+  (let ((forms (read-all-forms string)))
+    (if forms
+        (progn
+          (post-process-nodes! string forms 0 (length string))
+          forms)
+        (get-tail string forms))))
 
+
+;;; "Unparsing"
+
+;; Don't I have something similar in breeze.syntax-tree?
+(defun write-raw (stream node)
+  (write-string (node-raw node) stream))
 
 (defun unparse-to-stream (stream nodes)
   "Print a list of NODES into STREAM."
@@ -263,15 +273,13 @@
   (dolist (node nodes)
     (alexandria:if-let
         ((prefix (node-prefix node)))
-      (unless (position #\( prefix)
-        (write-string prefix stream)))
+      (write-string prefix stream))
     (unparse-node stream node)))
 
-(defun write-raw (stream node)
-  (write-string (node-raw node) stream))
 
 (defgeneric unparse-node (stream node)
   (:documentation "Print a NODE into STREAM.")
+  ;; Generic node
   (:method (stream (node node))
     (let ((content (node-content node)))
       (cond
@@ -283,21 +291,25 @@
          (princ (node-raw node) stream))
         (t
          (format stream "~a" content)))))
+  ;; Symbol
   (:method (stream (node symbol-node))
     (write-raw stream node))
+  ;; String
   (:method (stream (node string-node))
     (write-raw stream node))
+  ;; #+-
   (:method (stream (node feature-expression-node))
-    (unparse-node stream node-feature-expression) ;; FIXME!!!
+    ;; FIXME!!! node-feature-expression is not a variable, I meant to
+    ;; call it, but I think I haven't exported it
+    (unparse-node stream node-feature-expression)
     (unparse-node stream (node-content node)))
+  ;; (...)
   (:method (stream (node list-node))
     (cond
       ((null (node-content node))
        (write-raw stream node))
       (t
-       (write-char #\( stream)
-       (unparse-to-stream% stream (node-content node))
-       (write-char #\) stream)))))
+       (unparse-to-stream% stream (node-content node))))))
 
 (defun unparse-to-string (nodes)
   "Print a list of NODES as a STRING."
@@ -322,3 +334,5 @@
  raw)
 
 ;; #+ (or) (sb-profile:report)
+
+;; (log:config :debug)
