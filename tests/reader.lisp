@@ -9,7 +9,11 @@
                 #:define-test
                 #:is
                 #:true
-                #:false))
+                #:false)
+  (:import-from #:breeze.reader
+                #:breeze-client
+                #:read-all-forms)
+  (:shadow #:read-from-string))
 
 (in-package #:breeze.test.reader)
 
@@ -36,7 +40,7 @@
         preserve-whitespace
         suffix)
      &body body)
-  "TODO
+  "TODO Docstring
 Introduce 5 lexical variables:
 - input
 - eof
@@ -47,7 +51,7 @@ Introduce 5 lexical variables:
            (if suffix
                (symbolicate symbol suffix)
                symbol)))
-    (let ((read-form `(breeze.reader::read-from-string
+    (let ((read-form `(read-from-string
                        input nil eof
                        :preserve-whitespace ,preserve-whitespace)))
       `(let ((,(suffix 'input) ,input)
@@ -269,17 +273,47 @@ Introduce 5 lexical variables:
         (is = 1 start)
         (is = 5 end)))))
 
+(define-test "read symbol followed by block comment"
+  (with-read-from-string ("x #| |#")
+    (is eq 'symbol-node (type-of form))
+    (is eq 'x (node-content form))
+    (is = 2 position)
+    (is = 0 (length orphans)))
+  (with-read-from-string ("x #| |#" :preserve-whitespace t)
+    (is eq 'symbol-node (type-of form))
+    (is eq 'x (node-content form))
+    (is = 1 position)
+    (is = 0 (length orphans))))
+
+(define-test "read block comment comment followed by symbol"
+  (with-read-from-string ("#| |# x")
+    (is eq 'symbol-node (type-of form))
+    (is eq 'x (node-content form))
+    (is = 1 (length orphans))
+    (let ((node (car orphans)))
+      (is eq 'skipped-node (type-of node))
+      (is string= "#| |#" (node-content node))
+      (destructuring-bind (start . end)
+          (node-source node)
+        (is = 0 start)
+        (is = 5 end))))
+  (with-read-from-string ("#| |# x" :preserve-whitespace t)
+    (is eq 'symbol-node (type-of form))
+    (is eq 'x (node-content form))
+    (is = 1 (length orphans))
+    (let ((node (car orphans)))
+      (is eq 'skipped-node (type-of node))
+      (is string= "#| |#" (node-content node))
+      (destructuring-bind (start . end)
+          (node-source node)
+        (is = 0 start)
+        (is = 5 end)))))
+
 ;;;
-;;; TODO Symbol + Block comments
-;;; TODO define-test "read symbol followed by block comment"
-;;; TODO define-test "read block comment followed by symbol"
 ;;; TODO define-test "read block comment surrounded by symbols"
 ;;; TODO define-test "read nested block comments"
 ;;; TODO define-test "read multiple block comments" (one after the other)
 ;;;
-
-
-;;; Down below: "legacy mess" :P
 
 (define-test "read int"
   (with-read-from-string ("1")
@@ -291,7 +325,35 @@ Introduce 5 lexical variables:
 (define-test "read complex"
   (with-read-from-string ("#C(1 2)")))
 
-;; TODO test (breeze.reader::read-all-forms "...")
+
+
+;; TODO test (read-all-forms "...")
+
+(define-test read-all-forms)
+
+(define-test "1 symbol"
+  :parent read-all-forms
+  (is eq 'x
+      (node-content
+       (car (read-all-forms "x")))))
+
+
+(define-test "WIP"
+    (mapcar #'read-all-forms
+            '(""
+              "1"
+              " 1"
+              " 1 "
+              "\"hi\""
+              ";; hello"
+              " ;; hello"
+              "a ;; hello"
+              "1 #|-|# \"x\" ")))
+
+
+
+;;; Down below: "legacy mess" :P
+
 
 (defun test-node (node type prefix content raw)
   (true (typep node 'node)
@@ -341,6 +403,7 @@ Introduce 5 lexical variables:
 
 ;; TODO These are now almost all obsolete
 ;; specs: type prefix content raw
+#+ (or)
 (define-test parse-string
   (false (parse-string ""))
   (test-node* (parse-string "1")
@@ -464,4 +527,28 @@ This is a valid syntax:
 
 #|
 What about nested feature expressions?
+|#
+
+
+
+;;; Drafting some generative tests
+
+#|
+Each of these can be inserted anywhere
+x
+1
+#C(2 3)
+"asdf"
+#||#
+
+#'f
+'x
+'()
+
+This one can only be inserted at the end
+; comment                               ; ; ; ; ;
+
+'()
+#()
+
 |#

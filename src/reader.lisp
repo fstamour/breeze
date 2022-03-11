@@ -13,8 +13,7 @@
    #:parse
    #:parse-string
    #:unparse-to-stream
-   #:unparse-to-string)
-  (:shadow #:read-from-string))
+   #:unparse-to-string))
 
 (in-package #:breeze.reader)
 
@@ -126,7 +125,7 @@
        #'(lambda ()
            (eclector.reader:evaluate-feature-expression
             client
-            (cl:read-from-string (node-raw feature-expression))))
+            (read-from-string (node-raw feature-expression))))
        :keyword)
       (call-next-method)))
 
@@ -172,27 +171,32 @@
     (values
      (loop
        :with cursor = 0
-       :for (form position orphans) =
-                                    (multiple-value-list
-                                     (eclector.parse-result:read-from-string
-                                      client
-                                      string
-                                      ;; Don't error on eof
-                                      nil
-                                      ;; Return eof instead
-                                      eof
-                                      :start cursor
-                                      :preserve-whitespace t))
-       :until (eq eof form)
+       :for (form position orphans)
+         = (if (eq eof form)
+               (return forms) ; Stop the loop here...
+               (multiple-value-list
+                (eclector.parse-result:read-from-string
+                 client
+                 string
+                 ;; Don't error on eof
+                 nil
+                 ;; Return eof instead
+                 eof
+                 :start cursor
+                 :preserve-whitespace t)))
        :do (setf cursor position)
        :if orphans
-         :append (sort
-                  (append orphans (list form))
-                  #'<
-                  :key (lambda (node)
-                         (car (node-source node))))
+         :append (cond
+                   ((eq eof form) orphans)
+                   (t (sort
+                       (append orphans (list form))
+                       #'<
+                       :key (lambda (node)
+                              (car (node-source node))))))
+           :into forms
        :else
-         :collect form)
+         :when (not (eq eof form))
+           :collect form :into forms)
      client)))
 
 
@@ -326,7 +330,7 @@
 (sb-profile:profile
  parse
  read-all-forms
- read-from-string
+ eclector.parse:read-from-string
  make-instance
  eclector.parse-result:make-expression-result
  eclector.parse-result:read-preserving-whitespace
