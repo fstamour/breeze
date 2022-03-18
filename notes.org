@@ -1,28 +1,38 @@
+#+title: Notes
 
+* Roadmap
+
+1. Improve the reader (mostly add tests)
+2. Add tests on the breeze.commands package
+3. Add a breeze-eval function instead of advising swank
 
 * Tasks
 
-** TODO [#A] Reader doesn't support local package nicknames
+**Regularly review the tasks** it helps to see the big picture and
+prioritize accordingly.
 
-** TODO breeze-capture is broken
+** DONE Reader doesn't support local package nicknames               :reader:
 
-I removed breeze-capture-folder variable.
+** TODO breeze-capture is broken                                        :bug:
 
-** TODO Use with-branching to define optimal-string-alignment-distance
+- I removed breeze-capture-folder variable.
+- Added breeze.config
+
+** TODO Use with-branching to define optimal-string-alignment-distance :tech_debt:
 
 Instead of having 2 definitions
 
 https://github.com/phoe/with-branching
 
-** TODO Add basic command to show a message
+** TODO Add basic command to show a message                          :editor:
 
 e.g. "There is no applicable quickfixes in the current context"
 
 ** TODO docstrings are not kept in (unparse (parse ...))                :bug:
 
-** TODO read-string command should accept a default value
+** TODO read-string command should accept a default value            :editor:
 
-** TODO Basic commands should send the buffer
+** TODO Basic commands should send the buffer to the editor          :editor:
 
 e.g. If the common-lisp side ask the editor to insert a string, but
 the user changed buffer, the editor will insert the string in the
@@ -32,7 +42,7 @@ OR the "client" should be responsible to always execute the commands
 with on the "intial" buffer, unless stated otherwise (but that would
 add even more state on the protocol).
 
-** DONE Rename breeze.swank to breeze.listener
+** DONE Rename breeze.swank to breeze.listener                    :tech_debt:
 
 We will want to support sly and probably other.
 
@@ -40,31 +50,27 @@ Also, most stuff in there is not "listener-specific".
 
 ** Showcase/demo                                                        :doc:
 
-*** TODO Show the integration with quickproject
+*** TODO Show the integration with quickproject            :doc:quickproject:
 
-*** TODO Show how breeze can help create a project from a file
+*** TODO Show how breeze can help create a project from a file :doc:refactor:capture:
 
 e.g. you made a "capture" with breeze, and now you want to turn that
 into a project.
 
-*** TODO Create a demo to show how to install breeze
+*** TODO Create a demo to show how to install breeze             :doc:config:
 
-*** TODO Create mock demos
+** TODO Add command "go to next missing documentation"               :editor:
 
-This should help implementing the right thing.
-
-** TODO Add command "go to next missing documentation"
-
-** TODO Add command "got to next documentation"
+** TODO Add command "got to next documentation"                      :editor:
 
 To help revision
 
-** TODO Add command "next todo"
+** TODO Add command "next todo"                                      :editor:
 
 Don't reimplement it, just figure out which how to configure the
 editor to do that.
 
-** TODO Use header-line in emacs to show the test results
+** TODO Use header-line in emacs to show the test results         :editor:ux:
 
 Instead of a lighter
 
@@ -82,27 +88,36 @@ Actually explain what breeze *do*.
 
 Start by documenting how to start using breeze, then automate it.
 
-** TODO Add links to all the "TODOs" in the documentation
+** TODO Add links to all the "TODOs" in the documentation               :doc:
 
 grep TODO -h | to_github_url | to_html
 
-** TODO It's too easy to kill the test-runner                       :impl:ux:
+** TODO It's too easy to kill the test-runner                       :tech_debt:ux:
 
 ** TODO [#A] The test-runner's result interfere with swank normal usage :bug:
 
-** DONE Breeze shouldn't suggest symbol that are "too far"
+** DONE Breeze shouldn't suggest symbol that are "too far"               :ux:
 
 e.g not suggest "slot-exists-p" when trying to eval
 "this-really-doesnt-exists".
 
+*** TODO Still need to add tests on this...                  :test:tech_debt:
 ** DONE Make a "string distance" function that stops after a threshold
 
-** TODO Use a heap to find the N closest matches
+** TODO Use a heap to find the N closest matches                         :ux:
 
-Maybe look into VP-trees (Vantage-Point trees)
+- Maybe look into VP-trees (Vantage-Point trees)
 
-** TODO Advising swank-interactive-eval doesn't override emacs' repl   :impl:
-** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :impl:
+How would that help the user? Addind a restart for each canditate
+would really pollute the list of restarts. Perhaps we could keep the
+current restart, and add another one that shows more candidate
+(restarts).
+
+Maybe we can refine that list of candidate based on other, perhaps
+heavier criteria?
+
+** TODO Advising swank-interactive-eval doesn't override emacs' repl   :tech_debt:
+** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :tech_debt:
 ** TODO Document how to use breeze:defun                                :doc:
 
 *** When redefining a function defined with breeze:defun, it run tests
@@ -117,14 +132,14 @@ doens't run all the tests each time a something is redefined.
 
 ** TODO Document (with screenshots) how to setup and use emacs integration :doc:
 ** TODO Document how to use quickproject integration                    :doc:
-** TODO Make the file-watcher usable                                   :impl:
+** TODO Make the file-watcher usable                                   :tech_debt:
 ** TODO Document how to use the file-watcher                            :doc:
 ** TODO Document how the file-watcher works                             :doc:
-** TODO There's no easy way to remove a test altogether                  :ux:
-** TODO Add a condition "test-failed"                                  :impl:
+** DONE There's no easy way to remove a test altogether         :ux:obsolete:
+** DONE Add a condition "test-failed"                    :tech_debt:obsolete:
 
 It can be used to *break-on-signals*
-** TODO Optionnaly signal an error when a test fails                :impl:ux:
+** TODO Optionnaly signal an error when a test fails                :tech_debt:ux:obsolete:
 
 Currently, if we do that, we'll get 2 conditions if the evaluation
 signals a condition and triggers test runs that fail.
@@ -140,7 +155,7 @@ locally and commiting the result is less than ideal, it works well.
 The main problem is that, AFAIK, you can't host something in github
 pages without committing it into a repository. Which means that you
 have to hack a CI pipeline that commit its results back into the
-repository. This sucks.
+repository. This sucks IMO.
 
 An alternative would be to use GitLab pages, which are way more sane
 as they allow (require, really) that your pages' content be generated
@@ -153,6 +168,10 @@ that might just have been the Authentication + boatload of js.
 *** TODO Look into emacs-director                                      :test:
 
 https://github.com/bard/emacs-director
+*** TODO Look into makem.sh                                        :test:ops:
+
+[[https://github.com/alphapapa/makem.sh][makem.sh]] - Makefile-like script for building and testing Emacs Lisp
+packages
 
 ** TODO Try to detect when the current buffer/file was not loaded (evaluated). :ux:
 
@@ -185,31 +204,34 @@ when the edit-distance is not too great, or we would get some wild quickfixes.
 
 ** TODO Maybe split the documentaion in multiple pages                  :doc:
 
-** Commands
+** Commands                                                          :editor:
 
-*** wrap with
+*** wrap with                                                      :refactor:
 
 **** TODO let
 
 **** TODO multiple-value-bind
 
-*** TODO add import-from
+*** TODO add import-from                                           :refactor:
 
 already has a prototype in emacs lisp
 
-*** TODO move-form-into-let
+*** TODO move-form-into-let                                        :refactor:
 
 already has a prototype in emacs lisp
 
-*** TODO Comment current form
+*** TODO Comment current form                                      :refactor:
 
-*** TODO Move top-level form up/down
+*** TODO Move top-level form up/down                               :refactor:
 
-** TODO trying to find disprecancies between the packages and test packages
+A.k.a transpose-forms, but keep the cursor at the start of the form
+that we just moved.
 
-or betwee test system and the system under test
+** TODO trying to find discrepancies between the packages and test packages
 
-** Follow up on issues
+or betweew test system and the system under test
+
+** Follow up on issues                                 :3rd_parties:
 
 *** In [[https://github.com/slime/slime][Slime]]
 
@@ -233,6 +255,70 @@ or betwee test system and the system under test
 
 **** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
 
+
+* Tags
+
+** Tag descriptions
+
+#+NAME: tags
+| Tag name     | Tag decription                                                                                |
+|--------------+-----------------------------------------------------------------------------------------------|
+| 3rd_parties  | Relating to a third-party, e.g. an external library.                                          |
+| obsolete     | This task is now obsolete.                                                                    |
+| doc          | Relating to the documentation.                                                                |
+| ux           | This task is about improving the user experience                                              |
+| test         | This task is about testing                                                                    |
+| ops          | This task is about CI, releases, deploying docs, etc.                                         |
+| easy         | This task should be easy                                                                      |
+| bug          | This is an unintended bug                                                                     |
+| editor       | This task relates to the integration with an editor.                                          |
+| config       | Relating to breeze's configuration and setup.                                                 |
+| refactor     | Relating to breeze's refactoring facilities.                                                  |
+| capture      | Relating to breeze's caputre feature.                                                         |
+| quickproject | Relating to quickproject integration.                                                         |
+| tech_debt    | Due to an ongoing refactoring, to an old hack, incomplete implementation, missing tests, etc. |
+| reader       | Relating to breeze.reader.                                                                    |
+| noexport     | org-mode internal tag                                                                         |
+
+
+#+begin_src emacs-lisp :var tags=tags
+  ;; (prin1-to-string (org-get-buffer-tags))
+  ;; (prin1-to-string tags)
+
+  ;; Find tags that have no descriptions
+  (let ((unknown-tags
+         (cl-set-difference
+          (mapcar #'car (org-get-buffer-tags))
+          (mapcar #'car tags)
+          :test #'string=)))
+    (or unknown-tags
+        "All good, no tags without description found."))
+#+end_src
+
+#+RESULTS:
+: All good, no tags without description found.
+
+** Make sure all tasks have some tags
+
+#+begin_src emacs-lisp
+  (let ((result))
+    (org-map-entries (lambda ()
+                       ;; (org-entry-is-todo-p)
+                       (cl-destructuring-bind (level reduced-level todo priority headline _tags)
+                           (org-heading-components)
+                         ;; _tags does not contain the inherited tags
+                         (when (and
+                                todo
+                                ;; todo could be "DONE" for example
+                                (string= todo "TODO")
+                                (not (org-get-tags)))
+                           (push (list headline) result)))))
+    (nreverse result))
+#+end_src
+
+#+RESULTS:
+| trying to find discrepancies between the packages and test packages |
+| An implementation of the Language Server Protocol for Common Lisp   |
 
 * Design decisions
 
@@ -341,17 +427,37 @@ Which is one of the reason behind wrapping the definitions (e.g. =breeze:defun=)
 ** Use equivalence-graph e-graph to suggest refactors
 
 * See
-** TODO uses of slime's locative: http://quickdocs.org/mgl-pax/
-** TODO CCL's Watches https://ccl.clozure.com/manual/chapter4.12.html#watched-objects
-** TODO CCL's Advise https://ccl.clozure.com/manual/chapter4.3.html#Advising
-** TODO https://github.com/melisgl/mgl-pax for more emacs/slime integration
-** TODO SLIMA for integration with Atom
+** DONE uses locative: http://quickdocs.org/mgl-pax/                 :editor:
+
+2022-03-17 - I read most of the readme, this system looks awesome
+
+It's mostly for documentation, but it also expand slime/swank for
+easier navigation (using the concept of locative).
+
+** DONE CCL's Watches https://ccl.clozure.com/manual/chapter4.12.html#watched-objects :editor:
+
+> Clozure CL provides a way for lisp objects to be watched so that a
+condition will be signaled when a thread attempts to write to the
+watched object
+
+Very useful for debugging.
+
+** DONE CCL's Advise https://ccl.clozure.com/manual/chapter4.3.html#Advising
+
+> The advise macro can be thought of as a more general version of
+trace.
+
+I think I kept this link just for the general interface (~advise~,
+~unadvise~ and ~advisep~)
+
+** TODO https://github.com/melisgl/mgl-pax for more emacs/slime integration :editor:
+** TODO SLIMA for integration with Atom                              :editor:
 
 Superior Lisp Interactive Mode for Atom
 
 https://github.com/neil-lindquist/SLIMA
 
-** TODO An implementation of the Language Server Protocol for Common Lisp
+** TODO An implementation of the Language Server Protocol for Common Lisp :editor:
 
 - https://github.com/cxxxr/cl-lsp
 - related: https://marketplace.visualstudio.com/items?itemName=ailisp.commonlisp-vscode
@@ -364,7 +470,7 @@ https://github.com/neil-lindquist/SLIMA
 
 * Libraries we might need in the future
 
-** PROtocol and TESTcase manager
+** PROtocol and TESTcase manager                                       :test:
 
 [[https://github.com/phoe/protest][phoe/protest]]
 
@@ -485,6 +591,14 @@ with 5am is ok (but could be easier with an editor command), running
 it from the CLI/a CI is less OK, getting the correct return code of
 the tests needs more work, etc.
 
+* Protocols
+
+- [[https://chromedevtools.github.io/devtools-protocol/][Chrome DevTools Protocol]]
+- Slime/Sly
+- LSP (Language Server Protocol)
+- LSIF (Language Server Index Format)
+- Debug Adapter Protocol
+
 * To classify
 
 https://quickdocs.org/cl-scripting
@@ -509,6 +623,8 @@ lot with what I want from a test framework.
 
 For a pretty nice review of existing testing framework:
 https://sabracrolleton.github.io/testing-framework
+
+[[https://github.com/emacs-elsa/Elsa][Emacs Lisp Static Analyzer]]
 
 * Discord
 
@@ -570,7 +686,19 @@ http://www.lispworks.com/documentation/lw50/LWUG/html/lwuser-90.htm
 
 https://flownet.com/ron/packages.pdf
 
+** Alternatives to the Hyperspec
+
+- [[http://clqr.boundp.org/download.html][Common Lisp Quick Reference]]
+- Ultraspec (dead)
+- Simplified something something
+- The lisp cookbook
+
 * Resources
 
 - [alexandria](https://alexandria.common-lisp.dev/draft/alexandria.html)
 - [log4cl](https://github.com/7max/log4cl)
+
+* Local variables :noexport:
+# local variables:
+# org-confirm-babel-evaluate: nil
+# end:
