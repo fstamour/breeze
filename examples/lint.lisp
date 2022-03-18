@@ -194,10 +194,15 @@ prog*
 (loop :for x :in '(nil t 1)
       :collect
       (loop :for y :in '(nil t 2)
-	    :collect
-	    (list
-	     (or x y)
-	     (when (or x y) y))))
+            :collect
+            (list
+             (or x y)
+             (when (or x y) y))))
+
+
+;; In the loop clause
+;; :for i :from 0 :below 10
+;; the ":from 0" is unecesary
 
 
 
@@ -255,3 +260,19 @@ prog*
 ;; the "t" is useless
 (or ... nil)
 ;; the "nil" is useless
+
+
+;; When you have
+(deftype nullable (typename) `(or null ,typename))
+;; Then you can transform
+(or null something)
+;; Or
+(or something null)
+;; To
+(nullable something)
+
+
+;; Common mistake:
+(or nil something)
+;; instead of
+(or null something)
