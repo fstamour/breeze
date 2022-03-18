@@ -339,17 +339,20 @@ Introduce 5 lexical variables:
 
 
 (define-test "WIP"
-    (mapcar #'read-all-forms
-            '(""
-              "1"
-              " 1"
-              " 1 "
-              "\"hi\""
-              ";; hello"
-              " ;; hello"
-              "a ;; hello"
-              "1 #|-|# \"x\" ")))
+  (mapcar #'read-all-forms
+          '(""
+            "1"
+            " 1"
+            " 1 "
+            "\"hi\""
+            ";; hello"
+            " ;; hello"
+            "a ;; hello"
+            "1 #|-|# \"x\" ")))
 
+;; TODO read-all-forms' output should be contiguous (the end of one
+;; form should be = to the start of the next form), there should be
+;; no overlap and it should span the whole input.
 
 
 ;;; Down below: "legacy mess" :P
