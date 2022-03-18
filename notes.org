@@ -76,17 +76,19 @@ Instead of a lighter
 
 The lighter could still be used though, it could be a ✓ or χ.
 
-** TODO Better explain what Breeze currently is in the readme           :doc:
+** DONE Better explain what Breeze currently is in the readme           :doc:
 
 As opposed to explain the principles, goals, non-goals, etc.
 
 Actually explain what breeze *do*.
 
-** TODO add a "What is this?" section                                   :doc:
-
-** TODO [#A] On first setup, the user has to (ql:quickload 'breeze)      :ux:
+** DONE add a "What is this?" section                                   :doc:
+** TODO [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
 
 Start by documenting how to start using breeze, then automate it.
+
+N.B. Since I remove the test-runner and etc. breeze doesn't really
+need to be "started".
 
 ** TODO Add links to all the "TODOs" in the documentation               :doc:
 
@@ -230,6 +232,10 @@ that we just moved.
 ** TODO trying to find discrepancies between the packages and test packages
 
 or betweew test system and the system under test
+
+** TODO Integrate with multiple test framework
+
+See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
 
 ** Follow up on issues                                 :3rd_parties:
 
