@@ -233,7 +233,7 @@ that we just moved.
 
 or betweew test system and the system under test
 
-** TODO Integrate with multiple test framework
+** TODO Integrate with multiple test framework                         :test:
 
 See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
 
@@ -261,6 +261,7 @@ See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
 
 **** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
 
+** TODO Add code coverage                                          :test:ops:
 
 * Tags
 
@@ -324,7 +325,6 @@ See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
 
 #+RESULTS:
 | trying to find discrepancies between the packages and test packages |
-| An implementation of the Language Server Protocol for Common Lisp   |
 
 * Design decisions
 
