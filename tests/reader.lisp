@@ -1,3 +1,5 @@
+;;;; TODO Take a look at the relevant ANSI tests: https://gitlab.common-lisp.net/ansi-test/ansi-test/-/tree/master/reader
+;;;; TODO Take a look at those reader tests: https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/reader-test.lisp
 
 (cl:in-package #:common-lisp-user)
 

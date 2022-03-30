@@ -1,5 +1,9 @@
+
 ;;;; See fndb.lisp and knownfn.lisp in sbcl
 ;;;; and https://github.com/phoe/portable-condition-system/blob/1307ec146d227a9d8ea42312c1ba2a5206a9eb3c/t/ansi-test-data.lisp
+;;;;
+;;;; See https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/package-def.lisp
+;;;; For a list of CLs
 
 (cl:in-package #:common-lisp-user)
 

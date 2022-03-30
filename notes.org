@@ -263,6 +263,10 @@ See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
 
 ** TODO Add code coverage                                          :test:ops:
 
+** TODO Fake packages?                                               :reader:
+
+https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/package-pac.lisp
+
 * Tags
 
 ** Tag descriptions
@@ -367,10 +371,14 @@ Advising swank's eval function is "a good start" in that direction.
 
 * Other projects with slime integration
 ** log4cl
+** cepl
+
 * Portable file watching
+
 https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/
 
 http://eradman.com/entrproject/
+
 * Random ideas
 ** (tips), (tips "test"), (tips "doc")
 ** (next) ;; what's next? print functions that aren't done, that have no tests or documentation.
@@ -431,6 +439,8 @@ Which is one of the reason behind wrapping the definitions (e.g. =breeze:defun=)
 - profile-guided optimization
 
 ** Use equivalence-graph e-graph to suggest refactors
+
+** Sementic diffs using breeze.reader
 
 * See
 ** DONE uses locative: http://quickdocs.org/mgl-pax/                 :editor:

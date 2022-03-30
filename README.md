@@ -25,7 +25,7 @@ much all the time.
 
 * [Emacs integration](#emacs)
 * Integration with quickproject
-* Context-aware snippets and refactorings
+* Context-aware, configurable snippets and refactorings
 * Command for quick code capture (trying out code in a new file)
 
 Currently, breeze's main interface is emacs. It add an emacs
