@@ -358,6 +358,20 @@ into the folder "scratch-files" and I'll re-introduce them slowly in
 the future. (Because I really want something to run the tests in the
 background, for example.)
 
+** Read from strings instead of streams
+
+I did some tests and the code was like 100x faster when reading from
+string instead of reading from streams. There are multiple reasons: to
+extract the "raw" text from the stream require consing new strings
+_and_ abusing file-position to move back and forth in the stream, both
+of these are very inefficient. Instead, we use displaced arrays which
+results in way less consing and no "stream state" to manage. This made
+both the code faster and simpler.
+
+From another point of view: why not? we were already copying the whole
+stream into the resulting tree, now we just have references to one
+string.
+
 *** Alternatives
 
 **** Keep the string being eval'd
