@@ -83,8 +83,7 @@
                 (make-instance 'node
                                :content (or children result)))))))
     (setf (node-source node) source
-          ;; (node-raw node) raw
-          )
+          (node-raw node) raw)
     (log4cl:log-debug node)
     ;; (dbg "~&new-node: ~s" node)
     node))
