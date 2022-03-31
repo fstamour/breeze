@@ -118,9 +118,14 @@
 (defun cancel-command (&optional reason)
   ;; TODO Kill the associated thread.
   (setf *current-command* nil)
+
   (when reason
-    ;; TODO We probably don't want that...
-    (error reason))
+    ;; TODO (log)
+    ;;
+    ;; We definitely don't want that, but it's sometimes useful for
+    ;; debugging
+    ;; (error reason)
+    )
   ;; (format *debug-io* "~&*current-command* reset.")
   )
 
