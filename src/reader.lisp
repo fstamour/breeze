@@ -25,7 +25,12 @@
   ((source
     :initarg :source
     :type string
-    :accessor source))
+    :accessor source)
+   (start
+    :initarg :start
+    :initform 0
+    :type integer
+    :accessor start))
   (:documentation
    "Controls how the reader construct the parse-results."))
 
@@ -34,12 +39,17 @@
          (end (min end (length source))))
     (subseq-displaced source start end)))
 
+(defun add-offset (client source)
+  (incf (car source) (start client))
+  (incf (cdr source) (start client)))
+
 
 ;;; hooks intro eclector
 
 (defmethod eclector.parse-result:make-expression-result
     ((client breeze-client) (result t) (children t) (source t))
   "Create an expression result"
+  (add-offset client source)
   (let* ((raw (raw client (car source) (cdr source)))
          (node
            (progn
@@ -85,6 +95,7 @@
 (defmethod eclector.parse-result:make-skipped-input-result
     ((client breeze-client) (stream t) (reason t) (source t))
   "Create a skipped-node parse result."
+  (add-offset client source)
   (let ((content (raw client (car source) (cdr source))))
     (log4cl:log-debug content)
     (make-instance 'skipped-node
@@ -175,15 +186,17 @@
          = (if (eq eof form)
                (return forms) ; Stop the loop here...
                (multiple-value-list
-                (eclector.parse-result:read-from-string
-                 client
-                 string
-                 ;; Don't error on eof
-                 nil
-                 ;; Return eof instead
-                 eof
-                 :start cursor
-                 :preserve-whitespace t)))
+                (progn
+                  (setf (start client) cursor)
+                  (eclector.parse-result:read-from-string
+                   client
+                   string
+                   ;; Don't error on eof
+                   nil
+                   ;; Return eof instead
+                   eof
+                   :start cursor
+                   :preserve-whitespace t))))
        :do (setf cursor position)
        :if orphans
          :append (cond
@@ -252,6 +265,8 @@
 
 (defun parse-string (string)
   "Read STRING entirely using breeze's reader."
+  (read-all-forms string)
+  #+ (or)
   (let ((forms (read-all-forms string)))
     (if forms
         (progn
