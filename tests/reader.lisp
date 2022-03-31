@@ -359,21 +359,41 @@ Introduce 5 lexical variables:
        (car (read-all-forms "x")))))
 
 
-(define-test "WIP"
-  (mapcar #'read-all-forms
-          '(""
-            "1"
-            " 1"
-            " 1 "
-            "\"hi\""
-            ";; hello"
-            " ;; hello"
-            "a ;; hello"
-            "1 #|-|# \"x\" ")))
+;; TODO recurse into non-terminal nodes
+(defun contiguousp (nodes input)
+  (loop :for node :in nodes
+        :for next-node :in (cdr nodes)
+        :always
+        (or (null next-node)
+            (is =
+                (1+ (node-end node))
+                (node-start next-node)
+                "The node ~a ends at ~a and the next-node ~a starts at ~a in the input ~s"
+                node (node-end node)
+                next-node (node-start next-node)
+                input))))
 
-;; TODO read-all-forms' output should be contiguous (the end of one
-;; form should be = to the start of the next form), there should be
-;; no overlap and it should span the whole input.
+(define-test "nodes are contiguous"
+  (loop :for input :in '(""
+                         "1"
+                         " 1"
+                         " 1 "
+                         " a b c "
+                         "\"hi\""
+                         ";; hello"
+                         " ;; hello"
+                         "a ;; hello"
+                         "1 #|-|# \"x\" "
+                         "( a b c ) d")
+        :for nodes = (read-all-forms input)
+        :do (true (contiguousp nodes input)
+                  "~s is not contiguous" input)))
+
+;; DONE read-all-forms' output should be contiguous (the end of one
+;; form should be = to the start of the next form)
+;; TODO it should span the whole input.
+;; TODO there should be no overlap (this is redundant given the two
+;; previous tests, but I want to make sure
 
 
 ;;; Down below: "legacy mess" :P
