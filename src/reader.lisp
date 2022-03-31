@@ -22,7 +22,10 @@
 
 ;; Define a class representing the "parse result client"
 (defclass breeze-client (eclector.parse-result:parse-result-client)
-  ((source
+  (
+   ;; TODO We should probably rename this, to avoid confusion with the
+   ;; node's source, which is a pair of index into this string.
+   (source
     :initarg :source
     :type string
     :accessor source)
@@ -236,15 +239,11 @@
       :for end = (car (node-source form))
       :for prefix = (unless (zerop (- end prefix-start))
                       (subseq-displaced string prefix-start end))
-      :for raw = (subseq-displaced string
-                                   prefix-start
-                                   form-end)
       :do
          ;; update FORM
          (setf
           ;; Add the prefix
-          (node-prefix form) prefix
-          (node-raw form) raw)
+          (node-prefix form) prefix)
          ;; recurse
          (unless (terminalp form)
            (post-process-nodes! string (node-content form)
@@ -264,8 +263,8 @@
 
 (defun parse-string (string)
   "Read STRING entirely using breeze's reader."
-  (read-all-forms string)
-  #+ (or)
+  ;; (read-all-forms string)
+  ;; #+ (or)
   (let ((forms (read-all-forms string)))
     (if forms
         (progn
@@ -307,7 +306,7 @@
                  (write-char #\) stream)))
         ((typep content 'character-node)
          (princ (node-raw node) stream))
-        (t
+        (
          (format stream "~a" content)))))
   ;; Symbol
   (:method (stream (node symbol-node))
@@ -317,10 +316,9 @@
     (write-raw stream node))
   ;; #+-
   (:method (stream (node feature-expression-node))
-    ;; FIXME!!! node-feature-expression is not a variable, I meant to
-    ;; call it, but I think I haven't exported it
-    (unparse-node stream node-feature-expression)
-    (unparse-node stream (node-content node)))
+    ;; (unparse-node stream (node-feature-expression node))
+    ;; (unparse-node stream (node-content node))
+    (unparse-to-stream stream (node-content node)))
   ;; (...)
   (:method (stream (node list-node))
     (cond

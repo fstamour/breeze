@@ -19,13 +19,20 @@
 
 (in-package #:breeze.test.reader)
 
+
+;;; Testing eclector.parse-result:READ-FROM-STRING
+;;;
+;;; This is important because it the building block of the rest of the
+;;; reader (a.k.a READ-ALL-FORMS)
+
 (defun read-from-string (string &optional (eof-error-p t)
                                   eof-value
                          &key
                            (start 0)
                            end
                            preserve-whitespace)
-  "It's only useful for testing because it creates a new client everytime."
+  "It's not  useful outside of testing because it creates a new
+client everytime it is invoked."
   (eclector.parse-result:read-from-string
    (make-instance 'breeze-client
                   :source string)
@@ -347,12 +354,26 @@ Introduce 5 lexical variables:
   (with-read-from-string ("#C(1 2)")))
 
 
+#|
+This is a valid syntax:
+#p
+#+smth "..."
+#-smth2 "..."
+|#
+
+
+#|
+What about nested feature expressions?
+|#
+
+
+;;; Test READ-ALL-FORMS
 
 ;; TODO test (read-all-forms "...")
 
 (define-test read-all-forms)
 
-(define-test "1 symbol"
+(define-test "read-all-forms 1 symbol"
   :parent read-all-forms
   (is eq 'x
       (node-content
@@ -392,11 +413,26 @@ Introduce 5 lexical variables:
 ;; DONE read-all-forms' output should be contiguous (the end of one
 ;; form should be = to the start of the next form)
 ;; TODO it should span the whole input.
-;; TODO there should be no overlap (this is redundant given the two
-;; previous tests, but I want to make sure
+;; TODO there should be no overlap
+;; TODO There shouldn't be any gaps in the node-source
+;;
+;; ^^^ these are redundant but I want to be extra sure
 
 
-;;; Down below: "legacy mess" :P
+;;; Test POST-PROCESS-NODES!
+
+
+;;; Test PARSE-STRING
+
+;; TODO Turn this into tests
+;; TODO There should be equivalent tests for read-all-forms
+#+nil
+(loop :for node :in (parse-string "1 #|-|# \"x\" ")
+      :collect
+      (type-of node)
+      ;; (node-raw node)
+      )
+;; (NODE SKIPPED-NODE STRING-NODE SKIPPED-NODE)
 
 
 (defun test-node (node type prefix content raw)
@@ -418,32 +454,6 @@ Introduce 5 lexical variables:
           nodes
           spec-list))
 
-;; TODO This is what needs fixing next:
-#+nil
-(unparse-to-string
- (parse-string " ( 2 ) 1 "))
-
-#+nil
-(parse-string " ( 2 ) 1 #| hey |# ")
-#+nil
-(let ((input " ( 2 ) 1 #| hey |# "))
-  (loop :for node :in (parse-string input)
-        :for (start . end) = (node-source node)
-        :for last-child = ()
-        ;; suffix would be (last child's end) - end
-        :collect (list :subseq (subseq input start end)
-                       :raw (node-raw node))))
-
-
-
-#+nil
-(parse-string "#|ads |#")
-#+nil
-(loop :for node :in (parse-string "1 #|-|# \"x\" ")
-      :collect
-      (type-of node)
-      ;; (node-raw node)
-      )
 
 ;; TODO These are now almost all obsolete
 ;; specs: type prefix content raw
@@ -472,14 +482,22 @@ Introduce 5 lexical variables:
                 (string-node " " "x" " \"x\"")
                 (skipped-node nil " " nil))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; This is all sort of broken right now
-;;; I want to add a lot of more fundamental tests before re-enabling this
-;;; I already created some tests for reading 1 thing from a string
-;;; After thate I want to add tests on "read-all-forms"
-;;; And finally add tests on post-processing and parse-string
-;;; baby-steps
-#+ (or)
+
+;;; Test UNPARSE-TO-STRING
+
+;; TODO This should _in theory_ easy to tests, but it's kind of hard
+;; to actually create nodes without parse-string
+
+
+;;; Test "roundtrip" (parse followed by unparse
+
+(define-test "roundtrip list and numbers"
+  (unparse-to-string
+   (parse-string " ( 2 ) 1 ")))
+
+
+;;; Down below: "legacy mess" :P
+
 (define-test parse-unparse-roundtrip
   (dolist (expected
            '("1"
@@ -519,15 +537,22 @@ Introduce 5 lexical variables:
              "#-(or) 1"
              "#+nil 1 "
              "#+(and) 2"
-             "#+(and) (bla)"))
+             ;; "#+(and) (bla)"
+             ))
     (let ((*break-on-signals* #+nil 'error))
       (let* ((nodes (parse-string expected))
              (got (unparse-to-string nodes)))
+        ;; (print expected) (force-output)
         (is string= expected got
             "nodes: ~a" nodes)))))
 
-;; TODO (apply #'concatenate 'string (list node)) should= input
-;; TODO There shouldn't be any gaps in the node-source
+
+
+
+
+;;; Reading source files from this project
+
+;; TODO test round-tripping of all files in this project!
 
 #+ (or)
 (progn
@@ -561,17 +586,6 @@ Introduce 5 lexical variables:
 (breeze.asdf:system-files 'breeze)
 
 
-#|
-This is a valid syntax:
-#p
-#+smth "..."
-#-smth2 "..."
-|#
-
-
-#|
-What about nested feature expressions?
-|#
 
 
 
@@ -589,10 +603,12 @@ x
 'x
 '()
 
-This one can only be inserted at the end
-; comment                               ; ; ; ; ;
+This one can only be inserted at the end (of a line)
+                                        ; comment                               ; ; ; ; ; ; ; ; ; ; ;
 
 '()
 #()
 
 |#
+
+;; TODO (apply #'concatenate 'string (list node)) should= input

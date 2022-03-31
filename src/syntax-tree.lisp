@@ -32,7 +32,8 @@
    #:node-source
    #:node-raw
    #:node-start
-   #:node-end))
+   #:node-end
+   #:node-feature-expression))
 
 (in-package #:breeze.syntax-tree)
 
@@ -103,6 +104,10 @@
 (defclass function-node (node)
   ()
   (:documentation "Syntax node for #'expression."))
+
+;; TODO Use this, for better tracing
+(defun make-node (type &rest args)
+  (apply #'make-instance type args))
 
 
 ;;; Printing
