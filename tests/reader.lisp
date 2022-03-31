@@ -132,9 +132,9 @@ Introduce 5 lexical variables:
     (is eq 'x (node-content form))
     (destructuring-bind (start . end)
         (node-source form)
-      ;; TODO this should be 6
+      ;; IMO this should be 6, but that's not how eclector works
       (is = 0 start)
-      ;; TODO this should be 7
+      ;; IMO this should be 7
       (is = 1 end))
     (is = 7 position)
     (false orphans)))
