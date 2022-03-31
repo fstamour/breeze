@@ -40,22 +40,28 @@
     ((input
       &key
         preserve-whitespace
+        (start 0)
         suffix)
      &body body)
-  "TODO Docstring
+  "This is a macro to make it easier to test the behaviour of eclector
+'s read-from-string function.
+
 Introduce 5 lexical variables:
-- input
-- eof
-- form
-- position
-- orphans"
+- input: the input string
+- eof: the symbol return when the reader reaches the end of the string
+- form: the syntax-node returned
+- position: the new position of the reader
+- orphans: syntax-nodes for skipped-inputs
+"
   (flet ((suffix (symbol)
            (if suffix
                (symbolicate symbol suffix)
                symbol)))
     (let ((read-form `(read-from-string
                        input nil eof
-                       :preserve-whitespace ,preserve-whitespace)))
+                       :preserve-whitespace ,preserve-whitespace
+                       :start ,start
+                       )))
       `(let ((,(suffix 'input) ,input)
              ;; yes, gensym at run-time, it's not a mistake
              (,(suffix 'eof) (gensym "eof")))
@@ -118,6 +124,19 @@ Introduce 5 lexical variables:
       (is = 0 start)
       (is = 1 end))
     (is = 1 position)
+    (false orphans)))
+
+(define-test "read symbol with offset"
+  (with-read-from-string ("012345x" :start 6)
+    (is eq 'symbol-node (type-of form))
+    (is eq 'x (node-content form))
+    (destructuring-bind (start . end)
+        (node-source form)
+      ;; TODO this should be 6
+      (is = 0 start)
+      ;; TODO this should be 7
+      (is = 1 end))
+    (is = 7 position)
     (false orphans)))
 
 (define-test "read string"
