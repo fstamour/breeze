@@ -1,4 +1,5 @@
 ;;; package -- breeze integration with emacs
+;; -*- lexical-binding: t -*-
 
 ;;; Commentary:
 ;;
@@ -17,7 +18,6 @@
 
 ;;; Requires
 (require 'cl-lib)
-(require 'slime)
 
 
 ;;; Variables
@@ -29,8 +29,42 @@
 
 ;;; Integration with lisp listener
 
+;; Useful for debugging wether slime or sly is running
+;; (process-list)
+
+(defun breeze-sly-connection ()
+  "If sly loaded, get the list of connections."
+  (and (fboundp 'sly-current-connection)
+       (sly-current-connection)))
+
+(defun breeze-slime-connection ()
+  "If slime is loaded, get the list of connections."
+  (and (fboundp 'slime-current-connection)
+       (slime-current-connection)))
+
+(defun breeze-eval% (form)
+  "Eval a form in eithere sly or slime."
+  (cond
+   ;; Both sly and slime are loaded
+   ((and (fboundp 'sly)) (fboundp 'slime)
+    (cond
+     ;; Sly is "running"
+     ((breeze-sly-connection)
+      (sly-eval form))
+     ;; Slime is "running"
+     ((breeze-slime-connection)
+      (slime-eval form))
+     (t
+      (error "Please start either slime or sly."))))
+   ((fboundp 'sly) (sly-eval form))
+   ((fboundp 'slime) (slime-eval form))
+   (t (error "Please load either slime or sly."))))
+
+(defun breeze-interactive-eval (string)
+  (breeze-eval% `(swank:interactive-eval ,string)))
+
 (defun breeze-eval (string)
-  (slime-eval `(swank:eval-and-grab-output ,string)))
+  (breeze-eval% `(swank:eval-and-grab-output ,string)))
 
 (defun breeze-eval-value-only (string)
   (cl-destructuring-bind (output value)
@@ -42,11 +76,6 @@
 (defun breeze-eval-predicate (string)
   (cl-equalp "t" (breeze-eval-value-only string)))
 
-;; (and
-;;  (eq t (breeze-eval-predicate "t"))
-;;  (eq t (breeze-eval-predicate "T"))
-;;  (eq nil (breeze-eval-predicate "nil"))
-;;  (eq nil (breeze-eval-predicate "NIL")))
 
 (defun breeze-eval-list (string)
   ;; TODO check breeze-cl-to-el-list
@@ -58,81 +87,80 @@
       (message "Breeze: expected a list got: %S" list)
       nil)))
 
-(defun breeze-interactive-eval (string)
-  (slime-eval `(swank:interactive-eval ,string)))
-
 
 ;;; Prerequisites checks
 
-(cl-defun breeze/check-if-slime-is-connected (&optional verbosep)
-  "Make sure that slime is connected, signals an error otherwise."
-  (if (slime-current-connection)
+(cl-defun breeze-check-if-connected-to-listener (&optional verbosep)
+  "Make sure that slime or sly is connected, signals an error otherwise."
+  (if (or
+       (breeze-sly-connection)
+       (breeze-slime-connection))
       (progn
         (when verbosep
-          (message "Slime already started."))
+          (message "Slime or Sly already started."))
         t)
-    (progn
-      (when verbosep
-        (message "Starting slime..."))
-      (slime))))
+    ;; TODO Pretty sure we don't want this
+    (when nil
+      (progn
+        (when verbosep
+          (message "Starting slime..."))
+        (slime)))))
 
-(defun breeze/validate-if-package-exists (package)
+(defun breeze-validate-if-package-exists (package)
   "Returns true if the package PACKAGE exists in the inferior-lisp."
   (breeze-eval-predicate
    (format "(and (or (find-package \"%s\") (find-package \"%s\")) t)"
            (downcase package) (upcase package))))
-;; (breeze/validate-if-package-exists "cl")
 
-(defun breeze/validate-if-breeze-package-exists ()
+(defun breeze-validate-if-breeze-package-exists ()
   "Returns true if the package \"breeze\" exists in the inferior-lisp."
-  (breeze/validate-if-package-exists "breeze"))
+  (breeze-validate-if-package-exists "breeze"))
 
-;; (breeze/validate-if-breeze-package-exists)
-
-(defvar breeze/breeze.el load-file-name
+(defvar breeze-breeze.el load-file-name
   "Path to \"breeze.el\".")
 
-(defun breeze/system-definition ()
+(defun breeze-system-definition ()
   "Get the path to \"breeze.asd\" based on the (load-time) location
 of \"breeze.el\"."
   (expand-file-name
    (concat
     (file-name-directory
-     breeze/breeze.el)
+     breeze-breeze.el)
     "../breeze.asd")))
 
-(defun breeze/ensure-breeze (&optional verbosep)
+(cl-defun breeze-ensure-breeze (&optional verbosep)
   "Make sure that breeze is loaded in swank."
-  (unless (breeze/validate-if-breeze-package-exists)
+  (unless (breeze-validate-if-breeze-package-exists)
     (when verbosep
       (message "Loading breeze's system..."))
     (breeze-interactive-eval
      (format "(progn (load \"%s\") (require 'breeze)
         (format t \"~&Breeze loaded!~%%\"))"
-             (breeze/system-definition))))
+             (breeze-system-definition))))
   (when verbosep
     (message "Breeze loaded in inferior-lisp.")))
 
-;; (breeze/ensure-breeze)
+;; (breeze-ensure-breeze)
 
 ;; See slime--setup-contribs, I named this breeze-init so it _could_
 ;; be added to slime-contrib,
 ;; I haven't tested it yet though.
-(defun breeze-init (&optional verbosep)
+(cl-defun breeze-init (&optional verbosep)
   "Ensure that breeze is initialized correctly on swank's side."
   (interactive)
-  (breeze/check-if-slime-is-connected)
-  (breeze/ensure-breeze verbosep)
+  (breeze-check-if-connected-to-listener)
+  (breeze-ensure-breeze verbosep)
   (when verbosep
     (message "Breeze initialized.")))
 
 
-(defmacro breeze/with-slime (&rest body)
+(defmacro breeze-with-listener (&rest body)
+  "Make sure breeze is loaded on the common lisp side, then run BODY."
   `(progn
      (breeze-init)
      ,@body))
 
-;; (macroexpand-1 '(breeze/with-slime (print 42)))
+;; (macroexpand-1 '(breeze-with-listener (print 42)))
 
 (defun breeze-cl-to-el-list (list)
   "Convert NIL to nil and T to t.
@@ -141,7 +169,7 @@ lisp's reader doesn't convert them."
   (if (eq list 'NIL)
       nil
     (mapcar #'(lambda (el)
-                (case el
+                (cl-case el
                   (NIL nil)
                   (T t)
                   (t el)))
@@ -166,7 +194,7 @@ lisp's reader doesn't convert them."
            (split-string paragraph "\n")
            for parts = (split-string line)
            collect
-           (format "(defun %s %s\n)\n" (car parts) (rest parts))))
+           (format "(defun %s %s\n)\n" (car parts) (cl-rest parts))))
 
 (defun %breeze-expand-to-defuns ()
   "Takes a paragraph where each line describes a function, the
@@ -230,10 +258,10 @@ arguments. Use to quickly scaffold a bunch of functions."
 (defun breeze-command-process-request (request)
   (pcase (car request)
     ("choose"
-     (completing-read (second request)
-                      (third request)))
+     (completing-read (cl-second request)
+                      (cl-third request)))
     ("read-string"
-     (apply #'read-string (rest request)))
+     (apply #'read-string (cl-rest request)))
     ("insert-at"
      (cl-destructuring-bind (_ position string)
          request
@@ -254,7 +282,7 @@ arguments. Use to quickly scaffold a bunch of functions."
        ;; TODO
        ))
     ("backward-char"
-     (backward-char (second request))
+     (backward-char (cl-second request))
      ;; Had to do this hack so the cursor is positioned
      ;; correctly... probably because of aggressive-indent
      (funcall indent-line-function))
@@ -297,22 +325,34 @@ arguments. Use to quickly scaffold a bunch of functions."
   (interactive)
   (breeze-run-command "breeze.refactor:quickfix"))
 
+(defun breeze-insert-defpackage ()
+  "Choose a command from a list of applicable to the current context."
+  (interactive)
+  (breeze-run-command "breeze.refactor:insert-defpackage"))
+
 
 ;;; code evaluation
+;;
+;; TODO This will not work for a while, I want to wrap both sly and
+;; slime on emacs side and call a "breeze-eval" on lisp side. Then I'm
+;; not sure I want this exact feature...
+;;
 
-(defun breeze-get-recently-evaluated-forms ()
-  "Get recently evaluated forms from the server."
-  (cl-destructuring-bind (output value)
-      (slime-eval `(swank:eval-and-grab-output
-                    "(breeze.listener:get-recent-interactively-evaluated-forms)"))
-    (split-string output "\n")))
+(when nil
+  (defun breeze-get-recently-evaluated-forms ()
+    "Get recently evaluated forms from the server."
+    (cl-destructuring-bind (output value)
+        (slime-eval `(swank:eval-and-grab-output
+                      "(breeze.listener:get-recent-interactively-evaluated-forms)"))
+      (split-string output "\n"))))
 
-(defun breeze-reevaluate-form ()
-  (interactive)
-  (let ((form (completing-read  "Choose recently evaluated form: "
-                                (breeze-get-recently-evaluated-forms))))
-    (when form
-      (slime-interactive-eval form))))
+(when nil
+  (defun breeze-reevaluate-form ()
+    (interactive)
+    (let ((form (completing-read  "Choose recently evaluated form: "
+                                  (breeze-get-recently-evaluated-forms))))
+      (when form
+        (slime-interactive-eval form)))))
 
 
 ;;; project scaffolding
@@ -354,11 +394,11 @@ arguments. Use to quickly scaffold a bunch of functions."
 (define-key breeze-mode-map (kbd "C-.") #'breeze-quickfix)
 
 ;; eval keymap - because we might want to keep an history
-(defvar breeze/eval-map (make-sparse-keymap))
+(defvar breeze-eval-map (make-sparse-keymap))
 ;; eval last expression
-(define-key breeze-mode-map (kbd "C-c e") breeze/eval-map)
+(define-key breeze-mode-map (kbd "C-c e") breeze-eval-map)
 ;; choose an expression from history to evaluate
-(define-key breeze/eval-map (kbd "e") 'breeze-reevaluate-form)
+(define-key breeze-eval-map (kbd "e") 'breeze-reevaluate-form)
 
 (defun enable-breeze-mode ()
   "Enable breeze-mode."
@@ -374,10 +414,9 @@ arguments. Use to quickly scaffold a bunch of functions."
 ;; TODO This should be in the users' config
 ;; (add-hook 'slime-lisp-mode-hook 'breeze-init)
 ;; TODO This should be in the users' config
-(add-hook 'slime-connected-hook 'breeze-init)
 
 (defun breeze ()
-  "Start slime and breeze"
+  "Initialize breeze."
   (interactive)
   (breeze-init t))
 
