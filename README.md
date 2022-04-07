@@ -93,7 +93,15 @@ From the repl:
 
 	(ql:quickload "breeze")
 
-Then load `<breeze>/src/breeze.el` in emacs.
+Load `<breeze>/src/breeze.el` in emacs.
+
+And enable `breeze-mode` minor mode in `lisp-mode` autmatically using
+a hook:
+
+    (add-hook 'lisp-mode-hook #'breeze-mode)
+
+Now you should be able to use `C-.` (control + period) in any lisp
+buffer to bring up the "quickfix menu".
 
 ### How to run the tests
 

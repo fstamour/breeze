@@ -276,3 +276,9 @@ prog*
 (or nil something)
 ;; instead of
 (or null something)
+
+
+
+
+(incf x y) <=> (decf x (- y))
+;; when y < 0

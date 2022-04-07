@@ -261,6 +261,10 @@ See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
 
 **** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
 
+*** In [[https://github.com/s-expressionists/Eclector][s-expressionists/Eclector]]
+
+**** [[https://github.com/s-expressionists/Eclector/issues/28][Ensure every CST element has a SOURCE, suggest how to capture whitespace and comments #28]]
+
 ** TODO Add code coverage                                          :test:ops:
 
 ** TODO Fake packages?                                               :reader:
@@ -655,6 +659,12 @@ For a pretty nice review of existing testing framework:
 https://sabracrolleton.github.io/testing-framework
 
 [[https://github.com/emacs-elsa/Elsa][Emacs Lisp Static Analyzer]]
+
+https://github.com/ruricolist/moira - Monitor and restart background threads.
+
+https://github.com/pokepay/cl-string-generator - Generate string from regular expression
+
+Emacs supports ~(declare (pure t) (side-effect-free t))~
 
 * Discord
 
