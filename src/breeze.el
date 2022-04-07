@@ -42,29 +42,28 @@
   (and (fboundp 'slime-current-connection)
        (slime-current-connection)))
 
-(defun breeze-eval% (form)
-  "Eval a form in eithere sly or slime."
+(defun breeze-sly-or-not-slime ()
   (cond
    ;; Both sly and slime are loaded
    ((and (fboundp 'sly)) (fboundp 'slime)
     (cond
-     ;; Sly is "running"
-     ((breeze-sly-connection)
-      (sly-eval form))
-     ;; Slime is "running"
-     ((breeze-slime-connection)
-      (slime-eval form))
+     ((breeze-sly-connection) t)
+     ((breeze-slime-connection) nil)
      (t
       (error "Please start either slime or sly."))))
-   ((fboundp 'sly) (sly-eval form))
-   ((fboundp 'slime) (slime-eval form))
+   ((fboundp 'sly) t)
+   ((fboundp 'slime) nil)
    (t (error "Please load either slime or sly."))))
 
 (defun breeze-interactive-eval (string)
-  (breeze-eval% `(swank:interactive-eval ,string)))
+  (if (breeze-sly-or-not-slime)
+      (sly-eval `(slynk:interactive-eval ,string))
+    (slime-eval `(swank:interactive-eval ,string))))
 
 (defun breeze-eval (string)
-  (breeze-eval% `(swank:eval-and-grab-output ,string)))
+  (if (breeze-sly-or-not-slime)
+      (sly-eval `(slynk:eval-and-grab-output ,string))
+    (slime-eval `(swank:eval-and-grab-output ,string))))
 
 (defun breeze-eval-value-only (string)
   (cl-destructuring-bind (output value)
@@ -292,6 +291,7 @@ arguments. Use to quickly scaffold a bunch of functions."
 (defun breeze-run-command (name)
   "Runs a \"breeze command\". TODO Improve this docstring."
   (interactive)
+  (breeze-ensure-breeze)
   (condition-case condition
       (cl-loop
        ;; guards against infinite loop

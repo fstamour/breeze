@@ -30,7 +30,7 @@
                #:eclector
                #:trivial-package-local-nicknames
                ;; Listener(s) stuff
-               #:swank
+               ;; #:swank
                ;; Logging
                #:log4cl)
   :pathname "src"
@@ -45,7 +45,7 @@
    (:file "xref" :depends-on ("utils"))
    (:file "documentation" :depends-on ("xref"))
    (:file "doctor" :depends-on ("configuration"))
-   (:file "breeze-listener" :depends-on ("xref"))
+   ;; (:file "breeze-listener" :depends-on ("xref"))
    (:file "refactor"
     :depends-on ("configuration" "reader" "command" "utils" "cl"))
    (:file "project" :depends-on ("configuration" "command"))
