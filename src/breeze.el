@@ -133,8 +133,9 @@ of \"breeze.el\"."
     (when verbosep
       (message "Loading breeze's system..."))
     (breeze-interactive-eval
-     (format "(progn (load \"%s\") (require 'breeze)
-        (format t \"~&Breeze loaded!~%%\"))"
+     (format "(progn (load \"%s\")
+                (when (require 'breeze)
+                  (format t \"~&Breeze loaded!~%%\")))"
              (breeze-system-definition))))
   (when verbosep
     (message "Breeze loaded in inferior-lisp.")))
