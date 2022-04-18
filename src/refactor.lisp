@@ -579,25 +579,38 @@ For debugging purposes ONLY.")
         (when (null package)
           package-designator)))))
 
+;; TODO
+(defun compute-suggestions-at-point ()
+  (augment-context-by-parsing-the-buffer context))
+
+(defmacro let+ctx (bindings &body body)
+  `(let*
+       (,@ (loop :for binding :in bindings
+                 :if (listp binding)
+                   :collect binding
+                 :else
+                   :collect `(,binding (context-get (command-context*) ',binding))))
+     ,@body))
+
+#+ (or)
+(let+ctx ((x 42)
+          nodes position path))
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
-  (let* (;; Parse the buffer
-         (nodes (parse-string buffer-string))
-         ;; Emacs's point starts at 1
-         (position (1- point))
-         (path (find-path-to-node position nodes))
-         ;; Find the top-level form "at point"
-         (outer-node (caar path))
-         ;; Find the innermost form "at point"
-         (inner-node (car (lastcar path)))
-         (inner-node-index (cdr (lastcar path)))
-         ;; Find the innermost form's parent
-         (parent-node (car (before-last path)))
-         (invalid-in-package (validate-nearest-in-package nodes outer-node))
-         ;; Accumulate a list of commands that make sense to run in
-         ;; the current context
-         (commands))
+  (augment-context-by-parsing-the-buffer (command-context*))
+  (let+ctx (nodes
+            position
+            path
+            outer-node
+            inner-node
+            inner-node-index
+            parent-node
+            ;; Check if the closes defpackage was evaluated once
+            (invalid-in-package (validate-nearest-in-package nodes outer-node))
+            ;; Accumulate a list of commands that make sense to run in
+            ;; the current context
+            (commands))
     (declare (ignorable inner-node inner-node-index parent-node))
 
     (labels ((append-commands (cmds)
@@ -613,7 +626,7 @@ For debugging purposes ONLY.")
          (warn "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
          (return))
         ((ends-with-subseq ".asd" buffer-file-name
-                             :test #'string-equal)
+                           :test #'string-equal)
          (push-command 'insert-asdf))
         ;; When the buffer is empty, or only contains comments and
         ;; whitespaces.
@@ -659,7 +672,7 @@ For debugging purposes ONLY.")
     (setf commands (mapcar #'command-description commands))
 
     ;; Save some information for debugging
-    (setf *qf* `((:context . ,context)
+    (setf *qf* `((:context . ,(command-context*))
                  (:nodes . ,nodes)
                  (:path . ,path)
                  (:outer-node . ,outer-node)
