@@ -2,9 +2,10 @@
 
 * Roadmap
 
-1. Improve the reader (mostly add tests)
+1. Improve the reader (mostly add tests, maybe change the data structures)
 2. Add tests on the breeze.commands package
-3. Add a breeze-eval function instead of advising swank
+3. Add a breeze-eval function instead of advising swank/slynk
+4. Improve performances
 
 * Tasks
 
@@ -732,6 +733,15 @@ https://flownet.com/ron/packages.pdf
 - Ultraspec (dead)
 - Simplified something something
 - The lisp cookbook
+
+** What the hell are pathnames?
+
+- Don't forget trailing backslashes for directories.
+
+** Where are the functions to operate on strings?
+
+- Use the functions that operate on sequences.
+- Use libraries, like alexandria, split-sequences, serapeum, etc.
 
 * Resources
 
