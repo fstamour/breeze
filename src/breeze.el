@@ -20,6 +20,26 @@
 (require 'cl-lib)
 
 
+;;; Logging
+
+(defun breeze-debug (string &rest objects)
+  "Log a meesage in *breeze-debug* bufffer."
+  (save-excursion
+    (set-buffer (get-buffer-create "*breeze-debug*"))
+    (setf buffer-read-only nil)
+    (end-of-buffer)
+    (insert
+     "\n"
+     (format-time-string "[%Y-%m-%d %H:%M:%S.%3N] ")
+     (apply #'format string objects))
+    (setf buffer-read-only t)))
+
+(defun breeze-message (string &rest objects)
+  "Log a meesage in *breeze-debug* and *Messages* bufffer."
+  (apply #'message string objects)
+  (apply #'breeze-debug string objects))
+
+
 ;;; Variables
 
 (defvar breeze-mode-map
@@ -68,7 +88,7 @@
 (defun breeze-eval-value-only (string)
   (cl-destructuring-bind (output value)
       (breeze-eval string)
-    (message "Breeze: got the value: %S" value)
+    (breeze-debug "Breeze: got the value: %S" value)
     value))
 
 ;; TODO I should check that it is NOT equal to nil instead
@@ -83,7 +103,7 @@
                 (breeze-eval-value-only string)))))
     (if (listp list)
         list
-      (message "Breeze: expected a list got: %S" list)
+      (breeze-debug "Breeze: expected a list got: %S" list)
       nil)))
 
 
@@ -96,17 +116,18 @@
        (breeze-slime-connection))
       (progn
         (when verbosep
-          (message "Slime or Sly already started."))
+          (breeze-message "Slime or Sly already started."))
         t)
     ;; TODO Pretty sure we don't want this
     (when nil
       (progn
         (when verbosep
-          (message "Starting slime..."))
+          (breeze-message "Starting slime..."))
         (slime)))))
 
 (defun breeze-validate-if-package-exists (package)
   "Returns true if the package PACKAGE exists in the inferior-lisp."
+  (breeze-debug "breeze-validate-if-package-exists %S" package)
   (breeze-eval-predicate
    (format "(and (or (find-package \"%s\") (find-package \"%s\")) t)"
            (downcase package) (upcase package))))
@@ -127,18 +148,17 @@ of \"breeze.el\"."
      breeze-breeze.el)
     "../breeze.asd")))
 
-(cl-defun breeze-ensure-breeze (&optional verbosep)
+(cl-defun breeze-ensure-breeze ()
   "Make sure that breeze is loaded in swank."
   (unless (breeze-validate-if-breeze-package-exists)
     (when verbosep
-      (message "Loading breeze's system..."))
+      (breeze-message "Loading breeze's system..."))
     (breeze-interactive-eval
      (format "(progn (load \"%s\")
                 (when (require 'breeze)
                   (format t \"~&Breeze loaded!~%%\")))"
              (breeze-system-definition))))
-  (when verbosep
-    (message "Breeze loaded in inferior-lisp.")))
+  (breeze-debug "Breeze loaded in inferior-lisp."))
 
 ;; (breeze-ensure-breeze)
 
@@ -149,9 +169,9 @@ of \"breeze.el\"."
   "Ensure that breeze is initialized correctly on swank's side."
   (interactive)
   (breeze-check-if-connected-to-listener)
-  (breeze-ensure-breeze verbosep)
+  (breeze-ensure-breeze)
   (when verbosep
-    (message "Breeze initialized.")))
+    (breeze-message "Breeze initialized.")))
 
 
 (defmacro breeze-with-listener (&rest body)
@@ -227,32 +247,32 @@ arguments. Use to quickly scaffold a bunch of functions."
                   (point-max)))))
 
 (defun breeze-command-start (name)
-  (message "Breeze: starting command: %s." name)
+  (breeze-debug "Breeze: starting command: %s." name)
   (let ((request
-          (breeze-cl-to-el-list
-           (breeze-eval-list
-            (format "(%s %s)" name (breeze-compute-buffer-args))))))
-    (message "Breeze: got the request: %S" request)
+         (breeze-cl-to-el-list
+          (breeze-eval-list
+           (format "(%s %s)" name (breeze-compute-buffer-args))))))
+    (breeze-debug "Breeze: got the request: %S" request)
     (if request
         request
-      (progn (message "Breeze: start-command returned nil")
+      (progn (breeze-debug "Breeze: start-command returned nil")
              nil))))
 
 (defun breeze-command-cancel ()
   (breeze-eval
    (format "(breeze.command:cancel-command)"))
-  (message "Breeze: command canceled."))
+  (breeze-debug "Breeze: command canceled."))
 ;; (breeze-command-cancel)
 
 (defun breeze-command-continue (response send-response-p)
   (let ((request
-          (breeze-cl-to-el-list
-           (breeze-eval-list
-            (if send-response-p
-                (format
-                 "(breeze.command:continue-command %S)" response)
-              "(breeze.command:continue-command)")))))
-    (message "Breeze: request received: %S" request)
+         (breeze-cl-to-el-list
+          (breeze-eval-list
+           (if send-response-p
+               (format
+                "(breeze.command:continue-command %S)" response)
+             "(breeze.command:continue-command)")))))
+    (breeze-debug "Breeze: request received: %S" request)
     request))
 
 (defun breeze-command-process-request (request)
@@ -292,6 +312,7 @@ arguments. Use to quickly scaffold a bunch of functions."
 (defun breeze-run-command (name)
   "Runs a \"breeze command\". TODO Improve this docstring."
   (interactive)
+  (breeze-debug "breeze-run-command")
   (breeze-ensure-breeze)
   (condition-case condition
       (cl-loop
@@ -311,11 +332,11 @@ arguments. Use to quickly scaffold a bunch of functions."
        ;; Process the command's request
        for response = (breeze-command-process-request request)
        ;; Log request and response (for debugging)
-       do (message "Breeze: request received: %S response to send %S"
-                   request
-                   response))
+       do (breeze-debug "Breeze: request received: %S response to send %S"
+                        request
+                        response))
     (t
-     (message "Breeze run command: got the condition %s" condition)
+     (breeze-debug "Breeze run command: got the condition %s" condition)
      (breeze-command-cancel))))
 
 
