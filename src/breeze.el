@@ -133,8 +133,8 @@
            (downcase package) (upcase package))))
 
 (defun breeze-validate-if-breeze-package-exists ()
-  "Returns true if the package \"breeze\" exists in the inferior-lisp."
-  (breeze-validate-if-package-exists "breeze"))
+  "Returns true if the package \"breeze.utils\" exists in the inferior-lisp."
+  (breeze-validate-if-package-exists "breeze.utils"))
 
 (defvar breeze-breeze.el load-file-name
   "Path to \"breeze.el\".")
