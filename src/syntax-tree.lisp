@@ -1,5 +1,5 @@
 (defpackage #:breeze.syntax-tree
-  (:documentation "Syntax tree data structure")
+  (:documentation "Syntax tree data structure for common lisp reader")
   (:use #:cl)
   (:local-nicknames (#:a #:alexandria)
                     (#:tpln #:trivial-package-local-nicknames))

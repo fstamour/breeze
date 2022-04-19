@@ -1,5 +1,6 @@
 
 (defpackage #:breeze.asd
+  (:documentation "Package containing breeze's system defintions")
   (:use :cl :asdf))
 
 (in-package #:breeze.asd)

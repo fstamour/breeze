@@ -12,26 +12,17 @@
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
-** DONE Reader doesn't support local package nicknames               :reader:
-
-** DONE breeze-capture is broken                                        :bug:
-
-- I removed breeze-capture-folder variable.
-- Added breeze.config
-
 ** TODO Use with-branching to define optimal-string-alignment-distance :tech_debt:
 
 Instead of having 2 definitions
 
 https://github.com/phoe/with-branching
 
-** DONE Add basic command to show a message                          :editor:
+** TODO Use messages in quickfix
 
 e.g. "There is no applicable quickfixes in the current context"
 
 ** TODO docstrings are not kept in (unparse (parse ...))                :bug:
-
-** DONE read-string command should accept a default value            :editor:
 
 ** TODO Basic commands should send the buffer to the editor          :editor:
 
@@ -43,11 +34,9 @@ OR the "client" should be responsible to always execute the commands
 with on the "intial" buffer, unless stated otherwise (but that would
 add even more state on the protocol).
 
-** DONE Rename breeze.swank to breeze.listener                    :tech_debt:
+** TODO Replace the basic command ~backwar-char~
 
-We will want to support sly and probably other.
-
-Also, most stuff in there is not "listener-specific".
+By something like ~relatve-move~.
 
 ** Showcase/demo                                                        :doc:
 
@@ -81,7 +70,7 @@ The lighter could still be used though, it could be a ✓ or χ.
 
 As opposed to explain the principles, goals, non-goals, etc.
 
-Actually explain what breeze *do*.
+Actually explain what breeze *does*.
 
 ** DONE add a "What is this?" section                                   :doc:
 ** DONE [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
@@ -416,6 +405,13 @@ This is a very tiny decision, but I know I'll forget it.
 What made me decide between the two: =licence= is what asdf use, and
 it's what the user will see in their project.
 
+** Only use dependencies from quicklisp's distribution
+
+This project is not in quicklisp, and I don't plan to add it to
+quicklisp until it stabilize (which might take years). But I make sure
+that I only use dependencies from quicklisp so that if somebody wants
+to try it out they'll just need to clone this repository in
+quicklisp's local-projects folder.
 
 * Other projects with slime integration
 ** log4cl

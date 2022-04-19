@@ -1,6 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.command
+  (:documentation "Interactive commands' core")
   (:use :cl)
   (:import-from #:alexandria
                 #:symbolicate
@@ -140,6 +141,7 @@
   (format t "~&hi!"))
 
 (defun cancel-command (&optional reason)
+  "Cancel the currently running command."
   ;; TODO Kill the associated thread.
   (setf *current-command* nil)
 
@@ -291,9 +293,11 @@
     (command-context (current-command*))))
 
 (defun context-get (context key)
+  "Get the value of KEY CONTEXT."
   (gethash key context))
 
 (defun context-set (context key value)
+  "Set KEY to VALUE in CONTEXT."
   (setf (gethash key context) value))
 
 (defun context-buffer-string (context)
@@ -409,7 +413,8 @@ position."
 
 (defun choose (prompt collection)
   "Send a message to the editor to ask the user to choose one element
-in the collection."
+in the collection. The user can also enter a value not in the
+collection."
   (send "choose" prompt collection)
   (recv1))
 
@@ -429,7 +434,9 @@ position."
                        save-excursion-p)
   "Send a message to the editor telling it to replace the text between
 POSITION-FROM POSITION-TO by REPLACEMENT-STRING. Set SAVE-EXCURSION-P
-to non-nil to keep the current position."
+to non-nil to keep the current position.
+
+This one is not tested yet."
   (send
    (if save-excursion-p
        "replace-saving-excursion"
@@ -439,13 +446,18 @@ to non-nil to keep the current position."
    replacement-string))
 
 (defun backward-char (&optional n)
+  "Send a message to the editor to move backward."
   (send "backward-char" n))
 
 (defun message (control-string &rest format-arguments)
+  "Send a message to the editor to ask it to show a message to the
+user. This function pass its arguments to cl:format and sends the
+resulting string to the editor."
   (send "message"
         (apply #'format nil control-string format-arguments)))
 
 (defun find-file (pathname)
+  "Send a message to the editor to tell it to open the PATHNAME."
   (send "find-file"
         (namestring pathname)))
 
@@ -457,7 +469,13 @@ to non-nil to keep the current position."
                           &body body)
   "Macro to define command with the basic context.
 More special-purpose context can be passed, but it must be done so
-using keyword arguments."
+using keyword arguments.
+
+Example:
+
+(define-command hi ()
+  (message \"Hi ~a\" (read-string \"What is your name?\")))
+"
   (let ((context-alist (symbolicate 'context-alist))
         (basic-context-variables (mapcar #'symbolicate
                                          '(buffer-string

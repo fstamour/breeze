@@ -15,7 +15,6 @@
    #:whitespacep
    #:stream-size
    #:read-stream-range
-   #:positivep
    #:symbol-package-qualified-name
    #:before-last
    #:find-version-control-root
@@ -200,7 +199,9 @@ sytsem-files"
       pathname))
 
 (defun whitespacep (char)
-  (member char '(#\Space #\Newline #\Backspace #\Tab #\Newline #\Page #\Return #\Rubout)))
+  "Is CHAR a whitespace?"
+  (member char '(#\Space #\Newline #\Backspace #\Tab #\Newline #\Page
+                 #\Return #\Rubout)))
 
 (defun read-stream-range (stream start end)
   "Read a subsequence from STREAM between START and END."
@@ -222,10 +223,6 @@ sytsem-files"
              (file-position stream))
         (file-position stream current-position)))))
 
-(defun positivep (x)
-  (> x 0))
-
-
 (defun symbol-package-qualified-name (symbol)
   "Given a SYMBOL return a string of the form package:symbol."
   (let ((*print-escape* t)
@@ -233,6 +230,7 @@ sytsem-files"
     (prin1-to-string symbol)))
 
 (defun before-last (list)
+  "Return the cons just before the last cons in LIST."
   (loop :for rest :on list
         :for ahead = (cddr list) :then (cdr ahead)
         :while ahead
@@ -240,25 +238,30 @@ sytsem-files"
                    (when (cdr rest)
                      (car rest)))))
 
-
+;; TODO This could be even more useful if it searched for files too
 (defun find-witness-in-parent-directories (starting-path witness)
+  "Search for a directory called WITNESS in current and parent
+directories, recursively."
   (loop
-    :repeat 1000 ; guard against infinite loop
+    :repeat 1000 ; guard against infinite loop (e.g. symlink)
     :for oldpath = nil :then path
     :for path = (uiop:pathname-directory-pathname starting-path)
       :then
       (uiop:pathname-parent-directory-pathname path)
-    :for git-directory = (uiop:directory-exists-p
-                          (merge-pathnames witness path))
+    :for witness-pathname = (uiop:directory-exists-p
+                             (merge-pathnames witness path))
     :until (or
-            git-directory
+            witness-pathname
             (equal oldpath path))
-    :finally (return git-directory)))
+    :finally (return witness-pathname)))
 
 (defun find-git-witness-folder (path)
   (find-witness-in-parent-directories path ".git/"))
 
 (defun find-version-control-root (path)
+  "Try to find the root of a directory under version control. Only
+support git for now, but support for other version control systems
+should be easy to add."
   (alexandria:if-let ((git-witness-directory (find-git-witness-folder path)))
     (uiop:pathname-parent-directory-pathname git-witness-directory)))
 

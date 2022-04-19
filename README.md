@@ -1,3 +1,5 @@
+
+
 # <a name="readme">Breeze</a>
 
 Breeze is a set of tools that aims to make lisp development a breeze
@@ -17,9 +19,9 @@ to get a better idea.
 ## What is this?
 
 This is a git repository that contains lots of common lisp code that I
-use to make developping common lisp easier. It is a personal projet
-that I work on from time to time, but that I use (and break) pretty
-much all the time.
+use to make developping with common lisp easier. It is a personal
+projet that I work on from time to time, but that I use (and break)
+pretty much all the time.
 
 ## Features
 
@@ -27,15 +29,17 @@ much all the time.
 * Integration with quickproject
 * Context-aware, configurable snippets and refactorings
 * Command for quick code capture (trying out code in a new file)
+* Implemented in common lisp to be able to port it to other editors in
+  the future
 
-Currently, breeze's main interface is emacs. It add an emacs
-minor-mode with 2-3 bindings.
+Currently, breeze's main interface is emacs; `breeze.el` adds a few
+commands and one minor-mode with one bindings (`C-.`).
 
 Most notably, there is one binding that call a command called
 `breeze-quickfix` (might rename in the future). This command suggests
-applicable action given the current context (file name, file content,
-position in the file). For example, if the file ends with ".asd" it
-will suggest a command to insert a `defsystem` form. If breeze was
+applicable actions given the current context (file name, file content,
+position in the file, etc.). For example, if the file ends with ".asd"
+it will suggest a command to insert a `defsystem` form. If breeze was
 already configured, it will pre-fill the `:maintainer`, `:author` and
 `licence` fields. Another example is that if the file is empty, or
 contains only comments, it will suggest to insert a `defpackage` or
@@ -57,7 +61,8 @@ away. This could've easily be done in emacs (that's how I prototyped
 the firts version), but doing this in common lisp makes it easy to
 port it to other editors (or just the repl) in the future.
 
-I must stress that this whole project is in constant flux, and until I add more and more tests, stuff might break any time.
+I must stress that this whole project is in constant flux, and until I
+add more and more tests, stuff might break any time.
 
 ## Goals and non-goals
 
@@ -74,28 +79,26 @@ I must stress that this whole project is in constant flux, and until I add more 
 
 - Replace slime, sly, slimv, slima, etc
 - Replace existing test framework
-  - One test "framework" is included in breeze, but only for convenience/experimentation purposes.
+  - One test "framework" is included in breeze, but only for
+    convenience/experimentation purposes.
 - Force the user to use a set of conventions
-  - If there are conventions used by breeze, for convenience, they should be customizable.
+  - If there are conventions used by breeze, for convenience, they
+    should be customizable.
   - e.g. Currently, some refactoring utilies only work when the user
     use `cl:defpackage` (as opposed to `uiop:defpackage`) and there's
     one `defpackage` per file, but it doesn't have to be that way.
 
 ## Getting started
 
-This project is not in quicklisp, and I don't plan to add it to
-quicklisp until it stabilize (which might take years). But I make sure
-that I only use dependencies from quicklisp so that if somebody wants
-to try it out they'll just need to clone this repository in
-quicklisp's local-projects folder.
+1. Clone this repository in quicklisp's local-projects folder.
 
-From the repl:
+2. Load the `breeze` system. From the repl:
 
-	(ql:quickload "breeze")
+    (ql:quickload "breeze")
 
-Load `<breeze>/src/breeze.el` in emacs.
+3. Load `<breeze>/src/breeze.el` in emacs.
 
-And enable `breeze-mode` minor mode in `lisp-mode` autmatically using
+And enable `breeze-mode` minor mode in `lisp-mode` automatically using
 a hook:
 
     (add-hook 'lisp-mode-hook #'breeze-mode)
@@ -103,26 +106,41 @@ a hook:
 Now you should be able to use `C-.` (control + period) in any lisp
 buffer to bring up the "quickfix menu".
 
+### Configuring breeze
+
+> This is optional, but it will help make breeze more to your liking.
+
+Simply put this in your implementation's initialization file
+(e.g. `~/.sbclrc` for sbcl). In the future, breeze might use it's own
+configuration folder, but for now this will do.
+
+
+    (require '#:breeze.config)
+
+    (setf breeze.config:*default-author* "you're name"
+          breeze.config:*capture-folder* #p"~/capture/")
+
 ### How to run the tests
 
 From the repl:
 
-	(asdf:test-system "breeze")
+    (ql:quickload "breeze/test")
+    (asdf:test-system "breeze")
 
 
 Or from the command line:
 
-	./scripts/test.sh
+    ./scripts/test.sh
 
 ### How to generate the documentation
 
 From the repl:
 
-	(breeze.documentation::generate-documentation)
+    (breeze.documentation::generate-documentation)
 
 Or from the command line:
 
-	./scripts/doc.sh
+    ./scripts/doc.sh
 
 With either method, the documentation is generated into to `docs/`
 folder.
@@ -134,13 +152,13 @@ local-projects directory.
 
 Setup the pre-commit hook
 
-	git config core.hooksPath githooks
+    git config core.hooksPath githooks
 
 Look for TODOs in the code
 
-	grep -ir --include='*.lisp' todo
-	# or
-	rg -i todo
+    grep -ir --include='*.lisp' todo
+    # or
+    rg -i todo
 
 Peruse the [notes.org](notes.org).
 

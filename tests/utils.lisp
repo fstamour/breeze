@@ -64,11 +64,6 @@
           (stream "(1 #|comment|# \"string\")")
         (stream-size stream))))
 
-(define-test positivep
-  (true (positivep 1))
-  (false (positivep -1))
-  (false (positivep 0)))
-
 (define-test before-last
   (false (before-last '()))
   (false (before-last '(a)))

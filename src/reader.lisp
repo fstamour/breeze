@@ -1,12 +1,15 @@
 (in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.reader
-    (:use :cl)
+  (:documentation
+   "Parser for common lisp that doesn't lose any information.
+
+This package also re-exports symbols from breeze.syntax-tree.")
+  (:use :cl)
   (:use-reexport #:breeze.syntax-tree)
   (:import-from #:alexandria
                 #:if-let)
   (:import-from #:breeze.utils
-                #:positivep
                 #:subseq-displaced)
   (:export
    ;; Parse and unparse list of forms
@@ -221,7 +224,7 @@
          (tail-end (if tail
                        (cdr (node-source tail))
                        0)))
-    (when (positivep (- end tail-end))
+    (when (plusp (- end tail-end))
       (make-instance 'skipped-node
                      :content (subseq-displaced string tail-end end)
                      :source (cons tail-end end)))))

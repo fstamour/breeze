@@ -348,7 +348,7 @@ arguments. Use to quickly scaffold a bunch of functions."
 ;;; quickfix (similar to code actions in visual studio code)
 
 (defun breeze-quickfix ()
-  "Choose a command from a list of applicable to the current context."
+  "Choose from a list of commands applicable to the current context."
   (interactive)
   (breeze-run-command "breeze.refactor:quickfix"))
 
@@ -420,12 +420,13 @@ arguments. Use to quickly scaffold a bunch of functions."
 ;; Analoguous to Visual Studio Code's "quickfix"
 (define-key breeze-mode-map (kbd "C-.") #'breeze-quickfix)
 
+;; Disabled for now
 ;; eval keymap - because we might want to keep an history
-(defvar breeze-eval-map (make-sparse-keymap))
+;; (defvar breeze-eval-map (make-sparse-keymap))
 ;; eval last expression
-(define-key breeze-mode-map (kbd "C-c e") breeze-eval-map)
+;; (define-key breeze-mode-map (kbd "C-c e") breeze-eval-map)
 ;; choose an expression from history to evaluate
-(define-key breeze-eval-map (kbd "e") 'breeze-reevaluate-form)
+;; (define-key breeze-eval-map (kbd "e") 'breeze-reevaluate-form)
 
 (defun enable-breeze-mode ()
   "Enable breeze-mode."

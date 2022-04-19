@@ -48,7 +48,7 @@
        (first directories)))))
 
 (define-command scaffold-project ()
-  "Create a project named using quickproject."
+  "Create a project interactively using quickproject."
   (let* ((project-name (read-string "Name of the project: "))
          (directory
            (uiop:ensure-directory-pathname

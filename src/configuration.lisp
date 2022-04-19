@@ -23,7 +23,7 @@
   "The default licence when generating asdf system.")
 
 (defvar *capture-folder* "~/breeze-capture"
-  "The folder where to save scratch files.")
+  "The folder where to save capture files.")
 
 (defvar *capture-template*
 
@@ -43,4 +43,4 @@
   |#
 
   "
-  "The format string used when first creating a \"capture\" file.")
+  "The format string used to populate a capture file when first creating it.")

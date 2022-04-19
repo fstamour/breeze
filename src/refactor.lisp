@@ -1,6 +1,7 @@
 (in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.refactor
+  (:documentation "Snippets and refactoring commands")
   (:use #:cl #:breeze.command)
   (:import-from
    #:alexandria
@@ -12,7 +13,6 @@
    #:breeze.utils
    #:symbol-package-qualified-name
    #:before-last
-   #:positivep
    #:find-version-control-root)
   (:import-from
    #:breeze.reader
@@ -381,8 +381,7 @@ defun."
   (insert
    "(:local-nicknames ~{~a~^~%~})"
    (loop :for name = (read-string "Name of the package to alias: ")
-         ;; TODO there's a better function for that somewhere too..
-         :while (positivep (length name))
+         :while (plusp (length name))
          :for alias = (read-string "Alias of the package: ")
          :collect (format nil "(#:~a #:~a)" alias name))))
 
@@ -404,7 +403,6 @@ defun."
     (insert "(defpackage #:~a.asd~% (:use :cl :asdf))~%~%"
             system-name)
     (insert "(in-package #:~a.asd)~%~%" system-name)
-    ;; TODO FIXME this doesn't work, it's probably a race condition :(
     (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
             system-name
             `(":description \"\""

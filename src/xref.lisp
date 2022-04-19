@@ -53,7 +53,7 @@
                     (boundp ',symbol))))))
 
 (defun macrop (symbol)
-  "Return true if SYMBOL designate a macro."
+  "Return true if SYMBOL designates a macro."
   (and (symbolp symbol)
        (macro-function symbol)))
 
