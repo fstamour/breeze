@@ -14,7 +14,7 @@ prioritize accordingly.
 
 ** DONE Reader doesn't support local package nicknames               :reader:
 
-** TODO breeze-capture is broken                                        :bug:
+** DONE breeze-capture is broken                                        :bug:
 
 - I removed breeze-capture-folder variable.
 - Added breeze.config
@@ -25,13 +25,13 @@ Instead of having 2 definitions
 
 https://github.com/phoe/with-branching
 
-** TODO Add basic command to show a message                          :editor:
+** DONE Add basic command to show a message                          :editor:
 
 e.g. "There is no applicable quickfixes in the current context"
 
 ** TODO docstrings are not kept in (unparse (parse ...))                :bug:
 
-** TODO read-string command should accept a default value            :editor:
+** DONE read-string command should accept a default value            :editor:
 
 ** TODO Basic commands should send the buffer to the editor          :editor:
 
@@ -84,20 +84,18 @@ As opposed to explain the principles, goals, non-goals, etc.
 Actually explain what breeze *do*.
 
 ** DONE add a "What is this?" section                                   :doc:
-** TODO [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
+** DONE [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
 
 Start by documenting how to start using breeze, then automate it.
 
 N.B. Since I remove the test-runner and etc. breeze doesn't really
-need to be "started".
+need to be "started". But it still needs to be loaded.
 
 ** TODO Add links to all the "TODOs" in the documentation               :doc:
 
 grep TODO -h | to_github_url | to_html
 
 ** TODO It's too easy to kill the test-runner                       :tech_debt:ux:
-
-** TODO [#A] The test-runner's result interfere with swank normal usage :bug:
 
 ** DONE Breeze shouldn't suggest symbol that are "too far"               :ux:
 
@@ -119,8 +117,6 @@ current restart, and add another one that shows more candidate
 Maybe we can refine that list of candidate based on other, perhaps
 heavier criteria?
 
-** TODO Advising swank-interactive-eval doesn't override emacs' repl   :tech_debt:
-** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :tech_debt:
 ** TODO Document how to use breeze:defun                                :doc:
 
 *** When redefining a function defined with breeze:defun, it run tests
@@ -131,25 +127,12 @@ heavier criteria?
 When you redefine many function (e.g. when reloading a file), it
 doens't run all the tests each time a something is redefined.
 
-** TODO Add link to github in the documentation                         :doc:
 
 ** TODO Document (with screenshots) how to setup and use emacs integration :doc:
 ** TODO Document how to use quickproject integration                    :doc:
-** TODO Make the file-watcher usable                                   :tech_debt:
-** TODO Document how to use the file-watcher                            :doc:
-** TODO Document how the file-watcher works                             :doc:
-** DONE There's no easy way to remove a test altogether         :ux:obsolete:
-** DONE Add a condition "test-failed"                    :tech_debt:obsolete:
-
-It can be used to *break-on-signals*
-** TODO Optionnaly signal an error when a test fails                :tech_debt:ux:obsolete:
-
-Currently, if we do that, we'll get 2 conditions if the evaluation
-signals a condition and triggers test runs that fail.
 ** TODO Add binding to run test at point                                 :ux:
 ** TODO Add command to choose a test and run it                          :ux:
 ** TODO [#B] When inserting a package definition in an empty buffer, evaluate the buffer :easy:ux:
-** DONE [#B] Use GitHub actions instead of TravisCI                     :ops:
 ** TODO Generate the documenation in the CI                         :ops:doc:
 
 Really not a priority, even though generating the documentation
@@ -371,6 +354,7 @@ specify some more constraints, by giving types, writing tests, etc.
 
 #+RESULTS:
 | trying to find discrepancies between the packages and test packages |
+| Programming with holes                                              |
 
 * Design decisions
 
@@ -382,12 +366,23 @@ platforms and editors.
 ** Wrap definitions                                                :obsolete:
 
 Decision: Create wrapper macros (e.g. =br:defun=) to keep the original
-  forms for later analysis.
+forms for later analysis.
 
 This decision is really not definitive.
 
 This decision is less than ideal, especially for existing systems, but
 it was the easiest to start with.
+
+*** Alternatives
+
+**** Keep the string being eval'd
+
+Advising swank's eval function is "a good start" in that direction.
+
+**** Parse the source code
+
+- Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
+- [[https://github.com/hyotang666/read-as-string][hyotang666/read-as-string]] is another candidate
 
 ** Migrate to parachute 2022-03-08
 
@@ -404,7 +399,7 @@ background, for example.)
 
 I did some tests and the code was like 100x faster when reading from
 string instead of reading from streams. There are multiple reasons: to
-extract the "raw" text from the stream require consing new strings
+ extract the "raw" text from the stream require consing new strings
 _and_ abusing file-position to move back and forth in the stream, both
 of these are very inefficient. Instead, we use displaced arrays which
 results in way less consing and no "stream state" to manage. This made
@@ -414,16 +409,13 @@ From another point of view: why not? we were already copying the whole
 stream into the resulting tree, now we just have references to one
 string.
 
-*** Alternatives
+** Use =licence= and not =license=
 
-**** Keep the string being eval'd
+This is a very tiny decision, but I know I'll forget it.
 
-Advising swank's eval function is "a good start" in that direction.
+What made me decide between the two: =licence= is what asdf use, and
+it's what the user will see in their project.
 
-**** Parse the source code
-
-- Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
-- [[https://github.com/hyotang666/read-as-string][hyotang666/read-as-string]] is another candidate
 
 * Other projects with slime integration
 ** log4cl
@@ -434,6 +426,10 @@ Advising swank's eval function is "a good start" in that direction.
 https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/
 
 http://eradman.com/entrproject/
+
+https://github.com/Ralt/fs-watcher (polls)
+
+https://github.com/Shinmera/file-notify <===
 
 * Random ideas
 ** (tips), (tips "test"), (tips "doc")
