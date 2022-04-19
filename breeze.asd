@@ -4,6 +4,17 @@
 
 (in-package #:breeze.asd)
 
+(asdf:defsystem #:breeze/config
+  :description "Configurations for breeze."
+  :version "0"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :pathname "src"
+  :serial t
+  :components
+  ((:file "configuration")))
+
+
 (defsystem #:breeze
   :name "breeze"
   :version "0"
@@ -11,7 +22,8 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
-  :depends-on (;; Multi-threading
+  :depends-on (breeze/config
+               ;; Multi-threading
                #:bordeaux-threads
                #:chanl
                ;; To create projects
@@ -35,8 +47,7 @@
                #:log4cl)
   :pathname "src"
   :components
-  ((:file "configuration")
-   (:file "cl")
+  ((:file "cl")
    (:file "utils")
    (:file "syntax-tree")
    (:file "reader" :depends-on ("syntax-tree" "utils"))
@@ -58,7 +69,7 @@
 
 
 (defsystem "breeze/test"
-  :description ""
+  :description "Tests for the breeze system."
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
