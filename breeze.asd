@@ -55,12 +55,11 @@
    (:file "asdf")
    (:file "xref" :depends-on ("utils"))
    (:file "documentation" :depends-on ("xref"))
-   (:file "doctor" :depends-on ("configuration"))
+   (:file "doctor")
    ;; (:file "breeze-listener" :depends-on ("xref"))
-   (:file "refactor"
-    :depends-on ("configuration" "reader" "command" "utils" "cl"))
-   (:file "project" :depends-on ("utils" "configuration" "command"))
-   (:file "capture" :depends-on ("utils" "configuration" "command")))
+   (:file "refactor" :depends-on ("reader" "command" "utils" "cl"))
+   (:file "project" :depends-on ("utils" "command"))
+   (:file "capture" :depends-on ("utils" "command")))
   :in-order-to ((test-op (load-op #:breeze/test)))
   :perform
   (test-op (o c)

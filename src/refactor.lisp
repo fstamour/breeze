@@ -1,4 +1,4 @@
-s(in-package #:common-lisp-user)
+(in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.refactor
   (:use #:cl #:breeze.command)
