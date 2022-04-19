@@ -19,7 +19,8 @@
    #:symbol-package-qualified-name
    #:before-last
    #:find-version-control-root
-   #:subseq-displaced))
+   #:subseq-displaced
+   #:length>1?))
 
 (in-package #:breeze.utils)
 
@@ -269,3 +270,7 @@ sytsem-files"
                 :element-type (array-element-type sequence)
                 :displaced-to sequence
                 :displaced-index-offset start)))
+
+(defun length>1? (list)
+  "Is the length of LIST greater than 1?"
+  (not (null (cdr list))))

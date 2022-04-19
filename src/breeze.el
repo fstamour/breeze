@@ -306,6 +306,8 @@ arguments. Use to quickly scaffold a bunch of functions."
      ;; Had to do this hack so the cursor is positioned
      ;; correctly... probably because of aggressive-indent
      (funcall indent-line-function))
+    ("message"
+     (message "%s" (cl-second request)))
     (_ (error "Invalid request: %S" request) )))
 
 
@@ -379,8 +381,8 @@ arguments. Use to quickly scaffold a bunch of functions."
 
 ;;; project scaffolding
 
-(defun breeze-quickproject ()
-  "Create a project named using quickproject."
+(defun breeze-scaffold-project ()
+  "Create a project using quickproject."
   (interactive)
   (breeze-run-command "breeze.project:scaffold-project"))
 

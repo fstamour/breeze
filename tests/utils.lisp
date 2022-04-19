@@ -92,3 +92,8 @@
  "breeze.util"
  "breeze.utils"
  3)
+
+(define-test length>1?
+  (false (length>1? nil))
+  (false (length>1? '(a)))
+  (true (length>1? '(a b))))

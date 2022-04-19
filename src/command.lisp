@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.command
-    (:use :cl)
+  (:use :cl)
   (:import-from #:alexandria
                 #:symbolicate
                 #:with-gensyms
@@ -35,8 +35,11 @@
    #:insert-at
    #:replace-region
    #:backward-char
+   #:message
    ;; Utilities to create commands
    #:define-command
+   #:recv
+   #:recv1
    #:handle))
 
 (in-package #:breeze.command)
@@ -381,6 +384,12 @@ result of the last form on *channel*."
        (%recv *channel-in*)
      ,@body))
 
+(defun recv ()
+  (%recv *channel-in*))
+
+(defun recv1 ()
+  (car (%recv *channel-in*)))
+
 (defun send (request &rest data)
   (chanl:send *channel-out* `(,request ,@data)))
 
@@ -436,6 +445,10 @@ to non-nil to keep the current position."
 
 (defun backward-char (&optional n)
   (send "backward-char" n))
+
+(defun message (control-string &rest format-arguments)
+  (send "message"
+        (apply #'format nil control-string format-arguments)))
 
 
 ;;; Utilities to help creating commands less painful.

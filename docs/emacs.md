@@ -32,7 +32,7 @@ In emacs, `M-x customize`, search for `breeze`.
 | - | - | - |
 | breeze-capture | Create an empty lisp file. | `C-c c` |
 | breeze-insert | Choose something to insert | `C-c ,` |
-| breeze-quickproject | Interactively create a project in `quicklisp`'s `local-projects` folder using `quickproject`. | |
+| breeze-scaffold-project | Interactively create a project in `quicklisp`'s `local-projects` folder using `quickproject`. | |
 | breeze-reevaluate-form | Choose and (re)evaluate a recently evaluated form. (`swank:interactive-eval` must be advised first.) | `C-c e e` |
 | breeze-run-tests | Call `(breeze:run-all-tests)` | |
 

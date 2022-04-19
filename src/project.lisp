@@ -6,6 +6,17 @@
 (defpackage #:breeze.project
   (:documentation "Project scaffolding utilities")
   (:use #:cl)
+  (:import-from #:breeze.utils
+                #:length>1?)
+  (:import-from #:breeze.command
+                #:define-command
+                #:read-string
+                #:choose
+                #:message
+                #:recv1)
+  (:import-from #:breeze.config
+                #:*default-author*
+                #:*default-system-licence*)
   (:export #:scaffold-project))
 
 (in-package #:breeze.project)
@@ -20,36 +31,47 @@
   "Scaffold a projec using quickproject's make-project."
   (apply #'quickproject:make-project args))
 
-(defun get-ql-local-project-directories ()
+(defun ql-local-project-directories ()
   "Get the list of quicklisp local-projects directories (as strings)."
   (mapcar #'namestring
           ql:*local-project-directories*))
 
+(defun choose-local-project-directories ()
+  (let ((directories (ql-local-project-directories)))
+    (cond
+      ((null directories)
+       (read-string
+        "Please enter the directory where to create the project: ")
+       (recv1))
+      ((length>1? directories)
+       (choose "Please choose where to create the project: "
+               directories)
+       (recv1))
+      (t
+       (first directories)))))
 
-;; TODO defun choose-local-project-directories
-
-;; TODO
-#+ (or)
-(defun scaffold-project ()
-  "Create a project named NAME using quickproject."
-  (interactive)
-  (let ((name (read-string "Name of the project: "))
-        ;; TODO let the user choose a directory outside of quicklisp's local
-        ;; project directories.  see (read-directory-name "directory: ").
-        (directory (breeze-choose-local-project-directories))
-        ;; TODO let the user choose
-        (author user-full-name)
-        (licence "Public domain")
-        ;; TODO depends-on
-        ;; TODO include-copyright
-        ;; TODO template-directory
-        ;; TODO template-parameters
-        )
-    (slime-interactive-eval
-     (concat
-      "(breeze.listener:make-project \"" directory name "\""
-      " :author \"" author "\""
-      " :license \"" licence "\""
-      ")"))
-    (message "\"%s\" created" (concat directory name "/"))
-    (find-file (concat directory name "/README.md"))))
+(define-command scaffold-project ()
+  "Create a project named using quickproject."
+  (let* ((project-name (progn (read-string "Name of the project: ")
+                              (recv1)))
+         (directory
+           (uiop:ensure-directory-pathname
+            (merge-pathnames  project-name
+                              (choose-local-project-directories))))
+         (author (progn (read-string "Author of the project: "
+                                     *default-author*)
+                        (recv1)))
+         (license (progn (read-string "Licence of the project: "
+                                      *default-system-licence*)
+                         (recv1))))
+    ;; TODO depends-on
+    ;; TODO include-copyright
+    ;; TODO template-directory
+    ;; TODO template-parameters
+    ;; TODO add validations
+    (quickproject:make-project
+     directory
+     :name project-name
+     :author author
+     :license license)
+    (message "Project \"~a\" created." directory)))
