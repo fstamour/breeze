@@ -1,0 +1,22 @@
+diff --git a/director.el b/director.el
+index 6101320..b372278 100644
+--- a/director.el
++++ b/director.el
+@@ -163,7 +163,7 @@ If DELAY-OVERRIDE is non-nil, the next step is delayed by that value rather than
+     (director--log (format "FAILURE: %S" director--failure))
+     (run-with-timer director--delay nil 'director--end))
+ 
+-   ((length= director--steps 0)
++   ((= (length director--steps) 0)
+     ;; Run after-step callback for last step
+     (director--after-step)
+     (run-with-timer (or delay-override director--delay) nil 'director--end))
+@@ -216,7 +216,7 @@ If DELAY-OVERRIDE is non-nil, the next step is delayed by that value rather than
+ 
+           (`(:suspend)
+            nil)
+-          
++
+           (`(:assert ,condition)
+            (or (eval condition)
+                (setq director--failure condition))

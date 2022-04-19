@@ -1,10 +1,7 @@
 (in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.dummy.test
-    (:mix :breeze.definition :cl)
-  (:import-from #:breeze.test
-		#:deftest
-		#:is)
+    (:mix #| :breeze.definition |# :cl)
   (:nicknames :dum)
   (:export
    ;; Documented symbols
@@ -107,13 +104,15 @@
   "Add 1 to x."
   (1+ x))
 
+#+ (or)
 (deftest mul
   (is (= 4 (mul 2 2)))
   (is (= 12 (mul 2 6))))
 
+#+ (or)
 (deftest 2x
   (is (= (2x 2) (mul 2 2))))
 
-#+nil
+#+ (or)
 (deftest should-fail
   (is (= 6 (mul 2 2))))

@@ -24,13 +24,11 @@
     ((swank:interactive-eval form)
      (format t "~&EVAL ~s~&" form)
      (if (listp form)
-       (case (first form)
-	 (defun (handle-defun form buffer-package id))
-	 (progn (handle-progn form buffer-package id))
-	 (t (format t "~&UNKNOWN ~A" (first form))))
-       (format t "~&Not a list (~a) ~s~&" (type-of form) form)))))
-
-
+	 (case (first form)
+	   (defun (handle-defun form buffer-package id))
+	   (progn (handle-progn form buffer-package id))
+	   (t (format t "~&UNKNOWN ~A" (first form))))
+	 (format t "~&Not a list (~a) ~s~&" (type-of form) form)))))
 
 (defun 2x (x) (* x 2))
 
@@ -44,15 +42,15 @@
 
 (defun my-eval-for-emacs (original-fn form buffer-package id)
   (ignore-errors
-    (handler-bind
-	((error #'(lambda (condition)
-		    (format *error-output* "~&ERROR: ~A~&" condition))))
-  
-      ;; (alexandria:destructuring-case form)
-      (format t "~&~%my-eval-for-emacs:~% * form: ~s~% * buffer-package: ~a~% * id: ~a~%" form buffer-package id))
-      (handle-event form buffer-package id)
-    ;; (dump-form form)
-    )
+   (handler-bind
+       ((error #'(lambda (condition)
+		   (format *error-output* "~&ERROR: ~A~&" condition))))
+
+     ;; (alexandria:destructuring-case form)
+     (format t "~&~%my-eval-for-emacs:~% * form: ~s~% * buffer-package: ~a~% * id: ~a~%" form buffer-package id))
+   (handle-event form buffer-package id)
+   ;; (dump-form form)
+   )
   (funcall original-fn form buffer-package id))
 
 

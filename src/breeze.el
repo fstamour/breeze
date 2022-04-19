@@ -1,4 +1,5 @@
 ;;; package -- breeze integration with emacs
+;; -*- lexical-binding: t -*-
 
 ;;; Commentary:
 ;;
@@ -11,57 +12,32 @@
 
 
 ;;; Scratch section
-;; (defun breeze-eval-defun )
-
+;; (setf debug-on-error t)
+;; (setf debug-on-error nil)
 
 
 ;;; Requires
 (require 'cl-lib)
-(require 'slime)
 
 
-;;; Groups and customs
-(defgroup breeze nil
-  "breeze")
+;;; Logging
 
-(defcustom breeze-default-author ""
-  "The default author when generating asdf system."
-  :type 'string
-  :group 'breeze)
+(defun breeze-debug (string &rest objects)
+  "Log a meesage in *breeze-debug* bufffer."
+  (save-excursion
+    (set-buffer (get-buffer-create "*breeze-debug*"))
+    (setf buffer-read-only nil)
+    (end-of-buffer)
+    (insert
+     "\n"
+     (format-time-string "[%Y-%m-%d %H:%M:%S.%3N] ")
+     (apply #'format string objects))
+    (setf buffer-read-only t)))
 
-(defcustom breeze-default-licence "GNU GPLv3"
-  "The default licence when generating asdf system."
-  :type 'string
-  :group 'breeze)
-
-(defcustom breeze-capture-folder "~/breeze-capture"
-  "The folder where to save scratch files."
-  :type 'string
-  :group 'breeze)
-
-(defcustom breeze-capture-template
-"
-
-(ql:quickload '(alexandria))
-
-;; Make it easier to debug
-(declaim (optimize (speed 0) (safety 3) (debug 3)))
-
-#|
-
-Goal:
-
-Motivation:
-
-First lead:
-
-|#
-
-"
-  "The fixed template to insert in a new scratch file."
-  :type 'string
-  :group 'breeze)
-
+(defun breeze-message (string &rest objects)
+  "Log a meesage in *breeze-debug* and *Messages* bufffer."
+  (apply #'message string objects)
+  (apply #'breeze-debug string objects))
 
 
 ;;; Variables
@@ -70,578 +46,362 @@ First lead:
   (make-sparse-keymap)
   "Keymap for breeze-mode")
 
-(defvar breeze/status
-  "OK"
-  "TBD Status of the current project.")
+
+;;; Integration with lisp listener
+
+;; Useful for debugging wether slime or sly is running
+;; (process-list)
+
+(defun breeze-sly-connection ()
+  "If sly loaded, get the list of connections."
+  (and (fboundp 'sly-current-connection)
+       (sly-current-connection)))
+
+(defun breeze-slime-connection ()
+  "If slime is loaded, get the list of connections."
+  (and (fboundp 'slime-current-connection)
+       (slime-current-connection)))
+
+(defun breeze-sly-or-not-slime ()
+  (cond
+   ;; Both sly and slime are loaded
+   ((and (fboundp 'sly)) (fboundp 'slime)
+    (cond
+     ((breeze-sly-connection) t)
+     ((breeze-slime-connection) nil)
+     (t
+      (error "Please start either slime or sly."))))
+   ((fboundp 'sly) t)
+   ((fboundp 'slime) nil)
+   (t (error "Please load either slime or sly."))))
+
+(defun breeze-interactive-eval (string)
+  (if (breeze-sly-or-not-slime)
+      (sly-eval `(slynk:interactive-eval ,string))
+    (slime-eval `(swank:interactive-eval ,string))))
+
+(defun breeze-eval (string)
+  (if (breeze-sly-or-not-slime)
+      (sly-eval `(slynk:eval-and-grab-output ,string))
+    (slime-eval `(swank:eval-and-grab-output ,string))))
+
+(defun breeze-eval-value-only (string)
+  (cl-destructuring-bind (output value)
+      (breeze-eval string)
+    (breeze-debug "Breeze: got the value: %S" value)
+    value))
+
+;; TODO I should check that it is NOT equal to nil instead
+(defun breeze-eval-predicate (string)
+  (cl-equalp "t" (breeze-eval-value-only string)))
+
+
+(defun breeze-eval-list (string)
+  ;; TODO check breeze-cl-to-el-list
+  (let ((list (car
+               (read-from-string
+                (breeze-eval-value-only string)))))
+    (if (listp list)
+        list
+      (breeze-debug "Breeze: expected a list got: %S" list)
+      nil)))
 
 
 ;;; Prerequisites checks
 
-(defun breeze/check-if-slime-is-connected ()
-  "Make sure that slime is connected, signals an error otherwise."
-  ;; This function throws an error if there are no connections
-  (slime-connection))
+(cl-defun breeze-check-if-connected-to-listener (&optional verbosep)
+  "Make sure that slime or sly is connected, signals an error otherwise."
+  (if (or
+       (breeze-sly-connection)
+       (breeze-slime-connection))
+      (progn
+        (when verbosep
+          (breeze-message "Slime or Sly already started."))
+        t)
+    ;; TODO Pretty sure we don't want this
+    (when nil
+      (progn
+        (when verbosep
+          (breeze-message "Starting slime..."))
+        (slime)))))
 
-(defun breeze/validate-if-breeze-package-exists ()
-  "Returns true if the package \"breeze\" exists in the inferior-lisp."
-  (cl-destructuring-bind (output value)
-      (slime-eval `(swank:eval-and-grab-output
-		    "(and (or (find-package \"BREEZE\") (find-package \"breeze\")) t)"))
-    (cl-equalp "t" value)))
+(defun breeze-validate-if-package-exists (package)
+  "Returns true if the package PACKAGE exists in the inferior-lisp."
+  (breeze-debug "breeze-validate-if-package-exists %S" package)
+  (breeze-eval-predicate
+   (format "(and (or (find-package \"%s\") (find-package \"%s\")) t)"
+           (downcase package) (upcase package))))
 
-;; (breeze/validate-if-breeze-package-exists)
+(defun breeze-validate-if-breeze-package-exists ()
+  "Returns true if the package \"breeze.utils\" exists in the inferior-lisp."
+  (breeze-validate-if-package-exists "breeze.utils"))
 
-(defvar breeze/breeze.el load-file-name
+(defvar breeze-breeze.el load-file-name
   "Path to \"breeze.el\".")
 
-(defun breeze/system-definition ()
-  "Get the path to \"breeze.asd\" based on the (load-time) location of \"breeze.el\"."
+(defun breeze-system-definition ()
+  "Get the path to \"breeze.asd\" based on the (load-time) location
+of \"breeze.el\"."
   (expand-file-name
    (concat
     (file-name-directory
-     breeze/breeze.el)
+     breeze-breeze.el)
     "../breeze.asd")))
 
-(defun breeze/ensure-breeze ()
+(cl-defun breeze-ensure-breeze ()
   "Make sure that breeze is loaded in swank."
-  (unless (breeze/validate-if-breeze-package-exists)
-    (message "Loading breeze's system...")
-    (slime-eval `(swank:interactive-eval
-		  ,(format "(progn (load \"%s\") (require 'breeze))" (breeze/system-definition)))))
-  (message "Breeze loaded in inferior-lisp."))
+  (unless (breeze-validate-if-breeze-package-exists)
+    (when verbosep
+      (breeze-message "Loading breeze's system..."))
+    (breeze-interactive-eval
+     (format "(progn (load \"%s\")
+                (unless (asdf:component-loaded-p \"breeze\")
+                  (ql:quickload \"breeze\")
+                  (format t \"~&Breeze loaded!~%%\")))"
+             (breeze-system-definition))))
+  (breeze-debug "Breeze loaded in inferior-lisp."))
 
-;; (breeze/ensure-breeze)
+;; (breeze-ensure-breeze)
 
-;; See slime--setup-contribs, I used that name so it _could_ be added to slime-contrib,
+;; See slime--setup-contribs, I named this breeze-init so it _could_
+;; be added to slime-contrib,
 ;; I haven't tested it yet though.
-(defun breeze-init ()
+(cl-defun breeze-init (&optional verbosep)
   "Ensure that breeze is initialized correctly on swank's side."
   (interactive)
-  (breeze/check-if-slime-is-connected)
-  (breeze/ensure-breeze)
-  (slime-eval `(swank:interactive-eval
-		"(breeze.user::initialize)"))
-  (message "Breeze initialized."))
+  (breeze-check-if-connected-to-listener)
+  (breeze-ensure-breeze)
+  (when verbosep
+    (breeze-message "Breeze initialized.")))
 
-(defmacro breeze/with-slime (&rest body)
+
+(defmacro breeze-with-listener (&rest body)
+  "Make sure breeze is loaded on the common lisp side, then run BODY."
   `(progn
      (breeze-init)
      ,@body))
 
-;; (macroexpand-1 '(breeze/with-slime (print 42)))
+;; (macroexpand-1 '(breeze-with-listener (print 42)))
 
-;;; Utilities
-
-(cl-defun breeze-choose-and-call-command (prompt commands &key allow-other-p)
-  "Let the user choose a command to run from a list."
-  (let* ((choice (completing-read prompt (mapcar 'car commands)))
-	 (command (or (cadr (assoc choice commands))
-		      (and allow-other-p choice))))
-    (when command
-      (call-interactively command))))
-
-(defun breeze-contains-space-or-capital (str)
-  "Return nil if STR does not contain space or capital letters.
-Othewise, return the position of the character."
-  (let ((case-fold-search nil)) ;; make it case-sensitive
-    (string-match "[[:blank:][:upper:]]" str)))
-
-(defun breeze-sanitize-symbol (name)
-  "Wrap a symbol NAME with pipe \"|\" symbol, if needed."
-  (if (breeze-contains-space-or-capital name)
-      (concat "|" name "|")
-    name))
+(defun breeze-cl-to-el-list (list)
+  "Convert NIL to nil and T to t.
+Common lisp often returns the symbols capitalized, but emacs
+lisp's reader doesn't convert them."
+  (if (eq list 'NIL)
+      nil
+    (mapcar #'(lambda (el)
+                (cl-case el
+                  (NIL nil)
+                  (T t)
+                  (t el)))
+            list)))
 
 
-;;; Insertion commands (mostly skeletons)
+;;; Prototype: quick scaffolding of defun (and other forms)
 
-(defun breeze-infer-project-name ()
-  "Try to find the project's name"
-  ;; TODO look at current *package*
-  ;; TODO look at git's remotes' url
-  ;; TODO look at .asd file <===
-  (when (vc-root-dir) ;; TODO this doesn't always work :(
-    (file-name-nondirectory
-     (directory-file-name
-      (vc-root-dir)))))
+(defun breeze-current-paragraph ()
+  (string-trim
+   (save-mark-and-excursion
+     (mark-paragraph)
+     (buffer-substring (mark) (point)))))
 
-;; (breeze-infer-project-name)
+(defun breeze-delete-paragraph ()
+  (save-mark-and-excursion
+    (mark-paragraph)
+    (delete-region (point) (mark))))
 
-(defun breeze-is-in-test-directory ()
-  "Try to figure out if the current file is in the test directory."
-  (when buffer-file-name
-    (member
-     (file-name-nondirectory
-      (directory-file-name
-       (file-name-directory
-	buffer-file-name)))
-     '("test" "tests" "t"))))
+(defun %breeze-expand-to-defuns (paragraph)
+  (cl-loop for line in
+           (split-string paragraph "\n")
+           for parts = (split-string line)
+           collect
+           (format "(defun %s %s\n)\n" (car parts) (cl-rest parts))))
 
-(defun breeze-infer-package-name-from-file (&optional file-name)
-  "Given a FILE-NAME or the buffer's file name, infer a proper package name."
-  (let ((project (breeze-infer-project-name))
-	(testp (breeze-is-in-test-directory))
-	(result
-	 (file-name-base (or file-name buffer-file-name))))
-    (message "project \"%s\"" project)
-    (when project
-      (setf result (concat project "." result)))
-    (when testp
-      (setf result (concat result ".test")))
-    result))
-
-(define-skeleton breeze-insert-defpackage
-  "Skeleton for a CL package"
-  "" ;; Empty prompt. Ignored.
-  (let ((package-name
-	 (breeze-sanitize-symbol
-	  (skeleton-read "Package name: "
-			 (if buffer-file-name
-			     (breeze-infer-package-name-from-file)
-			   ""))))
-	(nicknames
-	 (cl-loop for nickname = (skeleton-read "Package nickname: ")
-		  while (not (zerop (length nickname)))
-		  collect (format ":%s" nickname))))
-    (concat
-     "(in-package #:common-lisp-user)\n\n"
-     "(defpackage #:" package-name "\n"
-     (when nicknames
-       (concat "  " (prin1-to-string `(:nicknames ,@nicknames)) "\n"))
-     "  (:use :cl))\n\n"
-     "(in-package #:" package-name ")\n\n")))
-
-(define-skeleton breeze-insert-defun
-  "Insert a defun form."
-  "" ;; Empty prompt. Ignored.
-  > "(defun " (skeleton-read "Function name: ")
-  " (" ("Enter an > argument name: "
-	str " ")
-  (fixup-whitespace) ")" \n _ ")")
-
-(define-skeleton breeze-insert-defmacro
-  "Insert a defmacro form."
-  "" ;; Empty prompt. Ignored.
-  > "(defmacro " (skeleton-read "Function name: ")
-  " (" ("Enter
-  > an argument name: " str " ") (fixup-whitespace) ")" \n _ ")")
-
-(define-skeleton breeze-insert-defvar
-  "Insert a defvar form."
-  "" ;; Empty prompt. Ignored.
-  > "(defvar *"
-  (skeleton-read "Name: ") "* "
-  (skeleton-read "Initial value: ") \n
-  > "\"" (skeleton-read "Documentation string: ") "\")")
-
-(define-skeleton breeze-insert-defparameter
-  "Insert a defparameter form."
-  "" ;; Empty prompt. Ignored.
-  > "(defparameter *" (skeleton-read "Name: ") "* "
-  (skeleton-read "Initial value: ") \n
-  > "\"" (skeleton-read "Documentation string: ") "\")")
-
-(define-skeleton breeze-insert-let
-  "Insert a let defvar form."
-  "" ;; Empty prompt. Ignored.
-  > "(let ((" @ ")))")
-
-(define-skeleton breeze-insert-asdf
-  "Skeleton for an asdf file."
-  "" ;; Empty prompt. Ignored.
-  "(defpackage #:" (setq v1 (skeleton-read "System name: ")) ".asd" \n
-  > "(:use :cl :asdf))" \n
-  \n
-  > "(in-package #:" v1 ".asd)" \n
-  \n
-  > "(asdf:defsystem \"" v1 "\"" \n
-  > ":description \"\"" \n
-  > ":version \"0.1.0\"" \n
-  ;; TODO Use emacs' built-in user-name?
-  > ":author \"" (skeleton-read "Author name: " breeze-default-author) "\"" \n
-  > ":licence \"" (skeleton-read "Licence name: " breeze-default-licence) "\"" \n
-  > ":depends-on ()" \n
-  > ":serial t" \n
-  > ":components" \n
-  > "((:module \"src\"" \n
-  > ":components ())" \n
-  > "(:module \"tests\"" \n
-  > ":components ())))")
-
-(define-skeleton breeze-insert-loop-clause-for-hash
-  "Skeleton to insert a loop clause to iterate on a hash-table."
-  "" ;; Empty prompt. Ignored.
-  > " :for "
-  (skeleton-read "Enter the variable name for the key: ")
-  " :being :the :hash-key :of "
-  (skeleton-read "Enter the name of the hash-table: ")
-  " :using (hash-value "
-  (skeleton-read "Enter the variable name for the value: ")
-  ")")
-
-(define-skeleton breeze-insert-loop-clause-for-on-list
-  "Skeleton to insert a loop clause to iterate on a list."
-  "" ;; Empty prompt. Ignored.
-  > " :for "
-  (skeleton-read "Enter the variable name for the iterator: ")
-  " :on "
-  (skeleton-read "Enter the name of the list: "))
-
-(define-skeleton breeze-insert-loop-clause-for-in-list
-  "Skeleton to insert a loop clause to iterate on a list."
-  "" ;; Empty prompt. Ignored.
-  > " :for "
-  (skeleton-read "Enter the variable name for the iterator: ")
-  " :in "
-  (skeleton-read "Enter the name of the list: "))
-
-(defun breeze-new-buffer-p ()
-  "Check if the current buffer is \"new\"."
-  (or
-   ;; Check the size of the buffer
-   (zerop (buffer-size))
-   ;; Check if it's all whitespaces
-   (zerop (length (string-trim (buffer-string))))
-   ;; TODO Check if it's all comments
-   ;; TODO See the function "bobp" (beginnig-of-buffer-p)
-   ))
-
-;; WIP
-(defun breeze-buffer-has-defpackage ()
-  "Check if a buffer already contains a defpackage form.")
-
-;; WIP
-(defun breeze-in-loop ()
-  "Check if it's a valid place to add a loop clause.")
-
-(defun breeze-insert ()
-  "Choose someting to insert."
+(defun %breeze-expand-to-defuns ()
+  "Takes a paragraph where each line describes a function, the
+first word is the function's name and the rest are the
+arguments. Use to quickly scaffold a bunch of functions."
   (interactive)
-  ;; TODO filter the choices based on the context
-  (if (or
-       (= 1 (point))
-       (breeze-new-buffer-p))
-      (call-interactively 'breeze-insert-defpackage)
-    (breeze-choose-and-call-command
-     "What do you want to insert? "
-     '(("asdf:defsystem" breeze-insert-asdf)
-       ("defpackage" breeze-insert-defpackage)
-       ("defun" breeze-insert-defun)
-       ("defvar" breeze-insert-defvar)
-       ("defparameter" breeze-insert-defparameter)
-       ("let" breeze-insert-let)
-       ("defmacro" breeze-insert-defmacro)
-       ("loop clause: hash-table iteration" breeze-insert-loop-clause-for-hash)
-       ("loop clause: iterate ON list" breeze-insert-loop-clause-for-on-list)
-       ("loop clause: iterate IN list" breeze-insert-loop-clause-for-in-list)
+  (let ((paragraph (breeze-current-paragraph)))
+    (breeze-delete-paragraph)
+    (loop for form in (%breeze-expand-to-defuns paragraph)
+          do (insert form "\n"))))
+
+
+;;; Common lisp driven interactive commands
+
+(defun breeze-compute-buffer-args ()
+  (apply 'format
+         ":buffer-name %s
+          :buffer-file-name %s
+          :buffer-string %s
+          :point %s
+          :point-min %s
+          :point-max %s"
+         (mapcar #'prin1-to-string
+                 (list
+                  (buffer-name)
+                  (buffer-file-name)
+                  (buffer-substring-no-properties (point-min) (point-max))
+                  (point)
+                  (point-min)
+                  (point-max)))))
+
+(defun breeze-command-start (name)
+  (breeze-debug "Breeze: starting command: %s." name)
+  (let ((request
+         (breeze-cl-to-el-list
+          (breeze-eval-list
+           (format "(%s %s)" name (breeze-compute-buffer-args))))))
+    (breeze-debug "Breeze: got the request: %S" request)
+    (if request
+        request
+      (progn (breeze-debug "Breeze: start-command returned nil")
+             nil))))
+
+(defun breeze-command-cancel ()
+  (breeze-eval
+   (format "(breeze.command:cancel-command)"))
+  (breeze-debug "Breeze: command canceled."))
+;; (breeze-command-cancel)
+
+(defun breeze-command-continue (response send-response-p)
+  (let ((request
+         (breeze-cl-to-el-list
+          (breeze-eval-list
+           (if send-response-p
+               (format
+                "(breeze.command:continue-command %S)" response)
+             "(breeze.command:continue-command)")))))
+    (breeze-debug "Breeze: request received: %S" request)
+    request))
+
+(defun breeze-command-process-request (request)
+  (pcase (car request)
+    ("choose"
+     (completing-read (cl-second request)
+                      (cl-third request)))
+    ("read-string"
+     (apply #'read-string (cl-rest request)))
+    ("insert-at"
+     (cl-destructuring-bind (_ position string)
+         request
+       (when (numberp position) (goto-char position))
+       (insert string)))
+    ("insert-at-saving-excursion"
+     (cl-destructuring-bind (_ position string)
+         request
+       (save-excursion
+         (when (numberp position) (goto-char position))
+         (insert string))))
+    ("insert"
+     (cl-destructuring-bind (_ string) request (insert string)))
+    ("replace"       ; TODO -saving-excursion variant
+     (cl-destructuring-bind
+         (point-from point-to replacement-stirng)
+         (cdr request)
        ;; TODO
-       ;; defclass
-       ;; slots
-       ;; defgeneric
-       ;; defmethod
-       ))))
+       ))
+    ("backward-char"
+     (backward-char (cl-second request))
+     ;; Had to do this hack so the cursor is positioned
+     ;; correctly... probably because of aggressive-indent
+     (funcall indent-line-function))
+    ("message"
+     (message "%s" (cl-second request)))
+    ("find-file"
+     (find-file (cl-second request)))
+    (_ (error "Invalid request: %S" request) )))
+
+
+(defun breeze-run-command (name)
+  "Runs a \"breeze command\". TODO Improve this docstring."
+  (interactive)
+  (breeze-debug "breeze-run-command")
+  (breeze-ensure-breeze)
+  (condition-case condition
+      (cl-loop
+       ;; guards against infinite loop
+       for i below 1000
+       for
+       ;; Start the command
+       request = (breeze-command-start name)
+       ;; Continue the command
+       then (breeze-command-continue response send-response-p)
+       ;; "Request" might be nil, if it is, we're done
+       while (and request
+                  (not (string= "done" (car request))))
+       ;; Wheter or not we need to send arguments to the next callback.
+       for send-response-p = (member (car request)
+                                     '("choose" "read-string"))
+       ;; Process the command's request
+       for response = (breeze-command-process-request request)
+       ;; Log request and response (for debugging)
+       do (breeze-debug "Breeze: request received: %S response to send %S"
+                        request
+                        response))
+    (t
+     (breeze-debug "Breeze run command: got the condition %s" condition)
+     (breeze-command-cancel))))
 
 
-;;; abbrev
-
-;; P.S. This doesn't work anymore because (I think) breeze-mode is a
-;; minor mode.
-(progn
-  (when (boundp 'breeze-mode-abbrev-table)
-    (clear-abbrev-table breeze-mode-abbrev-table))
-  (define-abbrev-table 'breeze-mode-abbrev-table
-    '(("defmacro1" "" breeze-insert-defmacro)
-      ("defpackage1" "" breeze-insert-defpackage)
-      ("defparam1" "" breeze-insert-defparameter)
-      ("defsystem1" "" breeze-insert-asdf)
-      ("defun1" "" breeze-insert-defun)
-      ("defvar1" "" breeze-insert-defvar))))
-
-
-;;; code modification
-
-(defun breeze-indent-defun-at-point ()
-  "Indent the whole form without moving."
-  (interactive)
-  (if (zerop (current-column))
-      (indent-sexp)
-    (save-excursion
-      (slime-beginning-of-defun)
-      (indent-sexp))))
-
-(defun breeze-get-symbol-package (symbol)
-  "SYMBOL must be a string.  Returns a list with the package name and the symbol name."
-  (breeze/with-slime
-   (cl-destructuring-bind (output value)
-       (slime-eval `(swank:eval-and-grab-output
-		     ,(format (format "%s"
-				      `(let ((symbol (quote %s)))
-					 (check-type symbol symbol)
-					 (format t "\"~(~a ~a~)\""
-						 (package-name (symbol-package symbol))
-						 (symbol-name symbol))))
-			      symbol)))
-
-     (split-string output))))
-
-;; (breeze-get-symbol-package "cl:find")
-;; => ("common-lisp" "find")
-
-(defun breeze-add-import-from ()
-  "Add or update defpackage to \"import-from\" the symbol at point.
-
-   TODO it assumes there's a defpackage form in the current
-   buffer, that it has an exisint \"import-from\" from and that
-   paredit-mode is enabled."
-  (interactive)
-  (let ((symbol (slime-symbol-at-point))
-	(case-fold-search t)) ;; case insensitive search
-    (destructuring-bind (package-name symbol-name)
-	(breeze-get-symbol-package symbol)
-      ;; (message "%s:%s" package-name symbol-name)
-      (save-excursion
-	(goto-char (point-min)) ;; Go to the start of the buffer
-	(if (re-search-forward (concat "import-from[[:space:]:#]+" package-name) nil t)
-	    (progn
-	      (insert (format "\n#:%s" symbol-name))
-	      (slime-beginning-of-defun)
-	      (indent-sexp)
-	      (slime-eval-defun))
-	  (progn
-	    ;; Find the defpackage form
-	    (re-search-forward "defpackage")
-	    (slime-beginning-of-defun)
-	    (forward-sexp)
-	    (backward-char)
-	    (insert (concat "\n(:import-from #:" package-name "\n#:" symbol-name ")"))
-	    ))
-	;; Evaluate the defpackage form
-	(slime-eval-defun))
-      ;; Replace package:symbol by symbol, in the current buffer
-      (save-excursion
-	(goto-char (point-min)) ;; Go to the start of the buffer
-	(while (re-search-forward symbol nil t)
-	  (replace-match symbol-name))))))
-
-
-;; (slime-goto-package-source-definition "breeze")
-;; (slime-goto-xref)
-
-;; (slime-rex (var ...) (sexp &optional package thread) clauses ...)
-
-;; (slime-interactive-eval "(breeze.swank:)")
-
-;; (global-set-key
-;;  (kbd "<f5>")
-;;  (lambda ()
-;;    (interactive)
-;;    (slime-interactive-eval
-;;     (concat "(breeze.swank::insert-let "
-;; 	    (replace-match "\\\""  "fixedcase" "literal")
-;; 	    (slime-defun-at-point)
-;; 	    "4"
-;; 	    ")"))))
-
-;; Idea: (defun breeze-wrap-with-let-form ())
-
-(defun breeze-move-form-into-let ()
-  "Move the current form into the nearest parent \"let\" form."
-  (interactive)
-  (let* ((form (slime-sexp-at-point-or-error))
-	 (new-variable)
-	 ;; Find the position of the top-level form
-	 (beginning-of-defun (if (zerop (current-column))
-				 (point)
-			       (save-excursion
-				 (slime-beginning-of-defun)
-				 (point))))
-	 (case-fold-search t) ;; case insensitive search
-	 ;; Find the position of the previous "let"
-	 (let-point (save-excursion (re-search-backward "let"))))
-    (save-excursion
-      ;; Check if we found a parent let form
-      (if (and let-point
-	       (>= let-point beginning-of-defun))
-	  (progn
-	    (save-excursion
-	      ;; Find the place to add the new binding
-	      (re-search-backward "let")
-	      (re-search-forward "(")
-	      (save-excursion
-		(insert (format "( %s)" form))
-		;; Add a newline if necessary
-		(if (eq (char-after) (string-to-char "("))
-		    ;; also add a space to help indentation later
-		    (insert "\n ")))
-	      (forward-char)
-	      ;; Ask the user to name the new-variable
-	      (setq new-variable (read-string "Enter a new for the new-variable: "))
-	      ;; Insert the name of the variable in the let form.
-	      (insert new-variable))
-	    ;; Replace the form at point by the new variable
-	    (let ((start (point)))
-	      (forward-sexp)
-	      (delete-region start (point)))
-	    (insert new-variable)
-	    ;; reindent the whole top-level form
-	    (slime-beginning-of-defun)
-	    (indent-sexp))
-	(message "Failed to find a parent let form.")))))
-
-
-;;; Suggestions
-
-(defun breeze-next ()
-  "Ask breeze for suggestions on what to do next."
-  (interactive)
-  (cl-destructuring-bind (output value)
-      (slime-eval `(swank:eval-and-grab-output
-		    ;; TODO send more information to "next"
-		    ;; What's the current buffer? does it visit a file?
-		    ;; What's the current package? is it covered by breeze.user:*current-packages*
-		    "(breeze.user:next)"))
-    (message "%s" output)))
+;;; quickfix (similar to code actions in visual studio code)
 
 (defun breeze-quickfix ()
-  "Suggest valid actions to the user based on the point."
+  "Choose from a list of commands applicable to the current context."
   (interactive)
-  ;; TODO
-  )
+  (breeze-run-command "breeze.refactor:quickfix"))
+
+(defun breeze-insert-defpackage ()
+  "Choose a command from a list of applicable to the current context."
+  (interactive)
+  (breeze-run-command "breeze.refactor:insert-defpackage"))
 
 
 ;;; code evaluation
+;;
+;; TODO This will not work for a while, I want to wrap both sly and
+;; slime on emacs side and call a "breeze-eval" on lisp side. Then I'm
+;; not sure I want this exact feature...
+;;
 
-(defun breeze-get-recently-evaluated-forms ()
-  "Get recently evaluated forms from the server."
-  (cl-destructuring-bind (output value)
-      (slime-eval `(swank:eval-and-grab-output
-		    "(breeze.swank:get-recent-interactively-evaluated-forms)"))
-    (split-string output "\n")))
+(when nil
+  (defun breeze-get-recently-evaluated-forms ()
+    "Get recently evaluated forms from the server."
+    (cl-destructuring-bind (output value)
+        (slime-eval `(swank:eval-and-grab-output
+                      "(breeze.listener:get-recent-interactively-evaluated-forms)"))
+      (split-string output "\n"))))
 
-(defun breeze-reevaluate-form ()
-  (interactive)
-  (let ((form (completing-read  "Choose recently evaluated form: "
-				(breeze-get-recently-evaluated-forms))))
-    (when form
-      (slime-interactive-eval form))))
+(when nil
+  (defun breeze-reevaluate-form ()
+    (interactive)
+    (let ((form (completing-read  "Choose recently evaluated form: "
+                                  (breeze-get-recently-evaluated-forms))))
+      (when form
+        (slime-interactive-eval form)))))
 
 
 ;;; project scaffolding
 
-(defun breeze-quicklisp-local-project-directories ()
-  "Get the list of quicklisp's local project directories."
-  (car
-   (read-from-string
-    (cl-destructuring-bind (output value)
-	(slime-eval `(swank:eval-and-grab-output
-		      ,(format "%s" `(breeze.swank:get-ql-local-project-directories))))
-      value))))
-
-(defun breeze-choose-local-project-directories ()
-  "Let the user choose the directory if there's more than one."
-  (let ((directories (breeze-quicklisp-local-project-directories)))
-    (if (eq 1 (length directories))
-	(first directories)
-      (completing-read "Choose a local-project directory: " directories))))
-
-;; (breeze-choose-local-project-directories)
-
-(defun breeze-quickproject ()
-  "Create a project named NAME using quickproject."
+(defun breeze-scaffold-project ()
+  "Create a project using quickproject."
   (interactive)
-  (let ((name (read-string "Name of the project: "))
-	;; TODO let the user choose a directory outside of quicklisp's local
-	;; project directories.  see (read-directory-name "directory: ").
-	(directory (breeze-choose-local-project-directories))
-	;; TODO let the user choose
-	(author breeze-default-author)
-	(licence breeze-default-licence)
-	;; TODO depends-on
-	;; TODO include-copyright
-	;; TODO template-directory
-	;; TODO template-parameters
-	)
-    (slime-interactive-eval
-     (concat
-      "(breeze.swank:make-project \"" directory name "\""
-      " :author \"" author "\""
-      " :license \"" licence "\""
-      ")"))
-    (message "\"%s\" created" (concat directory name "/"))
-    (find-file (concat directory name "/README.md"))))
-
-;; e.g. (breeze-quickproject "foo")
+  (breeze-run-command "breeze.project:scaffold-project"))
 
 
 ;;; capture
 
-(defun breeze-list-lisp-files (directory)
-  ;; just the name, no extension, no directory
-  (loop for file in
-	(directory-files directory)
-	when (and (not (string-prefix-p "." file))
-		  (string-suffix-p ".lisp" file))
-	collect (file-name-sans-extension file)))
-
-
-(define-skeleton breeze-insert-header-template
-  "" ;; TODO docstring
-  "" ;; empty prompt. ignored.
-  \n
-  "(ql:quickload '(alexandria))" \n
-  \n
-  ";; make it easier to debug" \n
-  "(declaim (optimize (speed 0) (safety 3) (debug 3)))" \n
-  \n
-  "#|" \n
-  \n
-  "goal:" \n
-  \n
-  "motivation:" \n
-  \n
-  "first lead:" \n
-  \n
-  "|#")
-
 (defun breeze-capture ()
-  ;; TODO docstring
+  "Create a file ready to code in."
   (interactive)
-  ;; TODO check if directory exists, creates it if not.
-  (let* ((name (completing-read
-		"name of the file and package: "
-		(breeze-list-lisp-files breeze-capture-folder)))
-	 (file (concat breeze-capture-folder name ".lisp"))
-	 (file-exists (file-exists-p file)))
-    (find-file file)
-    (unless file-exists
-      (breeze-insert-defpackage))))
+  (breeze-run-command "breeze.capture:capture"))
 
 
 ;;; managing threads
 
-;; TODO
+;; TODO as of 2022-02-08, there's code for that in listener.lisp
 ;; breeze-kill-worker-thread
-
-
-;;; Mode-line indicator
-
-(defun breeze/set-status (new-status)
-  "Update the status variable with NEW-STATUS and update the mode-line."
-  (setf breeze/status new-status)
-  (force-mode-line-update))
-
-(defun breeze/configure-mode-line ()
-  "Add breeze's status to the mode-line-format, if not already there."
-  (interactive)
-  (unless
-      (cl-remove-if-not
-       #'(lambda (el)
-	   (and (listp el)
-		(eq 'breeze/status (car el))))
-       mode-line-format)
-    (setf mode-line-format
-	  (append mode-line-format
-		  '((breeze/status  ("--> " breeze/status " <--")))))))
 
 
 ;;; mode
@@ -652,7 +412,7 @@ Othewise, return the position of the character."
   :keymap breeze-mode-map)
 
 ;; Analoguous to org-insert-structure-template
-(define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
+;; (define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
 
 ;; Analoguous to org-goto
 (define-key breeze-mode-map (kbd "C-c C-j") #'imenu)
@@ -660,16 +420,13 @@ Othewise, return the position of the character."
 ;; Analoguous to Visual Studio Code's "quickfix"
 (define-key breeze-mode-map (kbd "C-.") #'breeze-quickfix)
 
-;; I think the reason I needed that was because of a conflict of keybindings,
-;; paredit's M-q seems to do the job.
-;; (define-key breeze-mode-map (kbd "C-M-q") 'breeze-indent-defun-at-point)
-
+;; Disabled for now
 ;; eval keymap - because we might want to keep an history
-(defvar breeze/eval-map (make-sparse-keymap))
+;; (defvar breeze-eval-map (make-sparse-keymap))
 ;; eval last expression
-(define-key breeze-mode-map (kbd "C-c e") breeze/eval-map)
+;; (define-key breeze-mode-map (kbd "C-c e") breeze-eval-map)
 ;; choose an expression from history to evaluate
-(define-key breeze/eval-map (kbd "e") 'breeze-reevaluate-form)
+;; (define-key breeze-eval-map (kbd "e") 'breeze-reevaluate-form)
 
 (defun enable-breeze-mode ()
   "Enable breeze-mode."
@@ -681,18 +438,15 @@ Othewise, return the position of the character."
   (interactive)
   (breeze-mode -1))
 
-(add-hook 'breeze-mode-hook 'breeze/configure-mode-line)
-(add-hook 'breeze-mode-hook 'breeze-init)
+;; (add-hook 'breeze-mode-hook 'breeze-init)
+;; TODO This should be in the users' config
+;; (add-hook 'slime-lisp-mode-hook 'breeze-init)
+;; TODO This should be in the users' config
 
 (defun breeze ()
-  "Start slime and breeze"
+  "Initialize breeze."
   (interactive)
-  (if (slime-current-connection)
-      (progn
-	(message "Starting slime...")
-	(slime))
-    (message "Slime already started."))
-  (breeze-init))
+  (breeze-init t))
 
 (provide 'breeze)
 ;;; breeze.el ends here

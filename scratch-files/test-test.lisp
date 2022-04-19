@@ -4,7 +4,7 @@
   (:mix #:breeze.user #:cl #:alexandria)
   (:import-from #:breeze.test
                 #:deftest
-		#:is))
+                #:is))
 
 (in-package #:breeze.test.test)
 
@@ -12,8 +12,7 @@
   (is (not (test-body (gensym))))
   (is (equal
        '((is
-	   (= 4 (breeze.dummy.test:mul 2 2)))
-	 (is
-	   (= 12 (breeze.dummy.test:mul 2 6))))
+           (= 4 (breeze.dummy.test:mul 2 2)))
+         (is
+           (= 12 (breeze.dummy.test:mul 2 6))))
        (test-body 'dum:mul))))
-

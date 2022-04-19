@@ -53,4 +53,4 @@ jobs:
           sbcl --noinform --non-interactive --load scripts/setup-quicklisp.lisp
 
       - name: Tests
-        run: sbcl --noinform --non-interactive --load 'breeze.asd' --eval '(ql:quickload :breeze)' --eval '(breeze.user:selftest)'
+        run: sbcl --noinform --non-interactive --load 'breeze.asd' --eval '(ql:quickload :breeze/test)' --eval '(asdf:test-system :breeze)'

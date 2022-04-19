@@ -1,9 +1,13 @@
-;; 13 april 2020 - Trying out eclector: a portable and extensible
-;; common lisp reader https://github.com/s-expressionists/Eclector
+;;;; Reading examples from the example folder
+
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
 
 (in-package :breeze.user)
 
-(ql:quickload '(#:eclector))
+;; (ql:system-apropos-list "eclector")
+
+(ql:quickload '(#:eclector
+		#:eclector-concrete-syntax-tree))
 
 (defun read-forms (stream)
   "Read all forms from a stream."
@@ -12,22 +16,19 @@
 	 :while (not (eq form end-of-file))
 	 :collect form)))
 
-(defun read-file (pathname )
+(defun read-file (pathname)
   "Read a file, form by form"
   (with-open-file (stream pathname)
-    (read-forms stream)))
+		  (read-forms stream)))
 
 #+nil
-(with-open-file (stream "examples/function-redifinition.lisp")
+(with-open-file (stream (breeze.utils:breeze-relative-pathname "examples/function-redefinition.lisp"))
   (let ((end-of-file (gensym "eof")))
     (loop :for form = (eclector.reader:read stream nil end-of-file)
        :while (not (eq form end-of-file))
-	 :collect form)))
+       :collect form)))
 
-(defun relative-pathname (pathname)
-  (if (cl-fad:pathname-relative-p pathname)
-      (asdf:system-relative-pathname :breeze pathname)
-      pathname))
+
 
 (defun form-in-package-p (form)
   "Is the form an \"in-package\" form?
@@ -41,12 +42,12 @@ If it is return the package-designator"
   (and (listp form)
        (eq 'cl:defun (first form))))
 
-
 (defparameter *examples* (make-hash-table :test 'equal))
+
 
 ;; load examples
 (loop :for (_ name . rest) :in
-     (read-file (relative-pathname "examples/function-redefinition.lisp"))
+     (read-file (breeze.utils:breeze-relative-pathname "examples/function-redefinition.lisp"))
    :do (setf (gethash name *examples*) rest))
 
 (alexandria:hash-table-plist *examples*)

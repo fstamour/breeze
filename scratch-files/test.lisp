@@ -1,6 +1,6 @@
 
 (uiop:define-package #:breeze.test
-  (:documentation "Provides a test framework.")
+    (:documentation "Provides a test framework.")
   (:mix :cl #:alexandria #:breeze.definition)
   (:export
    #:*test*
@@ -47,8 +47,8 @@
   (check-type name symbol)
   `(progn
      (setf (gethash ',name *test*) (make-test ',name *package*
-					      ,(when body
-						 `'(progn ,@body))))
+                                              ,(when body
+                                                 `'(progn ,@body))))
      (flag-test-change ',name)
      nil))
 
@@ -56,8 +56,8 @@
   "Get the body of a test by name"
   (if-let (body (gethash name *test*))
     (destructuring-bind (_ package body)
-	body
-	(declare (ignore _ package))
+        body
+      (declare (ignore _ package))
       (rest body))))
 
 (defclass test-result ()
@@ -88,8 +88,8 @@
     (declare (ignore _))
     (let ((passed nil)
           (condition nil)
-	  (start-time (get-internal-real-time))
-	  (end-time nil))
+          (start-time (get-internal-real-time))
+          (end-time nil))
       (with-output-to-string (*standard-output*)
         (handler-case (progn
                         ;; (format *debug-io* "~&Running test ~A~%" name)
@@ -101,10 +101,10 @@
       (unless passed
         (flag-failed-test name body condition))
       (make-instance 'test-result
-		     :name name
-		     :outcome (if passed :success :failure)
-		     :condition condition
-		     :time (- end-time start-time)))))
+                     :name name
+                     :outcome (if passed :success :failure)
+                     :condition condition
+                     :time (- end-time start-time)))))
 
 (defun test (name &optional (message-on-success  "~&Passed."))
   "Run a test by name, report nicely."
@@ -127,18 +127,18 @@
   (format t "~&Running tests...")
   (let ((failed 0)
         (total 0)
-	(results (make-hash-table)))
+        (results (make-hash-table)))
     ;; Run each tests
     (loop :for name :in (or test-list (hash-table-keys *test*))
-       :for result = (test name ".")
-       :for passed = (passedp result)
-       :do
-         (unless passed
-           (incf failed))
-         (incf total)
-	 (setf (gethash name results) result)
-       :finally (format t "~&Done [~d/~d] tests passed.~%" (- total failed) total)
-         (force-output))
+          :for result = (test name ".")
+          :for passed = (passedp result)
+          :do
+             (unless passed
+               (incf failed))
+             (incf total)
+             (setf (gethash name results) result)
+          :finally (format t "~&Done [~d/~d] tests passed.~%" (- total failed) total)
+                   (force-output))
     ;; Save the test results
     (push *test-results* *test-results-history*)
     (setf *test-results* results)

@@ -1,22 +1,111 @@
+#+title: Notes
+
+* Roadmap
+
+1. Improve the reader (mostly add tests, maybe change the data structures)
+2. Add tests on the breeze.commands package
+3. Add a breeze-eval function instead of advising swank/slynk
+4. Improve performances
 
 * Tasks
 
-** TODO Better explain what Breeze currently is in the readme           :doc:
+**Regularly review the tasks** it helps to see the big picture and
+prioritize accordingly.
+
+** TODO Use with-branching to define optimal-string-alignment-distance :tech_debt:
+
+Instead of having 2 definitions
+
+https://github.com/phoe/with-branching
+
+** TODO Use messages in quickfix
+
+e.g. "There is no applicable quickfixes in the current context"
+
+** TODO docstrings are not kept in (unparse (parse ...))                :bug:
+
+** TODO Basic commands should send the buffer to the editor          :editor:
+
+e.g. If the common-lisp side ask the editor to insert a string, but
+the user changed buffer, the editor will insert the string in the
+wrong buffer.
+
+OR the "client" should be responsible to always execute the commands
+with on the "intial" buffer, unless stated otherwise (but that would
+add even more state on the protocol).
+
+** TODO Replace the basic command ~backwar-char~
+
+By something like ~relatve-move~.
+
+** Showcase/demo                                                        :doc:
+
+*** TODO Show the integration with quickproject            :doc:quickproject:
+
+*** TODO Show how breeze can help create a project from a file :doc:refactor:capture:
+
+e.g. you made a "capture" with breeze, and now you want to turn that
+into a project.
+
+*** TODO Create a demo to show how to install breeze             :doc:config:
+
+** TODO Add command "go to next missing documentation"               :editor:
+
+** TODO Add command "got to next documentation"                      :editor:
+
+To help revision
+
+** TODO Add command "next todo"                                      :editor:
+
+Don't reimplement it, just figure out which how to configure the
+editor to do that.
+
+** TODO Use header-line in emacs to show the test results         :editor:ux:
+
+Instead of a lighter
+
+The lighter could still be used though, it could be a ✓ or χ.
+
+** DONE Better explain what Breeze currently is in the readme           :doc:
 
 As opposed to explain the principles, goals, non-goals, etc.
 
-Actually explain what breeze *do*.
+Actually explain what breeze *does*.
 
-** TODO add a "What is this?" section                                   :doc:
-
-** TODO [#A] On first setup, the user has to (ql:quickload 'breeze)      :ux:
+** DONE add a "What is this?" section                                   :doc:
+** DONE [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
 
 Start by documenting how to start using breeze, then automate it.
 
-** TODO Put these tasks in GitHub?                                      :ops:
+N.B. Since I remove the test-runner and etc. breeze doesn't really
+need to be "started". But it still needs to be loaded.
 
-** TODO Advising swank-interactive-eval doesn't override emacs' repl   :impl:
-** TODO Advising swank-interactive-eval doesn't override sbcl's repl either :impl:
+** TODO Add links to all the "TODOs" in the documentation               :doc:
+
+grep TODO -h | to_github_url | to_html
+
+** TODO It's too easy to kill the test-runner                       :tech_debt:ux:
+
+** DONE Breeze shouldn't suggest symbol that are "too far"               :ux:
+
+e.g not suggest "slot-exists-p" when trying to eval
+"this-really-doesnt-exists".
+
+*** TODO Still need to add tests on this...                  :test:tech_debt:
+** DONE Make a "string distance" function that stops after a threshold
+
+** TODO Use a heap to find the N closest matches                         :ux:
+
+- Maybe look into VP-trees (Vantage-Point trees)
+
+How would that help the user? Addind a restart for each canditate
+would really pollute the list of restarts. Perhaps we could keep the
+current restart, and add another one that shows more candidate
+(restarts).
+
+Maybe we can refine that list of candidate based on other, perhaps
+heavier criteria?
+
 ** TODO Document how to use breeze:defun                                :doc:
 
 *** When redefining a function defined with breeze:defun, it run tests
@@ -27,25 +116,12 @@ Start by documenting how to start using breeze, then automate it.
 When you redefine many function (e.g. when reloading a file), it
 doens't run all the tests each time a something is redefined.
 
-** TODO Add link to github in the documentation                         :doc:
 
 ** TODO Document (with screenshots) how to setup and use emacs integration :doc:
 ** TODO Document how to use quickproject integration                    :doc:
-** TODO Make the file-watcher usable                                   :impl:
-** TODO Document how to use the file-watcher                            :doc:
-** TODO Document how the file-watcher works                             :doc:
-** TODO There's no easy way to remove a test altogether                  :ux:
-** TODO Add a condition "test-failed"                                  :impl:
-
-It can be used to *break-on-signals*
-** TODO Optionnaly signal an error when a test fails                :impl:ux:
-
-Currently, if we do that, we'll get 2 conditions if the evaluation
-signals a condition and triggers test runs that fail.
 ** TODO Add binding to run test at point                                 :ux:
 ** TODO Add command to choose a test and run it                          :ux:
 ** TODO [#B] When inserting a package definition in an empty buffer, evaluate the buffer :easy:ux:
-** DONE [#B] Use GitHub actions instead of TravisCI                     :ops:
 ** TODO Generate the documenation in the CI                         :ops:doc:
 
 Really not a priority, even though generating the documentation
@@ -54,7 +130,7 @@ locally and commiting the result is less than ideal, it works well.
 The main problem is that, AFAIK, you can't host something in github
 pages without committing it into a repository. Which means that you
 have to hack a CI pipeline that commit its results back into the
-repository. This sucks.
+repository. This sucks IMO.
 
 An alternative would be to use GitLab pages, which are way more sane
 as they allow (require, really) that your pages' content be generated
@@ -67,6 +143,10 @@ that might just have been the Authentication + boatload of js.
 *** TODO Look into emacs-director                                      :test:
 
 https://github.com/bard/emacs-director
+*** TODO Look into makem.sh                                        :test:ops:
+
+[[https://github.com/alphapapa/makem.sh][makem.sh]] - Makefile-like script for building and testing Emacs Lisp
+packages
 
 ** TODO Try to detect when the current buffer/file was not loaded (evaluated). :ux:
 
@@ -99,6 +179,172 @@ when the edit-distance is not too great, or we would get some wild quickfixes.
 
 ** TODO Maybe split the documentaion in multiple pages                  :doc:
 
+** Commands                                                          :editor:
+
+*** wrap with                                                      :refactor:
+
+**** TODO let
+
+**** TODO multiple-value-bind
+
+*** TODO add import-from                                           :refactor:
+
+already has a prototype in emacs lisp
+
+*** TODO move-form-into-let                                        :refactor:
+
+already has a prototype in emacs lisp
+
+*** TODO Comment current form                                      :refactor:
+
+*** TODO Move top-level form up/down                               :refactor:
+
+A.k.a transpose-forms, but keep the cursor at the start of the form
+that we just moved.
+
+** TODO trying to find discrepancies between the packages and test packages
+
+or betweew test system and the system under test
+
+** TODO Integrate with multiple test framework                         :test:
+
+See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
+
+** Follow up on issues                                 :3rd_parties:
+
+*** In [[https://github.com/slime/slime][Slime]]
+
+**** TODO [[https://github.com/slime/slime/issues/645][Is there a way to run a function when slime's repl is ready #645]]
+
+*** In [[https://github.com/phoe-trash/value-semantics-utils][phoe-trash/value-semantics-utils]]
+
+**** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structual sharing #4]]
+
+**** TODO [[https://github.com/phoe/trivial-method-combinations/issues/4][Add method-combination-name-p #4]]
+
+*** In [[https://github.com/phoe/external-symbol-not-found/][phoe/external-symbol-not-found]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/1][Improve tests #1]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/2][Add CI pipeline #2]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/3][Add a macro that transforms the conditions into portable conditions #3]]
+
+*** In [[https://github.com/40ants/ci/issues/7][40ants/ci]]
+
+**** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
+
+*** In [[https://github.com/s-expressionists/Eclector][s-expressionists/Eclector]]
+
+**** [[https://github.com/s-expressionists/Eclector/issues/28][Ensure every CST element has a SOURCE, suggest how to capture whitespace and comments #28]]
+
+** TODO Add code coverage                                          :test:ops:
+
+** TODO Fake packages?                                               :reader:
+
+https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/package-pac.lisp
+
+** TODO Programming with holes
+
+> I was sure I already had a note about these...
+
+=Holes=, in programming, are something used to tell the language that
+a part of the program is incomplete. Some languages like Idris and
+Agda natively support =typed holes=. The way I see it, holes are used
+to falicitate the conversation between the programmer and the
+compiler.
+
+But, for languages like common lisp that doens't support holes
+out-of-the box, how could we do that? In general, there are no symbol
+name that will never clash with other symbols, because symbols in
+common lisp can be any string. One idea is to use inline comments,
+like ~#| hole-name |#~. Breeze's parser would be able to recognize
+them and manipulate them.
+
+But what for?
+
+*** Snippets
+
+Holes can be used to both tell the user what he is expected to enter
+in a snippet and tell the editor where the user is expected to enter
+stuff.
+
+*** Typing
+
+A user could use a hole to tell the editor to infer the type of an
+expression or function and replace the hole by the appropriate
+declaration.
+
+*** Program synthesis
+
+A user could use a hole to tell the editor to find the right
+expression where the hole is. This probably requires that the user
+specify some more constraints, by giving types, writing tests, etc.
+
+* Tags
+
+** Tag descriptions
+
+#+NAME: tags
+| Tag name     | Tag decription                                                                                |
+|--------------+-----------------------------------------------------------------------------------------------|
+| 3rd_parties  | Relating to a third-party, e.g. an external library.                                          |
+| obsolete     | This task is now obsolete.                                                                    |
+| doc          | Relating to the documentation.                                                                |
+| ux           | This task is about improving the user experience                                              |
+| test         | This task is about testing                                                                    |
+| ops          | This task is about CI, releases, deploying docs, etc.                                         |
+| easy         | This task should be easy                                                                      |
+| bug          | This is an unintended bug                                                                     |
+| editor       | This task relates to the integration with an editor.                                          |
+| config       | Relating to breeze's configuration and setup.                                                 |
+| refactor     | Relating to breeze's refactoring facilities.                                                  |
+| capture      | Relating to breeze's caputre feature.                                                         |
+| quickproject | Relating to quickproject integration.                                                         |
+| tech_debt    | Due to an ongoing refactoring, to an old hack, incomplete implementation, missing tests, etc. |
+| reader       | Relating to breeze.reader.                                                                    |
+| noexport     | org-mode internal tag                                                                         |
+
+
+#+begin_src emacs-lisp :var tags=tags
+  ;; (prin1-to-string (org-get-buffer-tags))
+  ;; (prin1-to-string tags)
+
+  ;; Find tags that have no descriptions
+  (let ((unknown-tags
+         (cl-set-difference
+          (mapcar #'car (org-get-buffer-tags))
+          (mapcar #'car tags)
+          :test #'string=)))
+    (or unknown-tags
+        "All good, no tags without description found."))
+#+end_src
+
+#+RESULTS:
+: All good, no tags without description found.
+
+** Make sure all tasks have some tags
+
+#+begin_src emacs-lisp
+  (let ((result))
+    (org-map-entries (lambda ()
+                       ;; (org-entry-is-todo-p)
+                       (cl-destructuring-bind (level reduced-level todo priority headline _tags)
+                           (org-heading-components)
+                         ;; _tags does not contain the inherited tags
+                         (when (and
+                                todo
+                                ;; todo could be "DONE" for example
+                                (string= todo "TODO")
+                                (not (org-get-tags)))
+                           (push (list headline) result)))))
+    (nreverse result))
+#+end_src
+
+#+RESULTS:
+| trying to find discrepancies between the packages and test packages |
+| Programming with holes                                              |
+
 * Design decisions
 
 ** Write everything in common lisp
@@ -106,10 +352,10 @@ when the edit-distance is not too great, or we would get some wild quickfixes.
 As much as possible, so that breeze can easily be ported to different
 platforms and editors.
 
-** Wrap definitions
+** Wrap definitions                                                :obsolete:
 
 Decision: Create wrapper macros (e.g. =br:defun=) to keep the original
-  forms for later analysis.
+forms for later analysis.
 
 This decision is really not definitive.
 
@@ -124,14 +370,63 @@ Advising swank's eval function is "a good start" in that direction.
 
 **** Parse the source code
 
-Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
+- Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
+- [[https://github.com/hyotang666/read-as-string][hyotang666/read-as-string]] is another candidate
+
+** Migrate to parachute 2022-03-08
+
+The test framework and the "wrap definition" parts always were
+proof-of-concepts: I wanted to be able to define some tests, and run
+them when either the test of the system-under-test was redefined. It
+worked, but now that I have a more and more complete common lisp
+parser, I can do the things properly. So I've move the concerned code
+into the folder "scratch-files" and I'll re-introduce them slowly in
+the future. (Because I really want something to run the tests in the
+background, for example.)
+
+** Read from strings instead of streams
+
+I did some tests and the code was like 100x faster when reading from
+string instead of reading from streams. There are multiple reasons: to
+ extract the "raw" text from the stream require consing new strings
+_and_ abusing file-position to move back and forth in the stream, both
+of these are very inefficient. Instead, we use displaced arrays which
+results in way less consing and no "stream state" to manage. This made
+both the code faster and simpler.
+
+From another point of view: why not? we were already copying the whole
+stream into the resulting tree, now we just have references to one
+string.
+
+** Use =licence= and not =license=
+
+This is a very tiny decision, but I know I'll forget it.
+
+What made me decide between the two: =licence= is what asdf use, and
+it's what the user will see in their project.
+
+** Only use dependencies from quicklisp's distribution
+
+This project is not in quicklisp, and I don't plan to add it to
+quicklisp until it stabilize (which might take years). But I make sure
+that I only use dependencies from quicklisp so that if somebody wants
+to try it out they'll just need to clone this repository in
+quicklisp's local-projects folder.
 
 * Other projects with slime integration
 ** log4cl
+** cepl
+
 * Portable file watching
+
 https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/
 
 http://eradman.com/entrproject/
+
+https://github.com/Ralt/fs-watcher (polls)
+
+https://github.com/Shinmera/file-notify <===
+
 * Random ideas
 ** (tips), (tips "test"), (tips "doc")
 ** (next) ;; what's next? print functions that aren't done, that have no tests or documentation.
@@ -193,18 +488,40 @@ Which is one of the reason behind wrapping the definitions (e.g. =breeze:defun=)
 
 ** Use equivalence-graph e-graph to suggest refactors
 
+** Sementic diffs using breeze.reader
+
 * See
-** TODO uses of slime's locative: http://quickdocs.org/mgl-pax/
-** TODO CCL's Watches https://ccl.clozure.com/manual/chapter4.12.html#watched-objects
-** TODO CCL's Advise https://ccl.clozure.com/manual/chapter4.3.html#Advising
-** TODO https://github.com/melisgl/mgl-pax for more emacs/slime integration
-** TODO SLIMA for integration with Atom
+** DONE uses locative: http://quickdocs.org/mgl-pax/                 :editor:
+
+2022-03-17 - I read most of the readme, this system looks awesome
+
+It's mostly for documentation, but it also expand slime/swank for
+easier navigation (using the concept of locative).
+
+** DONE CCL's Watches https://ccl.clozure.com/manual/chapter4.12.html#watched-objects :editor:
+
+> Clozure CL provides a way for lisp objects to be watched so that a
+condition will be signaled when a thread attempts to write to the
+watched object
+
+Very useful for debugging.
+
+** DONE CCL's Advise https://ccl.clozure.com/manual/chapter4.3.html#Advising
+
+> The advise macro can be thought of as a more general version of
+trace.
+
+I think I kept this link just for the general interface (~advise~,
+~unadvise~ and ~advisep~)
+
+** TODO https://github.com/melisgl/mgl-pax for more emacs/slime integration :editor:
+** TODO SLIMA for integration with Atom                              :editor:
 
 Superior Lisp Interactive Mode for Atom
 
 https://github.com/neil-lindquist/SLIMA
 
-** TODO An implementation of the Language Server Protocol for Common Lisp
+** TODO An implementation of the Language Server Protocol for Common Lisp :editor:
 
 - https://github.com/cxxxr/cl-lsp
 - related: https://marketplace.visualstudio.com/items?itemName=ailisp.commonlisp-vscode
@@ -213,10 +530,11 @@ https://github.com/neil-lindquist/SLIMA
 
 - https://egraphs-good.github.io/
 - https://colab.research.google.com/drive/1tNOQijJqe5tw-Pk9iqd6HHb2abC5aRid?usp=sharing
+- https://arxiv.org/pdf/2004.03082.pdf
 
 * Libraries we might need in the future
 
-** PROtocol and TESTcase manager
+** PROtocol and TESTcase manager                                       :test:
 
 [[https://github.com/phoe/protest][phoe/protest]]
 
@@ -238,17 +556,23 @@ I'm sure there are tons of other user-case:
 - infer types
 - interpret code (symbolically or not)
 
+
+** How froute uses mop to keep track of a set of definitions
+
+[[https://github.com/StephenWakely/froute/blob/3d9ea3114537e1451cccec91f7cbe2321a49a1e0/src/froute-class.lisp][froute-class.lisp]]
+
 * Scratch files
 
 Pieces of code that could be useful
 
 #+begin_src lisp
-(bordeaux-threads:destroy-thread
- (let ((current-thread (bt:current-thread)))
-   (find-if #'(lambda (thread)
-  		(and (not (eq current-thread thread))
-  		     (string= "worker" (bt:thread-name thread))))
-  	    (sb-thread:list-all-threads))))
+  (require 'bordeaux-threads)
+  (bordeaux-threads:destroy-thread
+   (let ((current-thread (bt:current-thread)))
+     (find-if #'(lambda (thread)
+		  (and (not (eq current-thread thread))
+		       (string= "worker" (bt:thread-name thread))))
+	      (sb-thread:list-all-threads))))
 #+end_src
 
 * Prior Arts
@@ -259,6 +583,55 @@ http://web.media.mit.edu/%7Elieber/Lieberary/Tinker/Tinker/Tinker.html
 ** Image Based develoment
 
 [Image based development](https://www.informatimago.com/develop/lisp/com/informatimago/small-cl-pgms/ibcl/index.html)
+
+** Code refactoring tools and libraries, linters, etc.
+
+*** General
+
+https://comby.dev/ (and https://github.com/s-kostyaev/comby.el)
+https://github.com/reviewdog/reviewdog
+
+*** common lisp
+
+https://github.com/hyotang666/trivial-formatter
+https://github.com/yitzchak/cl-indentify
+https://github.com/vindarel/colisper (uses comby)
+  - its catalog of rewrites: https://github.com/vindarel/colisper/tree/master/src/catalog/lisp
+https://github.com/cxxxr/sblint
+https://github.com/g000001/lisp-critic/
+https://github.com/eschulte/lisp-format
+
+*** javascript and front-end in general
+
+https://github.com/facebookarchive/codemod replaced by
+https://github.com/facebook/jscodeshift, which uses
+https://github.com/benjamn/recast
+
+Examples: https://github.com/cpojer/js-codemod
+
+*** Ruby
+
+https://github.com/whitequark/parser
+https://github.com/seattlerb/ruby_parser
+https://github.com/seattlerb/ruby2ruby/
+https://docs.rubocop.org/rubocop-ast/node_pattern_compiler.html
+https://nodepattern.herokuapp.com/
+https://github.com/mbj/unparser
+
+*** Other
+
+Probably Rosely for C# and clang for C/C++. I'm sure there are tons of
+tools/libraries for Java.
+
+For python, there's the ast module, but I don't know if it can
+preserve the formatting. There's a bunch of tools to format the code.
+
+** Zulu.inuoe's attempt - clution
+
+- https://github.com/Zulu-Inuoe/clution
+- https://github.com/Zulu-Inuoe/clution.lib
+- https://github.com/Zulu-Inuoe/lob
+
 * Breeze on the internets
 
 ** Lisp project of the day
@@ -281,3 +654,130 @@ should be, so any effort on this area is appreciated. I mean: starting
 with 5am is ok (but could be easier with an editor command), running
 it from the CLI/a CI is less OK, getting the correct return code of
 the tests needs more work, etc.
+
+* Protocols
+
+- [[https://chromedevtools.github.io/devtools-protocol/][Chrome DevTools Protocol]]
+- Slime/Sly
+- LSP (Language Server Protocol)
+- LSIF (Language Server Index Format)
+- Debug Adapter Protocol
+
+* To classify
+
+https://quickdocs.org/cl-scripting
+https://quickdocs.org/repl-utilities
+[[https://github.com/slime/slime/issues/532][slime issue #532: Rename package and all the symbol prefixes]]
+https://blog.cddr.org/posts/2021-11-23-on-new-ides/
+https://common-lisp.net/project/slime/doc/html/Contributed-Packages.html
+
+https://quickdocs.org/external-symbol-not-found
+https://github.com/Bike/compiler-macro
+https://quickdocs.org/dotenv
+
+https://quickdocs.org/slite - SLIME based Test-runner for FiveAM tests
+(and possibly others in the future)
+
+In SLIME's debugger, press ~v~ to navigate to its definition.
+
+https://github.com/melisgl/journal - for logging and trace-based
+testing
+https://github.com/melisgl/try/ - for a test framework that looks a
+lot with what I want from a test framework.
+
+For a pretty nice review of existing testing framework:
+https://sabracrolleton.github.io/testing-framework
+
+[[https://github.com/emacs-elsa/Elsa][Emacs Lisp Static Analyzer]]
+
+https://github.com/ruricolist/moira - Monitor and restart background threads.
+
+https://github.com/pokepay/cl-string-generator - Generate string from regular expression
+
+Emacs supports ~(declare (pure t) (side-effect-free t))~
+
+* Discord
+
+Discussion about =#:=
+https://discord.com/channels/297478281278652417/569524818991644692/915330555334234192
+
+* FAQ from newbies about common lisp
+
+** What's the difference between load and require?
+
+** What's asdf v. quicklisp v. packages v. "os packages"?
+
+** The heck is RPLACA?
+
+** What's the difference between =setf= and =setq=?
+
+https://stackoverflow.com/questions/869529/difference-between-set-setq-and-setf-in-common-lisp
+
+** Why use #:symbol (especially in =defpackage=)?
+
+** Why start a file with =(cl:in-package #:cl-user)=?
+
+** Why interactivity is important?
+
+They don't actually ask that, they usually just don't think or know
+about it.
+
+Here's something that does an OK job at explaining the importance:
+https://technotales.wordpress.com/2007/10/03/like-slime-for-vim/
+
+** What's the difference between ~defvar~ and ~defparameter~?
+
+** Something about using ~setf~ to create variables...
+
+** A symbol can represent many things
+
+- variables/symbol macros
+- functions/macros
+- classes/conditions/types
+- method combinations
+- block names
+- catch tags
+- tagbody tags
+- restarts
+- packages
+- compiler macros
+- slot names
+- compiler macros
+
+** When coming from another language
+
+*** How to create a function-local variable?
+
+** Proclaim v.s. Declaim v.s. Declare
+
+http://www.lispworks.com/documentation/lw50/LWUG/html/lwuser-90.htm
+
+** How packages and symbols works?
+
+https://flownet.com/ron/packages.pdf
+
+** Alternatives to the Hyperspec
+
+- [[http://clqr.boundp.org/download.html][Common Lisp Quick Reference]]
+- Ultraspec (dead)
+- Simplified something something
+- The lisp cookbook
+
+** What the hell are pathnames?
+
+- Don't forget trailing backslashes for directories.
+
+** Where are the functions to operate on strings?
+
+- Use the functions that operate on sequences.
+- Use libraries, like alexandria, split-sequences, serapeum, etc.
+
+* Resources
+
+- [alexandria](https://alexandria.common-lisp.dev/draft/alexandria.html)
+- [log4cl](https://github.com/7max/log4cl)
+
+* Local variables :noexport:
+# local variables:
+# org-confirm-babel-evaluate: nil
+# end:
