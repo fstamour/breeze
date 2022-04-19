@@ -59,8 +59,8 @@
    ;; (:file "breeze-listener" :depends-on ("xref"))
    (:file "refactor"
     :depends-on ("configuration" "reader" "command" "utils" "cl"))
-   (:file "project" :depends-on ("configuration" "command"))
-   (:file "capture" :depends-on ("configuration" "command")))
+   (:file "project" :depends-on ("utils" "configuration" "command"))
+   (:file "capture" :depends-on ("utils" "configuration" "command")))
   :in-order-to ((test-op (load-op #:breeze/test)))
   :perform
   (test-op (o c)

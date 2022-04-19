@@ -12,8 +12,7 @@
                 #:define-command
                 #:read-string
                 #:choose
-                #:message
-                #:recv1)
+                #:message)
   (:import-from #:breeze.config
                 #:*default-author*
                 #:*default-system-licence*)
@@ -41,29 +40,24 @@
     (cond
       ((null directories)
        (read-string
-        "Please enter the directory where to create the project: ")
-       (recv1))
+        "Please enter the directory where to create the project: "))
       ((length>1? directories)
        (choose "Please choose where to create the project: "
-               directories)
-       (recv1))
+               directories))
       (t
        (first directories)))))
 
 (define-command scaffold-project ()
   "Create a project named using quickproject."
-  (let* ((project-name (progn (read-string "Name of the project: ")
-                              (recv1)))
+  (let* ((project-name (read-string "Name of the project: "))
          (directory
            (uiop:ensure-directory-pathname
             (merge-pathnames  project-name
                               (choose-local-project-directories))))
-         (author (progn (read-string "Author of the project: "
-                                     *default-author*)
-                        (recv1)))
-         (license (progn (read-string "Licence of the project: "
-                                      *default-system-licence*)
-                         (recv1))))
+         (author (read-string "Author of the project: "
+                              *default-author*))
+         (license (read-string "Licence of the project: "
+                               *default-system-licence*)))
     ;; TODO depends-on
     ;; TODO include-copyright
     ;; TODO template-directory

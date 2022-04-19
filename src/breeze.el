@@ -308,6 +308,8 @@ arguments. Use to quickly scaffold a bunch of functions."
      (funcall indent-line-function))
     ("message"
      (message "%s" (cl-second request)))
+    ("find-file"
+     (find-file (cl-second request)))
     (_ (error "Invalid request: %S" request) )))
 
 

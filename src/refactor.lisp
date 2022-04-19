@@ -1,7 +1,7 @@
-(in-package #:common-lisp-user)
+s(in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.refactor
-    (:use #:cl #:breeze.command)
+  (:use #:cl #:breeze.command)
   (:import-from
    #:alexandria
    #:ends-with-subseq
@@ -231,8 +231,7 @@
 ;; Dogfood'ing to the max!
 (define-command insert-breeze-define-command ()
   "Insert a breeze:define-command form."
-  (read-string "Name of the command (symbol): ")
-  (handle (name)
+  (let ((name (read-string "Name of the command (symbol): ")))
     (insert
      "(define-command ~a ()~
     ~%  \"~@(~a~).\"~
@@ -362,9 +361,10 @@ defun."
 
 (define-command insert-defpackage ()
   "Insert a defpackage form."
-  (read-string "Name of the package: "
-               (infer-package-name-from-file buffer-file-name))
-  (handle (package-name)
+  (let ((package-name
+          (read-string
+           "Name of the package: "
+           (infer-package-name-from-file buffer-file-name))))
     (when *insert-defpackage/cl-user-prefix*
       (insert
        "(cl:in-package #:cl-user)~%~%~"))
@@ -380,13 +380,10 @@ defun."
   "Insert local nicknames."
   (insert
    "(:local-nicknames ~{~a~^~%~})"
-   (loop :for name =
-         ;; TODO This form is not ideal...
-                   (progn (read-string "Name of the package to alias: ")
-                          (handle (name) name))
-         :while (positivep (length name)) ; TODO there's a better function for that somewhere too..
-         :for alias = (progn (read-string "Alias of the package: ")
-                             (handle (name) name))
+   (loop :for name = (read-string "Name of the package to alias: ")
+         ;; TODO there's a better function for that somewhere too..
+         :while (positivep (length name))
+         :for alias = (read-string "Alias of the package: ")
          :collect (format nil "(#:~a #:~a)" alias name))))
 
 (define-command insert-in-package-cl-user ()
@@ -397,28 +394,28 @@ defun."
 
 (define-command insert-asdf ()
   "Insert an asdf system definition form."
-  (read-string "Name of the system: ")
-  (handle (system-name)
-    (read-string "Author: ")
-    (handle (author)
-      (read-string "Licence name: ")
-      (handle (licence) (insert "(cl:in-package #:cl)~%~%")
-        ;; TODO don't insert a defpackage if it already exists
-        (insert "(defpackage #:~a.asd~% (:use :cl :asdf))~%~%"
-                system-name)
-              (insert "(in-package #:~a.asd)~%~%" system-name)
-              ;; TODO FIXME this doesn't work, it's probably a race condition :(
-        (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
-                system-name
-                `(":description \"\""
-                  ":version \"0.0.1\""
-                  ,(format nil ":author \"~a\"" author)
-                  ,(format nil ":licence \"~a\"" licence)
-                  ":depends-on ()"
-                  ";; :pathname \"src\""
-                  ":serial t"
-                  "  :components
-    (#+(or) (:file \"todo\")))"))))))
+  (let ((system-name (read-string "Name of the system: "))
+        ;; TODO Add *default-author*
+        (author (read-string "Author: "))
+        ;; TODO Add default license from config
+        (licence (read-string "Licence name: ")))
+    (insert "(cl:in-package #:cl)~%~%")
+    ;; TODO don't insert a defpackage if it already exists
+    (insert "(defpackage #:~a.asd~% (:use :cl :asdf))~%~%"
+            system-name)
+    (insert "(in-package #:~a.asd)~%~%" system-name)
+    ;; TODO FIXME this doesn't work, it's probably a race condition :(
+    (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
+            system-name
+            `(":description \"\""
+              ":version \"0.0.1\""
+              ,(format nil ":author \"~a\"" author)
+              ,(format nil ":licence \"~a\"" licence)
+              ":depends-on ()"
+              ";; :pathname \"src\""
+              ":serial t"
+              "  :components
+    (#+(or) (:file \"todo\")))"))))
 
 
 
@@ -444,20 +441,18 @@ defun."
 
 (define-command insert-print-unreadable-object-boilerplate ()
   "Insert a print-object method form."
-  (read-string
-   "Name of the object (paramater name of the method): ")
-  (handle (name)
-    (read-string
-     "Type of the object: ")
-    (handle (type)
-      (insert
-       "(defmethod print-object ((~a ~a) stream)~
+  (let ((name (read-string
+               "Name of the object (paramater name of the method): "))
+        (type (read-string
+               "Type of the object: ")))
+    (insert
+     "(defmethod print-object ((~a ~a) stream)~
           ~%  (print-unreadable-object~
           ~%      (~a stream :type t :identity nil)~
           ~%    (format stream \"~~s\" (~a-something ~a))))"
-       name type
-       name
-       type name))))
+     name type
+     name
+     type name)))
 
 
 (define-command insert-lambda ()
@@ -681,13 +676,13 @@ For debugging purposes ONLY.")
                  (:commands . ,commands)))
 
     ;; Ask the user to choose a command
-    (choose "Choose a command: "
-            (mapcar #'second commands))
-    (handle (choice)
-      (let ((command-function (car (find choice commands
-                                         :key #'second
-                                         :test #'string=))))
-        (funcall command-function)))))
+
+    (let* ((choice (choose "Choose a command: "
+                           (mapcar #'second commands)))
+           (command-function (car (find choice commands
+                                        :key #'second
+                                        :test #'string=))))
+      (funcall command-function))))
 
 
 #+nil

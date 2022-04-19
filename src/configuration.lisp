@@ -9,17 +9,38 @@
   (:export
    #:*default-author*
    #:*default-system-licence*
-   #:*capture-folder*))
+   #:*capture-folder*
+   #:*capture-template*))
 
 (in-package #:breeze.configuration)
 
 ;;; Configurations
 
-(defparameter *default-author* ""
+(defvar *default-author* ""
   "The default author when generating asdf system.")
 
-(defparameter *default-system-licence* "Public"
+(defvar *default-system-licence* "Public"
   "The default licence when generating asdf system.")
 
-(defparameter *capture-folder* "~/breeze-capture"
+(defvar *capture-folder* "~/breeze-capture"
   "The folder where to save scratch files.")
+
+(defvar *capture-template*
+
+  "(ql:quickload '(alexandria))
+
+  ;; make it easier to debug
+  (declaim (optimize (speed 0) (safety 3) (debug 3)))
+
+  #|
+
+  Goal:
+
+  Motivation:
+
+  What am I going to try first:
+
+  |#
+
+  "
+  "The format string used when first creating a \"capture\" file.")

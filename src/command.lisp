@@ -36,11 +36,9 @@
    #:replace-region
    #:backward-char
    #:message
+   #:find-file
    ;; Utilities to create commands
-   #:define-command
-   #:recv
-   #:recv1
-   #:handle))
+   #:define-command))
 
 (in-package #:breeze.command)
 
@@ -179,10 +177,12 @@
   (chanl:send channel value))
 
 (defun command-recv (command)
+  "Receive a request from the command handler."
   (let ((request (%recv (command-channel-out command))))
     (and (listp request) request)))
 
 (defun command-send (command value)
+  "Send a value to the command handler."
   (%send (command-channel-in command) value))
 
 (defun run-command (command arguments)
@@ -377,14 +377,8 @@ It can be null."
 
 
 
-(defmacro handle (lambda-list &body body)
-  "Wait for a message from *channel*, process it and return a the
-result of the last form on *channel*."
-  `(destructuring-bind ,lambda-list
-       (%recv *channel-in*)
-     ,@body))
-
 (defun recv ()
+  "Returns a list"
   (%recv *channel-in*))
 
 (defun recv1 ()
@@ -406,17 +400,18 @@ position."
 
 (defun read-string (prompt &optional initial-input)
   "Send a message to the editor to ask the user to enter a string."
-  (send "read-string" prompt initial-input))
+  (send "read-string" prompt initial-input)
+  (recv1))
 
 (defun read-string-then-insert (prompt control-string)
-  (read-string prompt)
-  (handle (string)
-    (insert control-string string)))
+  (insert control-string
+          (read-string prompt)))
 
 (defun choose (prompt collection)
   "Send a message to the editor to ask the user to choose one element
 in the collection."
-  (send "choose" prompt collection))
+  (send "choose" prompt collection)
+  (recv1))
 
 (defun insert-at (position string save-excursion-p)
   "Send a message to the editor telling it to insert STRING at
@@ -449,6 +444,10 @@ to non-nil to keep the current position."
 (defun message (control-string &rest format-arguments)
   (send "message"
         (apply #'format nil control-string format-arguments)))
+
+(defun find-file (pathname)
+  (send "find-file"
+        (namestring pathname)))
 
 
 ;;; Utilities to help creating commands less painful.
@@ -487,9 +486,11 @@ using keyword arguments."
          (if (current-command*)
              (progn
                (block nil
-                 ,@(loop :for var :in basic-context-variables
-                         :collect `(unless ,var
-                                     (setf ,var (,(symbolicate 'context- var '*)))))
+                 ,@(loop
+                     :for var :in basic-context-variables
+                     :collect `(unless ,var
+                                 (setf ,var (,(let ((*package* #.*package*))
+                                                (symbolicate 'context- var '*))))))
                  ,@remaining-forms)
                ;; Send the "done" command
                "done")
