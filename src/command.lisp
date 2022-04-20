@@ -431,19 +431,16 @@ position."
 
 (defun replace-region (position-from position-to
                        replacement-string
-                       save-excursion-p)
+                       &optional (save-excursion-p t))
   "Send a message to the editor telling it to replace the text between
 POSITION-FROM POSITION-TO by REPLACEMENT-STRING. Set SAVE-EXCURSION-P
-to non-nil to keep the current position.
-
-This one is not tested yet."
+to non-nil to keep the current position."
   (send
-   (if save-excursion-p
-       "replace-saving-excursion"
-       "replace")
+   "replace"
    position-from
    position-to
-   replacement-string))
+   replacement-string
+   save-excursion-p))
 
 (defun backward-char (&optional n)
   "Send a message to the editor to move backward."
