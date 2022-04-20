@@ -151,8 +151,7 @@ of \"breeze.el\"."
 (cl-defun breeze-ensure-breeze ()
   "Make sure that breeze is loaded in swank."
   (unless (breeze-validate-if-breeze-package-exists)
-    (when verbosep
-      (breeze-message "Loading breeze's system..."))
+    (breeze-message "Loading breeze's system...")
     (breeze-interactive-eval
      (format "(progn (load \"%s\")
                 (unless (asdf:component-loaded-p \"breeze\")
