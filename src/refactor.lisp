@@ -631,7 +631,7 @@ For debugging purposes ONLY.")
         ;; When the previous in-package form desginate a package tha
         ;; cannot be found (e.g. the user forgot to define a package.
         (invalid-in-package
-         (warn "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
+         (message "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
          (return))
         ((ends-with-subseq ".asd" buffer-file-name
                            :test #'string-equal)
