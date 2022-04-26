@@ -149,7 +149,7 @@ of \"breeze.el\"."
     "../breeze.asd")))
 
 (cl-defun breeze-ensure-breeze ()
-  "Make sure that breeze is loaded in swank."
+  "Make sure that breeze is loaded in swank or slynk."
   (unless (breeze-validate-if-breeze-package-exists)
     (breeze-message "Loading breeze's system...")
     (breeze-interactive-eval
@@ -295,12 +295,17 @@ arguments. Use to quickly scaffold a bunch of functions."
          (insert string))))
     ("insert"
      (cl-destructuring-bind (_ string) request (insert string)))
-    ("replace"       ; TODO -saving-excursion variant
+    ("replace"
      (cl-destructuring-bind
-         (point-from point-to replacement-stirng)
+         (point-from point-to replacement-string save-excursion-p)
          (cdr request)
-       ;; TODO
-       ))
+       (if save-excursion-p
+           (save-excursion
+             (kill-region point-from point-to)
+             (insert replacement))
+         (progn
+           (kill-region point-from point-to)
+           (insert replacement)))))
     ("backward-char"
      (backward-char (cl-second request))
      ;; Had to do this hack so the cursor is positioned

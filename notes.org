@@ -12,6 +12,29 @@
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
+** TODO Make it easy to report a bugs
+
+- os version
+- lisp version
+- editor version
+- quicklisp
+  - client version
+  - distributions
+- for each dependency
+  - from which distribution the system come from
+  - version of the system
+
+** TODO Make sure the commands are execture against _common lisp_ code
+
+Gavinok tried breeze, but ran ~C-.~ on ~breeze.el~, this causes
+confusion for everybody.
+
+Here's some ideas to help with this:
+
+- check the extension of the buffer or file
+- check the mode of the buffer
+- make sure it's not in the repl (for now)
+
 ** TODO Use with-branching to define optimal-string-alignment-distance :tech_debt:
 
 Instead of having 2 definitions

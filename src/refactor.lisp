@@ -589,6 +589,21 @@ For debugging purposes ONLY.")
 (let+ctx ((x 42)
           nodes position path))
 
+;; I made this command mostly for manually testing replace-region
+(define-command delete-parent-form
+    ()
+  "Given the context, suggest some applicable commands."
+  (augment-context-by-parsing-the-buffer (command-context*))
+  (let+ctx (parent-node)
+    ;; Save some information for debugging
+    (setf *qf* `((:context . ,(command-context*))))
+    (if (and parent-node
+             (not (listp parent-node)))
+        (destructuring-bind (from . to)
+            (node-source parent-node)
+          (replace-region from to ""))
+        (message "No parent node at point."))))
+
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (augment-context-by-parsing-the-buffer (command-context*))
@@ -616,7 +631,7 @@ For debugging purposes ONLY.")
         ;; When the previous in-package form desginate a package tha
         ;; cannot be found (e.g. the user forgot to define a package.
         (invalid-in-package
-         (warn "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
+         (message "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
          (return))
         ((ends-with-subseq ".asd" buffer-file-name
                            :test #'string-equal)
@@ -666,11 +681,6 @@ For debugging purposes ONLY.")
 
     ;; Save some information for debugging
     (setf *qf* `((:context . ,(command-context*))
-                 (:nodes . ,nodes)
-                 (:path . ,path)
-                 (:outer-node . ,outer-node)
-                 (:inner-node . ,inner-node)
-                 (:parent-node . ,parent-node)
                  (:commands . ,commands)))
 
     ;; Ask the user to choose a command
