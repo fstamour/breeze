@@ -43,64 +43,54 @@
 
 (in-package #:breeze.command)
 
-;; this could be called an actor...
-(defclass tasklet (chanl:task)
-  ((channel-in
-    :initform nil
-    :accessor tasklet-channel-in
-    :type (or null chanl:channel))
-   (channel-out
-    :initform nil
-    :accessor tasklet-channel-out
-    :type (or null chanl:channel)))
-  (:documentation "A thread with two channels to send and receive data."))
-
-(defmethod tasklet-channel-in :around (tasklet)
-  "Helper method for easier debugging."
-  (let ((result (call-next-method)))
-    (unless result
-      (error "(tasklet-channel-in ~s) returned nil" tasklet))
-    result))
-
-(defmethod tasklet-channel-out :around (tasklet)
-  "Helper method for easier debugging."
-  (let ((result (call-next-method)))
-    (unless result
-      (error "(tasklet-channel-out ~s) returned nil" tasklet))
-    result))
-
-(defmethod tasklet-channel-in ((_ (eql nil)))
-  "Helper method for easier debugging."
-  (declare (ignore _))
-  (warn "tasklet-channel-in called on nil.")
-  nil)
-
-(defmethod tasklet-channel-out ((_ (eql nil)))
-  "Helper method for easier debugging."
-  (declare (ignore _))
-  (warn "tasklet-channel-out called on nil.")
-  nil)
-
 (defclass command-handler ()
-  ((tasklet
+  ((thread
     :initform nil
-    :initarg :tasklet
-    :accessor command-tasklet
-    :documentation
-    "The tasklet that process the command.")
+    :initarg :thread
+    :accessor command-thread
+    :documentation "The thread that process the command.")
+   (channel-in
+    :initform (make-instance 'chanl:bounded-channel)
+    :accessor command-channel-in
+    :type (or null chanl:channel)
+    :documentation "The channel to send response to the thread.")
+   (channel-out
+    :initform (make-instance 'chanl:bounded-channel)
+    :accessor command-channel-out
+    :type (or null chanl:channel)
+    :documentation "The channel to receive requests from the thread.")
    (context
     :initarg :context
+    :initform nil
     :accessor command-context
-    :documentation
-    "The context of the command.")))
+    :documentation "The context of the command."))
+  (:documentation "Contains the runtime data to run a command."))
 
-(defmethod command-channel-in ((command-handler command-handler))
-  (if-let ((tasklet (command-tasklet command-handler)))
-    (tasklet-channel-in tasklet)))
+(defmethod command-channel-in :around (command)
+  "Helper method for easier debugging."
+  (let ((result (call-next-method)))
+    (unless result
+      (error "(command-channel-in ~s) returned nil" command))
+    result))
 
-(defmethod command-channel-out ((command-handler command-handler))
-  (if-let ((tasklet (command-tasklet command-handler)))
-    (tasklet-channel-out tasklet)))
+(defmethod command-channel-out :around (command)
+  "Helper method for easier debugging."
+  (let ((result (call-next-method)))
+    (unless result
+      (error "(command-channel-out ~s) returned nil" command))
+    result))
+
+(defmethod command-channel-in ((_ (eql nil)))
+  "Helper method for easier debugging."
+  (declare (ignore _))
+  (warn "command-channel-in called on nil.")
+  nil)
+
+(defmethod command-channel-out ((_ (eql nil)))
+  "Helper method for easier debugging."
+  (declare (ignore _))
+  (warn "command-channel-out called on nil.")
+  nil)
 
 
 
@@ -110,58 +100,32 @@
   "The command that is currently being executed.")
 
 (defparameter *channel-in* nil
-  "The channel use to send data to the command's tasklet.")
+  "The channel use to send data to the command's thread.")
 
 (defparameter *channel-out* nil
-  "The channel used to receive data from the command's tasklet.")
+  "The channel used to receive data from the command's thread.")
 
-(defmacro make-tasklet (() &body body)
-  "Creates a tasklet that runs BODY and return the tasklet."
-  (with-gensyms (channel-in channel-out task)
-    `(let* ((,channel-in (make-instance 'chanl:bounded-channel))
-            (,channel-out (make-instance 'chanl:bounded-channel))
-            (,task
-              (chanl:pcall
-               #'(lambda ()
-                   (let ((*channel-in* ,channel-in)
-                         (*channel-out* ,channel-out))
-                     (declare (ignorable *channel-in*
-                                         *channel-out*))
-                     ,@body))
-               :name "breeze command"
-               :initial-bindings `((*package* ,*package*)
-                                   ,@chanl:*default-special-bindings*))))
-       (change-class ,task 'tasklet)
-       (setf (tasklet-channel-in ,task) ,channel-in
-             (tasklet-channel-out ,task) ,channel-out)
-       ,task)))
-
-#+ (or)
-(make-tasklet ()
-  (format t "~&hi!"))
 
 (defun cancel-command (&optional reason)
   "Cancel the currently running command."
-  ;; TODO Kill the associated thread.
+  (if-let ((thread (and
+                    *current-command*
+                    (command-thread *current-command*))))
+    (unless (or (eq (bt:current-thread) thread)
+                (not (bordeaux-threads:thread-alive-p thread)))
+      ;; Kill the associated thread.
+      (bt:destroy-thread thread)))
+  ;; Clear the special variable
   (setf *current-command* nil)
+  ;; Log
+  (if reason
+      (log:debug "Command canceled because ~a." reason)
+      (log:debug "Command canceled for unspecified reason."))
+  ;; Return nil, because it feels like the right thing to do
+  nil)
 
-  (when reason
-    ;; TODO (log)
-    ;;
-    ;; We definitely don't want that, but it's sometimes useful for
-    ;; debugging
-    ;; (error reason)
-    )
-  ;; (format *debug-io* "~&*current-command* reset.")
-  )
-
-
-
-;; TODO This function the festival of race conditions
 (defun donep (command)
-  (or
-   (null command)
-   (not (chanl:task-thread (command-tasklet command)))))
+  (null command))
 
 (defun current-command* ()
   "Helper to get the current command, or correctly set it to nil."
@@ -178,33 +142,25 @@
   "To help with tracing."
   (chanl:send channel value))
 
-(defun command-recv (command)
-  "Receive a request from the command handler."
-  (let ((request (%recv (command-channel-out command))))
-    (and (listp request) request)))
-
-(defun command-send (command value)
-  "Send a value to the command handler."
-  (%send (command-channel-in command) value))
-
 (defun run-command (command arguments)
-  "Receive request from the command tasklet, process them..."
+  "Receive request from the command's thread."
   (if (donep command)
       (cancel-command)
       (progn
-        (when arguments
-          (command-send command arguments))
-        (let ((request
-                (command-recv command)))
-          (unless request
-            (cancel-command "Request is null."))
+        (when arguments (chanl:send (command-channel-in command) arguments))
+        (let ((request (chanl:recv (command-channel-out command))))
+          (cond
+            ((null request)
+             (cancel-command "Request is null."))
+            ((string= "done" (car request))
+             (cancel-command "Request is \"done\".")))
           request))))
 
 (defun call-with-cancel-command-on-error (thunk)
   (handler-bind
       ((error #'(lambda (condition)
                   ;; (declare (ignore condition))
-                  (format *debug-io* "~&An error occured: ~a" condition)
+                  (log:error "~&An error occured: ~a" condition)
                   (cancel-command condition))))
     (funcall thunk)))
 
@@ -231,13 +187,25 @@
       :do (setf (gethash normalized-key ht) value)
     :finally (return ht)))
 
-;; TODO unit test
-#+ (or)
-(alexandria:hash-table-plist
- (context-plist-to-hash-table '(buffer-string "asdf" ok 42)))
-;; => (OK 42 :BUFFER-STRING "asdf")
-
-;; (setf *break-on-signals* 'error)
+(defmacro make-command-thread ((command-handler) &body body)
+  "Initialize a command-handler's thread."
+  (alexandria:once-only ((command-handler command-handler))
+    (with-gensyms (channel-in channel-out thread)
+      `(let* ((,channel-in (command-channel-in ,command-handler))
+              (,channel-out (command-channel-out ,command-handler))
+              (,thread
+                (bt:make-thread
+                 #'(lambda ()
+                     (let ((*channel-in* ,channel-in)
+                           (*channel-out* ,channel-out))
+                       (declare (ignorable *channel-in*
+                                           *channel-out*))
+                       ,@body))
+                 :name "breeze command handler"
+                 ;; :initial-bindings `((*package* ,*package*) ,@bt:*default-special-bindings*)
+                 )))
+         (setf (command-thread ,command-handler) ,thread)
+         ,command-handler))))
 
 (defun start-command (context-plist thunk)
   "Start processing a command, initializing *current-command*."
@@ -248,31 +216,35 @@
            'command-handler
            :context (context-plist-to-hash-table context-plist)))
     ;; Create the thread for the command handler
-    (let ((task (make-tasklet ()
-                  (cancel-command-on-error
-                    ;; Being very defensive here, so many things can
-                    ;; go wrong.
-                    (unless *channel-in*
-                      (error "*channel-in* is null"))
-                    (unless *channel-out*
-                      (error "*channel-out* is null"))
-                    (unless *current-command*
-                      (error "*current-command* is null"))
-                    (setf (command-tasklet *current-command*)
-                          (chanl:recv *channel-in*))
-                    (chanl:send *channel-out* :started)
-                    (funcall thunk)))))
-      ;; Send the task inside itself...
-      (chanl:send (tasklet-channel-in task) task)
-      ;; If we use this setf instead:
-      ;; (setf (command-tasklet *current-command*) task)
-      ;; Then it is set too late, the command thread might already
-      ;; have tried to access it, and failed.
-      )
+    (make-command-thread (*current-command*)
+      (cancel-command-on-error
+        ;; Being very defensive here, because so many
+        ;; things can go wrong.
+        (unless *channel-in*
+          (error "In start-command: *channel-in* is null"))
+        (unless *channel-out*
+          (error "In start-command: *channel-out* is null"))
+        (unless *current-command*
+          (error "In start-command: *current-command* is null"))
+        (unless (command-context *current-command*)
+          (error "In start-command: *current-command*'s context is null"))
+        ;; Waiting for a message from start-command
+        (let ((sync-message (chanl:recv *channel-in*)))
+          (unless (eq :sync sync-message)
+            (error "In start-command: expected to receive the datum :sync, received ~S instead"
+                   sync-message)))
+        ;; Sending back a message to tell start-command the command is going to do its job
+        (chanl:send *channel-out* :started)
+        (funcall thunk)))
+    ;; Send a message to the thread for synchronisation.
+    (chanl:send (command-channel-in *current-command*) :sync)
+    (log:debug "Waiting for the thread to be up and running...")
     ;; Wait for the thread to be up and running
-    (chanl:recv
-     (command-channel-out *current-command*))
-    (format *trace-output* "Command started.")
+    (let ((started-message (chanl:recv (command-channel-out *current-command*))))
+      (unless (eq :started started-message)
+        (error "In start-command: expected to receive the datum :started, received ~S instead"
+               started-message)))
+    (log:debug "Command started.")
     ;; Get the thread's request and return it.
     (run-command *current-command* nil)))
 
@@ -289,8 +261,9 @@
 
 (defun command-context* ()
   "Get the *current-command*'s context."
-  (when (current-command*)
-    (command-context (current-command*))))
+  (if (current-command*)
+      (command-context (current-command*))
+      (warn "(current-command*) returned nil")))
 
 (defun context-get (context key)
   "Get the value of KEY CONTEXT."
@@ -473,7 +446,7 @@ Example:
 (define-command hi ()
   (message \"Hi ~a\" (read-string \"What is your name?\")))
 "
-  (let ((context-alist (symbolicate 'context-alist))
+  (let ((context-plist (symbolicate 'context-plist))
         (basic-context-variables (mapcar #'symbolicate
                                          '(buffer-string
                                            buffer-name
@@ -485,12 +458,12 @@ Example:
         (alexandria:parse-body body :documentation t)
       ;; Docstring are mandatory for commands
       (check-type docstring string)
-      `(defun ,name (&rest ,context-alist
+      `(defun ,name (&rest ,context-plist
                      &key
                        ,@basic-context-variables
                        ,@key-arguments)
          (declare (ignorable
-                   ,context-alist
+                   ,context-plist
                    ,@basic-context-variables
                    ,@(loop for karg in key-arguments
                            collect (or (and (symbolp karg) karg)
@@ -510,11 +483,13 @@ Example:
                ;; Send the "done" command
                "done")
              (start-command
-              ,context-alist
+              ,context-plist
               (lambda ()
                 (progn
                   (block nil ,@remaining-forms)
                   (send "done")))))))))
+
+;; (setf *break-on-signals* 'error)
 
 #+ (or)
 (trace
@@ -534,8 +509,6 @@ Example:
  cancel-command
  continue-command
  run-command
- command-recv
- command-send
  donep
 
  %recv
@@ -553,3 +526,6 @@ Example:
 
 #+ (or)
 (untrace)
+
+;; (log:config :debug)
+;; (log:config '(breeze command) :debug)

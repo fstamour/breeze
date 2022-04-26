@@ -149,7 +149,7 @@ of \"breeze.el\"."
     "../breeze.asd")))
 
 (cl-defun breeze-ensure-breeze ()
-  "Make sure that breeze is loaded in swank."
+  "Make sure that breeze is loaded in swank or slynk."
   (unless (breeze-validate-if-breeze-package-exists)
     (breeze-message "Loading breeze's system...")
     (breeze-interactive-eval
