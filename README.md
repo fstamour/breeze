@@ -79,11 +79,9 @@ add more and more tests, stuff might break any time.
 
 - Replace slime, sly, slimv, slima, etc
 - Replace existing test framework
-  - One test "framework" is included in breeze, but only for
-    convenience/experimentation purposes.
 - Force the user to use a set of conventions
-  - If there are conventions used by breeze, for convenience, they
-    should be customizable.
+  - If there are conventions used by breeze it is only for convenience
+    and they should be customizable.
   - e.g. Currently, some refactoring utilies only work when the user
     use `cl:defpackage` (as opposed to `uiop:defpackage`) and there's
     one `defpackage` per file, but it doesn't have to be that way.
