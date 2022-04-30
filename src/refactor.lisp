@@ -35,12 +35,16 @@
    #:read-eval-node-p
    #:character-node-p
    #:list-node-p
-   #:function-node-p)
+   #:function-node-p
+   ;; Utility to create more predicates
+   #:define-node-form-predicates
+   )
   (:export
    ;; Simple commands
    #:insert-loop-clause-for-on-list
    #:insert-loop-clause-for-in-list
    #:insert-loop-clause-for-hash
+   #:insert-handler-bind-form
    #:insert-defvar
    #:insert-defparameter
    #:insert-defconstant
@@ -56,174 +60,8 @@
 
 (in-package #:breeze.refactor)
 
-
-;;; Utility function
-
-(defun node-first (node)
-  "Return the first element from a NODE's content."
-  (first (node-content node)))
-
-(defun node-lastcar (node)
-  "Return the last element from a NODE's content."
-  (lastcar (node-content node)))
-
-(defun node-string-equal (string node)
-  "Compare the content of a NODE to a STRING, case-insensitive."
-  (string-equal string (node-content node)))
-
-(defun node-length (node &optional (ignore-skipped-p t))
-  "Returns the length of a NODE's content."
-  (and (list-node-p node)
-       (length
-        (if ignore-skipped-p
-            (remove-if #'skipped-node-p (node-content node))
-            (node-content node)))))
-
-(defun node-symbol= (symbol node)
-  "Does NODE represent the symbol SYMBOL."
-  (and (symbol-node-p node)
-       (node-string-equal (symbol-name symbol)
-                          node)))
-
-(defun null-node-p (node)
-  "Does NODE represent the symbol \"nil\"."
-  (node-symbol= 'nil node))
-
-(defmacro define-node-form-predicates (types)
-  "Helper macro to define lots of predicates."
-  `(progn
-     ,@(loop :for type :in types
-             :for package = (symbol-package type)
-             :for cl-package-p = (eq (find-package :cl) package)
-             :for function-name
-               = (if cl-package-p
-                     (symbolicate type '#:-form-p)
-                     (symbolicate (package-name package)
-                                  '#:-- type '#:-form-p))
-             :collect
-             `(export
-               (defun ,function-name
-                   (node)
-                 ,(format nil "Does NODE represent an \"~a\" form."
-                          (if cl-package-p
-                              type
-                              (symbol-package-qualified-name type)))
-                 (and (list-node-p node)
-                      (node-symbol= ',type (node-first node))))))))
-
-(defun find-node (position nodes)
-  "Given a list of NODES, return which node contains the POSITION."
-  (loop :for node :in nodes
-        :for (start . end) = (node-source node)
-        :for i :from 0
-        :when (and
-               (<= start position end)
-               (<= position end))
-          :do
-             (return (cons node i))))
-
-(defun find-path-to-node (position nodes)
-  "Given a list of NODES, return a path (list of cons (node . index))"
-  (loop :for found = (find-node position nodes)
-          :then (let ((node (car found)))
-                  (and (listp (node-content node))
-                       (car (node-content node))
-                       (find-node position (node-content node))))
-        :while found
-        :collect found))
-
-(defun find-nearest-sibling-form (nodes current-node predicate)
-  "Find the nearest sibling form that match the predicate."
-  (loop :with result
-        :for node :in nodes
-        :when (eq node current-node)
-          :do (return result)
-        :when (funcall predicate node)
-          :do (setf result node)))
-
-(defmacro define-find-nearest-sibling-form (types)
-  "Helper macro to define lots of predicates."
-  `(progn
-     ,@(loop :for type :in types
-             :collect
-             `(export
-               (defun ,(symbolicate '#:find-nearest-sibling- type
-                                    '#:-form)
-                   (nodes current-node)
-                 ,(format
-                   nil "Find the nearest sibling form of type \"~a\"."
-                   type)
-                 (find-nearest-sibling-form
-                  nodes current-node
-                  #',(symbolicate type '#:-form-p)))))))
-
-(defun find-nearest-parent-form (path predicate)
-  "Find the nearest parent form that match the predicate."
-  (loop :with result
-        :for node :in path
-        :when (funcall predicate node)
-          :do (setf result node)
-        :finally (return result)))
-
-(defmacro define-find-nearest-parent-form (types)
-  "Helper macro to define lots of predicates."
-  `(progn
-     ,@(loop :for type :in types
-             :collect
-             `(export
-               (defun ,(symbolicate '#:find-nearest-parent- type
-                                    '#:-form)
-                   (path)
-                 ,(format
-                   nil "Find the nearest parent form of type \"~a\"."
-                   type)
-                 (find-nearest-parent-form
-                  path
-                  #',(symbolicate type '#:-form-p)))))))
-
-
-
-(defmacro define-node-utilities (types)
-  "Helper macro to define lots of predicates."
-  `(progn
-     (define-node-form-predicates ,types)
-     (define-find-nearest-sibling-form ,types)
-     (define-find-nearest-parent-form ,types)))
-
-(define-node-utilities
-    (if
-     when unless
-     defpackage
-     in-package
-     defparameter
-     defvar
-     loop
-     defun
-     defmacro
-     defmethod
-     defgeneric
-     defconstant
-     defclass
-     let
-     flet
-     labels
-     lambda
-     map
-     mapcar
-     mapcon))
 
 (define-node-form-predicates (uiop:define-package))
-
-;; TODO A "skipped node" can also be a form hidden behing a feature (#+/-)
-(defun emptyp (nodes)
-  "Whether a list of node contains no code."
-  (every #'(lambda (node)
-             (typep node 'breeze.reader:skipped-node))
-         nodes))
-
-
-;; TODO symbol-qualified-p : is the symbol "package-qualified"
-
 
 
 ;;; Insertion commands
@@ -242,10 +80,10 @@
 (define-command insert-handler-bind-form ()
   "Insert handler bind form."
   (insert
-   "(handler-bind
-      ((error #'(lambda (condition)
-    (describe condition *debug-io*))))
-    (frobnicate))"))
+   "(handler-bind~
+  ~%  ((error #'(lambda (condition)~
+  ~%    (describe condition *debug-io*))))~
+  ~%  (frobnicate))"))
 
 (define-command insert-loop-clause-for-on-list ()
   "Insert a loop clause to iterate on a list."
@@ -558,9 +396,7 @@ For debugging purposes ONLY.")
                        :collect
                        `(context-set context ',key ,key)))))
 
-(defun in-package-node-package (in-package-node)
-  (node-content
-   (second (node-content in-package-node))))
+
 
 (defun validate-nearest-in-package (nodes outer-node)
   (let* ((previous-in-package-form
@@ -573,7 +409,8 @@ For debugging purposes ONLY.")
           package-designator)))))
 
 ;; TODO
-(defun compute-suggestions-at-point ()
+(defun compute-suggestions ()
+  "Compute the list of applicable commands given the current context."
   (augment-context-by-parsing-the-buffer context))
 
 (defmacro let+ctx (bindings &body body)
@@ -638,7 +475,7 @@ For debugging purposes ONLY.")
          (push-command 'insert-asdf))
         ;; When the buffer is empty, or only contains comments and
         ;; whitespaces.
-        ((emptyp nodes)
+        ((nodes-emptyp nodes)
          (push-command* 'insert-defpackage))
         ((or
           ;; in-between forms

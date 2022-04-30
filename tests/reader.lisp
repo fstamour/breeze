@@ -367,6 +367,15 @@ What about nested feature expressions?
 |#
 
 
+;;; TODO Test package-local-nicknames
+
+
+(define-test in-package
+  (let ((in-package-form (first (parse-string "(in-package :cl)"))))
+    (true (in-package-form-p in-package-form))
+    (is eq :cl (in-package-node-package in-package-form))))
+
+
 ;;; Test READ-ALL-FORMS
 
 ;; TODO test (read-all-forms "...")

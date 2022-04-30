@@ -1,8 +1,10 @@
-(defpackage #:breeze.syntax-tree
+(uiop:define-package #:breeze.syntax-tree
   (:documentation "Syntax tree data structure for common lisp reader")
   (:use #:cl)
-  (:local-nicknames (#:a #:alexandria)
-                    (#:tpln #:trivial-package-local-nicknames))
+  (:local-nicknames (#:a #:alexandria))
+  (:import-from
+   #:breeze.utils
+   #:symbol-package-qualified-name)
   (:export
    ;; Syntax tree types
    #:node
@@ -15,6 +17,15 @@
    #:feature-expression-node
    #:string-node
 
+   ;; Node accessors
+   #:node-content
+   #:node-prefix
+   #:node-source
+   #:node-raw
+   #:node-start
+   #:node-end
+   #:node-feature-expression
+
    ;; Type predicates
    #:nodep
    #:skipped-node-p
@@ -26,14 +37,10 @@
    #:terminalp
    ;; TODO feature-expression, string-node
 
-   ;; Node accessors
-   #:node-content
-   #:node-prefix
-   #:node-source
-   #:node-raw
-   #:node-start
-   #:node-end
-   #:node-feature-expression))
+   #:define-node-form-predicates
+
+   ;; Functions to extract information from specific forms
+   #:in-package-node-package))
 
 (in-package #:breeze.syntax-tree)
 
@@ -207,3 +214,176 @@
 (defgeneric terminalp (node)
   (:documentation "Can a node contain other nodes.")
   (:method ((node node)) (not (non-terminal-p node))))
+
+
+
+
+;;; Utility function
+
+;; TODO node-symbol-qualified-p : is the symbol "package-qualified"
+
+(defun node-first (node)
+  "Return the first element from a NODE's content."
+  (first (node-content node)))
+
+(defun node-lastcar (node)
+  "Return the last element from a NODE's content."
+  (a:lastcar (node-content node)))
+
+(defun node-string-equal (string node)
+  "Compare the content of a NODE to a STRING, case-insensitive."
+  (string-equal string (node-content node)))
+
+(defun node-length (node &optional (ignore-skipped-p t))
+  "Returns the length of a NODE's content."
+  (and (list-node-p node)
+       (length
+        (if ignore-skipped-p
+            (remove-if #'skipped-node-p (node-content node))
+            (node-content node)))))
+
+(defun node-symbol= (symbol node)
+  "Does NODE represent the symbol SYMBOL."
+  (and (symbol-node-p node)
+       (node-string-equal (symbol-name symbol)
+                          node)))
+
+(defun null-node-p (node)
+  "Does NODE represent the symbol \"nil\"."
+  (node-symbol= 'nil node))
+
+;; TODO A "skipped node" can also be a form hidden behing a feature (#+/-)
+(defun nodes-emptyp (nodes)
+  "Whether a list of node contains no code."
+  (every #'(lambda (node)
+             (typep node 'skipped-node))
+         nodes))
+
+
+(defmacro define-node-form-predicates (types)
+  "Helper macro to define lots of predicates."
+  `(progn
+     ,@(loop :for type :in types
+             :for package = (symbol-package type)
+             :for cl-package-p = (eq (find-package :cl) package)
+             :for function-name
+               = (if cl-package-p
+                     (a:symbolicate type '#:-form-p)
+                     (a:symbolicate (package-name package)
+                                    '#:-- type '#:-form-p))
+             :collect
+             `(export
+               (defun ,function-name
+                   (node)
+                 ,(format nil "Does NODE represent an \"~a\" form."
+                          (if cl-package-p
+                              type
+                              (symbol-package-qualified-name type)))
+                 (and (list-node-p node)
+                      (node-symbol= ',type (node-first node))))))))
+
+(defun find-node (position nodes)
+  "Given a list of NODES, return which node contains the POSITION."
+  (loop :for node :in nodes
+        :for (start . end) = (node-source node)
+        :for i :from 0
+        :when (and
+               (<= start position end)
+               (<= position end))
+          :do
+             (return (cons node i))))
+
+(defun find-path-to-node (position nodes)
+  "Given a list of NODES, return a path (list of cons (node . index))"
+  (loop :for found = (find-node position nodes)
+          :then (let ((node (car found)))
+                  (and (listp (node-content node))
+                       (car (node-content node))
+                       (find-node position (node-content node))))
+        :while found
+        :collect found))
+
+(defun find-nearest-sibling-form (nodes current-node predicate)
+  "Find the nearest sibling form that match the predicate."
+  (loop :with result
+        :for node :in nodes
+        :when (eq node current-node)
+          :do (return result)
+        :when (funcall predicate node)
+          :do (setf result node)))
+
+(defmacro define-find-nearest-sibling-form (types)
+  "Helper macro to define lots of predicates."
+  `(progn
+     ,@(loop :for type :in types
+             :collect
+             `(export
+               (defun ,(a:symbolicate '#:find-nearest-sibling- type
+                                      '#:-form)
+                   (nodes current-node)
+                 ,(format
+                   nil "Find the nearest sibling form of type \"~a\"."
+                   type)
+                 (find-nearest-sibling-form
+                  nodes current-node
+                  #',(a:symbolicate type '#:-form-p)))))))
+
+(defun find-nearest-parent-form (path predicate)
+  "Find the nearest parent form that match the predicate."
+  (loop :with result
+        :for node :in path
+        :when (funcall predicate node)
+          :do (setf result node)
+        :finally (return result)))
+
+(defmacro define-find-nearest-parent-form (types)
+  "Helper macro to define lots of predicates."
+  `(progn
+     ,@(loop :for type :in types
+             :collect
+             `(export
+               (defun ,(a:symbolicate '#:find-nearest-parent- type
+                                      '#:-form)
+                   (path)
+                 ,(format
+                   nil "Find the nearest parent form of type \"~a\"."
+                   type)
+                 (find-nearest-parent-form
+                  path
+                  #',(a:symbolicate type '#:-form-p)))))))
+
+
+
+(defmacro define-node-utilities (types)
+  "Helper macro to define lots of predicates."
+  `(progn
+     (define-node-form-predicates ,types)
+     (define-find-nearest-sibling-form ,types)
+     (define-find-nearest-parent-form ,types)))
+
+(define-node-utilities
+    (if
+     when unless
+     defpackage
+     in-package
+     defparameter
+     defvar
+     loop
+     defun
+     defmacro
+     defmethod
+     defgeneric
+     defconstant
+     defclass
+     let
+     flet
+     labels
+     lambda
+     map
+     mapcar
+     mapcon))
+
+(defun in-package-node-package (in-package-node)
+  "Get the package-designator out of a \"cl:in-package\" node."
+  (node-content
+   (second (node-content in-package-node))))

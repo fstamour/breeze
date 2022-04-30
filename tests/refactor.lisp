@@ -2,6 +2,9 @@
 
 (defpackage #:breeze.test.refactor
   (:use :cl #:breeze.refactor)
+  (:import-from #:breeze.command
+                #:cancel-command
+                #:continue-command)
   (:import-from #:breeze.reader
                 #:node-content
                 #:parse-string
@@ -29,6 +32,25 @@
 (in-package #:breeze.test.refactor)
 
 (defparameter *directory* "./")
+
+(defun drive-command (fn context-plist inputs)
+  (cancel-command)
+  (loop :for request = (apply fn context-plist)
+          :then (continue-command)
+        :collect request
+        :while (and request
+                    (not (string= "done" (car request))))))
+
+(define-test insert-handler-bind-form
+  (is equal
+      '(("insert" "(handler-bind
+  ((error #'(lambda (condition)
+    (describe condition *debug-io*))))
+  (frobnicate))")
+        ("done"))
+      (drive-command #'insert-handler-bind-form
+                     '()
+                     nil)))
 
 (defun test-quickfix (buffer-name pre post)
   (let ((buffer-file-name (merge-pathnames buffer-name *directory*))

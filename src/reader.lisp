@@ -20,6 +20,8 @@ This package also re-exports symbols from breeze.syntax-tree.")
 
 (in-package #:breeze.reader)
 
+;; (log:config '(breeze reader) :debug)
+
 
 ;;; Parser "client"
 
@@ -91,7 +93,12 @@ This package also re-exports symbols from breeze.syntax-tree.")
     (setf (node-source node) source
           (node-raw node) raw)
     (log4cl:log-debug node)
-    ;; (dbg "~&new-node: ~s" node)
+    (when (in-package-form-p node)
+      (log:debug "Changing the current package...")
+      ;; TODO Add current-package to the client, to avoid changing the
+      ;; user's current-package when reading
+      ;; Will need to change the package-local-nickname logic
+      (setf *package* (find-package (in-package-node-package node))))
     node))
 
 
@@ -116,8 +123,9 @@ This package also re-exports symbols from breeze.syntax-tree.")
             (:current *package*)
             (:keyword (find-package "KEYWORD"))
             (t (find-package package-indicator)))
+    (log:debug package-indicator symbol-name *package*)
     (if-let (actual-package
-             (cdr (assoc "TPLN"
+             (cdr (assoc package-indicator
                          (trivial-package-local-nicknames:package-local-nicknames *package*)
                          :test #'string=)))
       (setf package-indicator actual-package)))
