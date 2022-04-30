@@ -2,10 +2,10 @@
 
 * Roadmap
 
-1. Improve the reader (mostly add tests, maybe change the data structures)
-2. Add tests on the breeze.commands package
+1. Add tests on the breeze.refactor package
+2. Implement better refactor commands
 3. Add a breeze-eval function instead of advising swank/slynk
-4. Improve performances
+4. Improve the reader to support more reader-macros
 
 * Tasks
 

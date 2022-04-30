@@ -282,3 +282,10 @@ prog*
 
 (incf x y) <=> (decf x (- y))
 ;; when y < 0
+
+
+(atom object) ==  (typep object 'atom) ==  (not (consp object))
+==  (not (typep object 'cons)) ==  (typep object '(not cons))
+
+
+(not (null x)) == (and x t)
