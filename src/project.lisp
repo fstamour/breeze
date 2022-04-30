@@ -12,7 +12,8 @@
                 #:define-command
                 #:read-string
                 #:choose
-                #:message)
+                #:message
+                #:find-file)
   (:import-from #:breeze.config
                 #:*default-author*
                 #:*default-system-licence*)
@@ -47,13 +48,17 @@
       (t
        (first directories)))))
 
-(define-command scaffold-project ()
+(define-command scaffold-project (project-name directory)
   "Create a project interactively using quickproject."
-  (let* ((project-name (read-string "Name of the project: "))
+  (let* ((project-name
+           (or project-name
+               (read-string "Name of the project: ")))
          (directory
+           ;; TODO What if the directory already exists?
            (uiop:ensure-directory-pathname
-            (merge-pathnames  project-name
-                              (choose-local-project-directories))))
+            (or directory
+                (merge-pathnames  project-name
+                                  (choose-local-project-directories)))))
          (author (read-string "Author of the project: "
                               *default-author*))
          (license (read-string "Licence of the project: "
@@ -68,4 +73,5 @@
      :name project-name
      :author author
      :license license)
-    (message "Project \"~a\" created." directory)))
+    (message "Project \"~a\" created." directory)
+    (find-file directory)))
