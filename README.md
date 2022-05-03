@@ -19,7 +19,7 @@ to get a better idea.
 ## What is this?
 
 This is a git repository that contains lots of common lisp code that I
-use to make developping with common lisp easier. It is a personal
+use to make developing with common lisp easier. It is a personal
 projet that I work on from time to time, but that I use (and break)
 pretty much all the time.
 
