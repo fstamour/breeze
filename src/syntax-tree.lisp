@@ -37,6 +37,15 @@
    #:terminalp
    ;; TODO feature-expression, string-node
 
+   #:find-path-to-node
+   #:find-nearest-sibling-form
+   #:find-nearest-sibling-in-package-form
+   #:in-package-node-package
+   #:nodes-emptyp
+   #:loop-form-p
+   #:defpackage-form-p
+   #:mapcar-form-p
+
    #:define-node-form-predicates
 
    ;; Functions to extract information from specific forms
