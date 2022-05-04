@@ -2,7 +2,7 @@
 
 (uiop:define-package #:breeze.refactor
   (:documentation "Snippets and refactoring commands")
-  (:use #:cl #:breeze.command)
+  (:use #:cl #:breeze.command #:breeze.reader)
   (:import-from
    #:alexandria
    #:ends-with-subseq
@@ -14,31 +14,6 @@
    #:symbol-package-qualified-name
    #:before-last
    #:find-version-control-root)
-  (:import-from
-   #:breeze.reader
-   #:parse-string
-   ;; Accessors
-   #:node-source
-   #:node-start
-   #:node-end
-   #:node-content
-   ;; Types of node
-   #:skipped-node
-   #:symbol-node
-   #:read-eval-node
-   #:character-node
-   #:list-node
-   #:function-node
-   ;; Type predicates
-   #:skipped-node-p
-   #:symbol-node-p
-   #:read-eval-node-p
-   #:character-node-p
-   #:list-node-p
-   #:function-node-p
-   ;; Utility to create more predicates
-   #:define-node-form-predicates
-   )
   (:export
    ;; Simple commands
    #:insert-loop-clause-for-on-list
