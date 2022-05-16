@@ -196,37 +196,6 @@ lisp's reader doesn't convert them."
             list)))
 
 
-;;; Prototype: quick scaffolding of defun (and other forms)
-
-(defun breeze-current-paragraph ()
-  (string-trim
-   (save-mark-and-excursion
-     (mark-paragraph)
-     (buffer-substring (mark) (point)))))
-
-(defun breeze-delete-paragraph ()
-  (save-mark-and-excursion
-    (mark-paragraph)
-    (delete-region (point) (mark))))
-
-(defun %breeze-expand-to-defuns (paragraph)
-  (cl-loop for line in
-           (split-string paragraph "\n")
-           for parts = (split-string line)
-           collect
-           (format "(defun %s %s\n)\n" (car parts) (cl-rest parts))))
-
-(defun %breeze-expand-to-defuns ()
-  "Takes a paragraph where each line describes a function, the
-first word is the function's name and the rest are the
-arguments. Use to quickly scaffold a bunch of functions."
-  (interactive)
-  (let ((paragraph (breeze-current-paragraph)))
-    (breeze-delete-paragraph)
-    (loop for form in (%breeze-expand-to-defuns paragraph)
-          do (insert form "\n"))))
-
-
 ;;; Common lisp driven interactive commands
 
 (defun breeze-compute-buffer-args ()
