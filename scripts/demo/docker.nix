@@ -13,6 +13,8 @@ pkgs.dockerTools.buildImage {
   contents = with pkgsLinux; [
     sbcl
     lispPackages.quicklisp
+    # TODO Load this ASDF (3.3.5)
+    quicklispPackagesClisp.asdf
     emacs
     xvfb_run
     ffmpeg # to record video
@@ -21,11 +23,12 @@ pkgs.dockerTools.buildImage {
     scrot # to take screenshots
     libressl # for emacs to connect to elpa/melpa
     findutils # grep # for my sanity, when debugging
+    rlwrap # also for debugging and for my sanity (rlwrap sbcl)
   ];
 
   config = {
     Env = [
-      # TODO This variable doesn't contains what I hoped
+      # TODO This variable doesn't contain what I hoped
       # it point to /nix/store/<some-hash-A>-libressl-3.4.1-bin
       # instead of  /nix/store/<some-hash-B>-libressl-3.4.1
       "LIBRESSL_PEM=${pkgsLinux.libressl}"
