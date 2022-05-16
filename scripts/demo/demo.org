@@ -2,7 +2,58 @@
 
 This is heavily work-in-progress
 
+** Status
+
+*** TODO TLS issues with emacs
+
+When running emacs inside the docker image build with nix, emacs fails
+to validate elpa.gnu.org's certificate. I found out how to fix it by
+adding a PEM file to ~gnutls-trustfiles~ in emacs, but I don't know
+yet how to get the right path (I validated the solution by hardcoding
+the path into the nix store).
+
+See ~LIBRESSL_PEM~ in ~docker.nix~
+
+*** TODO Package-local nicknames not supported by asdf 3.3.1
+
+I have this problem inside the docker as well as on FreeBSD and NixOS.
+
+On both FreeBSD and NixOS, I fixed it by cloning asdf's repo into my
+quicklisp's local-projects folder (and checked out the ~release~
+branch).
+
+But I'm not certain yet how to fix it inside the docker container. I
+found a nix package called ~quicklispPackagesClisp.asdf~ that provides
+the right version of asdf.
+
+** How to run the demo(s)?
+
+*** With docker
+
+1. Build the docker image: ~/scripts/demo/build-docker-image.sh~
+2. Run it interactively: ~/scripts/demo/run-demo-recorder.sh~
+
+*** Without docker
+
+1. Start common lisp listener with ~../demo.sh~
+2. Run emacs with ~../demo.sh~
+
 ** Notes
+
+*** Overview of the scripts
+
+| File                  | Purpose                                          |
+|-----------------------+--------------------------------------------------|
+| ../demo.sh            | run demo.el, in terminal emacs                   |
+| ../demo.el            | setup emacs (pkgs, load-path), run director      |
+| ../demo.lisp          | setup lisp: start swank, load breeze             |
+| demo-recorder.sh      | docker's entrypoint, calls ~../demo.el~          |
+| setup-demo.lisp       | use by docker to install ql projects             |
+| docker.nix            | creates a docker base image with all non-ql deps |
+| dockerfile            | init quicklisp, calls setup-demo.lisp            |
+| build-docker-image.sh | build both base and final docker images          |
+| demo.log              | emacs-director's logs                            |
+| run-demo-recorder.sh  | run the docker image interactively               |
 
 *** Docker image
 
@@ -88,30 +139,3 @@ because it's the only one that knows when stuff is initialized.
 
 - `../demo.sh` contains an example of how to start emacs with a
   specific script
-
-** How to run the demo(s)?
-
-*** With docker
-
-1. Build the docker image: ~/scripts/demo/build-docker-image.sh~
-2. Run it interactively: ~/scripts/demo/run-demo-recorder.sh~
-
-*** Without docker
-
-1. Start common lisp listener with ~../demo.sh~
-2. Run emacs with ~../demo.sh~
-
-** Overview of the scripts
-
-| File                  | Purpose                                          |
-|-----------------------+--------------------------------------------------|
-| ../demo.sh            | run demo.el, in terminal emacs                   |
-| ../demo.el            | setup emacs (pkgs, load-path), run director      |
-| ../demo.lisp          | setup lisp: start swank, load breeze             |
-| demo-recorder.sh      | docker's entrypoint, calls ~../demo.el~          |
-| setup-demo.lisp       | use by docker to install ql projects             |
-| docker.nix            | creates a docker base image with all non-ql deps |
-| dockerfile            | init quicklisp, calls setup-demo.lisp            |
-| build-docker-image.sh | build both base and final docker images          |
-| demo.log              | emacs-director's logs                            |
-| run-demo-recorder.sh  | run the docker image interactively               |
