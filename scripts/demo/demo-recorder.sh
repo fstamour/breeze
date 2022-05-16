@@ -10,15 +10,17 @@
 #      &
 
 # xvfb-run emacs -Q \
-# 	 -l scripts/emacs-director/util/director-bootstrap.el \
-# 	 -l scripts/demo.el -- &
+#    -l scripts/emacs-director/util/director-bootstrap.el \
+#    -l scripts/demo.el -- &
 
 export DISPLAY=:99
 
 # -s "-screen 0 1280x800x32"
 
 emacs -nw \
-	 -l scripts/emacs-director/util/director-bootstrap.el \
-	 -l scripts/demo.el
+   -l scripts/emacs-director/util/director-bootstrap.el \
+   -l scripts/demo.el
 
+# For debugging
+# Tip: use emacsclient
 bash

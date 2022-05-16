@@ -25,6 +25,7 @@
 (defvar *capture-folder* "~/breeze-capture"
   "The folder where to save capture files.")
 
+;; TODO Load from <breeze>/data/default-capture-template.lisp
 (defvar *capture-template*
 
   "(ql:quickload '(alexandria))
