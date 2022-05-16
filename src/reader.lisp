@@ -52,7 +52,7 @@ This package also re-exports symbols from breeze.syntax-tree.")
   (incf (cdr source) (start client)))
 
 
-;;; hooks intro eclector
+;;; hooks into eclector
 
 (defmethod eclector.parse-result:make-expression-result
     ((client breeze-client) (result t) (children t) (source t))
