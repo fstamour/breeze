@@ -1,0 +1,117 @@
+* Demo
+
+This is heavily work-in-progress
+
+** Notes
+
+*** Docker image
+
+See `build-docker-image.sh`.
+
+Used nix to create a base docker image with pretty much everything I
+could ever want to create a demo of breeze inside emacs.
+
+1. nix-build docker.nix
+2. docker build with dockerfile and the docker image that was just
+   created by nix-build.
+
+**** Why nix?
+
+So all dependencies would be explicits.
+
+**** Limitations
+
+I could not use nix only to build the docker image, as quicklisp tries
+to download stuff from the internet, and nix's build are not allowed
+to access the internet. (N.B. the latest release of nix (2.8.0) added
+an experimental feature called "impure derivations", so using nix only
+might be possible in the future.)
+
+**** Tips
+
+The image can be run interactively with `run-demo-recorder.sh`
+
+**** Tasks
+
+***** TODO Create a non-root user in the docker image
+
+OR Instead of hacking a proper user in docker, maybe I could just run
+an http server in the docker to download the results.
+
+*** Screenshot and capture
+
+In order to take screenshots or capture: `export DISPLAY=:99`
+
+**** xvfb
+
+Using `xvfb-run emacs`, I can run emacs in a virtual frame buffer.
+
+***** resolution
+
+xvfb-run creates a 640x480 buffer by default, it _might_ be okay for
+demo though. `-s "-screen 0 1280x800x32"`
+
+***** TODO Interactive debugging inside docker
+
+It would be nice to be able to see xvfb's content "live" for
+debugging. Or to interact with it (as opposed to just viewing
+it). (ssh or vnc?)
+
+**** Screenshot
+
+I can take screenshots using scrot. It doesn't need any special
+arguments, it creates a png screenshot with a timestamp and the
+resolution in the current directory.
+
+***** Screenshot annotations
+
+Maybe I could use imagemagick to add annotations to the
+screenshots.
+
+Oh, `scrot` supports adding notes, I haven't tested
+yet.
+
+**** Video capture
+
+I should be able to take videos using ffmpeg. `ffmpeg -y -r 30 -f
+x11grab -i :94.0 output.mp4`
+
+**** When
+
+I thought I should call scrot and ffmpeg from inside the editor,
+because it's the only one that knows when stuff is initialized.
+
+*** Emacs
+
+- I can use emacs-director, to simulate a user that run commands in
+  emacs. see `../demo.el`
+
+- `../demo.sh` contains an example of how to start emacs with a
+  specific script
+
+** How to run the demo(s)?
+
+*** With docker
+
+1. Build the docker image: ~/scripts/demo/build-docker-image.sh~
+2. Run it interactively: ~/scripts/demo/run-demo-recorder.sh~
+
+*** Without docker
+
+1. Start common lisp listener with ~../demo.sh~
+2. Run emacs with ~../demo.sh~
+
+** Overview of the scripts
+
+| File                  | Purpose                                          |
+|-----------------------+--------------------------------------------------|
+| ../demo.sh            | run demo.el, in terminal emacs                   |
+| ../demo.el            | setup emacs (pkgs, load-path), run director      |
+| ../demo.lisp          | setup lisp: start swank, load breeze             |
+| demo-recorder.sh      | docker's entrypoint, calls ~../demo.el~          |
+| setup-demo.lisp       | use by docker to install ql projects             |
+| docker.nix            | creates a docker base image with all non-ql deps |
+| dockerfile            | init quicklisp, calls setup-demo.lisp            |
+| build-docker-image.sh | build both base and final docker images          |
+| demo.log              | emacs-director's logs                            |
+| run-demo-recorder.sh  | run the docker image interactively               |

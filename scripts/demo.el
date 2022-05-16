@@ -19,16 +19,17 @@
  :user-dir "/tmp/director-demo"
  :packages '()
  :load-path '("src/"
-	      "scripts/emacs-director/"))
+              "scripts/emacs-director/"))
 
 (defvar *demo-root* (concat
-		     (vc-find-root
-		      (or (buffer-file-name
-			   (current-buffer))
-			  (pwd))
-		      ".git")
-		     "/scripts/demo"))
+                     (vc-find-root
+                      (or (buffer-file-name
+                           (current-buffer))
+                          (pwd))
+                      ".git")
+                     "/scripts/demo"))
 
+;; This is for debugging
 (server-start)
 
 (defvar *demo-window-config* nil)
@@ -46,56 +47,56 @@
 (defun call-capture (name)
   (let ((name name))
     `(:call ,#'(lambda ()
-		 (interactive)
-		 (capture name)))))
+                 (interactive)
+                 (capture name)))))
 
 (director-run
  :version 1
  :before-start (lambda ()
-		 ;;(require 'ivy)
-		 (selectrum-mode 1)
+                 ;;(require 'ivy)
+                 (selectrum-mode 1)
                  (switch-to-buffer (get-buffer-create "*example*"))
                  (menu-bar-mode -1)
-		 (setf *demo-window-config*
-		       (current-window-configuration))
-		 ;; Load slime
-		 (load "~/quicklisp/slime-helper.el")
-		 ;; Configure slime
-		 (setq slime-lisp-implementations
-		       '((sbcl ("sbcl"
-				"--noinform"
-				"--dynamic-space-size" "16000"
+                 (setf *demo-window-config*
+                       (current-window-configuration))
+                 ;; Load slime
+                 (load "~/quicklisp/slime-helper.el")
+                 ;; Configure slime
+                 (setq slime-lisp-implementations
+                       '((sbcl ("sbcl"
+                                "--noinform"
+                                "--dynamic-space-size" "16000"
                                 "--load" "breeze.asd"
                                 "--eval" "(ql:quickload :breeze)")
-			       :coding-system utf-8-unix))
-		       slime-default-lisp 'sbcl
-		       ;; Autocomplete
-		       slime-complete-symbol-function
-		       'slime-fuzzy-complete-symbol)
-		 ;; Load breeze
-		 ;; (require 'breeze)
-		 ;; Start slime
-		 ;; (slime-connect "localhost" 40050)
+                               :coding-system utf-8-unix))
+                       slime-default-lisp 'sbcl
+                       ;; Autocomplete
+                       slime-complete-symbol-function
+                       'slime-fuzzy-complete-symbol)
+                 ;; Load breeze
+                 ;; (require 'breeze)
+                 ;; Start slime
+                 ;; (slime-connect "localhost" 40050)
                  (slime)
                  )
  :steps `(,(call-capture "slime-initialized")
-	  (:type "\M-x")
-	  (:type "breeze")
-	  (:type [return])
-	  (:wait 2)
-	  ;; Switch to the other window
-	  (:call
-	   (lambda ()
-	     (interactive)
-	     (set-window-configuration *demo-window-config*)))
+          (:type "\M-x")
+          (:type "breeze")
+          (:type [return])
+          (:wait 2)
+          ;; Switch to the other window
+          (:call
+           (lambda ()
+             (interactive)
+             (set-window-configuration *demo-window-config*)))
 
-	  ;; Breeze-mode
-	  (:call lisp-mode)
-	  (:call breeze-mode)
-	  ,(call-capture "breeze-example-buffer")
-	  ;; Calling quickfix
-	  (:call breeze-quickfix)
-	  ,(call-capture "breeze-quickfix-menu-1"))
+          ;; Breeze-mode
+          (:call lisp-mode)
+          (:call breeze-mode)
+          ,(call-capture "breeze-example-buffer")
+          ;; Calling quickfix
+          (:call breeze-quickfix)
+          ,(call-capture "breeze-quickfix-menu-1"))
  :typing-style 'human
  :log-target (cons 'file (concat *demo-root* "/demo.log"))
  :delay-between-steps 0.5

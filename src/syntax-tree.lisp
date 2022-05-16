@@ -1,5 +1,7 @@
+(in-package #:cl-user)
+
 (uiop:define-package #:breeze.syntax-tree
-  (:documentation "Syntax tree data structure for common lisp reader")
+    (:documentation "Syntax tree data structure for common lisp reader")
   (:use #:cl)
   (:local-nicknames (#:a #:alexandria))
   (:import-from
