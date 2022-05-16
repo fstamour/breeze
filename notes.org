@@ -719,6 +719,8 @@ https://github.com/pokepay/cl-string-generator - Generate string from regular ex
 
 Emacs supports ~(declare (pure t) (side-effect-free t))~
 
+[[https://github.com/programingship/common-lisp-sly][Sly with spacemacs]]
+
 * Discord
 
 Discussion about =#:=
