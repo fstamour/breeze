@@ -10,7 +10,7 @@ in parallel.
 
 Please take a look at the
 [notes.org](https://github.com/fstamour/breeze/blob/master/notes.org)
-to get a better idea.
+to get a better idea of the things I wanna try.
 
 ![ci](https://github.com/fstamour/breeze/actions/workflows/ci.yml/badge.svg)
 
@@ -35,13 +35,13 @@ pretty much all the time.
 Currently, breeze's main interface is emacs; `breeze.el` adds a few
 commands and one minor-mode with one bindings (`C-.`).
 
-Most notably, there is one binding that call a command called
-`breeze-quickfix` (might rename in the future). This command suggests
-applicable actions given the current context (file name, file content,
-position in the file, etc.). For example, if the file ends with ".asd"
-it will suggest a command to insert a `defsystem` form. If breeze was
-already configured, it will pre-fill the `:maintainer`, `:author` and
-`licence` fields. Another example is that if the file is empty, or
+The one binding calls a command named `breeze-quickfix` (might rename
+in the future). This command suggests applicable actions given the
+current context (file name, file content, position in the file,
+etc.). For example, if the file ends with ".asd" it will suggest a
+command to insert a `defsystem` form. If breeze was already
+configured, it will pre-fill the `:maintainer`, `:author` and
+`:licence` fields. Another example is that if the file is empty, or
 contains only comments, it will suggest to insert a `defpackage` or
 `uiop:define-package` form. It is also able to detect when you're
 trying to edit/evaluate forms that are in a package that doesn't
@@ -115,7 +115,7 @@ configuration folder, but for now this will do.
 
     (require '#:breeze.config)
 
-    (setf breeze.config:*default-author* "you're name"
+    (setf breeze.config:*default-author* "your name"
           breeze.config:*capture-folder* #p"~/capture/")
 
 ### How to run the tests
