@@ -9,8 +9,7 @@
 
 (defpackage #:breeze.cl
   (:documentation "Some useful metadata on cl's symbols")
-  (:use :cl)
-  (:local-nicknames (#:a #:alexandria)))
+  (:use :cl))
 
 (in-package #:breeze.cl)
 

@@ -17,7 +17,7 @@ See ~LIBRESSL_PEM~ in ~docker.nix~
 DONE: I'm using alpine docker image for this, and I don't have this
 issue anymore.
 
-*** TODO Package-local nicknames not supported by asdf 3.3.1
+*** DONE Package-local nicknames not supported by asdf 3.3.1
 
 I have this problem inside the docker as well as on FreeBSD and NixOS.
 
@@ -28,6 +28,8 @@ branch).
 But I'm not certain yet how to fix it inside the docker container. I
 found a nix package called ~quicklispPackagesClisp.asdf~ that provides
 the right version of asdf.
+
+Fixed: I'm not using package-local nicknames anymore
 
 *** DONE Try another BASE docker image
 
