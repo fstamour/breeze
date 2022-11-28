@@ -13,7 +13,9 @@
                 #:read-string
                 #:choose
                 #:message
-                #:find-file)
+                #:find-file
+                #:ask-y-or-n-p
+                #:return-from-command)
   (:import-from #:breeze.config
                 #:*default-author*
                 #:*default-system-licence*)
@@ -48,17 +50,27 @@
       (t
        (first directories)))))
 
+(defun confirm (directory)
+  "If a user choose to scaffold a project into a directory that already
+exists, we need their confirmation to continue."
+  (when (probe-file directory)
+    (unless (ask-y-or-n-p
+             (format nil "The directory \"~A\" already exists. Scaffolding might result in data loss, are you sure you want to continue? (y/n) " directory))
+      (return-from-command)))
+  directory)
+
 (define-command scaffold-project (project-name directory)
   "Create a project interactively using quickproject."
-  (let* ((project-name
+  (let* (;; TODO Currently the user is able to enter an empty string
+         (project-name
            (or project-name
                (read-string "Name of the project: ")))
          (directory
-           ;; TODO What if the directory already exists?
-           (uiop:ensure-directory-pathname
-            (or directory
-                (merge-pathnames  project-name
-                                  (choose-local-project-directories)))))
+           (confirm
+            (uiop:ensure-directory-pathname
+             (or directory
+                 (merge-pathnames project-name
+                                  (choose-local-project-directories))))))
          (author (read-string "Author of the project: "
                               *default-author*))
          (license (read-string "Licence of the project: "
