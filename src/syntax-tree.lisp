@@ -3,7 +3,6 @@
 (uiop:define-package #:breeze.syntax-tree
     (:documentation "Syntax tree data structure for common lisp reader")
   (:use #:cl)
-  (:local-nicknames (#:a #:alexandria))
   (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name)
@@ -144,7 +143,7 @@
                 ))))
 
 (defun print-node-prefix (node stream)
-  (a:if-let (prefix (node-prefix node))
+  (alexandria:if-let (prefix (node-prefix node))
     (format stream "~s "
             (if (every #'breeze.utils:whitespacep prefix)
                 (length prefix)
@@ -239,7 +238,7 @@
 
 (defun node-lastcar (node)
   "Return the last element from a NODE's content."
-  (a:lastcar (node-content node)))
+  (alexandria:lastcar (node-content node)))
 
 (defun node-string-equal (string node)
   "Compare the content of a NODE to a STRING, case-insensitive."
@@ -279,9 +278,9 @@
              :for cl-package-p = (eq (find-package :cl) package)
              :for function-name
                = (if cl-package-p
-                     (a:symbolicate type '#:-form-p)
-                     (a:symbolicate (package-name package)
-                                    '#:-- type '#:-form-p))
+                     (alexandria:symbolicate type '#:-form-p)
+                     (alexandria:symbolicate (package-name package)
+                                             '#:-- type '#:-form-p))
              :collect
              `(export
                (defun ,function-name
@@ -329,15 +328,15 @@
      ,@(loop :for type :in types
              :collect
              `(export
-               (defun ,(a:symbolicate '#:find-nearest-sibling- type
-                                      '#:-form)
+               (defun ,(alexandria:symbolicate '#:find-nearest-sibling- type
+                                               '#:-form)
                    (nodes current-node)
                  ,(format
                    nil "Find the nearest sibling form of type \"~a\"."
                    type)
                  (find-nearest-sibling-form
                   nodes current-node
-                  #',(a:symbolicate type '#:-form-p)))))))
+                  #',(alexandria:symbolicate type '#:-form-p)))))))
 
 (defun find-nearest-parent-form (path predicate)
   "Find the nearest parent form that match the predicate."
@@ -353,15 +352,15 @@
      ,@(loop :for type :in types
              :collect
              `(export
-               (defun ,(a:symbolicate '#:find-nearest-parent- type
-                                      '#:-form)
+               (defun ,(alexandria:symbolicate '#:find-nearest-parent- type
+                                               '#:-form)
                    (path)
                  ,(format
                    nil "Find the nearest parent form of type \"~a\"."
                    type)
                  (find-nearest-parent-form
                   path
-                  #',(a:symbolicate type '#:-form-p)))))))
+                  #',(alexandria:symbolicate type '#:-form-p)))))))
 
 
 
