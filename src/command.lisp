@@ -38,6 +38,7 @@
    #:backward-char
    #:message
    #:find-file
+   #:ask-y-or-n-p
    ;; Utilities to create commands
    #:define-command))
 
@@ -430,6 +431,14 @@ resulting string to the editor."
   "Send a message to the editor to tell it to open the PATHNAME."
   (send "find-file"
         (namestring pathname)))
+
+(defun ask-y-or-n-p (prompt)
+  "Ask the user a y/n question."
+  (loop :for answer = (read-string prompt)
+        :for valid-p = (member answer '("y" "n") :test #'string-equal)
+        :for i :below 3 ; guard against infinite loop
+        :while (not valid-p)
+        :finally (return (string-equal "y" answer))))
 
 
 ;;; Utilities to help creating commands less painful.
