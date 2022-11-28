@@ -1,5 +1,3 @@
-
-
 # <a name="readme">Breeze</a>
 
 Breeze is a set of tools that aims to make lisp development a breeze

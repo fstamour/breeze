@@ -28,7 +28,7 @@
                        )
   ;; (declare (ignore depends-on author include-copyright license name
   ;; template-directory template-parameters))
-  "Scaffold a projec using quickproject's make-project."
+  "Scaffold a project using quickproject's make-project."
   (apply #'quickproject:make-project args))
 
 (defun ql-local-project-directories ()
