@@ -40,6 +40,7 @@
    #:find-file
    #:ask-y-or-n-p
    ;; Utilities to create commands
+   #:return-from-command
    #:define-command))
 
 (in-package #:breeze.command)
@@ -443,6 +444,9 @@ resulting string to the editor."
 
 ;;; Utilities to help creating commands less painful.
 
+(defun return-from-command ()
+  (throw 'done nil))
+
 ;; TODO This needs to be split-up!
 (defmacro define-command (name (&rest key-arguments)
                           &body body)
@@ -483,7 +487,7 @@ Example:
          (if (current-command*)
              ;; If we're already running a command
              (progn
-               (block nil
+               (catch 'done
                  ,@(loop
                      :for var :in basic-context-variables
                      :collect `(unless ,var
@@ -497,7 +501,7 @@ Example:
               ,context-plist
               (lambda ()
                 (progn
-                  (block nil ,@remaining-forms)
+                  (catch 'done ,@remaining-forms)
                   (send "done")))))))))
 
 

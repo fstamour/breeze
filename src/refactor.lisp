@@ -445,7 +445,7 @@ For debugging purposes ONLY.")
         ;; cannot be found (e.g. the user forgot to define a package.
         (invalid-in-package
          (message "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
-         (return))
+         (return-from-command))
         ((ends-with-subseq ".asd" buffer-file-name
                            :test #'string-equal)
          (push-command 'insert-asdf))
