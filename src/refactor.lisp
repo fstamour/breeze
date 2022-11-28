@@ -324,6 +324,7 @@ defun."
   "Data from the latest quickfix invocation.
 For debugging purposes ONLY.")
 
+#+ (or)
 (let ((inner-node (assoc :inner-node *qf*)))
   inner-node
   ;; (node-symbol= 'uiop:define-package inner-node)
@@ -496,7 +497,6 @@ For debugging purposes ONLY.")
                  (:commands . ,commands)))
 
     ;; Ask the user to choose a command
-
     (let* ((choice (choose "Choose a command: "
                            (mapcar #'second commands)))
            (command-function (car (find choice commands

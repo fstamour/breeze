@@ -4,7 +4,7 @@ This is heavily work-in-progress
 
 ** Status
 
-*** TODO TLS issues with emacs
+*** DONE TLS issues with emacs
 
 When running emacs inside the docker image build with nix, emacs fails
 to validate elpa.gnu.org's certificate. I found out how to fix it by
@@ -13,6 +13,9 @@ yet how to get the right path (I validated the solution by hardcoding
 the path into the nix store).
 
 See ~LIBRESSL_PEM~ in ~docker.nix~
+
+DONE: I'm using alpine docker image for this, and I don't have this
+issue anymore.
 
 *** TODO Package-local nicknames not supported by asdf 3.3.1
 

@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.command
-  (:documentation "Interactive commands' core")
+    (:documentation "Interactive commands' core")
   (:use :cl)
   (:import-from #:alexandria
                 #:symbolicate
@@ -472,6 +472,7 @@ Example:
          ,@(when declarations (list declarations))
          ,docstring
          (if (current-command*)
+             ;; If we're already running a command
              (progn
                (block nil
                  ,@(loop
@@ -482,12 +483,16 @@ Example:
                  ,@remaining-forms)
                ;; Send the "done" command
                "done")
+             ;; If we're starting a new command
              (start-command
               ,context-plist
               (lambda ()
                 (progn
                   (block nil ,@remaining-forms)
                   (send "done")))))))))
+
+
+;;; Pieces of code to help debug issues with commands
 
 ;; (setf *break-on-signals* 'error)
 

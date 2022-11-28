@@ -1,4 +1,5 @@
 #+title: Notes
+#+todo: TODO | DONE OBSOLETE
 
 * Roadmap
 
@@ -12,7 +13,7 @@
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
-** TODO Make it easy to report a bugs
+** TODO Make it's easy to report a bugs
 
 - os version
 - lisp version
@@ -24,7 +25,7 @@ prioritize accordingly.
   - from which distribution the system come from
   - version of the system
 
-** TODO Make sure the commands are execture against _common lisp_ code
+** TODO Make sure the commands are executed against _common lisp_ code
 
 Gavinok tried breeze, but ran ~C-.~ on ~breeze.el~, this causes
 confusion for everybody.
@@ -96,7 +97,7 @@ As opposed to explain the principles, goals, non-goals, etc.
 Actually explain what breeze *does*.
 
 ** DONE add a "What is this?" section                                   :doc:
-** DONE [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
+** OBSOLETE CANCELED [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
 
 Start by documenting how to start using breeze, then automate it.
 
@@ -129,7 +130,7 @@ current restart, and add another one that shows more candidate
 Maybe we can refine that list of candidate based on other, perhaps
 heavier criteria?
 
-** TODO Document how to use breeze:defun                                :doc:
+** OBSOLETE Document how to use breeze:defun                            :doc:
 
 *** When redefining a function defined with breeze:defun, it run tests
 *** When defining a test with breeze:deftest, it run tests
@@ -138,7 +139,6 @@ heavier criteria?
 
 When you redefine many function (e.g. when reloading a file), it
 doens't run all the tests each time a something is redefined.
-
 
 ** TODO Document (with screenshots) how to setup and use emacs integration :doc:
 ** TODO Document how to use quickproject integration                    :doc:
@@ -189,7 +189,7 @@ Could pass the file to br:next. What if
 When the user just initialized breeze, try to find out if the user has
 any lisp project(s) already opened, help him work on it.
 
-If not projects are found guide him through (breeze-quickproject)
+If not projects are found guide him through =breeze-scaffold=
 
 ** TODO Suggest corrections when typos are detected                      :ux:
 
