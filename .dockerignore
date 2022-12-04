@@ -1,5 +1,9 @@
 scratch-files/
 .git/
+.github/
+.githooks/
+.gitattributes
+.gitmodules
 *.org
 result
 *~

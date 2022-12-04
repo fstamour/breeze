@@ -1,19 +1,31 @@
 ;; -*- lexical-binding: t -*-
 
-(let ((libressl-pem (getenv "LIBRESSL_PEM")))
-  (when libressl-pem
-    (require 'gnutls)
-    (add-to-list 'gnutls-trustfiles
-                 ;; TODO Fix LIBRESSL_PEM in docker.nix, so we can use
-                 ;; that instead of hard-coding this.
-                 ;; P.S. I found that file using `find / -name '*.pem'`
-                 "/nix/store/z9dmcm0b2n25nfgb3csypn7z250y6ihf-libressl-3.4.1/etc/ssl/cert.pem")))
+;; This is for debugging
+(server-start)
 
-(package-initialize)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-(package-refresh-contents)
-(package-install 'selectrum)
+;; (switch-to-buffer "*Message*")
 
+(defvar demo-listener-port (or (getenv "DEMO_LISTENER_PORT") 40050))
+
+(setq shell-command-dont-erase-buffer t)
+
+(defun demo-in-container-p ()
+  "Test if emacs is running in a container."
+  ;; This is a bad implementation, but it'll do for now.
+  (= 0 (user-real-uid)))
+
+(defun demo-load-listener ()
+  ;; Load slime
+  (if (demo-in-container-p)
+      (progn
+        (add-to-list 'load-path "/swank")
+        (require 'slime-autoloads)
+        (slime-setup '(slime-fancy)))
+    (load "~/quicklisp/slime-helper.el"))
+  ;; Configure slime
+  (setq
+   ;; Autocomplete
+   slime-complete-symbol-function 'slime-fuzzy-complete-symbol))
 
 (director-bootstrap
  :user-dir "/tmp/director-demo"
@@ -27,63 +39,70 @@
                            (current-buffer))
                           (pwd))
                       ".git")
-                     "/scripts/demo"))
+                     "./scripts/demo"))
 
-;; This is for debugging
-(server-start)
+(defvar *demo-log-file* (concat *demo-root* "/demo.log"))
+
 
 (defvar *demo-window-config* nil)
+
+(defun demo-open-logs ()
+  "To be used with :on-error, :on-failure, etc."
+  (interactive)
+  (find-file *demo-log-file*))
 
 ;; Can use this to pass arguments to the script
 ;; (print argv)
 
-(defun capture (name)
+;; TODO Don't capture if (getenv "DISPLAY") is null
+(defun demo-capture (name)
   (interactive)
-  (shell-command
-   (format
-    ;; "tmux capture-pane -e -p > %s/%s.capture" *demo-root* name
-    "scrot %s/%s.png -n '%s'" *demo-root* name name)))
+  (let ((command
+         ;; (format "tmux capture-pane -e -p > %s/%s.capture" *demo-root* name)
+         (format "scrot %s/%s.png" *demo-root* name)
+         ;; (format
+         ;;  ;; "tmux capture-pane -e -p > %s/%s.capture" *demo-root* name
+         ;;  "scrot %s/%s.png -n \"-t '%s'\" -x 10 -y 10 -c 255,0,0,255"
+         ;;  *demo-root* name name)
+         ))
+    (director--log (format "About to run %S" command))
+    (shell-command command)))
 
-(defun call-capture (name)
+(defun demo-call-capture (name)
   (let ((name name))
     `(:call ,#'(lambda ()
                  (interactive)
-                 (capture name)))))
+                 (demo-capture name)))))
+
+(defun demo-on-end (success)
+  (if success
+      (kill-emacs 0)
+    (progn
+      (save-excursion
+        (with-current-buffer (get-buffer shell-command-buffer-name)
+          (write-file (concat *demo-root* "/shell-command-output.log"))))
+      ;; TODO For debugging, don't kill if an emacsclient is connected
+      (kill-emacs 1))))
 
 (director-run
  :version 1
  :before-start (lambda ()
                  ;;(require 'ivy)
-                 (selectrum-mode 1)
+                 ;; (selectrum-mode 1)
                  (switch-to-buffer (get-buffer-create "*example*"))
                  (menu-bar-mode -1)
-                 (setf *demo-window-config*
-                       (current-window-configuration))
-                 ;; Load slime
-                 (load "~/quicklisp/slime-helper.el")
-                 ;; Configure slime
-                 (setq slime-lisp-implementations
-                       '((sbcl ("sbcl"
-                                "--noinform"
-                                "--dynamic-space-size" "16000"
-                                "--load" "breeze.asd"
-                                "--eval" "(ql:quickload :breeze)")
-                               :coding-system utf-8-unix))
-                       slime-default-lisp 'sbcl
-                       ;; Autocomplete
-                       slime-complete-symbol-function
-                       'slime-fuzzy-complete-symbol)
+                 (setf *demo-window-config* (current-window-configuration))
+                 (demo-load-listener)
                  ;; Load breeze
-                 ;; (require 'breeze)
-                 ;; Start slime
-                 ;; (slime-connect "localhost" 40050)
-                 (slime)
-                 )
- :steps `(,(call-capture "slime-initialized")
+                 (require 'breeze)
+                 ;; Connect to lisp
+                 (slime-connect "localhost" demo-listener-port))
+ :steps `(,(demo-call-capture "slime-initialized")
+          ;; (:wait 2)
           (:type "\M-x")
           (:type "breeze")
           (:type [return])
-          (:wait 2)
+          ;; (:wait 2)
           ;; Switch to the other window
           (:call
            (lambda ()
@@ -93,16 +112,18 @@
           ;; Breeze-mode
           (:call lisp-mode)
           (:call breeze-mode)
-          ,(call-capture "breeze-example-buffer")
+          ,(demo-call-capture "breeze-example-buffer")
           ;; Calling quickfix
           (:call breeze-quickfix)
-          ,(call-capture "breeze-quickfix-menu-1"))
+          ,(demo-call-capture "breeze-quickfix-menu-1")
+          ;; (:wait 300)
+          )
  :typing-style 'human
- :log-target (cons 'file (concat *demo-root* "/demo.log"))
+ :log-target (cons 'file *demo-log-file*)
  :delay-between-steps 0.5
- :after-end (lambda () (kill-emacs 0))
- :on-failure (lambda () (kill-emacs 1))
- :on-error (lambda () (kill-emacs 1)))
+ :after-end (lambda () (demo-on-end t))
+ :on-failure (lambda () (demo-on-end nil))
+ :on-error (lambda () (demo-on-end nil)))
 
 
 ;; (listify-key-sequence ".")

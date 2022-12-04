@@ -17,6 +17,7 @@ See ~LIBRESSL_PEM~ in ~docker.nix~
 DONE: I'm using alpine docker image for this, and I don't have this
 issue anymore.
 
+
 *** DONE Package-local nicknames not supported by asdf 3.3.1
 
 I have this problem inside the docker as well as on FreeBSD and NixOS.
@@ -78,25 +79,6 @@ possible features and dependencies that emacs could possibly have).
 *** Docker image
 
 See `build-docker-image.sh`.
-
-Used nix to create a base docker image with pretty much everything I
-could ever want to create a demo of breeze inside emacs.
-
-1. nix-build docker.nix
-2. docker build with dockerfile and the docker image that was just
-   created by nix-build.
-
-**** Why nix?
-
-So all dependencies would be explicits.
-
-**** Limitations
-
-I could not use nix only to build the docker image, as quicklisp tries
-to download stuff from the internet, and nix's build are not allowed
-to access the internet. (N.B. the latest release of nix (2.8.0) added
-an experimental feature called "impure derivations", so using nix only
-might be possible in the future.)
 
 **** Tips
 
