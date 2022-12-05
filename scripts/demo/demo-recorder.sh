@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This script is meant to be run as the main script _inside docker_
 #
@@ -36,22 +36,29 @@ echo "Waiting for swank to startup in the background..."
 wait_for_file $listener_ready_file
 echo "Swank is up!"
 
+emacs_args=(
+    # Don't load any init file
+    -Q
+    # Load the emacs-director's loader
+    -l scripts/emacs-director/util/director-bootstrap.el
+    # Run our demo
+    -l scripts/demo.el
+    # Trying to pass extra arguments
+    base-demo
+)
+
 function emacs_x11() {
     export DISPLAY=:99
 
     # -s "-screen 0 1280x800x32"
-    xvfb-run -e xvfb-errors.log emacs -Q \
-             -l scripts/emacs-director/util/director-bootstrap.el \
-             -l scripts/demo.el &
+    xvfb-run -e xvfb-errors.log emacs "${emacs_args[@]}" &
     ## sleep 2
     ## tail -f $director_logs | sed '/END/q'
 }
 
 function emacs_tty() {
     # For debugging
-    emacs -Q -nw \
-          -l scripts/emacs-director/util/director-bootstrap.el \
-          -l scripts/demo.el
+    emacs -nw "${emacs_args[@]}"
 }
 
 function wait_for_emacs_to_stop() {
@@ -61,27 +68,30 @@ function wait_for_emacs_to_stop() {
     done
 }
 
+function dump() (
+    set +e
+    echo
+    find -name '*.log'
+    echo
+    find / -name 'breeze*.png'
+    echo
+    cat $director_logs
+    echo
+    cat scripts/demo/messages.log
+    ls scripts/demo
+)
+
+trap "echo SIGINT; dump; sh" SIGINT # ^c
+trap "echo SIGUSR1; emacsclient -nw" SIGUSR1 # ^t
+
 emacs_x11
-wait_for_file $director_logs
+# wait_for_file $director_logs
+
+sleep 1
+wait_for_emacs_to_stop
+# emacsclient -nw
 
 ### below, it's all for testing
 
-
-
-set +e # don't stop on error anymore
-
-# emacsclient -nw
-wait_for_emacs_to_stop
-
-find -name '*.log'
-find / -name 'breeze*.png'
-cat $director_logs
-ls scripts/demo
-
+dump
 sh
-
-
-
-# For debugging
-# Tip: use emacsclient
-# sh
