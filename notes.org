@@ -797,6 +797,21 @@ https://flownet.com/ron/packages.pdf
 - Use the functions that operate on sequences.
 - Use libraries, like alexandria, split-sequences, serapeum, etc.
 
+* Glossary
+
+** lisp listener
+
+- More often called "lisp repl".
+- I use this term to try to avoid confusion with an hypothetical
+  future actual REPL.
+- You could describe that as a "client-server REPL".
+
+** REPl
+
+- Stands for "Read-Eval-Print-Loop"
+- Most people think about "command line" when they hear REPL, but in
+  the case of lisp, it usually means a "listener".
+
 * Resources
 
 - [alexandria](https://alexandria.common-lisp.dev/draft/alexandria.html)

@@ -35,7 +35,8 @@ RUN apk add \
     xvfb-run \
     ffmpeg \
     scrot \
-    screen
+    screen \
+    bash
 
 RUN mkdir -p /breeze /tmp
 WORKDIR /breeze
