@@ -98,7 +98,7 @@
 (define-test read-string-then-insert)
 (define-test replace-region)
 (define-test backward-char)
-
+(define-test message)
 
 (define-test context-buffer-string
   (is string=

@@ -384,11 +384,6 @@ For debugging purposes ONLY.")
         (when (null package)
           package-designator)))))
 
-;; TODO
-(defun compute-suggestions ()
-  "Compute the list of applicable commands given the current context."
-  (augment-context-by-parsing-the-buffer context))
-
 (defmacro let+ctx (bindings &body body)
   `(let*
        (,@ (loop :for binding :in bindings
@@ -398,42 +393,21 @@ For debugging purposes ONLY.")
                    :collect `(,binding (context-get (command-context*) ',binding))))
      ,@body))
 
+
 #+ (or)
 (let+ctx ((x 42)
           nodes position path))
 
-;; I made this command mostly for manually testing replace-region
-(define-command delete-parent-form
-    ()
-  "Given the context, suggest some applicable commands."
-  (augment-context-by-parsing-the-buffer (command-context*))
-  (let+ctx (parent-node)
-    ;; Save some information for debugging
-    (setf *qf* `((:context . ,(command-context*))))
-    (if (and parent-node
-             (not (listp parent-node)))
-        (destructuring-bind (from . to)
-            (node-source parent-node)
-          (replace-region from to ""))
-        (message "No parent node at point."))))
-
-(define-command quickfix ()
-  "Given the context, suggest some applicable commands."
-  (augment-context-by-parsing-the-buffer (command-context*))
+(defun compute-suggestions (&aux commands)
+  "Compute the list of applicable commands given the current context."
   (let+ctx (nodes
             position
             path
             outer-node
             inner-node
             inner-node-index
-            parent-node
-            ;; Check if the closes defpackage was evaluated once
-            (invalid-in-package (validate-nearest-in-package nodes outer-node))
-            ;; Accumulate a list of commands that make sense to run in
-            ;; the current context
-            (commands))
-    (declare (ignorable inner-node inner-node-index parent-node))
-
+            parent-node)
+    (declare (ignorable path inner-node-index parent-node))
     (labels ((append-commands (cmds)
                (setf commands (append cmds commands)))
              (push-command (fn)
@@ -441,12 +415,7 @@ For debugging purposes ONLY.")
              (push-command* (&rest fns)
                (mapcar #'push-command fns)))
       (cond
-        ;; When the previous in-package form desginate a package tha
-        ;; cannot be found (e.g. the user forgot to define a package.
-        (invalid-in-package
-         (message "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
-         (return-from-command))
-        ((ends-with-subseq ".asd" buffer-file-name
+        ((ends-with-subseq ".asd" (context-buffer-name*)
                            :test #'string-equal)
          (push-command 'insert-asdf))
         ;; When the buffer is empty, or only contains comments and
@@ -484,25 +453,66 @@ For debugging purposes ONLY.")
          (push-command 'insert-lambda))
         (t
          (append-commands
-          *commands-applicable-inside-another-form-or-at-toplevel*))))
+          *commands-applicable-inside-another-form-or-at-toplevel*)))))
 
-    ;; Deduplicate commands
-    (setf commands (remove-duplicates commands))
+  ;; Deduplicate commands
+  (setf commands (remove-duplicates commands))
 
-    ;; Augment the commands with their descriptions.
-    (setf commands (mapcar #'command-description commands))
+  ;; Augment the commands with their descriptions.
+  (setf commands (mapcar #'command-description commands))
 
+  ;; Save some information for debugging
+  (setf *qf* `((:context . ,(command-context*))
+               (:commands . ,commands)))
+
+  ;; Returns the list of applicable commands
+  commands)
+
+
+;; I made this command mostly for manually testing replace-region
+(define-command delete-parent-form
+    ()
+  "Given the context, suggest some applicable commands."
+  (augment-context-by-parsing-the-buffer (command-context*))
+  (let+ctx (parent-node)
     ;; Save some information for debugging
-    (setf *qf* `((:context . ,(command-context*))
-                 (:commands . ,commands)))
+    (setf *qf* `((:context . ,(command-context*))))
+    (if (and parent-node
+             (not (listp parent-node)))
+        (destructuring-bind (from . to)
+            (node-source parent-node)
+          (replace-region from to ""))
+        (message "No parent node at point."))))
 
-    ;; Ask the user to choose a command
-    (let* ((choice (choose "Choose a command: "
-                           (mapcar #'second commands)))
-           (command-function (car (find choice commands
-                                        :key #'second
-                                        :test #'string=))))
-      (funcall command-function))))
+(defun check-in-package ()
+  "Make sure the previous in-package form desginates a package that can
+be found. If it's not the case (e.g. because the user forgot to define
+a package and/or evaluate the form that defines the package) they show
+a message and stop the current command."
+  (let+ctx (nodes
+            outer-node
+            ;; Check if the closes defpackage was evaluated once
+            (invalid-in-package (validate-nearest-in-package nodes outer-node)))
+    (when invalid-in-package
+      (message "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
+      (return-from-command))))
+
+(define-command quickfix ()
+  "Given the context, suggest some applicable commands."
+  (augment-context-by-parsing-the-buffer (command-context*))
+  (check-in-package)
+  (let* (;; Compute tha applicable commands
+         (commands (compute-suggestions))
+         ;; TODO What if there are no suggestions?
+         ;; Ask the user to choose a command
+         (choice (choose "Choose a command: "
+                         (mapcar #'second commands)))
+         (command-function (car (find choice commands
+                                      :key #'second
+                                      :test #'string=))))
+    (if command-function
+        (funcall command-function)
+        (message "~s is not a valid choice" choice))))
 
 
 #+nil
