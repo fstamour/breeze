@@ -211,6 +211,10 @@
 
 (defun start-command (context-plist thunk)
   "Start processing a command, initializing *current-command*."
+  ;; It is possible, especially (when testing breeze...) that there
+  ;; are multiple commands running at the same time. For now, we'll
+  ;; just cancel the currently running one.
+  (cancel-command)
   (cancel-command-on-error
     ;; Create the command handler with the right context
     (setf *current-command*
@@ -251,6 +255,7 @@
     (run-command *current-command* nil)))
 
 
+;; TODO Maybe rename ARGUMENTS to RESPONSE?
 (defun continue-command (&rest arguments)
   "Continue procressing *current-command*."
   (unless *current-command*
