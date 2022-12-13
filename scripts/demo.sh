@@ -11,7 +11,6 @@ set -e
 cd "$(git rev-parse --show-toplevel)"
 
 demo_root=scripts/demo
-mkdir -p scripts/demo
 
 screencast="demo.svg"
 command='emacs -nw -Q -l scripts/emacs-director/util/director-bootstrap.el -l scripts/demo.el -- asdf'

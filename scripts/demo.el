@@ -46,7 +46,11 @@
 
 (defun demo-log (format-string &rest args)
   "Log a message."
-  (apply #'message format-string args))
+  ;; Binding inhibit-message to nil will still log the messages to
+  ;; *Messages*, but they won't be displayed, making sure this
+  ;; script's logs won't appear in the screenshots.
+  (let (inhibit-message)
+    (apply #'message format-string args)))
 
 (defun demo-in-container-p ()
   "Test if emacs is running in a container."

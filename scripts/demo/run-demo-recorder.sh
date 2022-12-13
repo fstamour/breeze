@@ -1,3 +1,3 @@
 #!/bin/sh
-       `#-v "$(git rev-parse --show-toplevel)":/breeze` \
-docker run -it --rm breeze-demo-recorder
+
+docker run -it --rm --name breeze-demo-recorder breeze-demo-recorder
