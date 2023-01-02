@@ -374,13 +374,21 @@ It can be null."
 
 ;;; Basic commands, to be composed
 
+;; This is mostly to work around window's end of lines...
+(defun format* (control-string args)
+  (apply #'format nil
+         #.(if (uiop:os-windows-p)
+               `(remove #\Return control-string)
+               'control-string)
+         args))
+
 (defun insert (control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
 POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
 position."
   (send
    "insert"
-   (apply #'format nil control-string args)))
+   (format* control-string args)))
 
 (defun read-string (prompt &optional initial-input)
   "Send a message to the editor to ask the user to enter a string."
@@ -398,6 +406,7 @@ collection."
   (send "choose" prompt collection)
   (recv1))
 
+;; TODO This could benefit from FORMAT
 (defun insert-at (position string save-excursion-p)
   "Send a message to the editor telling it to insert STRING at
 POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
@@ -431,16 +440,16 @@ to non-nil to keep the current position."
 user. This function pass its arguments to cl:format and sends the
 resulting string to the editor."
   (send "message"
-        (apply #'format nil control-string format-arguments)))
+        (format* control-string format-arguments)))
 
 (defun find-file (pathname)
   "Send a message to the editor to tell it to open the PATHNAME."
   (send "find-file"
         (namestring pathname)))
 
-(defun ask-y-or-n-p (prompt)
+(defun ask-y-or-n-p (prompt &rest format-arguments)
   "Ask the user a y/n question."
-  (loop :for answer = (read-string prompt)
+  (loop :for answer = (read-string (format* prompt format-arguments))
         :for valid-p = (member answer '("y" "n") :test #'string-equal)
         :for i :below 3 ; guard against infinite loop
         :while (not valid-p)
