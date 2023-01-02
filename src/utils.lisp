@@ -18,6 +18,7 @@
    #:symbol-package-qualified-name
    #:before-last
    #:find-version-control-root
+   #:find-asdf-in-parent-directories
    #:subseq-displaced
    #:length>1?))
 
@@ -203,6 +204,7 @@ sytsem-files"
   (member char '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page
                  #\Return #\Rubout)))
 
+;; TODO This is horrible performance-wise, I should never use this
 (defun read-stream-range (stream start end)
   "Read a subsequence from STREAM between START and END."
   (let ((current-position (file-position stream)))
@@ -238,18 +240,18 @@ sytsem-files"
                    (when (cdr rest)
                      (car rest)))))
 
-;; TODO This could be even more useful if it searched for files too
-(defun find-witness-in-parent-directories (starting-path witness)
+(defun find-witness-in-parent-directories (starting-path witness
+                                           &key (test #'uiop:probe-file*))
   "Search for a directory called WITNESS in current and parent
 directories, recursively."
   (loop
-    :repeat 1000 ; guard against infinite loop (e.g. symlink)
+    :repeat 1000          ; guard against infinite loop (e.g. symlink)
     :for oldpath = nil :then path
     :for path = (uiop:pathname-directory-pathname starting-path)
-      :then
-      (uiop:pathname-parent-directory-pathname path)
-    :for witness-pathname = (uiop:directory-exists-p
-                             (merge-pathnames witness path))
+      :then (uiop:pathname-parent-directory-pathname path)
+    :for witness-pathname = (funcall
+                             test
+                             (uiop:merge-pathnames* witness path))
     :until (or
             witness-pathname
             (equal oldpath path))
@@ -265,8 +267,12 @@ should be easy to add."
   (alexandria:if-let ((git-witness-directory (find-git-witness-folder path)))
     (uiop:pathname-parent-directory-pathname git-witness-directory)))
 
+(defun find-asdf-in-parent-directories (starting-path)
+  (find-witness-in-parent-directories starting-path "*.asd"
+                                      :test #'directory))
 
 (defun subseq-displaced (sequence start &optional end)
+  "Like subseq, but returns a displaced array instead."
   (let* ((end (or end (length sequence)))
          (size (- end start)))
     (make-array size
