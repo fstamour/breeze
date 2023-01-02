@@ -64,11 +64,11 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 
 (define-test insert-handler-bind-form
   (is equal
-      '(("insert" "(handler-bind
+      '((nil
+         ("insert" "(handler-bind
   ((error #'(lambda (condition)
     (describe condition *debug-io*))))
-  (frobnicate))")
-        ("done"))
+  (frobnicate))")))
       (drive-command #'insert-handler-bind-form
                      '()
                      nil)))
