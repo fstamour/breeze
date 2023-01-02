@@ -82,7 +82,7 @@ This package also re-exports symbols from breeze.syntax-tree.")
                 (symbolp result)
                 (make-instance 'symbol-node
                                :content result))
-               (;; If result is a stirng, make a string-node
+               (;; If result is a string, make a string-node
                 (stringp result)
                 (make-instance 'string-node
                                :content result))
@@ -157,7 +157,7 @@ This package also re-exports symbols from breeze.syntax-tree.")
 ;; #\
 (defmethod eclector.reader:find-character ((client breeze-client)
                                            designator)
-  "Create a syntac node for #\\ ."
+  "Create a syntax node for #\\ ."
   (make-instance 'character-node
                  :content (format nil "#\\~a" designator)
                  :char

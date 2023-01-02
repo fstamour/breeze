@@ -2,7 +2,7 @@
 (ql:quickload "swank")
 
 ;; See the content of the variable slime-required-modules in emacs to
-;; get the list availabe modules. See the "needed" varible of
+;; get the list available modules. See the "needed" variable of
 ;; #'slime-load-contribs to know which ones are actually needed.
 ;;
 ;; Those are the ones required (transitively) by the slime-fancy

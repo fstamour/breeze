@@ -59,7 +59,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
          ;; Detect when the command is done.
          :while (and request
                      (not (string= "done" (car request)))))
-    ;; Make sure we clean up correclty if there was an error.
+    ;; Make sure we clean up correctly if there was an error.
     (cancel-command)))
 
 (define-test insert-handler-bind-form

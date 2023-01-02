@@ -1,5 +1,5 @@
 ;;;; The test runner is a separate thread that receives request to run test.
-;;;; We use a thread (as opposed to straigth up running the tests) in
+;;;; We use a thread (as opposed to straight up running the tests) in
 ;;;; order to debounce and group the requests.
 
 ;;; TODO Logging (maybe use log4cl)

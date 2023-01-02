@@ -150,7 +150,7 @@
      string)
    ""))
 
-;; TOOD
+;; TODO
 (defun function-lambda-list (function)
   "Returns a function's lambda-list"
   nil)

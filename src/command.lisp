@@ -162,7 +162,7 @@
   (handler-bind
       ((error #'(lambda (condition)
                   ;; (declare (ignore condition))
-                  (log:error "~&An error occured: ~a" condition)
+                  (log:error "~&An error occurred: ~a" condition)
                   (cancel-command condition))))
     (funcall thunk)))
 
@@ -332,14 +332,14 @@ It can be null."
 
 (defun context-point-min (context)
   "Get the \"point-min\" from the CONTEXT.
-The point-min is the position of the beggining of buffer-string.
+The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get context :point-min))
 
 (defun context-point-min* ()
   "Get the \"point-min\" from the *current-command*'s context.
-The point-min is the position of the beggining of buffer-string.
+The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get (command-context*) :point-min))

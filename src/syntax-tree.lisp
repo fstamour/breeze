@@ -262,7 +262,7 @@
   "Does NODE represent the symbol \"nil\"."
   (node-symbol= 'nil node))
 
-;; TODO A "skipped node" can also be a form hidden behing a feature (#+/-)
+;; TODO A "skipped node" can also be a form hidden behind a feature (#+/-)
 (defun nodes-emptyp (nodes)
   "Whether a list of node contains no code."
   (every #'(lambda (node)

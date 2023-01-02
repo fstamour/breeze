@@ -55,7 +55,7 @@ the user changed buffer, the editor will insert the string in the
 wrong buffer.
 
 OR the "client" should be responsible to always execute the commands
-with on the "intial" buffer, unless stated otherwise (but that would
+with on the "initial" buffer, unless stated otherwise (but that would
 add even more state on the protocol).
 
 ** TODO Replace the basic command ~backwar-char~
@@ -122,7 +122,7 @@ e.g not suggest "slot-exists-p" when trying to eval
 
 - Maybe look into VP-trees (Vantage-Point trees)
 
-How would that help the user? Addind a restart for each canditate
+How would that help the user? Adding a restart for each candidate
 would really pollute the list of restarts. Perhaps we could keep the
 current restart, and add another one that shows more candidate
 (restarts).
@@ -138,17 +138,17 @@ heavier criteria?
 *** Demonstrate that the test-runner is debounced
 
 When you redefine many function (e.g. when reloading a file), it
-doens't run all the tests each time a something is redefined.
+doesn't run all the tests each time a something is redefined.
 
 ** TODO Document (with screenshots) how to setup and use emacs integration :doc:
 ** TODO Document how to use quickproject integration                    :doc:
 ** TODO Add binding to run test at point                                 :ux:
 ** TODO Add command to choose a test and run it                          :ux:
 ** TODO [#B] When inserting a package definition in an empty buffer, evaluate the buffer :easy:ux:
-** TODO Generate the documenation in the CI                         :ops:doc:
+** TODO Generate the documentation in the CI                         :ops:doc:
 
 Really not a priority, even though generating the documentation
-locally and commiting the result is less than ideal, it works well.
+locally and committing the result is less than ideal, it works well.
 
 The main problem is that, AFAIK, you can't host something in github
 pages without committing it into a repository. Which means that you
@@ -200,7 +200,7 @@ when the edit-distance is not too great, or we would get some wild quickfixes.
 
 ** TODO Maybe add this document (notes.org) to the documentation?       :doc:
 
-** TODO Maybe split the documentaion in multiple pages                  :doc:
+** TODO Maybe split the documentation in multiple pages                  :doc:
 
 ** Commands                                                          :editor:
 
@@ -241,7 +241,7 @@ See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
 
 *** In [[https://github.com/phoe-trash/value-semantics-utils][phoe-trash/value-semantics-utils]]
 
-**** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structual sharing #4]]
+**** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structural sharing #4]]
 
 **** TODO [[https://github.com/phoe/trivial-method-combinations/issues/4][Add method-combination-name-p #4]]
 
@@ -277,7 +277,7 @@ Agda natively support =typed holes=. The way I see it, holes are used
 to falicitate the conversation between the programmer and the
 compiler.
 
-But, for languages like common lisp that doens't support holes
+But, for languages like common lisp that doesn't support holes
 out-of-the box, how could we do that? In general, there are no symbol
 name that will never clash with other symbols, because symbols in
 common lisp can be any string. One idea is to use inline comments,
@@ -309,7 +309,7 @@ specify some more constraints, by giving types, writing tests, etc.
 ** Tag descriptions
 
 #+NAME: tags
-| Tag name     | Tag decription                                                                                |
+| Tag name     | Tag description                                                                                |
 |--------------+-----------------------------------------------------------------------------------------------|
 | 3rd_parties  | Relating to a third-party, e.g. an external library.                                          |
 | obsolete     | This task is now obsolete.                                                                    |
@@ -322,7 +322,7 @@ specify some more constraints, by giving types, writing tests, etc.
 | editor       | This task relates to the integration with an editor.                                          |
 | config       | Relating to breeze's configuration and setup.                                                 |
 | refactor     | Relating to breeze's refactoring facilities.                                                  |
-| capture      | Relating to breeze's caputre feature.                                                         |
+| capture      | Relating to breeze's capture feature.                                                         |
 | quickproject | Relating to quickproject integration.                                                         |
 | tech_debt    | Due to an ongoing refactoring, to an old hack, incomplete implementation, missing tests, etc. |
 | reader       | Relating to breeze.reader.                                                                    |
@@ -459,7 +459,7 @@ https://github.com/Shinmera/file-notify <===
 *** Have a plain user-controlled task list
 ** Evaluate quality of documentation
 *** e.g. if the documentation is almost just the name of the function
-*** Make sure it doens't "only" refer to another function
+*** Make sure it doesn't "only" refer to another function
 *** It's more that the content of the function
 
 (defun print-x (x)
@@ -468,7 +468,7 @@ https://github.com/Shinmera/file-notify <===
 
 *** Make sure that all package have a :documentation
 *** Make sure that all classes have a :documentation
-** Evalutation the quality of the code
+** Evaluation the quality of the code
 *** Cyclomatic complexity
 *** Length of variable names
 *** linting in general
@@ -511,7 +511,7 @@ Which is one of the reason behind wrapping the definitions (e.g. =breeze:defun=)
 
 ** Use equivalence-graph e-graph to suggest refactors
 
-** Sementic diffs using breeze.reader
+** Semantic diffs using breeze.reader
 
 * See
 ** DONE uses locative: http://quickdocs.org/mgl-pax/                 :editor:
@@ -603,7 +603,7 @@ Pieces of code that could be useful
 ** Tinker (1980)
 http://web.media.mit.edu/%7Elieber/Lieberary/Tinker/Tinker/Tinker.html
 
-** Image Based develoment
+** Image Based development
 
 [Image based development](https://www.informatimago.com/develop/lisp/com/informatimago/small-cl-pgms/ibcl/index.html)
 

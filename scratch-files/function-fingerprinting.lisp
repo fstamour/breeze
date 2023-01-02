@@ -17,7 +17,7 @@
 (defvar *seed* 42)
 
 (defun repr (x)
-  "Convert anything to somthing that can be digested (hashed)."
+  "Convert anything to something that can be digested (hashed)."
   (flexi-streams:string-to-octets (format nil "~s~s" (type-of x) x)))
 
 ;; (repr 42)

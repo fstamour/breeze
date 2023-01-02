@@ -43,7 +43,7 @@ of the instance of that had the smallest score."
                             new-candidate new-score)))
               (when (and new-score
                          (or
-                          ;; if it wasn't intialized already
+                          ;; if it wasn't initialized already
                           (null ,var)
                           ;; it is initialized, but score is better
                           (< new-score ,score-var)))

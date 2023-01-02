@@ -1,7 +1,7 @@
 
 
 (defun package-test (package)
-  "Find all tests defined in a pacakge."
+  "Find all tests defined in PACKAGE."
   (let ((package (find-package package)))
     (loop
       :for test-name :being :the :hash-key :of breeze.test:*test*
