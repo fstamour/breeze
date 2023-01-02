@@ -200,7 +200,7 @@ sytsem-files"
 
 (defun whitespacep (char)
   "Is CHAR a whitespace?"
-  (member char '(#\Space #\Newline #\Backspace #\Tab #\Newline #\Page
+  (member char '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page
                  #\Return #\Rubout)))
 
 (defun read-stream-range (stream start end)
