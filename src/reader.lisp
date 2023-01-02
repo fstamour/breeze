@@ -1,14 +1,15 @@
 (in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.reader
-  (:documentation
-   "Parser for common lisp that doesn't lose any information.
+    (:documentation
+     "Parser for common lisp that doesn't lose any information.
 
 This package also re-exports symbols from breeze.syntax-tree.")
   (:use :cl)
   (:use-reexport #:breeze.syntax-tree)
   (:import-from #:alexandria
-                #:if-let)
+                #:if-let
+                #:when-let)
   (:import-from #:breeze.utils
                 #:subseq-displaced)
   (:export
@@ -98,7 +99,8 @@ This package also re-exports symbols from breeze.syntax-tree.")
       ;; TODO Add current-package to the client, to avoid changing the
       ;; user's current-package when reading
       ;; Will need to change the package-local-nickname logic
-      (setf *package* (find-package (in-package-node-package node))))
+      (when-let ((package (find-package (in-package-node-package node))))
+        (setf *package* package)))
     node))
 
 
