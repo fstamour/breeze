@@ -499,6 +499,14 @@ a message and stop the current command."
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
+  (multiple-value-bind (status system)
+      (breeze.asdf:loadedp (context-buffer-file-name*))
+    (when (eq :not-loaded status)
+      (when (ask-y-or-n-p "The current file is part of the system \"~a\", but has not been loaded yet. Do you want to load it now? (y/n) "
+                          (asdf:component-name system))
+        (asdf:load-system system))
+      ;; TODO Remove
+      (return-from-command)))
   (augment-context-by-parsing-the-buffer (command-context*))
   (check-in-package)
   (let* (;; Compute the applicable commands
