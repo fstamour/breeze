@@ -55,7 +55,8 @@
 exists, we need their confirmation to continue."
   (when (probe-file directory)
     (unless (ask-y-or-n-p
-             (format nil "The directory \"~A\" already exists. Scaffolding might result in data loss, are you sure you want to continue? (y/n) " directory))
+             "The directory \"~A\" already exists. Scaffolding might result in data loss, are you sure you want to continue? (y/n) "
+             directory)
       (return-from-command)))
   directory)
 
