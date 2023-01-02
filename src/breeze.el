@@ -23,7 +23,7 @@
 ;;; Logging
 
 (defun breeze-debug (string &rest objects)
-  "Log a meesage in *breeze-debug* bufffer."
+  "Log a meesage in *breeze-debug* buffer."
   (save-excursion
     (set-buffer (get-buffer-create "*breeze-debug*"))
     (setf buffer-read-only nil)
@@ -35,7 +35,7 @@
     (setf buffer-read-only t)))
 
 (defun breeze-message (string &rest objects)
-  "Log a meesage in *breeze-debug* and *Messages* bufffer."
+  "Log a meesage in *breeze-debug* and *Messages* buffer."
   (apply #'message string objects)
   (apply #'breeze-debug string objects))
 
@@ -49,7 +49,7 @@
 
 ;;; Integration with lisp listener
 
-;; Useful for debugging wether slime or sly is running
+;; Useful for debugging whether slime or sly is running
 ;; (process-list)
 
 (defun breeze-sly-connection ()
@@ -307,7 +307,7 @@ lisp's reader doesn't convert them."
        ;; "Request" might be nil, if it is, we're done
        while (and request
                   (not (string= "done" (car request))))
-       ;; Wheter or not we need to send arguments to the next callback.
+       ;; Whether or not we need to send arguments to the next callback.
        for send-response-p = (member (car request)
                                      '("choose" "read-string"))
        ;; Process the command's request
@@ -387,13 +387,13 @@ lisp's reader doesn't convert them."
   :lighter " brz"
   :keymap breeze-mode-map)
 
-;; Analoguous to org-insert-structure-template
+;; Analogous to org-insert-structure-template
 ;; (define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
 
-;; Analoguous to org-goto
+;; Analogous to org-goto
 (define-key breeze-mode-map (kbd "C-c C-j") #'imenu)
 
-;; Analoguous to Visual Studio Code's "quickfix"
+;; Analogous to Visual Studio Code's "quickfix"
 (define-key breeze-mode-map (kbd "C-.") #'breeze-quickfix)
 
 ;; Disabled for now
