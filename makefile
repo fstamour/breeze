@@ -1,15 +1,24 @@
 
+# Run the unit tests
 test:
 	scripts/test.sh
 
+# Generate the documentation
 doc:
 	scripts/doc.sh
 
+# Run some "integration tests" that generates some screenshots
+# This is work-in-progress
 demo:
 	scripts/demo/build-docker-image.sh
 	scripts/demo/run-demo-recorder.sh
 
+# Fix spelling
+spell:
+	codespell --write-changes --interactive 3 --ignore-words scripts/ignore-words.txt $$(fd -e lisp) README.md notes.org docs/*.md
+
 .PHONY: \
 	test \
 	doc \
-	demo
+	demo \
+	spell
