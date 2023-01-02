@@ -155,7 +155,10 @@ of \"breeze.el\"."
     (breeze-interactive-eval
      (format "(progn (load \"%s\")
                 (unless (asdf:component-loaded-p \"breeze\")
+                  #+quicklisp
                   (ql:quickload \"breeze\")
+                  #-quicklisp
+                  (require '#:breeze)
                   (format t \"~&Breeze loaded!~%%\")))"
              (breeze-system-definition))))
   (breeze-debug "Breeze loaded in inferior-lisp."))
