@@ -19,7 +19,7 @@
     :reader external-symbol-not-found-symbol
     :initarg :symbol
     :documentation "The name of symbol if it wasn't found. The symbol
-    if it's not exported. This sould be 2 different conditions.")
+    if it's not exported. This should be 2 different conditions.")
    (condition
     :reader external-symbol-not-found-condition
     :initarg :condition

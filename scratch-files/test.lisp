@@ -22,7 +22,7 @@
   "List of functions to call when a test is redefined")
 
 (defvar *test-results* (make-hash-table)
-  "Results of the lastest test run.")
+  "Results of the latest test run.")
 
 (defvar *test-results-history* ()
   "History of the test runs.")
@@ -78,7 +78,7 @@
 (defmethod passedp (test-result)
   (eq (outcome test-result) :success))
 
-;; RENDU: faire une méthode pour afficher les résultats (voir la fonction "test"
+;; RENDU: faire une méthode pour afficher les résultats (voir la function "test"
 ;; (defmethod describe )
 
 (defun run-test (name)

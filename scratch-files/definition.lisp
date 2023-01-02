@@ -25,7 +25,7 @@ The goal is to (portably) make sure we keep the definitions and not just their [
         :do (funcall hook name)))
 
 (defmacro defun (&whole whole name lambda-list &body body)
-  "Define a functions and saves its definition in memory, flag a function redifinition."
+  "Define a functions and saves its definition in memory, flag a function redefinition."
   `(progn (cl:defun ,name ,lambda-list
             ,@body)
           (setf (gethash ',name *function*) ',whole)

@@ -253,7 +253,7 @@ defun."
 (define-command insert-print-unreadable-object-boilerplate ()
   "Insert a print-object method form."
   (let ((name (read-string
-               "Name of the object (paramater name of the method): "))
+               "Name of the object (parameter name of the method): "))
         (type (read-string
                "Type of the object: ")))
     (insert
@@ -501,7 +501,7 @@ a message and stop the current command."
   "Given the context, suggest some applicable commands."
   (augment-context-by-parsing-the-buffer (command-context*))
   (check-in-package)
-  (let* (;; Compute tha applicable commands
+  (let* (;; Compute the applicable commands
          (commands (compute-suggestions))
          ;; TODO What if there are no suggestions?
          ;; Ask the user to choose a command

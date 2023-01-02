@@ -32,7 +32,7 @@
                            end
                            preserve-whitespace)
   "It's not  useful outside of testing because it creates a new
-client everytime it is invoked."
+client every time it is invoked."
   (eclector.parse-result:read-from-string
    (make-instance 'breeze-client
                   :source string)
@@ -522,7 +522,7 @@ What about nested feature expressions?
              "`(,a ,b)"
              "(1 . 2)"
              "#.(+ 1 2)"
-             "#+nil ingored"
+             "#+nil ignored"
              "#\\Space"
              "a"
              "A"

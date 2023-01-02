@@ -106,7 +106,7 @@
 ;;;; Yes!
 
 ;;;; The byte functions return a newly allocated object (AFAIK) but it always returns equivalent
-;;;; object given the same paramters. Is it functional???
+;;;; object given the same parameters. Is it functional???
 
 
 

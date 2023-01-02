@@ -56,7 +56,7 @@ Accepts positive reals (see cl:sleep function).")
     :initarg :control-interval
     :initform 0.1
     :type 'positive-real
-    :documentation "The time between each worker's contol loop
+    :documentation "The time between each worker's control loop
 Accepts positive reals (see cl:sleep function).")
    (last-iteration-time
     :accessor worker-last-iteration-time
@@ -70,7 +70,7 @@ Accepts positive reals (see cl:sleep function).")
   (:documentation "Workers are threads that process messages sent via a channels.
 Each worker has 3 channels:
 * an input channel used to send data to the task
-* an ouput channel used to get data back from the task
+* an output channel used to get data back from the task
 * a control channel used to stop the task
 
 To use the worker, you need to subclass the worker class and specialize the \"worker-run\" method.

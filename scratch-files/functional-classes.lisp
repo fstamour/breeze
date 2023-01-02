@@ -20,7 +20,7 @@
    `(defpackage #:functional-classes
       (:use #:cl))))
 
-;; Let's say I wan't to add something, but keep the original intact.
+;; Let's say I want to add something, but keep the original intact.
 ;; The naive way is just to copy the whole thing and do the mutation.
 
 
@@ -50,7 +50,7 @@
 ;; => NIL
 
 
-;;; Concluion: it would be nice to have some utilies to copy just what
+;;; Concluion: it would be nice to have some utilities to copy just what
 ;;; needs to be copied.
 
 

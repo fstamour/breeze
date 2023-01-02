@@ -47,7 +47,7 @@ a-symbol
 ;; should be
 (+ (- 3 2) 4)
 
-;; the identation is wrong
+;; the indentation is wrong
 (if
     pain
     tylenol
@@ -101,12 +101,12 @@ inline-function
 ;; You might want to replace a flet with labels
 (flet ...) <=> (labels ...)
 
-;; there's a fonction for that
+;; there's a function for that
 (lambda (x) x)
 ;; should be
 #'identity
 
-;; there's a fonction for that
+;; there's a function for that
 (lambda (_) 1)
 ;; should be
 (constantly 1)

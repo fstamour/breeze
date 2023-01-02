@@ -72,7 +72,7 @@
   (false (simple-function-p '(setf dum:slot))))
 
 
-;; I used this to generate the tests fo classp
+;; I used this to generate the tests for classp
 #+nil
 (let* ((fn 'classp)
        (test-cases

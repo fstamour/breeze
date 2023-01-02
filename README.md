@@ -18,7 +18,7 @@ to get a better idea of the things I wanna try.
 
 This is a git repository that contains lots of common lisp code that I
 use to make developing with common lisp easier. It is a personal
-projet that I work on from time to time, but that I use (and break)
+project that I work on from time to time, but that I use (and break)
 pretty much all the time.
 
 ## Features
@@ -56,7 +56,7 @@ Another simple command that helps me is `breeze-capture`, it creates a
 new file in a pre-determined (must be configured) folder and fills it
 with some pre-configured content (template) and let's you code right
 away. This could've easily be done in emacs (that's how I prototyped
-the firts version), but doing this in common lisp makes it easy to
+the first version), but doing this in common lisp makes it easy to
 port it to other editors (or just the repl) in the future.
 
 I must stress that this whole project is in constant flux, and until I
@@ -70,7 +70,7 @@ add more and more tests, stuff might break any time.
   - by any means
 - With any editor (or even without one)
 - Be as portable as possible
-- Be useful to new and experimented developper (or even
+- Be useful to new and experimented developer (or even
   non-developpers, we'll get there)
 
 ### Non-goals
@@ -80,7 +80,7 @@ add more and more tests, stuff might break any time.
 - Force the user to use a set of conventions
   - If there are conventions used by breeze it is only for convenience
     and they should be customizable.
-  - e.g. Currently, some refactoring utilies only work when the user
+  - e.g. Currently, some refactoring utilities only work when the user
     use `cl:defpackage` (as opposed to `uiop:defpackage`) and there's
     one `defpackage` per file, but it doesn't have to be that way.
 

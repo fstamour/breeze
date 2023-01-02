@@ -3,7 +3,7 @@
 ;;;
 ;;; - The macro "define-snippet" generate a function and register the
 ;;;   snippet
-;;; - Snippets always takes a stream-designator as a first arguement
+;;; - Snippets always takes a stream-designator as a first argument
 ;;;
 ;;; Major things that could be improved:
 ;;;   - The snippet's lambda-list
