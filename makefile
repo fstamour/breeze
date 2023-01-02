@@ -15,7 +15,7 @@ demo:
 
 # Fix spelling
 spell:
-	codespell --write-changes --interactive 3 --ignore-words scripts/ignore-words.txt $$(fd -e lisp) README.md notes.org docs/*.md
+	codespell --write-changes --interactive 3 --ignore-words scripts/ignore-words.txt $$(fd -e lisp) README.md notes.org docs/*.md src/breeze.el
 
 .PHONY: \
 	test \
