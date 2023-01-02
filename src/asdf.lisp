@@ -1,6 +1,6 @@
 
-(defpackage #:breeze.asdf
-  (:documentation "Utilities for adsf")
+(uiop:define-package #:breeze.asdf
+    (:documentation "Utilities for adsf")
   (:nicknames #:basdf)
   (:use :cl #:alexandria)
   (:export
@@ -8,7 +8,8 @@
    #:clear-fasl
    #:reload-system
    #:recompile-system
-   #:system-directory ))
+   #:system-directory
+   #:loadedp))
 
 (in-package #:breeze.asdf)
 
@@ -49,7 +50,7 @@
    (asdf:system-source-file
     (asdf:find-system system-designator))))
 
-#+todo
+#++
 (defun apropos-system ())
 
 ;; TODO this report emacs and vim's temporary files
@@ -77,7 +78,73 @@
                                         :type file-type
                                         :directory (pathname-directory directory)))))))))
 
-#+ (or)
+#++
 (let ((system-designator 'breeze))
   (load (asdf/system:system-source-file system-designator))
   (find-files-that-should-be-added-to-a-system system-designator))
+
+
+(defun find-sibling-systems (system-designator
+                             &aux
+                               (root (asdf:find-system system-designator))
+                               siblings)
+  (let ((directory (asdf:system-source-directory root)))
+    (asdf:map-systems
+     #'(lambda (system)
+         (when (and (not (eq root system))
+                    (equal directory
+                           (asdf:system-source-directory system)))
+           (push system siblings))))
+    siblings))
+
+#++
+(find-sibling-systems "breeze")
+;; => (#<ASDF/SYSTEM:SYSTEM "breeze/test"> #<ASDF/SYSTEM:SYSTEM "breeze/config">)
+
+#++
+(asdf:component-loaded-p
+ (asdf:find-system "breeze"))
+
+(defun infer-systems (pathname &aux systems)
+  "Given a path (e.g. to a file), infer which systems it might be part of."
+  (let* ((directory (uiop:pathname-directory-pathname pathname))
+         ;; Try to find system definition files that aren't loaded.
+         (asd-files (breeze.utils:find-asdf-in-parent-directories directory)))
+    (asdf:map-systems
+     #'(lambda (system
+                &aux (dir (asdf:system-source-directory system)))
+         (when (and dir
+                    (or (uiop:subpathp directory dir)
+                        (equal directory dir)))
+           ;; Remove system definition files that are loaded.
+           (setf asd-files (remove (asdf:system-source-file system)
+                                   asd-files :test #'equal))
+           (push system systems))))
+    (append systems asd-files)))
+
+
+#++
+(infer-systems (truename "./"))
+
+(defun loadedp (pathname &aux (pathname (uiop:truename* pathname)))
+  "Check whether PATHNAME is part of a system, and wheter it was loaded.
+This will return false if the file was loaded outside of asdf."
+  (when pathname
+    (loop :for system :in (infer-systems pathname)
+          :for components = (asdf/component:sub-components system)
+          :when (typep system 'asdf:system)
+            :do (when-let* ((component-found (member
+                                              pathname
+                                              components
+                                              :test #'equal
+                                              :key #'asdf/component:component-pathname))
+                            (component (first component-found)))
+                  (return (values
+                           (if (asdf:component-loaded-p component)
+                               :loaded
+                               :not-loaded)
+                           (asdf:component-system component)))))))
+
+
+#++
+(loaded-p (breeze.utils:breeze-relative-pathname "src/asdf.lisp"))
