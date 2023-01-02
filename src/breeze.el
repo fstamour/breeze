@@ -62,18 +62,44 @@
   (and (fboundp 'slime-current-connection)
        (slime-current-connection)))
 
-(defun breeze-sly-or-not-slime ()
+(defun breeze-check-if-listener-loaded ()
+  (or (fboundp 'sly)
+      (fboundp 'slime)
+      (error "Please load either slime or sly.")))
+
+(defun breeze-choose-listener ()
   (cond
-   ;; Both sly and slime are loaded
-   ((and (fboundp 'sly)) (fboundp 'slime)
+   ((and (fboundp 'sly)
+         (fboundp 'slime))
+    (completing-read "Choose a lisp listener to start: "
+                     '("Sly" "SLIME") nil t))
+   ((fboundp 'sly) "Sly")
+   ((fboundp 'slime) "SLIME")))
+
+(defun breeze-start-listener ()
+  (let ((listener (breeze-choose-listener)))
     (cond
-     ((breeze-sly-connection) t)
-     ((breeze-slime-connection) nil)
-     (t
-      (error "Please start either slime or sly."))))
-   ((fboundp 'sly) t)
-   ((fboundp 'slime) nil)
-   (t (error "Please load either slime or sly."))))
+     ((string= listener "Sly") (sly))
+     ((string= listener "SLIME") (slime))
+     (t (error "Unknown listener: %S" listener)))))
+
+(defun breeze-check-if-listener-connected (&optional errorp)
+  (or (breeze-sly-connection)
+      (breeze-slime-connection)
+      (breeze-start-listener)
+      (and errorp
+           (error "Please start either slime or sly."))))
+
+;; This is used by breeze-eval
+(defun breeze-sly-or-not-slime ()
+  "Tries to determine which listener to use, sly or slime?"
+  ;; This errors if none is loaded
+  (breeze-check-if-listener-loaded)
+  ;; This errors if none is connected
+  (breeze-check-if-listener-connected)
+  (cond
+   ((breeze-sly-connection) t)
+   ((breeze-slime-connection) nil)))
 
 (defun breeze-interactive-eval (string)
   (if (breeze-sly-or-not-slime)
