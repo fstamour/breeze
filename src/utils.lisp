@@ -12,6 +12,7 @@
    #:indent-string
    #:print-comparison
    #:breeze-relative-pathname
+   #:+whitespaces+
    #:whitespacep
    #:stream-size
    #:read-stream-range
@@ -199,10 +200,14 @@ sytsem-files"
       (asdf:system-relative-pathname :breeze pathname)
       pathname))
 
+(alexandria:define-constant +whitespaces+
+    '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page #\Return
+      #\Rubout)
+  :test 'equal)
+
 (defun whitespacep (char)
   "Is CHAR a whitespace?"
-  (member char '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page
-                 #\Return #\Rubout)))
+  (member char +whitespaces+))
 
 ;; TODO This is horrible performance-wise, I should never use this
 (defun read-stream-range (stream start end)
