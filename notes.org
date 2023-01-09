@@ -13,7 +13,7 @@
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
-** TODO Make it's easy to report a bugs
+** TODO Make it easy to report a bugs
 
 - os version
 - lisp version
