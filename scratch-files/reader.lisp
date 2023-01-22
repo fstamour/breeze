@@ -7,6 +7,8 @@ a huge kludge).
 I'm gonna try my hand at making a reader... Worst case scenario I end
 up with more test case for my eclector-based parser.
 
+http://www.lispworks.com/documentation/HyperSpec/Body/02_.htm
+
 |#
 
 
@@ -22,6 +24,9 @@ up with more test case for my eclector-based parser.
                 #:when-let*))
 
 (in-package #:breeze.reader2)
+
+
+;;; Reader state
 
 (defclass state ()
   ((source
@@ -49,6 +54,10 @@ up with more test case for my eclector-based parser.
   `(let ((state (make-state ,string)))
      ,@body))
 
+
+
+;;; Reader position (in the source string)
+
 (progn
   (defun valid-position-p (state position)
     (< -1 position (length (source state))))
@@ -65,7 +74,7 @@ up with more test case for my eclector-based parser.
 
 (progn
   (defun donep (state)
-    (>= (pos state) (length (source state))))
+    (not (valid-position-p state (pos state))))
   (equal '(t nil nil)
          (list
           (with-state ("")
@@ -75,20 +84,16 @@ up with more test case for my eclector-based parser.
           (with-state ("  ")
             (donep state)))))
 
-(defun current-char (state &optional char)
-  (unless (donep state)
-    (let ((c (char (source state) (pos state))))
-      (cond
-        ((null c) nil)
-        ((null char) c)
-        ((char= c char) c)))))
+
+;;; Getting and comparing characters
 
-(defun next-char (state)
-  (let ((next-pos (1+ (pos state))))
-    (when (valid-position-p state next-pos)
-      (char (source state) next-pos))))
-
+;; Could be further generalized by adding `&key key test`, and/or
+;; making variants `at-if`, `at-if-not`.
 (defun at (state position &optional char)
+  "Get the character at POSITION in the STATE's source.
+Returns nil if POSITION is invalid.  If the optional parameter CHAR is
+not nil, further compare the char at POSITION with CHAR and return the
+character if they're char=."
   (when (valid-position-p state position)
     (let ((c (char (source state) position)))
       (cond
@@ -96,8 +101,26 @@ up with more test case for my eclector-based parser.
         ((null char) c)
         ((char= c char) c)))))
 
+(defun current-char (state &optional char)
+  "Get the character at the current STATE's position, without changing
+the position."
+  (unless (donep state)
+    (at state (pos state) char)))
+
+(defun next-char (state &optional char)
+  "Peek at the next character to be read, without changing the
+position."
+  (let ((next-pos (1+ (pos state))))
+    (at state next-pos char)))
+
+
+;;; Low-level parsing helpers
+
 (progn
   (defun lookahead-for-string (state string)
+    "Search for STRING in the STATE's source, from the current STATE's
+position. If found, advance the STATE's position to _after_ the
+occurence of STRING."
     (check-type string string)
     (let ((start (pos state))
           (end (+ (pos state) (length string))))
@@ -146,6 +169,20 @@ up with more test case for my eclector-based parser.
             (skip-whitespaces state)
             (pos state)))))
 
+(defun read-while (state predicate)
+  (let ((start (pos state)))
+    (loop
+      ;; :for guard :upto 10
+      :for pos :from (pos state)
+      :for c = (at state pos)
+      :do (when (or (null c) (not (funcall predicate c)))
+            (when (/= start pos)
+              (setf (pos state) pos)
+              (return (list start pos)))
+            (return nil)))))
+
+
+
 (defun %read-whitespaces (state start)
   (skip-whitespaces state)
   (list 'whitespace start (pos state)))
@@ -159,7 +196,7 @@ up with more test case for my eclector-based parser.
 (defun %read-block-comment (state start)
   (loop
     :with inner-comments
-    :for guard :upto 10 ; infinite loop guard
+    ;; :for guard :upto 10 ; infinite loop guard
     :for pos = (position #\# (source state) :start (pos state))
     :do
        (cond
@@ -182,11 +219,13 @@ up with more test case for my eclector-based parser.
           (push (read-block-comment state) inner-comments)))))
 
 (defun read-block-comment (state)
+  "Read #||#"
   (let ((start (pos state)))
     (when (lookahead-for-string state "#|")
       (%read-block-comment state start))))
 
 (defun read-line-comment (state)
+  "Read ;"
   (let ((start (pos state)))
     (when (lookahead-for-string state ";")
       (let ((newline (search #.(format nil "~%") (source state) :start2 (pos state))))
@@ -200,6 +239,7 @@ up with more test case for my eclector-based parser.
               (list 'line-comment start 'end)))))))
 
 (defun read-quote-like (state)
+  "Read ' or `"
   (let* ((start (pos state))
          (char (current-char state))
          (names '((#\' . quote)
@@ -211,6 +251,9 @@ up with more test case for my eclector-based parser.
 
 (progn
   (defun read-quoted-string (state delimiter escape &optional validp)
+    "Read strings delimted by DELIMITER where the single escpace character
+is ESCAPE. Optionally check if the characters is valid if VALIDP is
+provided."
     (let ((start (pos state)))
       (when (at state (pos state) delimiter)
         (loop
@@ -231,6 +274,7 @@ up with more test case for my eclector-based parser.
                      (not (funcall validp c)))
                 (setf (pos state) pos)
                 (return (list start 'invalid))))))))
+  ;; TODO Add tests with VALIDP
   (list
    (equal (with-state ("")
             (read-quoted-string state #\| #\/))
@@ -257,28 +301,19 @@ up with more test case for my eclector-based parser.
     '(0 END))))
 
 (defun read-string (state)
+  "Read \"\""
   (when-let ((string (read-quoted-string state #\" #\\)))
     `(string ,@string)))
 
-(defun read-while (state predicate)
-  (let ((start (pos state)))
-    (loop
-      :for guard :upto 10
-
-      :for pos :from (pos state)
-      :for c = (at state pos)
-      :do (when (or (null c) (not (funcall predicate c)))
-            (when (/= start pos)
-              (setf (pos state) pos)
-              (return (list start pos)))
-            (return nil)))))
-
 (defun terminatingp (c)
+  "Test whether a character is terminating. See
+http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (member c '#. (append
                  (coerce "|;\"'(),`" 'list)
                  +whitespaces+)))
 
 (defun %read-token (state start)
+  "Read one token."
   (if (current-char state #\|)
       (read-quoted-string state #\| #\\)
       (loop
@@ -334,6 +369,17 @@ up with more test case for my eclector-based parser.
 ;; (read-from-string "asd| |")
 ;; (read-from-string "asd#")
 
+
+(defun read-any (state)
+  (some #'(lambda (fn)
+            (funcall fn state))
+        '(read-whitespaces
+          read-block-comment
+          read-quote-like
+          read-string
+          read-line-comment
+          read-token)))
+
 (trace
  %read-whitespaces
  %read-block-comment
@@ -359,14 +405,7 @@ up with more test case for my eclector-based parser.
                                 (pos state)
                                 token-start
                                 unknown-start))
-                   (some #'(lambda (fn)
-                             (funcall fn state))
-                         '(read-whitespaces
-                           read-block-comment
-                           read-quote-like
-                           read-string
-                           read-line-comment
-                           read-token)))
+                   (read-any state))
 
     ;; :do #1#  #2=(format t "~%~ttoken: ~a" token)
 
@@ -393,7 +432,7 @@ up with more test case for my eclector-based parser.
       :do (if unknown-start
               (return (append result `((unknown ,unknown-start ,(pos state)))))
               (return result))
-    ;; :do #1# #2#
+          ;; :do #1# #2#
     ))
 
 (list
