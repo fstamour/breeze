@@ -87,22 +87,61 @@ parse" begins.
 (defun make-state (string)
   (make-instance 'state  :source string))
 
+(alexandria:define-constant +end+ -1)
+
+(defun print-node (node stream)
+  (format stream "#S(NODE :TYPE ~A :START ~D :END ~D"
+          (node-type node)
+          (node-start node)
+          ;; TODO maybe print +end+ if (= end +end+)
+          (node-end node))
+  (when-let ((node-children (node-children node)))
+    (write-string " :CHILDREN ")
+    (princ node-children stream))
+  (write-char #\) stream))
+
+#++
+(remove-method #'print-object
+               (find-method #'print-object
+                            nil
+                            '(node t)))
+
 (defstruct (node
-            (:constructor make-node (type start end &optional children)))
+            (:constructor node (type start end &optional children))
+            :constructor
+                                        ; (:print-object print-node)
+            (:predicate nodep)
+            )
   (type 'nil
    :type symbol
    :read-only t)
   (start 0
    :type (integer 0)
    :read-only t)
-  (end -1
+  (end +end+
    :type (integer -1)
    :read-only t)
   (children '()
    :read-only t))
 
+#++
+(progn
+  (node 'boo 1 2)
+  #S(NODE :TYPE BOO :START 1 :END 2)
+  (list #S(NODE :TYPE BOO :START 1 :END 2))
+  (list '#s(node :type boo :start 1 :end 2)))
+
+(defun whitespace (start end)
+  (node 'whitespace start end))
+
+(defun block-comment (start end &optional children)
+  (node 'block-comment start end
+        (if (nodep children)
+            (list children)
+            children)))
+
 
-;;; Testing helpers
+;;; testing helpers
 
 (defun test (input got &optional (expected nil expectedp))
   (flet ((fmt (&rest args)
@@ -110,7 +149,7 @@ parse" begins.
              (format *debug-io* "~&~a" str)
              str)))
     (if expectedp
-        (if (equal got expected)
+        (if (equalp got expected)
             t
             (fmt "«~a» got: ~s expected: ~s" input got expected))
         (fmt "«~a» => ~s" input got))))
@@ -313,6 +352,7 @@ occurence of STRING."
             (return nil)))))
 ;; TODO test read-while
 
+;; Will be useful for finding some synchronization points
 (progn
   (defun find-all (needle string)
     (when (and (plusp (length needle))
@@ -331,19 +371,6 @@ occurence of STRING."
    (test-find-all "" "a" nil)
    (test-find-all "a" "aaa" '(0 1 2))
    (test-find-all "b" "aaa" nil)))
-
-
-;;; Actual reader
-
-(progn
-  (defun %read-whitespaces (state start)
-    (skip-whitespaces state)
-    (list 'whitespace start (pos state)))
-
-  (defun read-whitespaces (state)
-    (let ((start (pos state)))
-      (when (whitespacep (current-char state))
-        (%read-whitespaces state start)))))
 
 (progn
   ;; TODO Not the most efficient...
@@ -366,6 +393,19 @@ occurence of STRING."
    (test-search-for '("a" "b") "c" nil)
    (test-search-for '("a" "b") "-ab" 1)
    (test-search-for '("a" "b") "--ba" 2)))
+
+
+;;; Actual reader
+
+(progn
+  (defun %read-whitespaces (state start)
+    (skip-whitespaces state)
+    (whitespace start (pos state)))
+
+  (defun read-whitespaces (state)
+    (let ((start (pos state)))
+      (when (whitespacep (current-char state))
+        (%read-whitespaces state start)))))
 
 (progn
   ;; This is more useful to trace, and easier to debug (we can more
@@ -390,45 +430,13 @@ New position ~A"
              (setf (pos state) (+ pos 2))
              (if (char= #\# (at state pos))
                  ;; if #|
-                 (progn
-                   (format *debug-io* "~&nested")
-                   (push (%read-block-comment state (- (pos state) 2)) inner-comments))
+                 (push (%read-block-comment state (- (pos state) 2)) inner-comments)
                  ;; else |#
-                 (progn
-                   (format *debug-io* "~&close")
-                   (return (append (list 'block-comment start (pos state))
-                                   (nreverse inner-comments))))))
+                 (return (block-comment start (pos state)
+                                        (nreverse inner-comments)))))
            (unless pos
-             (format *debug-io* "~&end")
-             ;; (setf (pos state) (length (source state)))
-             (return (append (list 'block-comment start 'end)
-                             (nreverse inner-comments))))
-           ;; TODO Comment
-           ;; (format t "~&found a \"#\" at ~a " pos)
-        #++
-         (cond
-           ((or (null pos)
-                (donep state))
-            (format *debug-io* "~&end")
-            ;; (setf (pos state) (length (source state)))
-            (return (append (list 'block-comment start 'end)
-                            (nreverse inner-comments))))
-           ;; Closing
-           (;; the previous character is a |
-            (at state (1- pos) #\|)
-            (format *debug-io* "~&close")
-            (setf (pos state) (1+ pos))
-            (return (append (list 'block-comment start (pos state))
-                            (nreverse inner-comments))))
-           ;; Nested comment
-           (;; If the next character is a |
-            (at state (1+ pos) #\|)
-            (format *debug-io* "~&nested")
-            (setf (pos state) (1+ pos))
-            (push (read-block-comment state) inner-comments))
-           (t
-            (format *debug-io* "~&skip")
-            (incf (pos state)))))))
+             (return (block-comment start +end+
+                                    (nreverse inner-comments)))))))
 
   (defun read-block-comment (state)
     "Read #||#"
@@ -437,7 +445,7 @@ New position ~A"
         (%read-block-comment state start))))
 
   (defun test-read-block-comment (input expected)
-    (let ((*timeout-threshold* 1))
+    (let ((*timeout-threshold* nil))
       (with-state (input)
         (test input (read-block-comment state) expected)))
     #++(list (find-all "#|" input)
@@ -445,18 +453,33 @@ New position ~A"
 
   (list
    (test-read-block-comment "" nil)
-   (test-read-block-comment "#|" '(block-comment 0 end))
-   (test-read-block-comment "#| " '(block-comment 0 end))
-   (test-read-block-comment "#||#" '(block-comment 0 4))
-   (test-read-block-comment "#|#" '(block-comment 0 end))
-   (test-read-block-comment "#|#|#" '(block-comment 0 end (block-comment 2 end)))
-   (test-read-block-comment "#|#||##" '(block-comment 0 end (block-comment 2 6)))
-   (test-read-block-comment "#|#|#|#" '(block-comment 0 end (block-comment 2 end (block-comment 4 end))))
+   (test-read-block-comment "#|" (block-comment 0 +end+))
+   (test-read-block-comment "#| " (block-comment 0 +end+))
+   (test-read-block-comment "#||#" (block-comment 0 4))
+   (test-read-block-comment "#|#" (block-comment 0 +end+))
+   (test-read-block-comment "#|#|#" (block-comment 0 +end+ (node 'block-comment 2 +end+)))
+   (test-read-block-comment "#|#||##" (block-comment 0 +end+ (node 'block-comment 2 6)))
+   (test-read-block-comment "#|#|#|#" (block-comment 0 +end+
+                                                     (block-comment 2 +end+
+                                                                    (block-comment 4 +end+))))
    (test-read-block-comment "#|#|#||##"
-                            '(block-comment 0 end (block-comment 2 end (block-comment 4 8))))
+                            (block-comment 0 +end+
+                                           (block-comment 2 +end+
+                                                          (block-comment 4 8))))
    (test-read-block-comment "#|#||#|##"
                             ;; There's 9 characters, the last # is not part of any comments
-                            '(block-comment 0 8 (block-comment 2 6)))))
+                            (block-comment 0 8 (block-comment 2 6)))))
+
+
+
+
+;;; Need to convert below code to use the new struct
+
+
+
+
+
+
 
 (defun read-line-comment (state)
   "Read ;"
