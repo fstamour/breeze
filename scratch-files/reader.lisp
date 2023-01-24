@@ -22,6 +22,9 @@ Testing strategies
 - compare with eclector:read
 - test each read-* functions individually
 - none should signal errors
+- make a generic function validate-node to assert that they make
+sense (e.g. a line comment should start with a ; and end with a
+newline or +end+)
 
 |#
 
@@ -140,12 +143,36 @@ parse" begins.
             (list children)
             children)))
 
+(defun line-comment (start end)
+  (node 'line-comment start end))
+
+(defun punctuation (type position)
+  (node type position (1+ position)))
+
+(defun token (start end)
+  (node 'token start end))
+
+(defun parens (start end &optional children)
+  (node 'parens start end
+        (if (nodep children)
+            (list children)
+            children)))
+
+(defun node-content (state node)
+  (subseq-displaced (source state)
+                    (node-start node)
+                    (and
+                     (plusp (node-end node))
+                     (node-end node))))
+
 
 ;;; testing helpers
 
 (defun test (input got &optional (expected nil expectedp))
   (flet ((fmt (&rest args)
-           (let ((str (apply #'format nil args)))
+           (let ((str (apply #'format nil args))
+                 (*print-circle* t)
+                 (*print-right-margin* nil))
              (format *debug-io* "~&~a" str)
              str)))
     (if expectedp
@@ -297,59 +324,38 @@ occurence of STRING."
   (with-state*
     (""
      (test*
-           (list
-            (read-string* state "")
-            (pos state))
-           '(nil 0))
+      (list
+       (read-string* state "")
+       (pos state))
+      '(nil 0))
      (test*
-           (list
-            (read-string* state "#")
-            (pos state))
-           '(nil 0)))
+      (list
+       (read-string* state "#")
+       (pos state))
+      '(nil 0)))
     (";"
      (test*
-           (list
-            (read-string* state ";;")
-            (pos state))
-           '(nil 0)))
+      (list
+       (read-string* state ";;")
+       (pos state))
+      '(nil 0)))
     (";;"
      (test*
-           (list
-            (read-string* state ";;")
-            (pos state))
-           '((0 2) 2)))))
+      (list
+       (read-string* state ";;")
+       (pos state))
+      '((0 2) 2)))))
 
-(progn
-  (defun skip-whitespaces (state)
-    (loop
-      :with starting-position = (pos state)
-      :for pos :from starting-position
-      :for c = (at state pos)
-      :while (and c (whitespacep c))
-      :finally (when (/= pos starting-position)
-                 (setf (pos state) pos))))
-  (list
-   (with-state ("")
-     (skip-whitespaces state)
-     (test* (pos state) 0))
-   (with-state (" ")
-     (skip-whitespaces state)
-     (test* (pos state) 1))
-   (with-state ("  ")
-     (skip-whitespaces state)
-     (test* (pos state) 2))))
-
-(defun read-while (state predicate)
-  (let ((start (pos state)))
-    (loop
-      ;; :for guard :upto 10
-      :for pos :from (pos state)
-      :for c = (at state pos)
-      :do (when (or (null c) (not (funcall predicate c)))
-            (when (/= start pos)
-              (setf (pos state) pos)
-              (return (list start pos)))
-            (return nil)))))
+(defun read-while (state predicate &aux (start (pos state)))
+  (loop
+    ;; :for guard :upto 10
+    :for pos :from start
+    :for c = (at state pos)
+    :do (when (or (null c) (not (funcall predicate c)))
+          (when (/= start pos)
+            (setf (pos state) pos)
+            (return (list start pos)))
+          (return nil))))
 ;; TODO test read-while
 
 ;; Will be useful for finding some synchronization points
@@ -374,6 +380,7 @@ occurence of STRING."
 
 (progn
   ;; TODO Not the most efficient...
+  ;; Also, so far I only need it to search for "#|" or "|#"
   (defun search-or (needles state)
     (loop
       :with foundp
@@ -398,102 +405,106 @@ occurence of STRING."
 ;;; Actual reader
 
 (progn
-  (defun %read-whitespaces (state start)
-    (skip-whitespaces state)
-    (whitespace start (pos state)))
-
-  (defun read-whitespaces (state)
-    (let ((start (pos state)))
-      (when (whitespacep (current-char state))
-        (%read-whitespaces state start)))))
+  (defun read-whitespaces (state &aux (start (pos state)))
+    (loop
+      :for pos :from start
+      :for c = (at state pos)
+      :while (and c (whitespacep c))
+      :finally (when (/= pos start)
+                 (setf (pos state) pos)
+                 (return (whitespace start pos)))))
+  (defun test-read-whitespaces (input expected-end)
+    (with-state (input)
+      (test* (read-whitespaces state)
+             (when expected-end
+               (whitespace 0 expected-end)))))
+  (list
+   (test-read-whitespaces "" nil)
+   (test-read-whitespaces "a" nil)
+   (test-read-whitespaces " " 1)
+   (test-read-whitespaces "  " 2)))
 
 (progn
   ;; This is more useful to trace, and easier to debug (we can more
   ;; easily see the START in the debugger).
-  (defun %read-block-comment (state start)
+  (defun read-block-comment (state  &aux (start (pos state)))
+    "Read #||#"
     (with-timeout (*timeout-threshold*)
-      (loop
-        :with inner-comments
-        ;; :for guard :upto 10 ; infinite loop guard
-        :for previous-pos = nil :then pos
-        :for pos = #++ (position #\# (source state) :start (pos state))
-                       (search-or '("#|" "|#") state)
-        :when (and previous-pos (eql pos previous-pos))
-          :do (error "%read-block-comment: failed to move forward, this is a bug!
+      (when (read-string* state "#|")
+        (loop
+          :with inner-comments
+          ;; :for guard :upto 10 ; infinite loop guard
+          :for previous-pos = nil :then pos
+          :for pos = #++ (position #\# (source state) :start (pos state))
+                         (search-or '("#|" "|#") state)
+          :when (and previous-pos (eql pos previous-pos))
+            :do (error "%read-block-comment: failed to move forward, this is a bug!
 Previous position: ~A
 New position ~A"
-                     previous-pos
-                     pos)
-        :do
-           (when pos
-             ;; Whatever happens, we move forward
-             (setf (pos state) (+ pos 2))
-             (if (char= #\# (at state pos))
-                 ;; if #|
-                 (push (%read-block-comment state (- (pos state) 2)) inner-comments)
-                 ;; else |#
-                 (return (block-comment start (pos state)
-                                        (nreverse inner-comments)))))
-           (unless pos
-             (return (block-comment start +end+
-                                    (nreverse inner-comments)))))))
+                       previous-pos
+                       pos)
+          :do
+             (when pos
+               ;; Whatever happens, we move forward
+               (setf (pos state) (+ pos 2))
+               (if (char= #\# (at state pos))
+                   ;; if #|
+                   (push (%read-block-comment state (- (pos state) 2)) inner-comments)
+                   ;; else |#
+                   (return (block-comment start (pos state)
+                                          (nreverse inner-comments)))))
+             (unless pos
+               (return (block-comment start +end+
+                                      (nreverse inner-comments))))))))
 
-  (defun read-block-comment (state)
-    "Read #||#"
-    (let ((start (pos state)))
-      (when (read-string* state "#|")
-        (%read-block-comment state start))))
-
-  (defun test-read-block-comment (input expected)
+  (defun test-read-block-comment (input expected-end &rest children)
     (let ((*timeout-threshold* nil))
       (with-state (input)
-        (test input (read-block-comment state) expected)))
-    #++(list (find-all "#|" input)
-             (find-all "|#" input)))
+        (test input (read-block-comment state)
+              (when expected-end
+                (block-comment 0 expected-end children))))))
 
   (list
    (test-read-block-comment "" nil)
-   (test-read-block-comment "#|" (block-comment 0 +end+))
-   (test-read-block-comment "#| " (block-comment 0 +end+))
-   (test-read-block-comment "#||#" (block-comment 0 4))
-   (test-read-block-comment "#|#" (block-comment 0 +end+))
-   (test-read-block-comment "#|#|#" (block-comment 0 +end+ (node 'block-comment 2 +end+)))
-   (test-read-block-comment "#|#||##" (block-comment 0 +end+ (node 'block-comment 2 6)))
-   (test-read-block-comment "#|#|#|#" (block-comment 0 +end+
-                                                     (block-comment 2 +end+
-                                                                    (block-comment 4 +end+))))
-   (test-read-block-comment "#|#|#||##"
-                            (block-comment 0 +end+
-                                           (block-comment 2 +end+
-                                                          (block-comment 4 8))))
+   (test-read-block-comment "#|" +end+)
+   (test-read-block-comment "#| " +end+)
+   (test-read-block-comment "#||#" 4)
+   (test-read-block-comment "#|#" +end+)
+   (test-read-block-comment "#|#|#" +end+ (block-comment 2 +end+))
+   (test-read-block-comment "#|#||##" +end+ (block-comment 2 6))
+   (test-read-block-comment "#|#|#|#" +end+
+                            (block-comment 2 +end+
+                                           (block-comment 4 +end+)))
+   (test-read-block-comment "#|#|#||##" +end+
+                            (block-comment 2 +end+
+                                           (block-comment 4 8)))
    (test-read-block-comment "#|#||#|##"
                             ;; There's 9 characters, the last # is not part of any comments
-                            (block-comment 0 8 (block-comment 2 6)))))
+                            8 (block-comment 2 6))))
 
-
-
-
-;;; Need to convert below code to use the new struct
-
-
-
-
-
-
-
-(defun read-line-comment (state)
-  "Read ;"
-  (let ((start (pos state)))
-    (when (read-char* state #\;)
-      (let ((newline (search #.(format nil "~%") (source state) :start2 (pos state))))
-        (if newline
-            (progn
-              (setf (pos state) (1+ newline))
-              (list 'line-comment start (pos state)))
-            ;; TODO (defun (setf donep) ...)
-            (progn
-              (setf (pos state) (length (source state)))
-              (list 'line-comment start 'end)))))))
+(progn
+  (defun read-line-comment (state)
+    "Read ;"
+    (let ((start (pos state)))
+      (when (read-char* state #\;)
+        (let ((newline (search #.(format nil "~%") (source state) :start2 (pos state))))
+          (if newline
+              (progn
+                (setf (pos state) (1+ newline))
+                (line-comment start (pos state)))
+              ;; TODO (defun (setf donep) ...)
+              (progn
+                (setf (pos state) (length (source state)))
+                (line-comment start +end+)))))))
+  (defun test-read-line-comment (input expected-end)
+    (with-state ((format nil input))
+      (test* (read-line-comment state)
+             (when expected-end
+               (line-comment 0 expected-end)))))
+  (list
+   (test-read-line-comment "" nil)
+   (test-read-line-comment ";" +end+)
+   (test-read-line-comment "; asdf~%" 7)))
 
 (progn
   (defun read-punctuation (state)
@@ -507,25 +518,29 @@ New position ~A"
                                   (#\, . comma)
                                   (#\# . sharp))
                                 :key #'car)))
-      (list (cdar foundp) (pos state) (incf (pos state)))))
-  (defun test-read-punctuation (input expected)
+      (prog1 (punctuation (cdar foundp) (pos state))
+        (incf (pos state)))))
+  (defun test-read-punctuation (input expected-type)
     (with-state (input)
-      (test input (read-punctuation state) expected)))
+      (test input
+            (read-punctuation state)
+            (when expected-type
+              (punctuation expected-type 0)))))
   (list
    (test-read-punctuation "" nil)
    (test-read-punctuation " " nil)
-   (test-read-punctuation "'" '(quote 0 1))
-   (test-read-punctuation "`" '(quasiquote 0 1))
-   (test-read-punctuation "." '(dot 0 1))
-   (test-read-punctuation "@" '(at 0 1))
-   (test-read-punctuation "," '(comma 0 1))
-   (test-read-punctuation "#" '(sharp 0 1))
+   (test-read-punctuation "'" 'quote)
+   (test-read-punctuation "`" 'quasiquote)
+   (test-read-punctuation "." 'dot)
+   (test-read-punctuation "@" 'at)
+   (test-read-punctuation "," 'comma)
+   (test-read-punctuation "#" 'sharp)
    ;; anything else should return nil
    ))
 
 (progn
   (defun read-quoted-string (state delimiter escape &optional validp)
-    "Read strings delimted by DELIMITER where the single escpace character
+    "Read strings delimited by DELIMITER where the single escape character
 is ESCAPE. Optionally check if the characters is valid if VALIDP is
 provided."
     (with-timeout (*timeout-threshold*)
@@ -540,7 +555,7 @@ provided."
                (cond
                  ((null c)
                   (setf (pos state) pos)
-                  (return (list start 'end)))
+                  (return (list start +end+)))
                  ((char= c delimiter)
                   (setf (pos state) (1+ pos))
                   (return (list start (1+ pos))))
@@ -554,7 +569,7 @@ provided."
    (with-state ("")
      (test* (read-quoted-string state #\| #\/) nil))
    (with-state ("|")
-     (test* (read-quoted-string state #\| #\/) '(0 end)))
+     (test* (read-quoted-string state #\| #\/) (list 0  +end+)))
    (with-state ("||")
      (test* (read-quoted-string state #\| #\/) '(0 2)))
    (with-state ("| |")
@@ -562,110 +577,97 @@ provided."
    (with-state ("|/||")
      (test* (read-quoted-string state #\| #\/) '(0 4)))
    (with-state ("|/|")
-     (test* (read-quoted-string state #\| #\/) '(0 end)))))
-
-(defun read-string (state)
-  "Read \"\""
-  (when-let ((string (read-quoted-string state #\" #\\)))
-    `(string ,@string)))
-
-(defun terminatingp (c)
-  "Test whether a character is terminating. See
-http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
-  (member c '#. (append
-                 (coerce "|;\"'(),`" 'list)
-                 +whitespaces+)))
+     (test* (read-quoted-string state #\| #\/) (list 0 +end+)))))
 
 (progn
-  (defun %read-token (state start)
-    "Read one token."
-    (if (current-char state #\|)
-        (read-quoted-string state #\| #\\)
-        (loop
-          :for part1 = (read-while state (complement #'terminatingp))
-          :while (and part1 (current-char state #\|))
-          :for part2 = (read-quoted-string state #\| #\\)
-          :finally (return (if part1
-                               (list start (second part1))
-                               (when part2
-                                 (list start (second part2))))))))
-  (defun read-token (state)
-    (with-timeout (*timeout-threshold*)
-      (when-let* ((start (pos state))
-                  (token (%read-token state start)))
-        `(token ,@token))))
+  (defun read-string (state)
+    "Read \"\""
+    (when-let ((string (read-quoted-string state #\" #\\)))
+      (apply #'node 'string string)))
+  (defun test-read-string (input expected-end)
+    (with-state (input)
+      (test* (read-string state)
+             (when expected-end
+               (node 'string 0 expected-end)))))
   (list
-   (with-state ("")
-     (test* (read-token state) nil))
-   (with-state (" ")
-     (test* (read-token state) nil))
-   (with-state ("+-*/")
-     (test* (read-token state) '(token 0 4)))
-   (with-state ("123")
-     (test* (read-token state) '(token 0 3)))
-   (with-state ("| asdf |")
-     (test* (read-token state) '(token 0 8)))
-   (with-state ("arg| asdf | ")
-     (test* (read-token state) '(token 0 11)))
-   (with-state ("arg| asdf |more")
-     (test* (read-token state) '(token 0 15)))
-   (with-state ("arg| asdf |more|")
-     (test* (read-token state) '(token 0 END)))))
+   (test-read-string "" nil)
+   (test-read-string "\"" +end+)
+   (test-read-string "\"\"" 2)
+   (test-read-string "\" \"" 3)))
+
+(defun not-terminatingp (c)
+  "Test whether a character is terminating. See
+http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
+  (and c
+       (not (member c '#. (append
+                           (coerce ";\"'(),`" 'list)
+                           +whitespaces+)
+                    :test #'char=))))
+
+(progn
+  (defun read-token (state &aux (start (pos state)))
+    "Read one token."
+    (loop
+      :for char = (current-char state)
+      :while (not-terminatingp char)
+      :for part = (if (char= char #\|)
+                      (read-quoted-string state #\| #\\)
+                      (read-while state (complement #'terminatingp)))
+      :while (and part (not-terminatingp (current-char state)))
+      :finally (return (unless (= start (pos state))
+                         (token start (if part (second part) +end+))))))
+  (defun test-read-token (input expected-end)
+    (with-state (input)
+      (test* (read-token state)
+             (when expected-end
+               (token 0 expected-end)))))
+  (list
+   (test-read-token "" nil)
+   (test-read-token " " nil)
+   (test-read-token "+-*/" 4)
+   (test-read-token "123" 3)
+   (test-read-token "| asdf |" 8)
+   (test-read-token "| asdf |qwer#" 13)
+   (test-read-token "arg| asdf | " 11)
+   (test-read-token "arg| asdf |more" 15)
+   (test-read-token "arg| asdf |more|" +end+)
+   (test-read-token "arg| asdf |more|mmoooore|done" 29)
+   (test-read-token "arg| asdf |no  |mmoooore|done" 13)))
 
 
-;; These things are considered 1 token -_-
-;; (read-from-string "asd| |")
-;; (read-from-string "asd#")
 
 ;; don't forget to handle dotted lists
 (progn
-  (defun read-parens (state)
+  (defun read-parens (state &aux (start (pos state)))
     (with-timeout (*timeout-threshold*)
-      (let ((start (pos state)))
-        (cond
-          ((read-char* state #\()
-           ;; Read while read-any != nil && char != )
-           (loop
-             :for guard :below 1000 ;; infinite loop guard
-             :while (not (read-char* state #\))) ;; good ending
-             :for el = (read-any state) ;; mutual recursion
-             :if el
-               :collect el :into content
-             :else
-               :do (return (if (donep state)
-                               (list 'parens
-                                     start 'end
-                                     content)
-                               nil))
-             :finally (return (list 'parens
-                                    start (pos state)
-                                    content))))
-          ((current-char state #\())))))
+      (when (read-char* state #\()
+        ;; Read while read-any != nil && char != )
+        (loop
+          :for guard :below 1000 ;; infinite loop guard
+          :while (not (read-char* state #\))) ;; good ending
+          :for el = (read-any state) ;; mutual recursion
+          :if el
+            :collect el :into content
+          :else
+            :do (return (if (donep state)
+                            (parens start +end+ content)
+                            nil))
+          :finally (return (parens start (pos state) content))))))
+  (defun test-read-parens (input expected-end &rest children)
+    (with-state (input)
+      (test* (read-parens state)
+             (when expected-end
+               (parens 0 expected-end children)))))
   (list
-   (with-state ("(")
-     (test*
-      (read-parens state)
-      nil))
-   (with-state (")")
-     (test*
-      (read-parens state)
-      nil))
-   (with-state ("()")
-     (test*
-      (read-parens state)
-      '(parens 0 2 nil)))
-   (with-state ("(x)")
-     (test*
-      (read-parens state)
-      '(parens 0 3 ((token 1 2)))))
-   (with-state ("(.)")
-     (test*
-      (read-parens state)
-      '(parens 0 3 ((dot 1 2)))))
-   (with-state ("( () )")
-     (test*
-      (read-parens state)
-      '(parens 0 6 ((whitespace 1 2) (parens 2 4 nil) (whitespace 4 5)))))))
+   (test-read-parens ")" nil)
+   (test-read-parens "(" +end+)
+   (test-read-parens "()" 2)
+   (test-read-parens "(x)" 3 (token 1 2))
+   (test-read-parens "(.)" 3 (punctuation 'dot 1))
+   (test-read-parens "( () )" 6
+                     (whitespace 1 2)
+                     (parens 2 4)
+                     (whitespace 4 5))))
 
 ;; TODO Do something with this, to help error recovery, or at least
 ;; tell the user something.
@@ -674,6 +676,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   ;; We return nil all the time because this isn't valid lisp.
   nil)
 
+;;; This could be a... wait of it... read-table!
 (defun read-any (state)
   (some #'(lambda (fn)
             (funcall fn state))
@@ -700,7 +703,28 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 
 (untrace)
 
-(defun parse (string)
+
+
+
+
+;;; Putting it all toghether
+
+(defun parse (string &aux (state (make-state string)))
+  "Parse a string, stop at the end, or when there's a parse error."
+  (with-timeout (*timeout-threshold*)
+    (loop
+      :for node-start = (pos state)
+      :for node = (read-any state)
+      :while (and node
+                  (plusp (node-end node)))
+      :collect node)))
+
+(parse-correctly "#2()")
+(parse-correctly "(")
+
+;; TODO This is a hot mess :P
+(defun parse* (string)
+  "Parse a string, tries to recover when something is not a valid parse."
   (with-timeout (*timeout-threshold*)
     (loop
       :with state = (make-state string)
@@ -738,35 +762,40 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                 (return (append result `((unknown ,unknown-start ,(pos state)))))
                 (return result)))))
 
-(defun test-parse (input &optional expected)
+(defun test-parse (input &rest expected)
   (if expected
-      (test input (parse input) expected)
-      (test input (parse input))))
+      (test input (parse* input) expected)
+      (test input (parse* input))))
 
 (list
  (eq (parse "") nil)
- (test-parse "  " '((whitespace 0 2)))
- (test-parse "#|" '((block-comment 0 end)))
- (test-parse " #| " '((whitespace 0 1)
-                      (block-comment 1 end)
-                      (whitespace 3 4)))
- (test-parse "#||#" '((block-comment 0 4)))
- (test-parse "#|#||#" '((block-comment 0 end (block-comment 2 6))))
- (test-parse "#| #||# |#" '((block-comment 0 10 (block-comment 3 7))))
- (test-parse "'" '((quote 0 1)))
- (test-parse "`" '((quasiquote 0 1)))
- (test-parse "+-*/" '((token 0 4)))
- (test-parse "123" '((token 0 3)))
- (test-parse "asdf#" '((token 0 5)))
- (test-parse "| asdf |" '((token 0 8)))
- (test-parse "arg| asdf | " '((token 0 11) (whitespace 11 12)))
- (test-parse "arg| asdf |more" '((token 0 15)))
- (test-parse "arg| asdf |more|" '((token 0 end)))
- (test-parse ";" '((line-comment 0 end)))
- (test-parse "(12" '((parens 0 end ((token 1 3)))))
- (test-parse "#" '((sharp 0 1)))
- (test-parse "," '((comma 0 1)))
- (test-parse "\"" '((string 0 end))))
+ (test-parse "  " (whitespace 0 2))
+ (test-parse "#|" (block-comment 0 +end+))
+ (test-parse " #| "
+             (whitespace 0 1)
+             (block-comment 1 +end+)
+             (whitespace 3 4))
+ (test-parse "#||#" (block-comment 0 4))
+ (test-parse "#|#||#" (block-comment 0 +end+ (block-comment 2 6)))
+ (test-parse "#| #||# |#" (block-comment 0 10 (block-comment 3 7)))
+ (test-parse "'" (punctuation 'quote 0))
+ (test-parse "`" (punctuation 'quasiquote 0))
+ (test-parse "#" (punctuation 'sharp 0))
+ (test-parse "," (punctuation 'comma 0))
+ (test-parse "+-*/" (token 0 4))
+ (test-parse "123" (token 0 3))
+ (test-parse "asdf#" (token 0 5))
+ (test-parse "| asdf |" (token 0 8))
+ (test-parse "arg| asdf | " (token 0 11) (whitespace 11 12))
+ (test-parse "arg| asdf |more" (token 0 15))
+ (test-parse "arg| asdf |more|" (token 0 +end+))
+ (test-parse ";" (line-comment 0 +end+))
+ (test-parse "(12" (parens 0 +end+ (token 1 3)))
+ (test-parse "\"" (node 'string 0 +end+)))
+
+
+
+;;; Benchmarks
 
 (defparameter *files*
   (loop
@@ -778,6 +807,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
     :do (setf (gethash file hash) content)
     :finally (return hash)))
 
+;; Benchmarking this parser
 #++
 (time
  (loop :for file :being :the :hash-key :of *files* :using (hash-value content)
@@ -785,6 +815,8 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                       (trivial-timeout:timeout-error (condition) :timeout))
        :when (eq parse :timeout)
          :collect file))
+
+;; First working version
 #|
 Evaluation took:
 0.144 seconds of real time
@@ -796,6 +828,23 @@ Evaluation took:
 ... That's a lot of memory for something that doesn't copy the strings -_-
 |#
 
+;; After adding the "node" structure (instead of using lists) and reworking some loops:
+#|
+Evaluation took:
+0.068 seconds of real time
+0.069146 seconds of total run time (0.068182 user, 0.000964 system)
+101.47% CPU
+291,229,507 processor cycles
+1,796,976 bytes consed
+
+About twice as fast as the first version.
+
+Cons about four times less!
+|#
+
+
+
+;; Comparing to the eclector-based reader
 #++
 (time
  (loop :for file :being :the :hash-key :of *files* :using (hash-value content)
@@ -814,3 +863,14 @@ Evaluation took:
 
 But it failed to parse 3 files
 |#
+
+
+
+
+#++
+(time
+ (loop :for file :being :the :hash-key :of *files* :using (hash-value content)
+       :for parse = (handler-case (parse* content)
+                      (trivial-timeout:timeout-error (condition) :timeout))
+       :when (eq parse :timeout)
+         :collect file))
