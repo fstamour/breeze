@@ -2,9 +2,13 @@
 
 (defpackage #:breeze.test.refactor
   (:use :cl #:breeze.refactor)
+  ;; Importing non-exported symbols of the "package under test"
+  (:import-from #:breeze.refactor
+                #:augment-context-by-parsing-the-buffer)
   (:import-from #:breeze.command
                 #:cancel-command
-                #:continue-command)
+                #:continue-command
+                #:context-plist-to-hash-table)
   (:import-from #:breeze.reader
                 #:node-content
                 #:parse-string
@@ -32,6 +36,12 @@
 (in-package #:breeze.test.refactor)
 
 (defparameter *directory* "./")
+
+#++
+(augment-context-by-parsing-the-buffer
+ (context-plist-to-hash-table
+  `(:buffer-string ,(string #\Newline)
+    :position 1)))
 
 (defun drive-command (fn context-plist inputs)
   "Execute a command FN, with the context CONTEXT-PLIST and send it
@@ -101,9 +111,7 @@ strings get concatenated."
        "mapcar.lisp"
        "(mapcar " ")"
        "")
-      '((nil
-         ("choose" "Choose a command: "
-          ("Insert handler bind form." "Insert a lambda form.")))
+      '((nil ("choose" "Choose a command: " ("Insert a lambda form.")))
         ("" ("message" "\"\" is not a valid choice")))))
 
 

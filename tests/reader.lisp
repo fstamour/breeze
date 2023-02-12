@@ -390,6 +390,7 @@ What about nested feature expressions?
 
 
 ;; TODO recurse into non-terminal nodes
+#++
 (defun contiguousp (nodes input)
   (loop :for node :in nodes
         :for next-node :in (cdr nodes)
@@ -403,6 +404,9 @@ What about nested feature expressions?
                 next-node (node-start next-node)
                 input))))
 
+;; TODO This test is not true anymore, but I'll need to port it to the
+;;      other reader I made.
+#++
 (define-test "nodes are contiguous"
   (loop :for input :in '(""
                          "1"
@@ -600,6 +604,13 @@ What about nested feature expressions?
 
 ;;; Drafting some generative tests
 
+;; TODO make tests out of these, they return NIL as nodes, as they should
+#++
+(progn
+  (parse-string (string #\newline))
+  (parse-string "")
+  (parse-string " "))
+
 #|
 Each of these can be inserted anywhere
 x
@@ -613,7 +624,7 @@ x
 '()
 
 This one can only be inserted at the end (of a line)
-                                        ; comment                               ; ; ; ; ; ; ; ; ; ; ;
+                                        ; comment
 
 '()
 #()

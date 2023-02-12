@@ -22,7 +22,8 @@
                 #:define-test
                 #:is
                 #:true
-                #:false))
+                #:false)
+  (:export #:context-plist-to-hash-table))
 
 (in-package #:breeze.test.command)
 
