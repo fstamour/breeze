@@ -6,7 +6,14 @@
   (:import-from #:alexandria
                 #:symbolicate
                 #:with-gensyms
-                #:if-let)
+                #:if-let
+                #:lastcar)
+  (:import-from #:breeze.reader
+                #:parse-string)
+  (:import-from #:breeze.syntax-tree
+                #:find-path-to-node)
+  (:import-from #:breeze.utils
+                #:before-last)
   (:export
    #:start-command
    #:cancel-command
@@ -41,7 +48,16 @@
    #:ask-y-or-n-p
    ;; Utilities to create commands
    #:return-from-command
-   #:define-command))
+   #:define-command
+   ;; Utilities to add very useful information into the context
+   #:augment-context-by-parsing-the-buffer
+   #:nodes
+   #:path
+   #:outer-node
+   #:inner-node
+   #:inner-node-index
+   #:parent-node
+   ))
 
 (in-package #:breeze.command)
 
@@ -517,6 +533,38 @@ Example:
                 (progn
                   (catch 'done ,@remaining-forms)
                   (send "done")))))))))
+
+
+;;; Utilities to get more context
+
+(defun parse-buffer (context)
+  (let* ((buffer-string (context-buffer-string context))
+         (code (parse-string buffer-string)))
+    (breeze.reader::nodes code)
+    #++
+    (unless (breeze.reader::nodes code)
+      (signal (breeze.reader::parser-condition code)))))
+
+;; TODO Add lots of error-handling...
+(defun augment-context-by-parsing-the-buffer (context)
+  (let ((nodes (parse-buffer context)))
+    (if nodes
+        (let* (;; Find the node "at point"
+               (path (find-path-to-node (context-point context) nodes))
+               ;; Find the top-level form "at point"
+               (outer-node (caar path))
+               ;; Find the innermost form "at point"
+               (inner-node (car (lastcar path)))
+               (inner-node-index (cdr (lastcar path)))
+               ;; Find the innermost form's parent
+               (parent-node (car (before-last path))))
+          #. `(progn ,@(loop :for key in '(nodes path outer-node
+                                           inner-node inner-node-index parent-node)
+                             :collect
+                             `(context-set context ',key ,key)))
+          t)
+        (progn (message "Failed to parse...")
+               nil))))
 
 
 ;;; Pieces of code to help debug issues with commands

@@ -24,10 +24,10 @@
 
 (defun breeze-debug (string &rest objects)
   "Log a meesage in *breeze-debug* buffer."
-  (save-excursion
+  (save-current-buffer
     (set-buffer (get-buffer-create "*breeze-debug*"))
     (setf buffer-read-only nil)
-    (end-of-buffer)
+    (goto-char (point-max))
     (insert
      "\n"
      (format-time-string "[%Y-%m-%d %H:%M:%S.%3N] ")
@@ -39,12 +39,13 @@
   (apply #'message string objects)
   (apply #'breeze-debug string objects))
 
+
 
 ;;; Variables
 
-(defvar breeze-mode-map
+(defvar breeze-minor-mode-map
   (make-sparse-keymap)
-  "Keymap for breeze-mode")
+  "Keymap for breeze-minor-mode")
 
 
 ;;; Integration with lisp listener
@@ -240,9 +241,9 @@ lisp's reader doesn't convert them."
                   (buffer-name)
                   (buffer-file-name)
                   (buffer-substring-no-properties (point-min) (point-max))
-                  (point)
-                  (point-min)
-                  (point-max)))))
+                  (1- (point))
+                  (1- (point-min))
+                  (1- (point-max))))))
 
 (defun breeze-command-start (name)
   (breeze-debug "Breeze: starting command: %s." name)
@@ -283,13 +284,13 @@ lisp's reader doesn't convert them."
     ("insert-at"
      (cl-destructuring-bind (_ position string)
          request
-       (when (numberp position) (goto-char position))
+       (when (numberp position) (goto-char (1+ position)))
        (insert string)))
     ("insert-at-saving-excursion"
      (cl-destructuring-bind (_ position string)
          request
        (save-excursion
-         (when (numberp position) (goto-char position))
+         (when (numberp position) (goto-char (1+ position)))
          (insert string))))
     ("insert"
      (cl-destructuring-bind (_ string) request (insert string)))
@@ -359,6 +360,11 @@ lisp's reader doesn't convert them."
   (interactive)
   (breeze-run-command "breeze.refactor:insert-defpackage"))
 
+(defun breeze-eval-defun ()
+  "Evaluate current top-level form."
+  (interactive)
+  (breeze-run-command "breeze.listener:interactive-eval-command"))
+
 
 ;;; code evaluation
 ;;
@@ -406,44 +412,56 @@ lisp's reader doesn't convert them."
 ;; breeze-kill-worker-thread
 
 
-;;; mode
+;;; minor mode
 
-(define-minor-mode breeze-mode
+(define-minor-mode breeze-minor-mode
   "Breeze mimor mode."
   :lighter " brz"
-  :keymap breeze-mode-map)
+  :keymap breeze-minor-mode-map)
 
 ;; Analogous to org-insert-structure-template
-;; (define-key breeze-mode-map (kbd "C-c C-,") 'breeze-insert)
+;; (define-key breeze-minor-mode-map (kbd "C-c C-,") 'breeze-insert)
 
 ;; Analogous to org-goto
-(define-key breeze-mode-map (kbd "C-c C-j") #'imenu)
+(define-key breeze-minor-mode-map (kbd "C-c C-j") #'imenu)
 
 ;; Analogous to Visual Studio Code's "quickfix"
-(define-key breeze-mode-map (kbd "C-.") #'breeze-quickfix)
+(define-key breeze-minor-mode-map (kbd "C-.") #'breeze-quickfix)
 
 ;; Disabled for now
 ;; eval keymap - because we might want to keep an history
 ;; (defvar breeze-eval-map (make-sparse-keymap))
 ;; eval last expression
-;; (define-key breeze-mode-map (kbd "C-c e") breeze-eval-map)
+;; (define-key breeze-minor-mode-map (kbd "C-c e") breeze-eval-map)
 ;; choose an expression from history to evaluate
 ;; (define-key breeze-eval-map (kbd "e") 'breeze-reevaluate-form)
 
-(defun enable-breeze-mode ()
-  "Enable breeze-mode."
+(defun enable-breeze-minor-mode ()
+  "Enable breeze-minor-mode."
   (interactive)
-  (breeze-mode 1))
+  (breeze-minor-mode 1))
 
-(defun disable-breeze-mode ()
-  "Disable breeze-mode."
+(defun disable-breeze-minor-mode ()
+  "Disable breeze-minor-mode."
   (interactive)
-  (breeze-mode -1))
+  (breeze-minor-mode -1))
 
-;; (add-hook 'breeze-mode-hook 'breeze-init)
+;; (add-hook 'breeze-minor-mode-hook 'breeze-init)
 ;; TODO This should be in the users' config
-;; (add-hook 'slime-lisp-mode-hook 'breeze-init)
+;; (add-hook 'slime-lisp-minor-mode-hook 'breeze-init)
 ;; TODO This should be in the users' config
+
+
+;;; major mode
+
+(define-derived-mode breeze-major-mode prog-mode
+  "BRZ")
+
+(define-key breeze-major-mode-map (kbd "C-.") #'breeze-quickfix)
+
+(define-key breeze-major-mode-map (kbd "C-c C-c") #'breeze-eval-defun)
+
+
 
 (defun breeze ()
   "Initialize breeze."

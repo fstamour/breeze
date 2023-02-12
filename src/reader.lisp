@@ -24,7 +24,28 @@ This package also re-exports symbols from breeze.syntax-tree.")
 ;; (log:config '(breeze reader) :debug)
 
 
-;;; Parser "client"
+;;; Data structures (there's even more in "syntax-tree.lisp")
+
+;; TODO Find a better name... anything better
+(defclass code ()
+  ((nodes
+    :initform nil
+    :initarg :nodes
+    :accessor nodes
+    :documentation "List of forms (syntax nodes)")
+   (parser-condition
+    :initform nil
+    :initarg :condition
+    :accessor parser-condition
+    :documentation "The condition that occured while parsing"))
+  (:documentation "Represents a parsed piece of code."))
+
+(defun make-code (&optional nodes)
+  (make-instance 'code
+                 :nodes nodes))
+
+
+;;; Parser "client", that how you customize eclector
 
 ;; Define a class representing the "parse result client"
 (defclass breeze-client (eclector.parse-result:parse-result-client)
@@ -187,7 +208,7 @@ This package also re-exports symbols from breeze.syntax-tree.")
 
 
 
-;;; Reading multiple forms + post processing = ""parsing""
+;;; Reading multiple forms = ""parsing""
 
 (defun read-all-forms (string)
   (let ((eof (gensym "eof"))
@@ -197,159 +218,36 @@ This package also re-exports symbols from breeze.syntax-tree.")
     (values
      (loop
        :with cursor = 0
-       :for (form position orphans)
-         = (if (eq eof form)
-               (return forms) ; Stop the loop here...
-               (multiple-value-list
-                (progn
-                  (setf (start client) cursor)
-                  (eclector.parse-result:read-from-string
-                   client
-                   string
-                   ;; Don't error on eof
-                   nil
-                   ;; Return eof instead
-                   eof
-                   :start cursor
-                   :preserve-whitespace t))))
+       :for (form position)
+         = (multiple-value-list
+            (progn
+              (setf (start client) cursor)
+              (eclector.parse-result:read-from-string
+               client
+               string
+               ;; Don't error on eof
+               nil
+               ;; Return eof instead
+               eof
+               :start cursor
+               :preserve-whitespace t)))
+       :while (not (eq eof form))
        :do (setf cursor position)
-       :if orphans
-         :append (cond
-                   ((eq eof form) orphans)
-                   (t (sort
-                       (append orphans (list form))
-                       #'<
-                       :key (lambda (node)
-                              (car (node-source node))))))
-           :into forms
-       :else
-         :when (not (eq eof form))
-           :collect form :into forms)
+       :when (not (eq eof form))
+         :collect form)
      client)))
 
 
-(defun get-tail (string forms &optional (end (length string)))
-  "Given a list of forms, extract any trailing characters that were ignored."
-  (let* ((tail (alexandria:lastcar forms))
-         (tail-end (if tail
-                       (cdr (node-source tail))
-                       0)))
-    (when (plusp (- end tail-end))
-      (make-instance 'skipped-node
-                     :content (subseq-displaced string tail-end end)
-                     :source (cons tail-end end)))))
-
-(defun post-process-nodes! (string forms start-at end-at)
-  "Update each nodes in FORMS to include their prefix (extracted from STRING)."
-  (let ((previous nil))
-    (loop
-      :for rest :on forms
-      :for form :in forms
-      :for lastp = (null (cdr rest))
-      :for (form-start . form-end) = (node-source form)
-      :for prefix-start = start-at then (cdr (node-source previous))
-
-      :for end = (car (node-source form))
-      :for prefix = (unless (zerop (- end prefix-start))
-                      (subseq-displaced string prefix-start end))
-      :do
-         ;; update FORM
-         (setf
-          ;; Add the prefix
-          (node-prefix form) prefix)
-         ;; recurse
-         (unless (terminalp form)
-           (post-process-nodes! string (node-content form)
-                                (car (node-source form))
-                                (cdr (node-source form))))
-         (when (and lastp (/= form-end end-at))
-           (setf (cdr rest)
-                 (cons
-                  (make-instance 'skipped-node
-                                 :content (subseq-displaced
-                                           string form-end end-at)
-                                 :source (cons form-end end-at))
-                  nil)))
-         ;; update loop variables
-         (setf previous form))))
-
-
-(defun parse-string (string)
+(defun parse-string (string &optional errorp)
   "Read STRING entirely using breeze's reader."
   ;; (read-all-forms string)
   ;; #+ (or)
-  (let ((forms (read-all-forms string)))
-    (if forms
-        (progn
-          (post-process-nodes! string forms 0 (length string))
-          forms)
-        (get-tail string forms))))
-
-
-;;; "Unparsing"
-
-;; Don't I have something similar in breeze.syntax-tree?
-(defun write-raw (stream node)
-  (write-string (node-raw node) stream))
-
-(defun unparse-to-stream (stream nodes)
-  "Print a list of NODES into STREAM."
-  (let ((*print-case* :downcase)
-        (*print-circle* t))
-    (unparse-to-stream% stream nodes)))
-
-(defun unparse-to-stream% (stream nodes)
-  "Print a list of NODES into STREAM (implementation)."
-  (dolist (node nodes)
-    (alexandria:if-let
-        ((prefix (node-prefix node)))
-      (write-string prefix stream))
-    (unparse-node stream node)))
-
-
-(defgeneric unparse-node (stream node)
-  (:documentation "Print a NODE into STREAM.")
-  ;; Generic node
-  (:method (stream (node node))
-    (let ((content (node-content node)))
-      (cond
-        ((not (terminalp node))
-         (unparse-to-stream% stream (node-content node))
-         #+nil (when (listp content)
-                 (write-char #\) stream)))
-        ((typep content 'character-node)
-         (princ (node-raw node) stream))
-        (
-         (format stream "~a" content)))))
-  ;; Symbol
-  (:method (stream (node symbol-node))
-    (write-raw stream node))
-  ;; String
-  (:method (stream (node string-node))
-    (write-raw stream node))
-  ;; #+-
-  (:method (stream (node feature-expression-node))
-    ;; (unparse-node stream (node-feature-expression node))
-    ;; (unparse-node stream (node-content node))
-    (unparse-to-stream stream (node-content node)))
-  ;; (...)
-  (:method (stream (node list-node))
-    (cond
-      ((null (node-content node))
-       (write-raw stream node))
-      (t
-       (unparse-to-stream% stream (node-content node))))))
-
-(defun unparse-to-string (nodes)
-  "Print a list of NODES as a STRING."
-  (with-output-to-string
-      (stream)
-    (etypecase nodes
-      (list
-       (unparse-to-stream stream nodes))
-      (node
-       (unparse-to-stream stream (list nodes))))))
-
+  (handler-bind
+      ((error #'(lambda (condition)
+                  (unless errorp
+                    (return-from parse-string
+                      (make-instance 'code :condition condition))))))
+    (make-code (read-all-forms string))))
 
 #+ (or)
 (sb-profile:profile

@@ -54,6 +54,7 @@ parse" begins.
                 #:subseq-displaced
                 #:+whitespaces+
                 #:whitespacep)
+  #++
   (:import-from #:trivial-timeout
                 #:with-timeout)
   (:import-from #:alexandria
@@ -69,7 +70,6 @@ parse" begins.
 
 (defclass state ()
   ((source
-    :initform nil
     :initarg :source
     :type string
     :accessor source
@@ -92,6 +92,7 @@ parse" begins.
 
 (alexandria:define-constant +end+ -1)
 
+#++
 (defun print-node (node stream)
   (format stream "#S(NODE :TYPE ~A :START ~D :END ~D"
           (node-type node)
@@ -221,6 +222,7 @@ parse" begins.
 
 ;; I looked at trivial-timeout's code, it's safe to put nil (or a
 ;; float) here.
+#++
 (defparameter *timeout-threshold* 1)
 
 
@@ -429,40 +431,38 @@ occurence of STRING."
   ;; easily see the START in the debugger).
   (defun read-block-comment (state  &aux (start (pos state)))
     "Read #||#"
-    (with-timeout (*timeout-threshold*)
-      (when (read-string* state "#|")
-        (loop
-          :with inner-comments
-          ;; :for guard :upto 10 ; infinite loop guard
-          :for previous-pos = nil :then pos
-          :for pos = #++ (position #\# (source state) :start (pos state))
-                         (search-or '("#|" "|#") state)
-          :when (and previous-pos (eql pos previous-pos))
-            :do (error "%read-block-comment: failed to move forward, this is a bug!
+    (when (read-string* state "#|")
+      (loop
+        :with inner-comments
+        ;; :for guard :upto 10 ; infinite loop guard
+        :for previous-pos = nil :then pos
+        :for pos = #++ (position #\# (source state) :start (pos state))
+                       (search-or '("#|" "|#") state)
+        :when (and previous-pos (eql pos previous-pos))
+          :do (error "read-block-comment: failed to move forward, this is a bug!
 Previous position: ~A
 New position ~A"
-                       previous-pos
-                       pos)
-          :do
-             (when pos
-               ;; Whatever happens, we move forward
-               (setf (pos state) (+ pos 2))
-               (if (char= #\# (at state pos))
-                   ;; if #|
-                   (push (%read-block-comment state (- (pos state) 2)) inner-comments)
-                   ;; else |#
-                   (return (block-comment start (pos state)
-                                          (nreverse inner-comments)))))
-             (unless pos
-               (return (block-comment start +end+
-                                      (nreverse inner-comments))))))))
+                     previous-pos
+                     pos)
+        :do
+           (when pos
+             ;; Whatever happens, we move forward
+             (setf (pos state) (+ pos 2))
+             (if (char= #\# (at state pos))
+                 ;; if #|
+                 (push (read-block-comment state) inner-comments)
+                 ;; else |#
+                 (return (block-comment start (pos state)
+                                        (nreverse inner-comments)))))
+           (unless pos
+             (return (block-comment start +end+
+                                    (nreverse inner-comments)))))))
 
   (defun test-read-block-comment (input expected-end &rest children)
-    (let ((*timeout-threshold* nil))
-      (with-state (input)
-        (test input (read-block-comment state)
-              (when expected-end
-                (block-comment 0 expected-end children))))))
+    (with-state (input)
+      (test input (read-block-comment state)
+            (when expected-end
+              (block-comment 0 expected-end children)))))
 
   (list
    (test-read-block-comment "" nil)
@@ -543,27 +543,26 @@ New position ~A"
     "Read strings delimited by DELIMITER where the single escape character
 is ESCAPE. Optionally check if the characters is valid if VALIDP is
 provided."
-    (with-timeout (*timeout-threshold*)
-      (let ((start (pos state)))
-        (when (at state (pos state) delimiter)
-          (loop
-            ;; :for guard :upto 10
-            :for pos :from (1+ (pos state))
-            :for c = (at state pos)
-            :do
-               ;; (format *debug-io* "~%~A ~A" pos c)
-               (cond
-                 ((null c)
-                  (setf (pos state) pos)
-                  (return (list start +end+)))
-                 ((char= c delimiter)
-                  (setf (pos state) (1+ pos))
-                  (return (list start (1+ pos))))
-                 ((char= c escape) (incf pos))
-                 ((and validp
-                       (not (funcall validp c)))
-                  (setf (pos state) pos)
-                  (return (list start 'invalid)))))))))
+    (let ((start (pos state)))
+      (when (at state (pos state) delimiter)
+        (loop
+          ;; :for guard :upto 10
+          :for pos :from (1+ (pos state))
+          :for c = (at state pos)
+          :do
+             ;; (format *debug-io* "~%~A ~A" pos c)
+             (cond
+               ((null c)
+                (setf (pos state) pos)
+                (return (list start +end+)))
+               ((char= c delimiter)
+                (setf (pos state) (1+ pos))
+                (return (list start (1+ pos))))
+               ((char= c escape) (incf pos))
+               ((and validp
+                     (not (funcall validp c)))
+                (setf (pos state) pos)
+                (return (list start 'invalid))))))))
   ;; TODO Add tests with VALIDP
   (list
    (with-state ("")
@@ -612,7 +611,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       :while (not-terminatingp char)
       :for part = (if (char= char #\|)
                       (read-quoted-string state #\| #\\)
-                      (read-while state (complement #'terminatingp)))
+                      (read-while state #'not-terminatingp))
       :while (and part (not-terminatingp (current-char state)))
       :finally (return (unless (= start (pos state))
                          (token start (if part (second part) +end+))))))
@@ -635,24 +634,29 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
    (test-read-token "arg| asdf |no  |mmoooore|done" 13)))
 
 
+;; TODO Do something with this, to help error recovery, or at least
+;; tell the user something.
+(defun read-extraneous-closing-parens (state)
+  (read-char* state #\))
+  ;; We return nil all the time because this isn't valid lisp.
+  nil)
 
 ;; don't forget to handle dotted lists
 (progn
   (defun read-parens (state &aux (start (pos state)))
-    (with-timeout (*timeout-threshold*)
-      (when (read-char* state #\()
-        ;; Read while read-any != nil && char != )
-        (loop
-          :for guard :below 1000 ;; infinite loop guard
-          :while (not (read-char* state #\))) ;; good ending
-          :for el = (read-any state) ;; mutual recursion
-          :if el
-            :collect el :into content
-          :else
-            :do (return (if (donep state)
-                            (parens start +end+ content)
-                            nil))
-          :finally (return (parens start (pos state) content))))))
+    (when (read-char* state #\()
+      ;; Read while read-any != nil && char != )
+      (loop
+        ;; :for guard :below 1000 ; infinite loop guard
+        :while (not (read-char* state #\))) ; good ending
+        :for el = (read-any state)          ; mutual recursion
+        :if el
+          :collect el :into content
+        :else
+          :do (return (if (donep state)
+                          (parens start +end+ content)
+                          nil))
+        :finally (return (parens start (pos state) content)))))
   (defun test-read-parens (input expected-end &rest children)
     (with-state (input)
       (test* (read-parens state)
@@ -669,14 +673,6 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                      (parens 2 4)
                      (whitespace 4 5))))
 
-;; TODO Do something with this, to help error recovery, or at least
-;; tell the user something.
-(defun read-extraneous-closing-parens (state)
-  (read-char* state #\))
-  ;; We return nil all the time because this isn't valid lisp.
-  nil)
-
-;;; This could be a... wait of it... read-table!
 (defun read-any (state)
   (some #'(lambda (fn)
             (funcall fn state))
@@ -686,23 +682,23 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
           read-string
           read-line-comment
           read-token
-          read-parens
+          read-parens ; recursion
           read-extraneous-closing-parens)))
 
-(trace
- read-string*
- read-char*)
+#++
+(progn
+  (trace
+   read-string*
+   read-char*)
 
-(trace
- %read-whitespaces
- %read-block-comment
- %read-token
- read-parens
- read-extraneous-closing-parens
- read-any)
+  (trace
+   %read-whitespaces
+   %read-block-comment
+   %read-token
+   read-parens
+   read-extraneous-closing-parens)
 
-(untrace)
-
+  (untrace))
 
 
 
@@ -711,56 +707,55 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 
 (defun parse (string &aux (state (make-state string)))
   "Parse a string, stop at the end, or when there's a parse error."
-  (with-timeout (*timeout-threshold*)
-    (loop
-      :for node-start = (pos state)
-      :for node = (read-any state)
-      :while (and node
-                  (plusp (node-end node)))
-      :collect node)))
+  (values (loop
+            :for node-start = (pos state)
+            :for node = (read-any state)
+            :while (and node
+                        (plusp (node-end node)))
+            :collect node)
+          state))
 
-(parse-correctly "#2()")
-(parse-correctly "(")
+;; (parse "#2()")
+;; (parse "(")
 
 ;; TODO This is a hot mess :P
 (defun parse* (string)
   "Parse a string, tries to recover when something is not a valid parse."
-  (with-timeout (*timeout-threshold*)
-    (loop
-      :with state = (make-state string)
-      :with unknown-start
-      :for token-start = (pos state)
-      ;; :for guard :upto 1000               ; infinite loop guard
-      :for token = (read-any state)
+  (loop
+    :with state = (make-state string)
+    :with unknown-start
+    :for token-start = (pos state)
+    ;; :for guard :upto 1000               ; infinite loop guard
+    :for token = (read-any state)
 
-      :when (and token (not unknown-start)) ; Happy path
-        :collect token :into result
+    :when (and token (not unknown-start)) ; Happy path
+      :collect token :into result
 
-      :when (and token unknown-start)   ;  Back on the happy path
-        :append (list
-                 (prog1
-                     (list 'unknown unknown-start token-start)
-                   (setf unknown-start nil))
-                 token)
-          :into result
+    :when (and token unknown-start)   ;  Back on the happy path
+      :append (list
+               (prog1
+                   (list 'unknown unknown-start token-start)
+                 (setf unknown-start nil))
+               token)
+        :into result
 
 
-      :when (and (not token)            ; Out of the happy path
-                 (not (donep state)))
-        ;; if there's no token (e.g. unable to parse), but (not (donep
-        ;; state)), advance and try again
-        :do
-           (unless unknown-start
-             (setf unknown-start (pos state)))
-           ;; TODO For now we simply increment, but later we'll search
-           ;; for synchornization points, hence the setf instead of an
-           ;; incf
-           (setf (pos state) (1+ (pos state)))
+    :when (and (not token)            ; Out of the happy path
+               (not (donep state)))
+      ;; if there's no token (e.g. unable to parse), but (not (donep
+      ;; state)), advance and try again
+      :do
+         (unless unknown-start
+           (setf unknown-start (pos state)))
+         ;; TODO For now we simply increment, but later we'll search
+         ;; for synchornization points, hence the setf instead of an
+         ;; incf
+         (setf (pos state) (1+ (pos state)))
 
-      :when (donep state)               ; Done
-        :do (if unknown-start
-                (return (append result `((unknown ,unknown-start ,(pos state)))))
-                (return result)))))
+    :when (donep state)               ; Done
+      :do (if unknown-start
+              (return (append result `((unknown ,unknown-start ,(pos state)))))
+              (return result))))
 
 (defun test-parse (input &rest expected)
   (if expected
@@ -812,8 +807,8 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 (time
  (loop :for file :being :the :hash-key :of *files* :using (hash-value content)
        :for parse = (handler-case (parse content)
-                      (trivial-timeout:timeout-error (condition) :timeout))
-       :when (eq parse :timeout)
+                      (error (condition) :error))
+       :when (eq parse :error)
          :collect file))
 
 ;; First working version
@@ -842,9 +837,25 @@ About twice as fast as the first version.
 Cons about four times less!
 |#
 
+asdfasd
 
+#|
+
+On another computer, after removing all "with-timout"
+
+Evaluation took:
+0.012 seconds of real time
+0.012056 seconds of total run time (0.012054 user, 0.000002 system)
+100.00% CPU
+42,368,760 processor cycles
+1,604,320 bytes consed
+
+|#
+
+adsf
 
 ;; Comparing to the eclector-based reader
+
 #++
 (time
  (loop :for file :being :the :hash-key :of *files* :using (hash-value content)
@@ -853,7 +864,9 @@ Cons about four times less!
        :when (eq parse :error)
          :collect file))
 
+
 #|
+
 Evaluation took:
 0.160 seconds of real time
 0.160275 seconds of total run time (0.143281 user, 0.016994 system)
@@ -865,12 +878,52 @@ But it failed to parse 3 files
 |#
 
 
+#|
+
+On another computer:
+
+Evaluation took:
+0.024 seconds of real time
+0.026949 seconds of total run time (0.026949 user, 0.000000 system)
+112.50% CPU
+46 lambdas converted
+93,880,815 processor cycles
+8,687,808 bytes consed
+
+|#
 
 
 #++
 (time
  (loop :for file :being :the :hash-key :of *files* :using (hash-value content)
        :for parse = (handler-case (parse* content)
-                      (trivial-timeout:timeout-error (condition) :timeout))
-       :when (eq parse :timeout)
+                      (error (condition) :error))
+       :when (eq parse :error)
          :collect file))
+
+#|
+
+On another computer:
+
+Evaluation took:
+0.012 seconds of real time
+0.012408 seconds of total run time (0.012393 user, 0.000015 system)
+100.00% CPU
+43,082,200 processor cycles
+1,534,960 bytes consed
+
+|#
+
+
+;;;
+
+#++
+(multiple-value-bind (tree state)
+    (parse "(foo)")
+  (format nil "(~a ~a)"
+          "ignore-errors"
+          (node-content state (car tree))))
+
+
+;; Slightly cursed syntax:
+;; "#+#."
