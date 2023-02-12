@@ -502,14 +502,58 @@ https://github.com/webyrd/Barliman
 Which is one of the reason behind wrapping the definitions (e.g. =breeze:defun=)
 
 - fault injection
-- program slicing
+- program (dynamic) slicing
 - Stepping though code
 - profiling
 - test coverage
 - coverage guided
 - profile-guided optimization
 
+** Program slicing
+
+*** For code navigation
+
+It would be nice to be able to search for something (e.g. calls to
+make-instance) only in a certain slice (e.g. from the "call tree" of
+foo).
+
+*** Correlate with unit tests
+
+If we have multiple tests on the same piece of code, we can use the
+slices from the tests that pass and the tests that fail to narrow down
+which slice is probably the source of the failure.
+
 ** Use equivalence-graph e-graph to suggest refactors
+
+Main resource: [[https://egraphs-good.github.io/][E-Graphs Good]]
+
+This might be hard and complicated, I was thinking that I should start
+by making this work on a very small scope. For example, if the user
+ask to suggest some refactors, we can look for forms that contains
+only arithmetic (again, just an example) and nothing else, that use
+equality saturation to find interesting equivalent forms and propose
+them to the user.
+
+*** Small discussion I had on lobste.rs
+
+- [[https://lobste.rs/s/myyznl/tooling_for_tooling#c_apjopu][Comment on Lobste.rs]]
+
+The important bit:
+
+#+begin_quote
+egg is great for algebraic rewrites, but doesn’t have good builtin
+tools for associative/commutative operations, nor for
+alpha-equivalence and rewriting under binders. I deliberately left
+names out of my syntax so that rewriting would be easier; this won’t
+be as simple for Lisps in general.
+#+end_quote
+
+*** I already started working on implementing equivalence graphs
+
+A while ago I started by writing a disjoint sets data structure (also
+known as union-find, based on the 2 mains operations it supports).
+
+https://github.com/fstamour/disjoint-sets
 
 ** Semantic diffs using breeze.reader
 
