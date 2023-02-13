@@ -23,10 +23,11 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
-  :depends-on (breeze/config
+  :depends-on (#:breeze/config
                ;; Multi-threading
                #:bordeaux-threads
                #:chanl
+               #:trivial-timeout
                ;; To create projects
                #:quickproject
                ;; Utilities

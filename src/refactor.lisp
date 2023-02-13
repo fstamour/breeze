@@ -17,6 +17,7 @@
    #:before-last
    #:find-version-control-root)
   (:export
+   #:command-description
    ;; Simple transformation commands
    #:insert-loop-clause-for-on-list
    #:insert-loop-clause-for-in-list
@@ -33,6 +34,7 @@
    #:insert-defpackage
    #:insert-in-package-cl-user
    #:insert-asdf
+   #:insert-lambda
    ;; Other commands
    #:quickfix))
 
@@ -59,7 +61,7 @@
   "Insert handler case form."
   (insert
    "(handler-case~
-  ~%  (frobnicate)
+  ~%  (frobnicate)~
   ~%  (error (condition)~
   ~%    (describe condition *debug-io*)))"))
 
@@ -349,12 +351,11 @@ For debugging purposes ONLY.")
 
 #+ (or)
 (let* ((*standard-output* *debug-io*)
-       (pos (1- (getf *qf* :point)))
-       (nodes (getf *qf* :nodes))
-       (path (find-path-to-node pos nodes))
-       (outer-node (caar path))
-       (parent-node (car (before-last path)))
-       (inner-node (car (lastcar path))))
+       (nodes )
+       (path )
+       (outer-node )
+       (parent-node )
+       (inner-node ))
   (loop :for (node . index) :in path
         :for i :from 0
         :do (format t "~%=== Path part #~d, index ~d ===~%~s"
@@ -367,11 +368,7 @@ For debugging purposes ONLY.")
   (format t "~%nearest in-package: ~a" (find-nearest-in-package-form nodes outer-node))
   (format t "~%parent node: ~a" parent-node))
 
-#+(or) (in-package-form-p
-        (car (getf *qf* :nodes)))
-
-
-
+;; (cdr (assoc :context *qf*))
 
 
 (defun validate-nearest-in-package (nodes outer-node)
@@ -401,7 +398,7 @@ For debugging purposes ONLY.")
 (defun compute-suggestions (&aux commands)
   "Compute the list of applicable commands given the current context."
   (let+ctx (nodes
-            position
+            point
             path
             outer-node
             inner-node
@@ -433,8 +430,8 @@ For debugging purposes ONLY.")
           ;; in-between forms
           (null outer-node)
           ;; just at the start or end of a form
-          (= position (node-start outer-node))
-          (= position (node-end outer-node))
+          (= point (node-start outer-node))
+          (= point (node-end outer-node))
           ;; inside a comment (or a form disabled by a
           ;; feature-expression)
           (typep outer-node
