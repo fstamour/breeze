@@ -1,3 +1,5 @@
+;; a.k.a. `code assists`, `code actions``
+
 (in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.refactor
@@ -497,16 +499,17 @@ a message and stop the current command."
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
+  #++ (message "swank::*emacs-connection* ~s
+swank::*send-counter* ~s" swank::*emacs-connection*
+swank::*send-counter*)
   (multiple-value-bind (status system)
       (breeze.asdf:loadedp (context-buffer-file-name*))
-    ;; This is super useful and nice, but slime _really_ doesn't like
-    ;; that I call this... See the condition and stack trace at the
-    ;; end of this file.
-    #++
     (when (eq :not-loaded status)
       (when (ask-y-or-n-p "The current file is part of the system \"~a\", but has not been loaded yet. Do you want to load it now? (y/n) "
                           (asdf:component-name system))
+        (message "Loading system \"~a\"..." system)
         (asdf:load-system system))
+      (message "System \"~a\" successfully loaded." system)
       ;; TODO Remove
       (return-from-command)))
   (if (augment-context-by-parsing-the-buffer (command-context*))
@@ -529,66 +532,3 @@ a message and stop the current command."
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
-
-#|
-NIL fell through ETYPECASE expression.
-Wanted one of (SWANK::SINGLETHREADED-CONNECTION
-               SWANK::MULTITHREADED-CONNECTION).
-   [Condition of type SB-KERNEL:CASE-FAILURE]
-
-Restarts:
- 0: [TRY-RECOMPILING] Recompile toolkit and try loading it again
- 1: [RETRY] Retry loading FASL for #<CL-SOURCE-FILE "documentation-utils" "toolkit">.
- 2: [ACCEPT] Continue, treating loading FASL for #<CL-SOURCE-FILE "documentation-utils" "toolkit"> as having been successful.
- 3: [RETRY] Retry ASDF operation.
- 4: [CLEAR-CONFIGURATION-AND-RETRY] Retry ASDF operation after resetting the configuration.
- 5: [RETRY] Retry ASDF operation.
- 6: [CLEAR-CONFIGURATION-AND-RETRY] Retry ASDF operation after resetting the configuration.
- 7: [ABORT] abort thread (#<THREAD "breeze command handler" RUNNING {102A31CE73}>)
-
-Backtrace:
-  0: (SWANK::SEND-TO-INDENTATION-CACHE (:UPDATE-INDENTATION-INFORMATION))
-  1: (SWANK:UPDATE-INDENTATION-INFORMATION)
-  2: ((SETF TRIVIAL-INDENT:INDENTATION) (&REST (&WHOLE 2 0 &BODY)) DEFINE-DOCS)
-  3: ((SB-C::TOP-LEVEL-FORM (SB-C::%DEFMACRO (QUOTE DEFINE-DOCS) (SB-INT:NAMED-LAMBDA (MACRO-FUNCTION DEFINE-DOCS) (#1=#:EXPR #2=#:ENV) (DECLARE (SB-C::LAMBDA-LIST #3=#)) (DECLARE (IGNORE #2#)) (SB-INT:NAM..
-  4: (SB-FASL::LOAD-FASL-GROUP #S(SB-FASL::FASL-INPUT :STREAM #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.0.nixos-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/docu..
-  5: ((LAMBDA NIL :IN SB-FASL::LOAD-AS-FASL))
-  6: (SB-IMPL::CALL-WITH-LOADER-PACKAGE-NAMES #<FUNCTION (LAMBDA NIL :IN SB-FASL::LOAD-AS-FASL) {102E0F00BB}>)
-  7: (SB-FASL::LOAD-AS-FASL #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.0.nixos-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/documentation-utils-20190710-git/toolk..
-  8: ((LABELS SB-FASL::LOAD-STREAM-1 :IN LOAD) #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.0.nixos-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/documentation-utils..
-  9: (SB-FASL::CALL-WITH-LOAD-BINDINGS #<FUNCTION (LABELS SB-FASL::LOAD-STREAM-1 :IN LOAD) {7F8950DBD12B}> #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.0.nixos-linux-x64/home/fst..
- 10: (LOAD #P"/home/fstamour/.cache/common-lisp/sbcl-2.3.0.nixos-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/documentation-utils-20190710-git/toolkit.fasl" :VERBOSE NIL :PRINT NIL :IF-DOES-N..
- 11: (UIOP/UTILITY:CALL-WITH-MUFFLED-CONDITIONS #<FUNCTION (LAMBDA NIL :IN UIOP/LISP-BUILD:LOAD*) {102E0E3EFB}> ("Overwriting already existing readtable ~S." #(#:FINALIZERS-OFF-WARNING :ASDF-FINALIZERS)))
- 12: ((SB-PCL::EMF ASDF/ACTION:PERFORM) #<unused argument> #<unused argument> #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/LISP-ACTION:CL-SOURCE-FILE "documentation-utils" "toolkit">)
- 13: ((LAMBDA NIL :IN ASDF/ACTION:CALL-WHILE-VISITING-ACTION))
- 14: ((:METHOD ASDF/ACTION:PERFORM-WITH-RESTARTS (ASDF/LISP-ACTION:LOAD-OP ASDF/LISP-ACTION:CL-SOURCE-FILE)) #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/LISP-ACTION:CL-SOURCE-FILE "documentation-utils" "toolkit">)..
- 15: ((:METHOD ASDF/ACTION:PERFORM-WITH-RESTARTS :AROUND (T T)) #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/LISP-ACTION:CL-SOURCE-FILE "documentation-utils" "toolkit">) [fast-method]
- 16: ((:METHOD ASDF/PLAN:PERFORM-PLAN (T)) #<ASDF/PLAN:SEQUENTIAL-PLAN {102A0577B3}>) [fast-method]
- 17: ((FLET SB-C::WITH-IT :IN SB-C::%WITH-COMPILATION-UNIT))
- 18: ((:METHOD ASDF/PLAN:PERFORM-PLAN :AROUND (T)) #<ASDF/PLAN:SEQUENTIAL-PLAN {102A0577B3}>) [fast-method]
- 19: ((LAMBDA (SB-PCL::.ARG0. SB-INT:&MORE SB-PCL::.MORE-CONTEXT. SB-PCL::.MORE-COUNT.) :IN "/home/fstamour/quicklisp/setup.lisp") #<ASDF/PLAN:SEQUENTIAL-PLAN {102A0577B3}>)
- 20: ((:METHOD ASDF/OPERATE:OPERATE (ASDF/OPERATION:OPERATION ASDF/COMPONENT:COMPONENT)) #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/SYSTEM:SYSTEM "breeze/test"> :PLAN-CLASS NIL :PLAN-OPTIONS NIL) [fast-method]
- 21: ((SB-PCL::EMF ASDF/OPERATE:OPERATE) #<unused argument> #<unused argument> #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/SYSTEM:SYSTEM "breeze/test">)
- 22: ((LAMBDA NIL :IN ASDF/OPERATE:OPERATE))
- 23: ((:METHOD ASDF/OPERATE:OPERATE :AROUND (T T)) #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/SYSTEM:SYSTEM "breeze/test">) [fast-method]
- 24: ((SB-PCL::EMF ASDF/OPERATE:OPERATE) #<unused argument> #<unused argument> ASDF/LISP-ACTION:LOAD-OP ("breeze/test"))
- 25: ((LAMBDA NIL :IN ASDF/OPERATE:OPERATE))
- 26: ((:METHOD ASDF/OPERATE:OPERATE :AROUND (T T)) ASDF/LISP-ACTION:LOAD-OP ("breeze/test")) [fast-method]
- 27: (ASDF/SESSION:CALL-WITH-ASDF-SESSION #<FUNCTION (LAMBDA NIL :IN ASDF/OPERATE:OPERATE) {102A60664B}> :OVERRIDE T :KEY NIL :OVERRIDE-CACHE T :OVERRIDE-FORCING NIL)
- 28: ((LAMBDA NIL :IN ASDF/OPERATE:OPERATE))
- 29: (ASDF/SESSION:CALL-WITH-ASDF-SESSION #<FUNCTION (LAMBDA NIL :IN ASDF/OPERATE:OPERATE) {102A36B51B}> :OVERRIDE NIL :KEY NIL :OVERRIDE-CACHE NIL :OVERRIDE-FORCING NIL)
- 30: ((:METHOD ASDF/OPERATE:OPERATE :AROUND (T T)) ASDF/LISP-ACTION:LOAD-OP #<ASDF/SYSTEM:SYSTEM "breeze/test">) [fast-method]
- 31: (ASDF/OPERATE:LOAD-SYSTEM #<ASDF/SYSTEM:SYSTEM "breeze/test">)
- 32: ((LAMBDA NIL :IN BREEZE.REFACTOR:QUICKFIX))
- 33: ((LAMBDA NIL :IN BREEZE.COMMAND:START-COMMAND))
- 34: (BREEZE.COMMAND::CALL-WITH-CANCEL-COMMAND-ON-ERROR #<FUNCTION (LAMBDA NIL :IN BREEZE.COMMAND:START-COMMAND) {102835FFEB}>)
- 35: ((LAMBDA NIL :IN BREEZE.COMMAND:START-COMMAND))
- 36: ((LAMBDA NIL :IN BORDEAUX-THREADS::BINDING-DEFAULT-SPECIALS))
- 37: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
- 38: ((FLET "WITHOUT-INTERRUPTS-BODY-132" :IN SB-THREAD::RUN))
- 39: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
- 40: ((FLET "WITHOUT-INTERRUPTS-BODY-125" :IN SB-THREAD::RUN))
- 41: (SB-THREAD::RUN)
- 42: ("foreign function: call_into_lisp_")
- 43: ("foreign function: funcall1")
-|#

@@ -205,17 +205,41 @@
       :do (setf (gethash normalized-key ht) value)
     :finally (return ht)))
 
+;; (1) There are packages, like trivial-indent, that will call swank,
+;; but swank will signal an error because the symbol
+;; swank::*emacs-connection* and swank::send-counter are bound to nil.
+;;
+;; Furthermore... I need to make my macro work even if swank is not
+;; loaded, so I made this workaround... Hopefully it won't break
+;; anyone's code 'o_o
+;;
+;; TODO Sly probably needs the same workaround
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (unless (find-package "SWANK")
+    (make-package "SWANK")))
+(defvar swank::*emacs-connection* nil)
+(defvar swank::*send-counter* nil)
+
 (defmacro make-command-thread ((command-handler) &body body)
   "Initialize a command-handler's thread."
   (alexandria:once-only ((command-handler command-handler))
-    (with-gensyms (channel-in channel-out thread)
+    (with-gensyms (channel-in channel-out thread
+                              ;; (2)
+                              swank-emacs-connection
+                              swank-send-counter)
       `(let* ((,channel-in (command-channel-in ,command-handler))
               (,channel-out (command-channel-out ,command-handler))
+              ;; (3)
+              (,swank-emacs-connection swank::*emacs-connection*)
+              (,swank-send-counter swank::*send-counter*)
               (,thread
                 (bt:make-thread
                  #'(lambda ()
                      (let ((*channel-in* ,channel-in)
-                           (*channel-out* ,channel-out))
+                           (*channel-out* ,channel-out)
+                           ;; (4)
+                           (swank::*emacs-connection* ,swank-emacs-connection)
+                           (swank::*send-counter* ,swank-send-counter))
                        (declare (ignorable *channel-in*
                                            *channel-out*))
                        ,@body))
@@ -570,6 +594,8 @@ Example:
 ;;; Pieces of code to help debug issues with commands
 
 ;; (setf *break-on-signals* 'error)
+
+;; (cancel-command)
 
 #+ (or)
 (trace

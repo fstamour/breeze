@@ -110,6 +110,8 @@
 (defun breeze-eval (string)
   (if (breeze-sly-or-not-slime)
       (sly-eval `(slynk:eval-and-grab-output ,string))
+    ;; TODO I should probably use slime-rex, to try to avoid opening
+    ;; the debugger when an error occures during a command... MAYBE
     (slime-eval `(swank:eval-and-grab-output ,string))))
 
 (defun breeze-eval-value-only (string)
