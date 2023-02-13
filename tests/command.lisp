@@ -30,8 +30,8 @@
 (define-test context-plist-to-hash-table
   (let ((plist (alexandria:hash-table-plist
                 (context-plist-to-hash-table '(buffer-string "asdf" ok 42)))))
-    (is equal "asdf" (getf plist :buffer-string))
-    (false (getf plist 'buffer-string))
+    (is equal "asdf" (getf plist 'buffer-string))
+    (false (getf plist :buffer-string))
     (is = 42 (getf plist 'ok))))
 
 (define-test command-handler-initialization
@@ -106,7 +106,7 @@
       "asdf"
       (context-buffer-string
        (alexandria:plist-hash-table
-        '(:buffer-string "asdf")))))
+        '(buffer-string "asdf")))))
 
 (define-test context-buffer-name)
 (define-test context-buffer-file-name)

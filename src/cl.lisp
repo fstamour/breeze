@@ -9,7 +9,8 @@
 
 (defpackage #:breeze.cl
   (:documentation "Some useful metadata on cl's symbols")
-  (:use :cl))
+  (:use :cl)
+  (:export #:higher-order-function-p))
 
 (in-package #:breeze.cl)
 

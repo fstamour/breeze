@@ -17,7 +17,9 @@ This package also re-exports symbols from breeze.syntax-tree.")
    #:parse
    #:parse-string
    #:unparse-to-stream
-   #:unparse-to-string))
+   #:unparse-to-string
+   #:forms
+   #:parser-conditon))
 
 (in-package #:breeze.reader)
 
@@ -28,10 +30,10 @@ This package also re-exports symbols from breeze.syntax-tree.")
 
 ;; TODO Find a better name... anything better
 (defclass code ()
-  ((nodes
+  ((forms
     :initform nil
-    :initarg :nodes
-    :accessor nodes
+    :initarg :forms
+    :accessor forms
     :documentation "List of forms (syntax nodes)")
    (parser-condition
     :initform nil
@@ -40,9 +42,9 @@ This package also re-exports symbols from breeze.syntax-tree.")
     :documentation "The condition that occured while parsing"))
   (:documentation "Represents a parsed piece of code."))
 
-(defun make-code (&optional nodes)
+(defun make-code (&optional forms)
   (make-instance 'code
-                 :nodes nodes))
+                 :forms forms))
 
 
 ;;; Parser "client", that how you customize eclector
@@ -257,7 +259,6 @@ This package also re-exports symbols from breeze.syntax-tree.")
  make-instance
  eclector.parse-result:make-expression-result
  eclector.parse-result:read-preserving-whitespace
- post-process-nodes!
  raw)
 
 ;; #+ (or) (sb-profile:report)

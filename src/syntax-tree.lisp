@@ -294,17 +294,19 @@
 
 (defun find-node (position nodes)
   "Given a list of NODES, return which node contains the POSITION."
+  (check-type nodes list)
   (loop :for node :in nodes
         :for (start . end) = (node-source node)
         :for i :from 0
         :when (and
                (<= start position end)
-               (<= position end))
+               (< position end))
           :do
              (return (cons node i))))
 
 (defun find-path-to-node (position nodes)
   "Given a list of NODES, return a path (list of cons (node . index))"
+  (check-type nodes list)
   (loop :for found = (find-node position nodes)
           :then (let ((node (car found)))
                   (and (listp (node-content node))
@@ -314,6 +316,8 @@
         :collect found))
 
 (defun find-nearest-sibling-form (nodes current-node predicate)
+  (check-type nodes list)
+  (check-type current-node node)
   "Find the nearest sibling form that match the predicate."
   (loop :with result
         :for node :in nodes

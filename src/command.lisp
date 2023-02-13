@@ -51,13 +51,20 @@
    #:define-command
    ;; Utilities to add very useful information into the context
    #:augment-context-by-parsing-the-buffer
+   ;; Keys in the *context* hash-table
+   #:buffer-string
+   #:buffer-name
+   #:buffer-file-name
+   #:point
+   #:point-min
+   #:point-max
+   #:point
    #:nodes
    #:path
    #:outer-node
    #:inner-node
    #:inner-node-index
-   #:parent-node
-   ))
+   #:parent-node))
 
 (in-package #:breeze.command)
 
@@ -199,7 +206,7 @@
                                                    point-min
                                                    point-max))
                                       :test #'string=)
-                              (intern (symbol-name key) :keyword)
+                              (intern (symbol-name key) #.*package*)
                               key)
     :when value
       :do (setf (gethash normalized-key ht) value)
@@ -324,79 +331,79 @@
   "Get the \"buffer-string\" from the CONTEXT.
 The buffer-string is the content of the buffer.
 It can be null."
-  (context-get context :buffer-string))
+  (context-get context 'buffer-string))
 
 (defun context-buffer-string* ()
   "Get the \"buffer-string\" from the *current-command*'s context.
 The buffer-string is the content of the buffer.
 It can be null."
-  (context-get (command-context*) :buffer-string))
+  (context-get (command-context*) 'buffer-string))
 
 (defun context-buffer-name (context)
   "Get the \"buffer-name\" from the CONTEXT.
 The buffer-name is the name of the buffer.
 It can be null."
-  (context-get context :buffer-name))
+  (context-get context 'buffer-name))
 
 (defun context-buffer-name* ()
   "Get the \"buffer-name\" from the *current-command*'s context.
 The buffer-name is the name of the buffer.
 It can be null."
-  (context-get (command-context*) :buffer-name))
+  (context-get (command-context*) 'buffer-name))
 
 (defun context-buffer-file-name (context)
   "Get the \"buffer-file-name\" the CONTEXT.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
-  (context-get context :buffer-file-name))
+  (context-get context 'buffer-file-name))
 
 (defun context-buffer-file-name* ()
   "Get the \"buffer-file-name\" from the *current-command*'s context.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
-  (context-get (command-context*) :buffer-file-name))
+  (context-get (command-context*) 'buffer-file-name))
 
 (defun context-point (context)
   "Get the \"point\" from the CONTEXT.
 The point is the position of the cursor.
 It can be null."
-  (context-get context :point))
+  (context-get context 'point))
 
 (defun context-point* ()
   "Get the \"point\" from the *current-command*'s context.
 The point is the position of the cursor.
 It can be null."
-  (context-get (command-context*) :point))
+  (context-get (command-context*) 'point))
 
 (defun context-point-min (context)
   "Get the \"point-min\" from the CONTEXT.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get context :point-min))
+  (context-get context 'point-min))
 
 (defun context-point-min* ()
   "Get the \"point-min\" from the *current-command*'s context.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get (command-context*) :point-min))
+  (context-get (command-context*) 'point-min))
 
 (defun context-point-max (context)
   "Get the \"point-max\" from the CONTEXT.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get context :point-max))
+  (context-get context 'point-max))
 
 (defun context-point-max* ()
   "Get the \"point-max\" from the *current-command*'s context.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get (command-context*) :point-max))
+  (context-get (command-context*) 'point-max))
 
 
 
@@ -564,10 +571,10 @@ Example:
 (defun parse-buffer (context)
   (let* ((buffer-string (context-buffer-string context))
          (code (parse-string buffer-string)))
-    (breeze.reader::nodes code)
+    (breeze.reader:forms code)
     #++
-    (unless (breeze.reader::nodes code)
-      (signal (breeze.reader::parser-condition code)))))
+    (unless (breeze.reader:forms code)
+      (signal (breeze.reader:parser-condition code)))))
 
 ;; TODO Add lots of error-handling...
 (defun augment-context-by-parsing-the-buffer (context)

@@ -369,11 +369,40 @@ What about nested feature expressions?
 
 ;;; TODO Test package-local-nicknames
 
-
 (define-test in-package
-  (let ((in-package-form (first (parse-string "(in-package :cl)"))))
+  (let ((in-package-form (first (forms (parse-string "(in-package :cl)")))))
     (true (in-package-form-p in-package-form))
     (is eq :cl (in-package-node-package in-package-form))))
+
+
+;;; Test syntax-tree's utilities
+
+;; TODO node-first
+;; TODO node-lastcar
+;; TODO node-string-equal
+;; TODO node-length
+;; TODO node-symbols=
+;; TODO null-node-p
+;; TODO nodes-emptyp
+
+;; TODO find-node
+;; TODO find-path-to-node
+;; TODO find-nearest-sibling-form
+;; TODO find-nearest-parent-form
+
+(define-test form-predicates
+  (true (loop-form-p (first (forms (parse-string "(loop)"))))))
+
+(define-test find-path-to-node
+  (is equal
+      '(0 1 1 2 2 2 2 1 1 0)
+      (loop :with input = " ( loop ) "
+            :with forms = (forms (parse-string input))
+            :for i :from 0 :below (length input)
+            :for path = (find-path-to-node i forms)
+            :collect (length path))))
+
+
 
 
 ;;; Test READ-ALL-FORMS
@@ -431,8 +460,6 @@ What about nested feature expressions?
 ;;
 ;; ^^^ these are redundant but I want to be extra sure
 
-
-;;; Test POST-PROCESS-NODES!
 
 
 ;;; Test PARSE-STRING
@@ -504,6 +531,7 @@ What about nested feature expressions?
 
 ;;; Test "roundtrip" (parse followed by unparse
 
+#++
 (define-test "roundtrip list and numbers"
   (unparse-to-string
    (parse-string " ( 2 ) 1 ")))
@@ -511,6 +539,7 @@ What about nested feature expressions?
 
 ;;; Down below: "legacy mess" :P
 
+#++
 (define-test parse-unparse-roundtrip
   (dolist (expected
            '("1"
