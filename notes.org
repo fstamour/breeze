@@ -7,6 +7,9 @@
 2. Implement better refactor commands
 3. Add a breeze-eval function instead of advising swank/slynk
 4. Improve the reader to support more reader-macros
+5. Reduce breeze's dependencies
+6. Make commands more declarative; generate elisp from list of command
+7. Add support for other editors
 
 * Tasks
 
