@@ -12,6 +12,8 @@
   (:import-from #:breeze.config
                 #:*capture-folder*
                 #:*capture-template*)
+  (:import-from #:breeze.utils
+                #:remove-indentation)
   (:export #:capture))
 
 (in-package #:breeze.capture)
@@ -20,30 +22,6 @@
   (mapcar #'pathname-name
           (directory
            (merge-pathnames "*.lisp" *capture-folder*))))
-
-(defun leading-whitespaces (string)
-  (with-input-from-string (input string)
-    ;; Skip the first line
-    (when (read-line input nil nil)
-      (loop :for line = (read-line input nil nil)
-            :while line
-            :for leading-whitespaces = (position-if-not #'whitespacep line)
-            :when leading-whitespaces
-              :minimize leading-whitespaces))))
-
-(defun remove-indentation (string)
-  (let ((indentation (leading-whitespaces string)))
-    (with-input-from-string (input *capture-template*)
-      (with-output-to-string (output)
-        (loop :for line = (read-line input nil nil)
-              :while line
-              :for leading-whitespaces = (position-if-not #'whitespacep line)
-              :if (and leading-whitespaces
-                       (>= leading-whitespaces indentation))
-                :do (write-string (subseq-displaced line indentation) output)
-              :else
-                :do (write-string line output)
-              :do (write-char #\newline output))))))
 
 (defun populate (pathname)
   (with-open-file (output pathname

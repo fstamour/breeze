@@ -10,6 +10,7 @@
    #:walk-car
    #:walk-list
    #:indent-string
+   #:remove-indentation
    #:print-comparison
    #:breeze-relative-pathname
    #:+whitespaces+
@@ -170,6 +171,30 @@
 b
 "
 |#
+
+(defun leading-whitespaces (string)
+  (with-input-from-string (input string)
+    ;; Skip the first line
+    (when (read-line input nil nil)
+      (loop :for line = (read-line input nil nil)
+            :while line
+            :for leading-whitespaces = (position-if-not #'whitespacep line)
+            :when leading-whitespaces
+              :minimize leading-whitespaces))))
+
+(defun remove-indentation (string)
+  (let ((indentation (leading-whitespaces string)))
+    (with-input-from-string (input string)
+      (with-output-to-string (output)
+        (loop :for line = (read-line input nil nil)
+              :while line
+              :for leading-whitespaces = (position-if-not #'whitespacep line)
+              :if (and leading-whitespaces
+                       (>= leading-whitespaces indentation))
+                :do (write-string (subseq-displaced line indentation) output)
+              :else
+                :do (write-string line output)
+              :do (write-char #\newline output))))))
 
 (defun print-comparison (stream string1 string2)
   "Print two (close) string in a way that the difference are easier to see."
