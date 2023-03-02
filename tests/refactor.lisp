@@ -29,9 +29,13 @@
                 #:character-node-p
                 #:list-node-p
                 #:function-node-p)
+  (:import-from #:breeze.utils
+                #:remove-indentation)
   (:import-from #:parachute
                 #:define-test
-                #:is))
+                #:is
+                #:true
+                #:false))
 
 (in-package #:breeze.test.refactor)
 
@@ -46,8 +50,40 @@
 
 ;;; Test refactoring commands
 
-(defun drive-command (fn context-plist inputs)
-  "Execute a command FN, with the context CONTEXT-PLIST and send it
+(define-test "All commands must be exported"
+  (let ((commands (remove-if #'breeze.xref:externalp (breeze.refactor::all-commands))))
+    (false commands "The following commands are not exported:~%~{  - ~S~%~}" commands)))
+
+(define-test "All commands must be tested"
+  (let ((commands
+          (set-difference
+           (breeze.refactor::all-commands)
+           (remove-if-not #'symbolp
+                          (mapcar #'parachute:name (parachute:package-tests *package*)))
+           :key #'symbol-name
+           :test #'string=)))
+    (false commands
+           "The following commands don't have a corresponding test:~%~{  - ~S~%~}"
+           commands)))
+
+#++
+(define-command insert-refactor-test ()
+  "Insert a breeze:define-command form."
+  (let ((name (read-string "Name of the command (symbol): ")))
+    (insert
+     (remove-indentation
+      "(define-test ~(~a~)
+         (is equal
+             ;; TODO expected
+             (drive-command #'~(~a~)
+                            :inputs '()
+                            :context '())))")
+     name name)))
+
+
+
+(defun drive-command (fn &key context inputs)
+  "Execute a command FN, with the context CONTEXT and send it
 INPUTS. Returns the execution trace as a pair of input/request.
 
 N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those requests"
@@ -60,7 +96,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
          ;; We start by calling the function (the command), this will
          ;; start a new thread that will either return "done" and
          ;; exit, or return another request and wait for more inputs.
-         :for request = (apply fn context-plist)
+         :for request = (apply fn context)
          ;; We call continue-command to send the input
            :then (if input
                      (funcall #'continue-command input)
@@ -75,6 +111,13 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
     ;; Make sure we clean up correctly if there was an error.
     (cancel-command)))
 
+#++
+(define-test insert-breeze-define-command
+  (is equal
+      (drive-command #'insert-handler-bind-form)))
+
+
+
 (define-test insert-handler-bind-form
   (is equal
       '((nil
@@ -82,9 +125,11 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
   ((error #'(lambda (condition)
     (describe condition *debug-io*))))
   (frobnicate))")))
-      (drive-command #'insert-handler-bind-form
-                     '()
-                     nil)))
+      (drive-command #'insert-handler-bind-form)))
+
+;; This reproduce a bug in chanl....
+#++
+(loop (drive-command #'insert-handler-bind-form))
 
 (define-test insert-handler-case-form
   (is equal
@@ -93,9 +138,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
   (frobnicate)
   (error (condition)
     (describe condition *debug-io*)))")))
-      (drive-command #'insert-handler-case-form
-                     '()
-                     nil)))
+      (drive-command #'insert-handler-case-form)))
 
 (define-test loop-clause-for-on-list
   (is equal
@@ -104,8 +147,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
         ("el" ("insert" "el :on "))
         ("list" ("read-string" "Enter the the list to iterate on: " nil)))
       (drive-command #'insert-loop-clause-for-on-list
-                     '()
-                     '(nil "el" "list"))))
+                     :inputs '(nil "el" "list"))))
 
 
 
@@ -121,13 +163,13 @@ strings get concatenated."
         (point (length pre))
         (buffer-string (concatenate 'string pre post)))
     (drive-command 'quickfix
-                   (list :buffer-name buffer-name
-                         :buffer-file-name buffer-file-name
-                         :buffer-string buffer-string
-                         :point point
-                         :point-min 0
-                         :point-max (length buffer-string))
-                   (list ""))))
+                   :context (list :buffer-name buffer-name
+                                  :buffer-file-name buffer-file-name
+                                  :buffer-string buffer-string
+                                  :point point
+                                  :point-min 0
+                                  :point-max (length buffer-string))
+                   :inputs (list ""))))
 
 (defun expect-suggestions (&rest expected-suggested-commands)
   `((nil ("choose" "Choose a command: " ,(mapcar (alexandria:compose #'second

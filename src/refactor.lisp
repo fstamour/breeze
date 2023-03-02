@@ -333,6 +333,12 @@ defun."
     insert-handler-case-form
     insert-lambda))
 
+(defun all-commands ()
+  (remove-duplicates
+   (append
+    *commands-applicable-at-toplevel*
+    *commands-applicable-in-a-loop-form*
+    *commands-applicable-inside-another-form-or-at-toplevel*)))
 
 (defparameter *qf* nil
   "Data from the latest quickfix invocation.
@@ -373,7 +379,9 @@ For debugging purposes ONLY.")
 
 (defun validate-nearest-in-package (nodes outer-node)
   (let* ((previous-in-package-form
-           (find-nearest-sibling-in-package-form nodes outer-node)))
+           ;; TODO outer-node might be nil :/
+           (find-nearest-sibling-in-package-form nodes (or outer-node
+                                                           (context-point*)))))
     (when previous-in-package-form
       (let* ((package-designator (in-package-node-package
                                   previous-in-package-form))
