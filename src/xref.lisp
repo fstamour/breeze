@@ -12,7 +12,8 @@
    #:specialp
    #:macrop
    #:simple-function-p
-   #:classp))
+   #:classp
+   #:externalp))
 
 (in-package #:breeze.xref)
 
@@ -66,3 +67,8 @@
 (defun classp (symbol)
   "Return true if SYMBOL designate a class."
   (find-class symbol nil))
+
+(defun externalp (symbol)
+  (eq :external
+      (nth-value 1 (find-symbol (symbol-name symbol)
+                                (symbol-package symbol)))))
