@@ -837,7 +837,7 @@ About twice as fast as the first version.
 Cons about four times less!
 |#
 
-asdfasd
+
 
 #|
 
@@ -852,7 +852,6 @@ Evaluation took:
 
 |#
 
-adsf
 
 ;; Comparing to the eclector-based reader
 
