@@ -315,13 +315,16 @@
         :while found
         :collect found))
 
-(defun find-nearest-sibling-form (nodes current-node predicate)
+(defun find-nearest-sibling-form (nodes position-or-node predicate)
   (check-type nodes list)
-  (check-type current-node node)
+  (check-type position-or-node (or node integer))
   "Find the nearest sibling form that match the predicate."
   (loop :with result
+        :with position = (if (integerp position-or-node)
+                             position-or-node
+                             (node-start position-or-node))
         :for node :in nodes
-        :when (eq node current-node)
+        :when (<= position (node-start node))
           :do (return result)
         :when (funcall predicate node)
           :do (setf result node)))
@@ -349,6 +352,7 @@
         :when (funcall predicate node)
           :do (setf result node)
         :finally (return result)))
+
 
 (defmacro define-find-nearest-parent-form (types)
   "Helper macro to define lots of predicates."
