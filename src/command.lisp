@@ -92,6 +92,9 @@
     :documentation "The context of the command."))
   (:documentation "Contains the runtime data to run a command."))
 
+
+;;; Channels
+
 (defmethod command-channel-in :around (command)
   "Helper method for easier debugging."
   (let ((result (call-next-method)))
@@ -118,6 +121,65 @@
   (warn "command-channel-out called on nil.")
   nil)
 
+
+(define-condition stop ()
+  ())
+
+(defun return-from-command ()
+  (signal 'stop))
+
+(defun call-with-command-signal-handler (fn)
+  (catch 'stop
+    (handler-bind
+        ((stop (lambda (condition)
+                 (declare (ignore condition))
+                 (throw 'stop nil))))
+      (funcall fn))))
+
+(defun %recv (channel)
+  (let ((value (chanl:recv channel)))
+    (when (eq value 'stop)
+      (return-from-command))
+    ;; Return from command uses cl:signal, which means that it'll do
+    ;; nothing if there's no handler setup. So we always return the
+    ;; value.
+    value))
+
+(defun %send (channel value)
+  (chanl:send channel value))
+
+
+(defmethod send-into ((command command-handler) value)
+  (%send (command-channel-in command) value))
+
+(defmethod recv-from ((command command-handler))
+  (prog1 (%recv (command-channel-out command))
+    (send-into command 'ack)))
+
+(defmethod recv-into ((command command-handler))
+  (%recv (command-channel-in command)))
+
+(defmethod send-out ((command command-handler) value)
+  (%send (command-channel-out command) value))
+
+;; (trace %recv %send)
+;; (trace send-into send-out recv-from recv-into)
+;; (untrace)
+
+(defun recv ()
+  "Meant to be used by the commands."
+  (recv-into *current-command*))
+
+(defun recv1 ()
+  "Meant to be used by the commands."
+  (car (recv)))
+
+(defun send (request &rest data)
+  "Meant to be used by the commands."
+  (send-out *current-command* `(,request ,@data))
+  (unless (eq 'ack (recv))
+    (error "Expected an ack.")))
+
 
 
 ;; No, I won't support multiple client/command at the same time, for
@@ -138,7 +200,7 @@
   (handler-case
       (progn
         ;; Ask very gently
-        (%send (command-channel-in command) 'stop)
+        (send-into command 'stop)
         (sleep 0.001)
         ;; Ask gently
         (loop :repeat 100
@@ -149,6 +211,9 @@
           ;; Kill the associated thread.
           (bt:destroy-thread thread)
           (log:error "Had to..")))
+    ;; This is signaled when interrupting a thread fails because the
+    ;; thread is not alive. (p.s. on sbcl, both bt:interrupt-thread
+    ;; and bt:destroy-thread ends up interrupting th thread)
     #+sbcl
     (sb-thread:interrupt-thread-error (condition)
       (declare (ignore condition)))))
@@ -183,27 +248,15 @@
         (cancel-command "Done")
         *current-command*)))
 
-(defun %recv (channel)
-  "To help with tracing."
-  (let ((value (chanl:recv channel)))
-    (when (eq value 'stop)
-      (return-from-command))
-    ;; Return from command uses cl:signal, which means that it'll do
-    ;; nothing if there's no handler setup. So we always return the
-    ;; value.
-    value))
 
-(defun %send (channel value)
-  "To help with tracing."
-  (chanl:send channel value))
 
 (defun run-command (command arguments)
   "Receive request from the command's thread."
   (if (donep command)
-      (cancel-command)
+      (cancel-command "run-command: command was donep")
       (progn
-        (when arguments (chanl:send (command-channel-in command) arguments))
-        (let ((request (chanl:recv (command-channel-out command))))
+        (when arguments (send-into command arguments))
+        (let ((request (recv-from command)))
           (cond
             ((null request)
              (cancel-command "Request is null."))
@@ -300,43 +353,59 @@
   (unless (command-context *current-command*)
     (error "In start-command: *current-command*'s context is null")))
 
+(defun wait-for-sync (command)
+  ;; Waiting for a message from start-command
+  (log:debug "Waiting for 'sync message")
+  (let ((sync-message (recv-into command)))
+    (unless (eq 'sync sync-message)
+      (error "In start-command: expected to receive the datum 'sync, received ~S instead"
+             sync-message))
+    (log:debug "Received 'sync message")))
+
+(defun send-sync (command)
+  ;; Send a message to the thread for synchronisation.
+  (log:debug "Sending 'sync message...")
+  (send-into command 'sync)
+  (log:debug "'sync message sent"))
+
+(defun wait-for-started-message (command)
+  (log:debug "Waiting for the thread to be up and running...")
+  ;; Wait for the thread to be up and running
+  (let ((started-message (recv-from command)))
+    (unless (eq 'started started-message)
+      (error "In start-command: expected to receive the datum 'started, received ~S instead"
+             started-message))))
+
+(defun send-started-message (command)
+  ;; Sending back a message to tell start-command the command is going to do its job
+  (send-out command 'started))
+
 (defun start-command (context-plist thunk)
   "Start processing a command, initializing *current-command*."
   ;; It is possible, especially (when testing breeze...) that there
   ;; are multiple commands running at the same time. For now, we'll
   ;; just cancel the currently running one.
-  (cancel-command)
+  (cancel-command "start-command cleanup")
   (cancel-command-on-error
-    ;; Create the command handler with the right context
-    (setf *current-command*
-          (make-instance
-           'command-handler
-           :context (context-plist-to-hash-table context-plist)))
-    ;; Create the thread for the command handler
-    (make-command-thread (*current-command*)
-      (cancel-command-on-error
-        ;; Being very defensive here, because so many
-        ;; things can go wrong.
-        (check-special-variables)
-        ;; Waiting for a message from start-command
-        (let ((sync-message (chanl:recv *channel-in*)))
-          (unless (eq :sync sync-message)
-            (error "In start-command: expected to receive the datum :sync, received ~S instead"
-                   sync-message)))
-        ;; Sending back a message to tell start-command the command is going to do its job
-        (chanl:send *channel-out* :started)
-        (funcall thunk)))
-    ;; Send a message to the thread for synchronisation.
-    (chanl:send (command-channel-in *current-command*) :sync)
-    (log:debug "Waiting for the thread to be up and running...")
-    ;; Wait for the thread to be up and running
-    (let ((started-message (chanl:recv (command-channel-out *current-command*))))
-      (unless (eq :started started-message)
-        (error "In start-command: expected to receive the datum :started, received ~S instead"
-               started-message)))
-    (log:debug "Command started.")
-    ;; Get the thread's request and return it.
-    (run-command *current-command* nil)))
+    (let ((command (make-instance
+                    'command-handler
+                    :context (context-plist-to-hash-table context-plist))))
+      ;; Create the command handler with the right context
+      (setf *current-command* command)
+      ;; Create the thread for the command handler
+      (make-command-thread (command)
+        (cancel-command-on-error
+          ;; Being very defensive here, because so many
+          ;; things can go wrong.
+          (check-special-variables)
+          (wait-for-sync command)
+          (send-started-message command)
+          (funcall thunk)))
+      (send-sync command)
+      (wait-for-started-message command)
+      (log:debug "Command started.")
+      ;; Get the thread's request and return it.
+      (run-command command nil))))
 
 
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
@@ -441,34 +510,6 @@ The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get (command-context*) 'point-max))
-
-
-
-(define-condition stop ()
-  ())
-
-(defun return-from-command ()
-  (signal 'stop))
-
-(defun call-with-command-signal-handler (fn)
-  (catch 'stop
-    (handler-bind
-        ((stop (lambda (condition)
-                 (declare (ignore condition))
-                 (throw 'stop nil))))
-      (funcall fn))))
-
-(defun recv ()
-  "Returns a list"
-  (%recv *channel-in*))
-
-(defun recv1 ()
-  (car (%recv *channel-in*)))
-
-(defun send (request &rest data)
-  (chanl:send *channel-out* `(,request ,@data))
-  (unless (eq 'ack (recv))
-    (error "Expected an ack.")))
 
 
 ;;; Basic commands, to be composed
