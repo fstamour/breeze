@@ -4,7 +4,8 @@
   (:use :cl #:alexandria #:breeze.command)
   (:documentation "Swank/Slynk wrapper")
   (:import-from #:breeze.xref
-                #:classp)
+                #:classp
+                #:function-designator-p)
   (:import-from #:breeze.utils
                 #:optimal-string-alignment-distance*)
   (:export
@@ -325,19 +326,33 @@ of the instance of that had the smallest score."
 
 ;;; Thread management
 
-(defun find-worker-threads ()
-  (let ((current-thread (bt:current-thread)))
+(defun find-threads-by-name (&key string-or-predicate  (exclude-current-thread-p t))
+  (let ((current-thread (when exclude-current-thread-p (bt:current-thread)))
+        (name-predicate (or (and (function-designator-p string-or-predicate)
+                                 string-or-predicate)
+                            #'(lambda (thread-name)
+                                (string= thread-name (or string-or-predicate "worker"))))))
     (remove-if-not #'(lambda (thread)
                        (and (not (eq current-thread thread))
-                            (string= "worker" (bt:thread-name thread))))
-                   (sb-thread:list-all-threads))))
+                            (funcall name-predicate (bt:thread-name thread))))
+                   (bt:all-threads))))
 
-(defun kill-worker-threads ()
-  (let ((threads (find-worker-threads)))
+;; (find-threads-by-name :exclude-current-thread-p nil)
+
+;; (length (find-threads-by-name :string-or-predicate "breeze command handler"))
+
+(defun kill-worker-threads (&optional string-or-predicate)
+  (let ((threads (find-threads-by-name :string-or-predicate string-or-predicate)))
     (when threads
-      (mapcar #'bordeaux-threads:destroy-thread threads))
-    (format t "Killed ~d threads." (length threads))))
+      (mapcar #'bordeaux-threads:destroy-thread threads)
+      (format t "~&Killed ~d threads.~%" (length threads)))
+    (length threads)))
 
 #|
 (kill-worker-threads)
+(kill-worker-threads "breeze command handler")
 |#
+
+
+
+(mapcar #'bt:destroy-thread (find-threads-by-name :string-or-predicate "breeze command handler"))

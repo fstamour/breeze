@@ -1,3 +1,4 @@
+
 (cl:in-package #:common-lisp-user)
 
 (defpackage #:breeze.test.refactor
@@ -80,36 +81,35 @@
                             :context '())))")
      name name)))
 
-
-
 (defun drive-command (fn &key context inputs)
   "Execute a command FN, with the context CONTEXT and send it
 INPUTS. Returns the execution trace as a pair of input/request.
 
 N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those requests"
-  ;; Make sure it's ok to run a new command.
-  (cancel-command)
-  (unwind-protect
-       (loop
-         ;; The first input is always nil
-         :for input :in (cons nil inputs)
-         ;; We start by calling the function (the command), this will
-         ;; start a new thread that will either return "done" and
-         ;; exit, or return another request and wait for more inputs.
-         :for request = (apply fn context)
-         ;; We call continue-command to send the input
-           :then (if input
-                     (funcall #'continue-command input)
-                     (continue-command))
-         ;; We collect the pair of input/request. This is practically
-         ;; an execution trace, and we're going to assert things on
-         ;; those traces.
-         :collect (list input request)
-         ;; Detect when the command is done.
-         :while (and request
-                     (not (string= "done" (car request)))))
-    ;; Make sure we clean up correctly if there was an error.
-    (cancel-command)))
+  (let ((breeze.command::*current-command*))
+    ;; Make sure it's ok to run a new command.
+    (cancel-command)
+    (unwind-protect
+         (loop
+           ;; The first input is always nil
+           :for input :in (cons nil inputs)
+           ;; We start by calling the function (the command), this will
+           ;; start a new thread that will either return "done" and
+           ;; exit, or return another request and wait for more inputs.
+           :for request = (apply fn context)
+           ;; We call continue-command to send the input
+             :then (if input
+                       (funcall #'continue-command input)
+                       (continue-command))
+           ;; We collect the pair of input/request. This is practically
+           ;; an execution trace, and we're going to assert things on
+           ;; those traces.
+           :collect (list input request)
+           ;; Detect when the command is done.
+           :while (and request
+                       (not (string= "done" (car request)))))
+      ;; Make sure we clean up correctly if there was an error.
+      (cancel-command))))
 
 #++
 (define-test insert-breeze-define-command
@@ -129,7 +129,23 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 
 ;; This reproduce a bug in chanl....
 #++
+(time
+ (let ((old-zombie-threads (breeze.listener::find-threads-by-name :string-or-predicate "breeze command handler")))
+   (loop :repeat 1000 :do (drive-command #'insert-handler-bind-form))
+   (set-difference (breeze.listener::find-threads-by-name :string-or-predicate "breeze command handler") old-zombie-threads)
+   ))
+
+;; (untrace)
+
+#++
 (loop (drive-command #'insert-handler-bind-form))
+
+#++
+(progn
+  (cancel-command)
+  (prog1 (insert-handler-bind-form)
+    (cancel-command)))
+
 
 (define-test insert-handler-case-form
   (is equal
