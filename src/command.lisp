@@ -154,13 +154,16 @@
 
 (defmethod recv-from ((command command-handler))
   (prog1 (%recv (command-channel-out command))
-    (send-into command 'ack)))
+    #++ (send-into command 'ack)))
 
 (defmethod recv-into ((command command-handler))
   (%recv (command-channel-in command)))
 
 (defmethod send-out ((command command-handler) value)
-  (%send (command-channel-out command) value))
+  (%send (command-channel-out command) value)
+  #++ (let ((value (recv-into command)))
+        (unless (eq 'ack value)
+          (error "Expected an ack, received ~s instead." value))))
 
 ;; (trace %recv %send)
 ;; (trace send-into send-out recv-from recv-into)
@@ -176,9 +179,7 @@
 
 (defun send (request &rest data)
   "Meant to be used by the commands."
-  (send-out *current-command* `(,request ,@data))
-  (unless (eq 'ack (recv))
-    (error "Expected an ack.")))
+  (send-out *current-command* `(,request ,@data)))
 
 
 
@@ -411,10 +412,11 @@
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
 (defun continue-command (&rest arguments)
   "Continue procressing *current-command*."
-  (unless *current-command*
-    (error "Continue-command called when no commands are currently running."))
-  (cancel-command-on-error
-    (run-command *current-command* arguments)))
+  (let ((command *current-command*))
+    (unless command
+      (error "Continue-command called when no commands are currently running."))
+    (cancel-command-on-error
+      (run-command command arguments))))
 
 
 ;;; Utilities to get common stuff from the context
