@@ -13,7 +13,8 @@
    #:macrop
    #:simple-function-p
    #:classp
-   #:externalp))
+   #:externalp
+   #:function-designator-p))
 
 (in-package #:breeze.xref)
 
@@ -72,3 +73,15 @@
   (eq :external
       (nth-value 1 (find-symbol (symbol-name symbol)
                                 (symbol-package symbol)))))
+
+(defun function-designator-p (designator)
+  (or (functionp designator)
+      (and (symbolp designator)
+           (fboundp designator)
+           (not (macrop designator)))))
+
+;; (function-designator-p #'first)
+;; (function-designator-p 'first)
+;; (function-designator-p '(a b c))
+;; (function-designator-p 'defmacro)
+;; (function-designator-p nil)

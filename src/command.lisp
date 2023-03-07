@@ -7,7 +7,8 @@
                 #:symbolicate
                 #:with-gensyms
                 #:if-let
-                #:lastcar)
+                #:lastcar
+                #:when-let*)
   (:import-from #:breeze.reader
                 #:parse-string)
   (:import-from #:breeze.syntax-tree
@@ -75,12 +76,12 @@
     :accessor command-thread
     :documentation "The thread that process the command.")
    (channel-in
-    :initform (make-instance 'chanl:bounded-channel)
+    :initform (make-instance 'chanl:unbounded-channel)
     :accessor command-channel-in
     :type (or null chanl:channel)
     :documentation "The channel to send response to the thread.")
    (channel-out
-    :initform (make-instance 'chanl:bounded-channel)
+    :initform (make-instance 'chanl:unbounded-channel)
     :accessor command-channel-out
     :type (or null chanl:channel)
     :documentation "The channel to receive requests from the thread.")
@@ -130,16 +131,39 @@
 (defparameter *channel-out* nil
   "The channel used to receive data from the command's thread.")
 
+(defun cancel-command-from-inside ()
+  (return-from-command))
+
+(defun cancel-command-from-outside (command thread)
+  (handler-case
+      (progn
+        ;; Ask very gently
+        (%send (command-channel-in command) 'stop)
+        (sleep 0.001)
+        ;; Ask gently
+        (loop :repeat 100
+              :while (bordeaux-threads:thread-alive-p thread)
+              :do (bt:interrupt-thread thread 'return-from-command)
+                  (sleep 0.001))
+        (unless (bordeaux-threads:thread-alive-p thread)
+          ;; Kill the associated thread.
+          (bt:destroy-thread thread)
+          (log:error "Had to..")))
+    #+sbcl
+    (sb-thread:interrupt-thread-error (condition)
+      (declare (ignore condition)))))
+
+;; (trace cancel-command-from-inside cancel-command-from-outside)
 
 (defun cancel-command (&optional reason)
   "Cancel the currently running command."
-  (if-let ((thread (and
-                    *current-command*
-                    (command-thread *current-command*))))
-    (unless (or (eq (bt:current-thread) thread)
-                (not (bordeaux-threads:thread-alive-p thread)))
-      ;; Kill the associated thread.
-      (bt:destroy-thread thread)))
+  (when-let* ((command *current-command*)
+              (thread (and
+                       *current-command*
+                       (command-thread *current-command*))))
+    (if (eq (bt:current-thread) thread)
+        (cancel-command-from-inside)
+        (cancel-command-from-outside command thread)))
   ;; Clear the special variable
   (setf *current-command* nil)
   ;; Log
@@ -161,7 +185,13 @@
 
 (defun %recv (channel)
   "To help with tracing."
-  (chanl:recv channel))
+  (let ((value (chanl:recv channel)))
+    (when (eq value 'stop)
+      (return-from-command))
+    ;; Return from command uses cl:signal, which means that it'll do
+    ;; nothing if there's no handler setup. So we always return the
+    ;; value.
+    value))
 
 (defun %send (channel value)
   "To help with tracing."
@@ -230,11 +260,13 @@
 (defmacro make-command-thread ((command-handler) &body body)
   "Initialize a command-handler's thread."
   (alexandria:once-only ((command-handler command-handler))
-    (with-gensyms (channel-in channel-out thread
-                              ;; (2)
-                              swank-emacs-connection
-                              swank-send-counter)
-      `(let* ((,channel-in (command-channel-in ,command-handler))
+    (with-gensyms (current-command
+                   channel-in channel-out thread
+                   ;; (2)
+                   swank-emacs-connection
+                   swank-send-counter)
+      `(let* ((,current-command *current-command*)
+              (,channel-in (command-channel-in ,command-handler))
               (,channel-out (command-channel-out ,command-handler))
               ;; (3)
               (,swank-emacs-connection swank::*emacs-connection*)
@@ -242,7 +274,8 @@
               (,thread
                 (bt:make-thread
                  #'(lambda ()
-                     (let ((*channel-in* ,channel-in)
+                     (let ((*current-command* ,current-command)
+                           (*channel-in* ,channel-in)
                            (*channel-out* ,channel-out)
                            ;; (4)
                            (swank::*emacs-connection* ,swank-emacs-connection)
@@ -255,6 +288,17 @@
                  )))
          (setf (command-thread ,command-handler) ,thread)
          ,command-handler))))
+
+
+(defun check-special-variables ()
+  (unless *channel-in*
+    (error "In start-command: *channel-in* is null"))
+  (unless *channel-out*
+    (error "In start-command: *channel-out* is null"))
+  (unless *current-command*
+    (error "In start-command: *current-command* is null"))
+  (unless (command-context *current-command*)
+    (error "In start-command: *current-command*'s context is null")))
 
 (defun start-command (context-plist thunk)
   "Start processing a command, initializing *current-command*."
@@ -273,14 +317,7 @@
       (cancel-command-on-error
         ;; Being very defensive here, because so many
         ;; things can go wrong.
-        (unless *channel-in*
-          (error "In start-command: *channel-in* is null"))
-        (unless *channel-out*
-          (error "In start-command: *channel-out* is null"))
-        (unless *current-command*
-          (error "In start-command: *current-command* is null"))
-        (unless (command-context *current-command*)
-          (error "In start-command: *current-command*'s context is null"))
+        (check-special-variables)
         ;; Waiting for a message from start-command
         (let ((sync-message (chanl:recv *channel-in*)))
           (unless (eq :sync sync-message)
@@ -407,6 +444,19 @@ It can be null."
 
 
 
+(define-condition stop ()
+  ())
+
+(defun return-from-command ()
+  (signal 'stop))
+
+(defun call-with-command-signal-handler (fn)
+  (catch 'stop
+    (handler-bind
+        ((stop (lambda (condition)
+                 (declare (ignore condition))
+                 (throw 'stop nil))))
+      (funcall fn))))
 
 (defun recv ()
   "Returns a list"
@@ -416,7 +466,9 @@ It can be null."
   (car (%recv *channel-in*)))
 
 (defun send (request &rest data)
-  (chanl:send *channel-out* `(,request ,@data)))
+  (chanl:send *channel-out* `(,request ,@data))
+  (unless (eq 'ack (recv))
+    (error "Expected an ack.")))
 
 
 ;;; Basic commands, to be composed
@@ -505,9 +557,6 @@ resulting string to the editor."
 
 ;;; Utilities to help creating commands less painful.
 
-(defun return-from-command ()
-  (throw 'done nil))
-
 ;; TODO This needs to be split-up!
 (defmacro define-command (name (&rest key-arguments)
                           &body body)
@@ -547,23 +596,24 @@ Example:
          ,docstring
          (if (current-command*)
              ;; If we're already running a command
-             (progn
-               (catch 'done
-                 ,@(loop
-                     :for var :in basic-context-variables
-                     :collect `(unless ,var
-                                 (setf ,var (,(let ((*package* #.*package*))
-                                                (symbolicate 'context- var '*))))))
-                 ,@remaining-forms)
-               ;; Send the "done" command
-               "done")
+             (call-with-command-signal-handler
+              (lambda ()
+                ,@(loop
+                    :for var :in basic-context-variables
+                    :collect `(unless ,var
+                                (setf ,var (,(let ((*package* #.*package*))
+                                               (symbolicate 'context- var '*))))))
+                ,@remaining-forms
+                ;; Send the "done" command
+                "done"))
              ;; If we're starting a new command
              (start-command
               ,context-plist
               (lambda ()
-                (progn
-                  (catch 'done ,@remaining-forms)
-                  (send "done")))))))))
+                (call-with-command-signal-handler
+                 (lambda ()
+                   (progn ,@remaining-forms)
+                   (send "done"))))))))))
 
 
 ;;; Utilities to get more context
@@ -642,3 +692,4 @@ Example:
 
 ;; (log:config :debug)
 ;; (log:config '(breeze command) :debug)
+;; (log:config '(breeze command) :error)
