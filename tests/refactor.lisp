@@ -88,7 +88,7 @@ INPUTS. Returns the execution trace as a pair of input/request.
 N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those requests"
   (let ((breeze.command::*current-command*))
     ;; Make sure it's ok to run a new command.
-    (cancel-command)
+    (cancel-command "pre drive-command cleanup")
     (unwind-protect
          (loop
            ;; The first input is always nil
@@ -109,7 +109,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
            :while (and request
                        (not (string= "done" (car request)))))
       ;; Make sure we clean up correctly if there was an error.
-      (cancel-command))))
+      (cancel-command "post drive-command cleanup"))))
 
 #++
 (define-test insert-breeze-define-command
