@@ -5,3 +5,4 @@ result
 docs/index.html
 
 githooks/*.sample
+/.direnv/
