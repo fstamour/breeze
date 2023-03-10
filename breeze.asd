@@ -70,12 +70,23 @@
             '#:breeze.test.main '#:run-breeze-tests)))
 
 
+(defsystem #:breeze.kite
+  :description "A breeze in a parachute makes a kite: utils for parachute"
+  :version "0.0.1"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :depends-on (#:parachute #:breeze)
+  :pathname "kite"
+  :serial t
+  :components
+  ((:file "kite")))
+
 (defsystem "breeze/test"
   :description "Tests for the breeze system."
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (#:breeze #:parachute)
+  :depends-on (#:breeze #:parachute #:breeze.kite)
   :pathname "tests"
   :serial t
   :components
