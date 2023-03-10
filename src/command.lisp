@@ -69,28 +69,74 @@
 
 (in-package #:breeze.command)
 
+
+;;; Actors
+
+(defparameter *actors* (make-hash-table)
+  "Collection of command-handlers")
+
+(defvar *actor-id-counter* 0
+  "Counter used to generate ids for actors")
+
+;; (setf *actor-id-counter*  0)
+
+(defvar *actors-lock* (bt:make-lock)
+  "Mutex for *actors*")
+
+(defun generate-actor-id ()
+  (bt:with-lock-held (*actors-lock*)
+    (loop
+      for id = (incf *actor-id-counter*)
+      unless (gethash id *actors*)
+        do (setf (gethash id *actors*) t)
+           (return id))))
+
+(defun register (actor)
+  (bt:with-lock-held (*actors-lock*)
+    (setf (gethash (id actor) *actors*) actor)))
+
+(defun deregister (command-handler)
+  (bt:with-lock-held (*actors-lock*)
+    (remhash (id actor) *actors*)))
+
+(defun find-actor (actor-id)
+  (check-type actor-id integer)
+  (bt:with-lock-held (*actors-lock*)
+    (gethash actor-id *actors*)))
+
+;; TODO cleanup *actors*, in case something went wrong
+
+;; TODO rename to "actor"
+;; TODO move to thread.lisp
 (defclass command-handler ()
-  ((thread
+  ((id
+    :initform (generate-actor-id)
+    :accessor id
+    :documentation "The id of the actor.")
+   (thread
     :initform nil
     :initarg :thread
     :accessor thread
-    :documentation "The thread that process the command.")
+    :documentation "The thread running the actor.")
    (channel-in
     :initform (make-instance 'chanl:unbounded-channel)
     :accessor channel-in
     :type (or null chanl:channel)
-    :documentation "The channel to send response to the thread.")
+    :documentation "The channel to send response to the actor.")
    (channel-out
     :initform (make-instance 'chanl:unbounded-channel)
     :accessor channel-out
     :type (or null chanl:channel)
-    :documentation "The channel to receive requests from the thread.")
+    :documentation "The channel to receive requests from the actor.")
    (context
     :initarg :context
     :initform nil
     :accessor context
     :documentation "The context of the command."))
-  (:documentation "Contains the runtime data to run a command."))
+  (:documentation "Contains the runtime data used by the actor."))
+
+(defmethod initialize-instance :after ((command command-handler) &key)
+  (register command))
 
 (defmethod thread :around ((_ (eql nil))) nil)
 
@@ -181,7 +227,6 @@
   (send-out *command* `(,request ,@data)))
 
 
-
 ;; TODO rename cancel -> stop
 
 (defun cancel-command-from-inside ()
@@ -413,7 +458,7 @@
     (unless command
       (error "Continue-command called when no commands are currently running."))
     (cancel-command-on-error
-      (run-command command arguments))))
+     (run-command command arguments))))
 
 
 ;;; Utilities to get common stuff from the context
