@@ -14,6 +14,7 @@
             "~&About to run tests for the packages: ~{~A~^, ~}"
             packages)
     (finish-output *debug-io*)
-    (if exitp
-        (parachute:test-toplevel packages)
-        (parachute:test packages))))
+    (let ((report (parachute:test packages)))
+      (if exitp
+          (uiop:quit (if (eq :failed (parachute:status report)) 1 0))
+          report))))
