@@ -9,7 +9,9 @@
   (:import-from #:breeze.command
                 #:cancel-command
                 #:continue-command
-                #:context-plist-to-hash-table)
+                #:context-plist-to-hash-table
+                #:*command*
+                #:donep)
   (:import-from #:breeze.reader
                 #:node-content
                 #:parse-string
@@ -108,6 +110,8 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
            ;; Detect when the command is done.
            :while (and request
                        (not (string= "done" (car request)))))
+      (unless (donep breeze.command::*current-command*)
+        (error "Command not done."))
       ;; Make sure we clean up correctly if there was an error.
       (cancel-command "post drive-command cleanup"))))
 
@@ -171,7 +175,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 ;;; much everything, so it might be better to test smaller parts
 ;;; individually.
 
-(defun test-quickfix (buffer-name pre post)
+(defun test-quickfix (buffer-name pre post &key (inputs (list "")))
   "Helper function to test the quickfix command. The PRE and POST
 arguments represents the content of the buffer, the point is where the
 strings get concatenated."
@@ -185,7 +189,7 @@ strings get concatenated."
                                   :point point
                                   :point-min 0
                                   :point-max (length buffer-string))
-                   :inputs (list ""))))
+                   :inputs inputs)))
 
 (defun expect-suggestions (&rest expected-suggested-commands)
   `((nil ("choose" "Choose a command: " ,(mapcar (alexandria:compose #'second

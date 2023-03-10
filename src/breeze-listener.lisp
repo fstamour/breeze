@@ -293,7 +293,7 @@ of the instance of that had the smallest score."
 
 (define-command interactive-eval-command ()
   "A command to interactively evaluate code."
-  (let ((context (command-context*)))
+  (let ((context (context*)))
     (setf *interactive-eval-last-context* context)
     (if (augment-context-by-parsing-the-buffer context)
         (let ((node (context-get context

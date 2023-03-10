@@ -19,6 +19,7 @@
   (:export
    #:command-description
    ;; Simple transformation commands
+   #:insert-breeze-define-command
    #:insert-loop-clause-for-on-list
    #:insert-loop-clause-for-in-list
    #:insert-loop-clause-for-hash
@@ -34,6 +35,9 @@
    #:insert-defpackage
    #:insert-in-package-cl-user
    #:insert-asdf
+   #:insert-defclass
+   #:insert-defgeneric
+   #:insert-print-unreadable-object-boilerplate
    #:insert-lambda
    ;; Other commands
    #:quickfix))
@@ -379,7 +383,6 @@ For debugging purposes ONLY.")
 
 (defun validate-nearest-in-package (nodes outer-node)
   (let* ((previous-in-package-form
-           ;; TODO outer-node might be nil :/
            (find-nearest-sibling-in-package-form nodes (or outer-node
                                                            (context-point*)))))
     (when previous-in-package-form
@@ -395,7 +398,7 @@ For debugging purposes ONLY.")
                  :if (listp binding)
                    :collect binding
                  :else
-                   :collect `(,binding (context-get (command-context*) ',binding))))
+                   :collect `(,binding (context-get (context*) ',binding))))
      ,@body))
 
 
@@ -412,53 +415,55 @@ For debugging purposes ONLY.")
             inner-node
             inner-node-index
             parent-node)
-    (declare (ignorable path inner-node-index parent-node))
-    (labels ((append-commands (cmds)
-               (setf commands (append cmds commands)))
-             (push-command (fn)
-               (push fn commands))
-             (push-command* (&rest fns)
-               (mapcar #'push-command fns)))
-      (cond
-        ((ends-with-subseq ".asd" (context-buffer-name*)
-                           :test #'string-equal)
-         (push-command 'insert-asdf))
-        ;; When the buffer is empty, or only contains comments and
-        ;; whitespaces.
-        ((nodes-emptyp nodes)
-         (push-command* 'insert-defpackage))
-        ;; TODO Use breeze.cl:higher-order-function-p
-        ;; TODO Must extract the symbol from the parent-node first
-        ;; Higher-order functions
-        ((and (mapcar-form-p inner-node)
-              ;; TODO Find the position inside the form
-              )
-         (push-command 'insert-lambda))
-        ((or
-          ;; in-between forms
-          (null outer-node)
-          ;; just at the start or end of a form
-          (= point (node-start outer-node))
-          (= point (node-end outer-node))
-          ;; inside a comment (or a form disabled by a
-          ;; feature-expression)
-          (typep outer-node
-                 'breeze.reader:skipped-node))
-         (append-commands *commands-applicable-at-toplevel*)
-         (append-commands
-          *commands-applicable-inside-another-form-or-at-toplevel*))
-        ;; Loop form
-        ((or
-          ;; (loop-form-p parent-node)
-          (loop-form-p inner-node))
-         (append-commands *commands-applicable-in-a-loop-form*))
-        ;; Defpackage form
-        ((or (defpackage-form-p inner-node)
-             (uiop/package--define-package-form-p inner-node))
-         (push-command 'insert-local-nicknames))
-        (t
-         (append-commands
-          *commands-applicable-inside-another-form-or-at-toplevel*)))))
+    (if nodes
+        ;; (declare (ignorable path inner-node-index parent-node))
+        (labels ((append-commands (cmds)
+                   (setf commands (append cmds commands)))
+                 (push-command (fn)
+                   (push fn commands))
+                 (push-command* (&rest fns)
+                   (mapcar #'push-command fns)))
+          (cond
+            ((ends-with-subseq ".asd" (context-buffer-name*)
+                               :test #'string-equal)
+             (push-command 'insert-asdf))
+            ;; When the buffer is empty, or only contains comments and
+            ;; whitespaces.
+            ((nodes-emptyp nodes)
+             (push-command* 'insert-defpackage))
+            ;; TODO Use breeze.cl:higher-order-function-p
+            ;; TODO Must extract the symbol from the parent-node first
+            ;; Higher-order functions
+            ((and (mapcar-form-p inner-node)
+                  ;; TODO Find the position inside the form
+                  )
+             (push-command 'insert-lambda))
+            ((or
+              ;; in-between forms
+              (null outer-node)
+              ;; just at the start or end of a form
+              (= point (node-start outer-node))
+              (= point (node-end outer-node))
+              ;; inside a comment (or a form disabled by a
+              ;; feature-expression)
+              (typep outer-node
+                     'breeze.reader:skipped-node))
+             (append-commands *commands-applicable-at-toplevel*)
+             (append-commands
+              *commands-applicable-inside-another-form-or-at-toplevel*))
+            ;; Loop form
+            ((or
+              ;; (loop-form-p parent-node)
+              (loop-form-p inner-node))
+             (append-commands *commands-applicable-in-a-loop-form*))
+            ;; Defpackage form
+            ((or (defpackage-form-p inner-node)
+                 (uiop/package--define-package-form-p inner-node))
+             (push-command 'insert-local-nicknames))
+            (t
+             (append-commands
+              *commands-applicable-inside-another-form-or-at-toplevel*))))
+        *commands-applicable-at-toplevel*))
 
   ;; Deduplicate commands
   (setf commands (remove-duplicates commands))
@@ -467,7 +472,7 @@ For debugging purposes ONLY.")
   (setf commands (mapcar #'command-description commands))
 
   ;; Save some information for debugging
-  (setf *qf* `((:context . ,(command-context*))
+  (setf *qf* `((:context . ,(context*))
                (:commands . ,commands)))
 
   ;; Returns the list of applicable commands
@@ -478,10 +483,10 @@ For debugging purposes ONLY.")
 (define-command delete-parent-form
     ()
   "Given the context, suggest some applicable commands."
-  (augment-context-by-parsing-the-buffer (command-context*))
+  (augment-context-by-parsing-the-buffer (context*))
   (let+ctx (parent-node)
     ;; Save some information for debugging
-    (setf *qf* `((:context . ,(command-context*))))
+    (setf *qf* `((:context . ,(context*))))
     (if (and parent-node
              (not (listp parent-node)))
         (destructuring-bind (from . to)
@@ -502,11 +507,10 @@ a message and stop the current command."
       (message "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
       (return-from-command))))
 
+
+
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
-  #++ (message "swank::*emacs-connection* ~s
-swank::*send-counter* ~s" swank::*emacs-connection*
-swank::*send-counter*)
   (multiple-value-bind (status system)
       (breeze.asdf:loadedp (context-buffer-file-name*))
     (when (eq :not-loaded status)
@@ -517,22 +521,22 @@ swank::*send-counter*)
       (message "System \"~a\" successfully loaded." system)
       ;; TODO Remove
       (return-from-command)))
-  (if (augment-context-by-parsing-the-buffer (command-context*))
-      (progn
-        (check-in-package)
-        (let* (;; Compute the applicable commands
-               (commands (compute-suggestions))
-               ;; TODO What if there are no suggestions?
-               ;; Ask the user to choose a command
-               (choice (choose "Choose a command: "
-                               (mapcar #'second commands)))
-               (command-function (car (find choice commands
-                                            :key #'second
-                                            :test #'string=))))
-          (if command-function
-              (funcall command-function)
-              (message "~s is not a valid choice" choice))))
-      (message "Failed to parse...")))
+  (augment-context-by-parsing-the-buffer (context*))
+  (check-in-package)
+  (let* (;; Compute the applicable commands
+         (commands (compute-suggestions))
+         ;; TODO What if there are no suggestions?
+         ;; Ask the user to choose a command
+         (choice (choose "Choose a command: "
+                         (mapcar #'second commands)))
+         (command-function (car (find choice commands
+                                      :key #'second
+                                      :test #'string=))))
+    (if command-function
+        (funcall command-function)
+        (message "~s is not a valid choice" choice)))
+  #++
+  (message "Failed to parse..."))
 
 
 #+nil

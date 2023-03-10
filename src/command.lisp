@@ -20,8 +20,8 @@
    #:cancel-command
    #:continue-command
    ;; Functions to access the context
-   #:command-context
-   #:command-context*
+   #:context
+   #:context*
    #:context-get
    #:context-set
    #:context-buffer-string
@@ -73,52 +73,54 @@
   ((thread
     :initform nil
     :initarg :thread
-    :accessor command-thread
+    :accessor thread
     :documentation "The thread that process the command.")
    (channel-in
     :initform (make-instance 'chanl:unbounded-channel)
-    :accessor command-channel-in
+    :accessor channel-in
     :type (or null chanl:channel)
     :documentation "The channel to send response to the thread.")
    (channel-out
     :initform (make-instance 'chanl:unbounded-channel)
-    :accessor command-channel-out
+    :accessor channel-out
     :type (or null chanl:channel)
     :documentation "The channel to receive requests from the thread.")
    (context
     :initarg :context
     :initform nil
-    :accessor command-context
+    :accessor context
     :documentation "The context of the command."))
   (:documentation "Contains the runtime data to run a command."))
+
+(defmethod thread :around ((_ (eql nil))) nil)
 
 
 ;;; Channels
 
-(defmethod command-channel-in :around (command)
+(defmethod channel-in :around (command)
   "Helper method for easier debugging."
   (let ((result (call-next-method)))
     (unless result
-      (error "(command-channel-in ~s) returned nil" command))
+      (error "(channel-in ~s) returned nil" command))
     result))
 
-(defmethod command-channel-out :around (command)
+(defmethod channel-out :around (command)
   "Helper method for easier debugging."
   (let ((result (call-next-method)))
     (unless result
-      (error "(command-channel-out ~s) returned nil" command))
+      (error "(channel-out ~s) returned nil" command))
     result))
 
-(defmethod command-channel-in ((_ (eql nil)))
+(defmethod channel-in ((_ (eql nil)))
   "Helper method for easier debugging."
   (declare (ignore _))
-  (warn "command-channel-in called on nil.")
+  (warn "channel-in called on nil.")
   nil)
 
-(defmethod command-channel-out ((_ (eql nil)))
+(defmethod channel-out ((_ (eql nil)))
   "Helper method for easier debugging."
   (declare (ignore _))
-  (warn "command-channel-out called on nil.")
+  (warn "channel-out called on nil.")
   nil)
 
 
@@ -150,28 +152,25 @@
 
 
 (defmethod send-into ((command command-handler) value)
-  (%send (command-channel-in command) value))
+  (%send (channel-in command) value))
 
 (defmethod recv-from ((command command-handler))
-  (prog1 (%recv (command-channel-out command))
-    #++ (send-into command 'ack)))
+  (%recv (channel-out command)))
 
 (defmethod recv-into ((command command-handler))
-  (%recv (command-channel-in command)))
+  (%recv (channel-in command)))
 
 (defmethod send-out ((command command-handler) value)
-  (%send (command-channel-out command) value)
-  #++ (let ((value (recv-into command)))
-        (unless (eq 'ack value)
-          (error "Expected an ack, received ~s instead." value))))
+  (%send (channel-out command) value))
 
-;; (trace %recv %send)
-;; (trace send-into send-out recv-from recv-into)
-;; (untrace)
+;; No, I won't support multiple client/command at the same time, for
+;; now™.
+(defparameter *command* nil
+  "The command that is currently being executed.")
 
 (defun recv ()
   "Meant to be used by the commands."
-  (recv-into *current-command*))
+  (recv-into *command*))
 
 (defun recv1 ()
   "Meant to be used by the commands."
@@ -179,20 +178,11 @@
 
 (defun send (request &rest data)
   "Meant to be used by the commands."
-  (send-out *current-command* `(,request ,@data)))
+  (send-out *command* `(,request ,@data)))
 
 
 
-;; No, I won't support multiple client/command at the same time, for
-;; now™.
-(defparameter *current-command* nil
-  "The command that is currently being executed.")
-
-(defparameter *channel-in* nil
-  "The channel use to send data to the command's thread.")
-
-(defparameter *channel-out* nil
-  "The channel used to receive data from the command's thread.")
+;; TODO rename cancel -> stop
 
 (defun cancel-command-from-inside ()
   (return-from-command))
@@ -223,38 +213,55 @@
 
 (defun cancel-command (&optional reason)
   "Cancel the currently running command."
-  (when-let* ((command *current-command*)
-              (thread (and
-                       *current-command*
-                       (command-thread *current-command*))))
+  (when-let* ((command *command*)
+              (thread (thread command)))
     (if (eq (bt:current-thread) thread)
         (cancel-command-from-inside)
         (cancel-command-from-outside command thread)))
   ;; Clear the special variable
-  (setf *current-command* nil)
+  (setf *command* nil)
   ;; Log
   (if reason
       (log:debug "Command canceled because ~a." reason)
       (log:debug "Command canceled for unspecified reason."))
-  ;; Return nil, because it feels like the right thing to do
+  ;; Return nil
   nil)
 
+
+(defun outgoing-messages-p (command)
+  ;; There are no outgoing messages waiting.
+  ;; blockp = no message
+  (not (chanl:recv-blocks-p (channel-out command))))
+
+(defun thread-dead-p (command)
+  (and (thread command)
+       ;; The thread is finisheds
+       (null (bt:thread-alive-p (thread command)))))
+
 (defun donep (command)
-  (null command))
+  (if command
+      ;; Command is considered done because it has a thread and it is
+      ;; not alive, and there is not outbound messages wainting.
+      (and
+       (thread-dead-p command)
+       (outgoing-messages-p command))
+      ;; *command* was probably set to nil
+      ;; "Command is considered done because it is null."
+      t))
 
-(defun current-command* ()
+(defun command* ()
   "Helper to get the current command, or correctly set it to nil."
-  (when *current-command*
-    (if (donep *current-command*)
-        (cancel-command "Done")
-        *current-command*)))
-
-
+  (if *command*
+      *command*
+      (progn (cancel-command "Done") nil)))
 
 (defun run-command (command arguments)
   "Receive request from the command's thread."
   (if (donep command)
-      (cancel-command "run-command: command was donep")
+      (progn
+        ;; This is called mainly to set *command*
+        (cancel-command "run-command: command was donep")
+        (list "done"))
       (progn
         (when arguments (send-into command arguments))
         (let ((request (recv-from command)))
@@ -314,45 +321,35 @@
 (defmacro make-command-thread ((command-handler) &body body)
   "Initialize a command-handler's thread."
   (alexandria:once-only ((command-handler command-handler))
-    (with-gensyms (current-command
-                   channel-in channel-out thread
+    (with-gensyms (command
+                   thread
                    ;; (2)
                    swank-emacs-connection
                    swank-send-counter)
-      `(let* ((,current-command *current-command*)
-              (,channel-in (command-channel-in ,command-handler))
-              (,channel-out (command-channel-out ,command-handler))
+      `(let* ((,command *command*)
               ;; (3)
               (,swank-emacs-connection swank::*emacs-connection*)
               (,swank-send-counter swank::*send-counter*)
               (,thread
                 (bt:make-thread
                  #'(lambda ()
-                     (let ((*current-command* ,current-command)
-                           (*channel-in* ,channel-in)
-                           (*channel-out* ,channel-out)
+                     (let ((*command* ,command)
                            ;; (4)
                            (swank::*emacs-connection* ,swank-emacs-connection)
                            (swank::*send-counter* ,swank-send-counter))
-                       (declare (ignorable *channel-in*
-                                           *channel-out*))
                        ,@body))
                  :name "breeze command handler"
                  ;; :initial-bindings `((*package* ,*package*) ,@bt:*default-special-bindings*)
                  )))
-         (setf (command-thread ,command-handler) ,thread)
+         (setf (thread ,command-handler) ,thread)
          ,command-handler))))
 
 
 (defun check-special-variables ()
-  (unless *channel-in*
-    (error "In start-command: *channel-in* is null"))
-  (unless *channel-out*
-    (error "In start-command: *channel-out* is null"))
-  (unless *current-command*
-    (error "In start-command: *current-command* is null"))
-  (unless (command-context *current-command*)
-    (error "In start-command: *current-command*'s context is null")))
+  (unless *command*
+    (error "In start-command: *command* is null"))
+  (unless (context *command*)
+    (error "In start-command: *command*'s context is null")))
 
 (defun wait-for-sync (command)
   ;; Waiting for a message from start-command
@@ -382,7 +379,7 @@
   (send-out command 'started))
 
 (defun start-command (context-plist thunk)
-  "Start processing a command, initializing *current-command*."
+  "Start processing a command, initializing *command*."
   ;; It is possible, especially (when testing breeze...) that there
   ;; are multiple commands running at the same time. For now, we'll
   ;; just cancel the currently running one.
@@ -392,7 +389,7 @@
                     'command-handler
                     :context (context-plist-to-hash-table context-plist))))
       ;; Create the command handler with the right context
-      (setf *current-command* command)
+      (setf *command* command)
       ;; Create the thread for the command handler
       (make-command-thread (command)
         (cancel-command-on-error
@@ -411,8 +408,8 @@
 
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
 (defun continue-command (&rest arguments)
-  "Continue procressing *current-command*."
-  (let ((command *current-command*))
+  "Continue procressing *command*."
+  (let ((command *command*))
     (unless command
       (error "Continue-command called when no commands are currently running."))
     (cancel-command-on-error
@@ -421,11 +418,11 @@
 
 ;;; Utilities to get common stuff from the context
 
-(defun command-context* ()
-  "Get the *current-command*'s context."
-  (if (current-command*)
-      (command-context (current-command*))
-      (warn "(current-command*) returned nil")))
+(defun context* ()
+  "Get the *command*'s context."
+  (if (command*)
+      (context (command*))
+      (warn "(command*) returned nil")))
 
 (defun context-get (context key)
   "Get the value of KEY CONTEXT."
@@ -442,10 +439,10 @@ It can be null."
   (context-get context 'buffer-string))
 
 (defun context-buffer-string* ()
-  "Get the \"buffer-string\" from the *current-command*'s context.
+  "Get the \"buffer-string\" from the *command*'s context.
 The buffer-string is the content of the buffer.
 It can be null."
-  (context-get (command-context*) 'buffer-string))
+  (context-get (context*) 'buffer-string))
 
 (defun context-buffer-name (context)
   "Get the \"buffer-name\" from the CONTEXT.
@@ -454,10 +451,10 @@ It can be null."
   (context-get context 'buffer-name))
 
 (defun context-buffer-name* ()
-  "Get the \"buffer-name\" from the *current-command*'s context.
+  "Get the \"buffer-name\" from the *command*'s context.
 The buffer-name is the name of the buffer.
 It can be null."
-  (context-get (command-context*) 'buffer-name))
+  (context-get (context*) 'buffer-name))
 
 (defun context-buffer-file-name (context)
   "Get the \"buffer-file-name\" the CONTEXT.
@@ -467,11 +464,11 @@ It can be null."
   (context-get context 'buffer-file-name))
 
 (defun context-buffer-file-name* ()
-  "Get the \"buffer-file-name\" from the *current-command*'s context.
+  "Get the \"buffer-file-name\" from the *command*'s context.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
-  (context-get (command-context*) 'buffer-file-name))
+  (context-get (context*) 'buffer-file-name))
 
 (defun context-point (context)
   "Get the \"point\" from the CONTEXT.
@@ -480,10 +477,10 @@ It can be null."
   (context-get context 'point))
 
 (defun context-point* ()
-  "Get the \"point\" from the *current-command*'s context.
+  "Get the \"point\" from the *command*'s context.
 The point is the position of the cursor.
 It can be null."
-  (context-get (command-context*) 'point))
+  (context-get (context*) 'point))
 
 (defun context-point-min (context)
   "Get the \"point-min\" from the CONTEXT.
@@ -493,11 +490,11 @@ It can be null."
   (context-get context 'point-min))
 
 (defun context-point-min* ()
-  "Get the \"point-min\" from the *current-command*'s context.
+  "Get the \"point-min\" from the *command*'s context.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get (command-context*) 'point-min))
+  (context-get (context*) 'point-min))
 
 (defun context-point-max (context)
   "Get the \"point-max\" from the CONTEXT.
@@ -507,11 +504,11 @@ It can be null."
   (context-get context 'point-max))
 
 (defun context-point-max* ()
-  "Get the \"point-max\" from the *current-command*'s context.
+  "Get the \"point-max\" from the *command*'s context.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get (command-context*) 'point-max))
+  (context-get (context*) 'point-max))
 
 
 ;;; Basic commands, to be composed
@@ -637,7 +634,7 @@ Example:
          ;; Add the users' declarations
          ,@(when declarations (list declarations))
          ,docstring
-         (if (current-command*)
+         (if (command*)
              ;; If we're already running a command
              (call-with-command-signal-handler
               (lambda ()
@@ -687,8 +684,7 @@ Example:
                              :collect
                              `(context-set context ',key ,key)))
           t)
-        (progn (message "Failed to parse...")
-               nil))))
+        nil)))
 
 
 ;;; Pieces of code to help debug issues with commands
