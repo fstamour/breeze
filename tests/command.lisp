@@ -1,14 +1,15 @@
 (in-package #:common-lisp-user)
 
-(defpackage #:breeze.test.command
-  (:documentation "Tests for breeze.command.")
+(uiop:define-package #:breeze.test.command
+    (:documentation "Tests for breeze.command.")
   (:use :cl #:breeze.command)
   (:import-from #:alexandria
                 #:assoc-value)
   ;; symbols not exported
   (:import-from #:breeze.command
+                #:id
+                #:find-actor
                 #:context-plist-to-hash-table
-                #:make-command-thread
                 #:donep
                 #:command-handler
                 #:thread
@@ -16,7 +17,6 @@
                 #:channel-out
                 #:context
                 #:context*
-                #:command*
                 #:*command*)
   (:import-from #:parachute
                 #:define-test
@@ -24,7 +24,7 @@
                 #:is
                 #:true
                 #:false)
-  (:export #:context-plist-to-hash-table))
+  (:export #:drive-command))
 
 (in-package #:breeze.test.command)
 
@@ -51,11 +51,50 @@
     (true (channel-out handler) "A fresh command-handler should have an outbound channel")
     (false (context handler) "A fresh command-handler should not have a context yet.")))
 
+
+
+(defun drive-command (fn &key context inputs extra-args)
+  "Execute a command FN, with the context CONTEXT and send it
+INPUTS. Returns the execution trace as a pair of input/request.
+
+N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those requests"
+  (let* ((id (start-command fn context extra-args))
+         (command (find-actor id :errorp t)))
+    (is = id (id command)
+        "Find-actor should find an actor with the right id.")
+    (unwind-protect
+         (loop
+           ;; The first input is always nil
+           :for input-list = (cons nil inputs) :then (cdr input-list)
+           :for input = (car input-list)
+           ;; We call continue-command to send the input
+           :for request = (if input
+                              (continue-command id input)
+                              (continue-command id))
+           ;; We collect the pair of input/request. This is practically
+           ;; an execution trace, and we're going to assert things on
+           ;; those traces.
+           :collect (list input request)
+           ;; Detect when the command is done.
+           :until (prog ()
+                     (unless request
+                       (error "Commands should not return nil... ideally"))
+                     (ecase (alexandria:make-keyword (string-upcase (car request)))
+                       ;; TODO Add the other types of requests
+                       (:done (return t))
+                       ((:choose :read-string)
+                        (unless (second input-list)
+                          (error "Missing input for request ~S" request)))
+                       (:insert))
+                   nil))
+      (unless (donep command)
+        (error "Command not done.")))))
+
+
 
 (define-test cancel-command
-  ;; Cancel command should never fail
-  (let ((*command*))
-    (loop :repeat 3 :do (false (and (cancel-command) nil)))))
+  ;; TODO Run commands, but cancel them at _any_ time
+  )
 
 
 
@@ -65,19 +104,11 @@
 
 (define-test insert
   ;; Repeat the test to shake off race conditions
-  (let ((*command*))
-    (loop :for i :below 10 :do
-      (cancel-command)
-      (false (command*) "~d There shouldn't be any running commands." i)
-      (is equal '("insert" "hi Mark") (test-insert :name "Mark")
-          "~d The test-insert command should request to insert that string." i)
-      ;; At this point the command's thread might or might not be done.
-      (is equal '("done") (continue-command)
-          "~d The command should be done after continuing." i)
-      (false (command*)
-             "~d There should be no running commands anymore." i)
-      (true (donep (command*))
-            "~d The command should still be done." i))))
+  (loop :for i :below 10 :do
+    (is equal
+        '((nil ("insert" "hi Mark"))
+          (nil ("done")))
+        (drive-command 'test-insert :extra-args '("Mark")))))
 
 
 
@@ -88,21 +119,11 @@
 
 (define-test read-string
   (loop :for i :below 10 :do
-    (cancel-command)
-    (false (command*)
-           "~d There should be no running commands." i)
-    (is equal '("read-string" "what's your name? " nil)
-        (test-read-string)
-        "~d The test-read-string command should request to prompt the user for his name." i)
-    (false (donep (command*))
-           "~d The command should not be done yet." i)
-    (is equal '("insert" "hi Mark") (continue-command "Mark")
-        "~d The test-insert command should request to insert that string." i)
-    (is equal '("done") (continue-command)
-        "~d The command should be done after continuing." i)
-    (false (command*)
-           "~d There should be no running commands anymore." i)
-    (true (donep (command*)))))
+    (is equal
+        '((nil ("read-string" "what's your name? " nil))
+          ("Mark" ("insert" "hi Mark"))
+          (nil ("done")))
+        (drive-command 'test-read-string :inputs '("Mark")))))
 
 (define-test choose)
 (define-test insert-at)

@@ -7,11 +7,14 @@
   (:import-from #:breeze.refactor
                 #:augment-context-by-parsing-the-buffer)
   (:import-from #:breeze.command
+                #:start-command
                 #:cancel-command
                 #:continue-command
                 #:context-plist-to-hash-table
                 #:*command*
                 #:donep)
+  (:import-from #:breeze.test.command
+                #:drive-command)
   (:import-from #:breeze.reader
                 #:node-content
                 #:parse-string
@@ -83,37 +86,7 @@
                             :context '())))")
      name name)))
 
-(defun drive-command (fn &key context inputs)
-  "Execute a command FN, with the context CONTEXT and send it
-INPUTS. Returns the execution trace as a pair of input/request.
 
-N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those requests"
-  (let ((breeze.command::*current-command*))
-    ;; Make sure it's ok to run a new command.
-    (cancel-command "pre drive-command cleanup")
-    (unwind-protect
-         (loop
-           ;; The first input is always nil
-           :for input :in (cons nil inputs)
-           ;; We start by calling the function (the command), this will
-           ;; start a new thread that will either return "done" and
-           ;; exit, or return another request and wait for more inputs.
-           :for request = (apply fn context)
-           ;; We call continue-command to send the input
-             :then (if input
-                       (funcall #'continue-command input)
-                       (continue-command))
-           ;; We collect the pair of input/request. This is practically
-           ;; an execution trace, and we're going to assert things on
-           ;; those traces.
-           :collect (list input request)
-           ;; Detect when the command is done.
-           :while (and request
-                       (not (string= "done" (car request)))))
-      (unless (donep breeze.command::*current-command*)
-        (error "Command not done."))
-      ;; Make sure we clean up correctly if there was an error.
-      (cancel-command "post drive-command cleanup"))))
 
 #++
 (define-test insert-breeze-define-command
@@ -128,7 +101,8 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
          ("insert" "(handler-bind
   ((error #'(lambda (condition)
     (describe condition *debug-io*))))
-  (frobnicate))")))
+  (frobnicate))"))
+        (nil ("done")))
       (drive-command #'insert-handler-bind-form)))
 
 ;; This reproduce a bug in chanl....
@@ -157,7 +131,8 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
          ("insert" "(handler-case
   (frobnicate)
   (error (condition)
-    (describe condition *debug-io*)))")))
+    (describe condition *debug-io*)))"))
+        (nil ("done")))
       (drive-command #'insert-handler-case-form)))
 
 (define-test loop-clause-for-on-list
@@ -165,7 +140,8 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
       '((nil ("insert" " :for "))
         (nil ("read-string" "Enter the variable name for the iterator: " nil))
         ("el" ("insert" "el :on "))
-        ("list" ("read-string" "Enter the the list to iterate on: " nil)))
+        ("list" ("read-string" "Enter the the list to iterate on: " nil))
+        (nil ("done")))
       (drive-command #'insert-loop-clause-for-on-list
                      :inputs '(nil "el" "list"))))
 
@@ -190,6 +166,11 @@ strings get concatenated."
                                   :point-min 0
                                   :point-max (length buffer-string))
                    :inputs inputs)))
+
+#++
+(test-quickfix "blah.lisp" "" ""
+               :inputs '("Insert a defpackage form."))
+
 
 (defun expect-suggestions (&rest expected-suggested-commands)
   `((nil ("choose" "Choose a command: " ,(mapcar (alexandria:compose #'second

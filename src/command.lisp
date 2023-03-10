@@ -95,14 +95,17 @@
   (bt:with-lock-held (*actors-lock*)
     (setf (gethash (id actor) *actors*) actor)))
 
-(defun deregister (command-handler)
+(defun deregister (actor)
   (bt:with-lock-held (*actors-lock*)
     (remhash (id actor) *actors*)))
 
-(defun find-actor (actor-id)
-  (check-type actor-id integer)
-  (bt:with-lock-held (*actors-lock*)
-    (gethash actor-id *actors*)))
+(defun find-actor (id &key errorp)
+  (check-type id integer)
+  (let ((actor (bt:with-lock-held (*actors-lock*)
+                 (gethash id *actors*))))
+    (when (and errorp (null actor))
+      (error "Failed to find command with id ~S." id))
+    actor))
 
 ;; TODO cleanup *actors*, in case something went wrong
 
@@ -194,7 +197,8 @@
     value))
 
 (defun %send (channel value)
-  (chanl:send channel value))
+  (chanl:send channel value)
+  value)
 
 
 (defmethod send-into ((command command-handler) value)
@@ -229,46 +233,37 @@
 
 ;; TODO rename cancel -> stop
 
-(defun cancel-command-from-inside ()
-  (return-from-command))
+(defun stop-actor (actor)
+  (when-let* ((thread (thread actor)))
+    (handler-case
+        (progn
+          ;; Ask very gently
+          (send-into actor 'stop)
+          (sleep 0.001)
+          ;; Ask gently
+          (loop :repeat 100
+                :while (bordeaux-threads:thread-alive-p thread)
+                :do (bt:interrupt-thread thread 'return-from-command)
+                    (sleep 0.001))
+          (unless (bordeaux-threads:thread-alive-p thread)
+            ;; Kill the associated thread.
+            (bt:destroy-thread thread)
+            (log:error "Had to..")))
+      ;; This is signaled when interrupting a thread fails because the
+      ;; thread is not alive. (p.s. on sbcl, both bt:interrupt-thread
+      ;; and bt:destroy-thread ends up interrupting th thread)
+      #+sbcl
+      (sb-thread:interrupt-thread-error (condition)
+        (declare (ignore condition))))))
 
-(defun cancel-command-from-outside (command thread)
-  (handler-case
-      (progn
-        ;; Ask very gently
-        (send-into command 'stop)
-        (sleep 0.001)
-        ;; Ask gently
-        (loop :repeat 100
-              :while (bordeaux-threads:thread-alive-p thread)
-              :do (bt:interrupt-thread thread 'return-from-command)
-                  (sleep 0.001))
-        (unless (bordeaux-threads:thread-alive-p thread)
-          ;; Kill the associated thread.
-          (bt:destroy-thread thread)
-          (log:error "Had to..")))
-    ;; This is signaled when interrupting a thread fails because the
-    ;; thread is not alive. (p.s. on sbcl, both bt:interrupt-thread
-    ;; and bt:destroy-thread ends up interrupting th thread)
-    #+sbcl
-    (sb-thread:interrupt-thread-error (condition)
-      (declare (ignore condition)))))
-
-;; (trace cancel-command-from-inside cancel-command-from-outside)
-
-(defun cancel-command (&optional reason)
-  "Cancel the currently running command."
-  (when-let* ((command *command*)
-              (thread (thread command)))
-    (if (eq (bt:current-thread) thread)
-        (cancel-command-from-inside)
-        (cancel-command-from-outside command thread)))
-  ;; Clear the special variable
-  (setf *command* nil)
-  ;; Log
-  (if reason
-      (log:debug "Command canceled because ~a." reason)
-      (log:debug "Command canceled for unspecified reason."))
+(defun cancel-command (id &optional reason)
+  "Cancel a command."
+  (let ((actor (find-actor id :errorp t)))
+    (stop-actor actor)
+    ;; Log
+    (if reason
+        (log:debug "Command canceled because ~a." reason)
+        (log:debug "Command canceled for unspecified reason.")))
   ;; Return nil
   nil)
 
@@ -289,45 +284,17 @@
       ;; not alive, and there is not outbound messages wainting.
       (and
        (thread-dead-p command)
-       (outgoing-messages-p command))
+       (not (outgoing-messages-p command)))
       ;; *command* was probably set to nil
       ;; "Command is considered done because it is null."
       t))
 
-(defun command* ()
-  "Helper to get the current command, or correctly set it to nil."
-  (if *command*
-      *command*
-      (progn (cancel-command "Done") nil)))
-
-(defun run-command (command arguments)
-  "Receive request from the command's thread."
-  (if (donep command)
-      (progn
-        ;; This is called mainly to set *command*
-        (cancel-command "run-command: command was donep")
-        (list "done"))
-      (progn
-        (when arguments (send-into command arguments))
-        (let ((request (recv-from command)))
-          (cond
-            ((null request)
-             (cancel-command "Request is null."))
-            ((string= "done" (car request))
-             (cancel-command "Request is \"done\".")))
-          request))))
-
-(defun call-with-cancel-command-on-error (thunk)
+(defun cancel-command-on-error (id thunk)
   (handler-bind
       ((error #'(lambda (condition)
-                  ;; (declare (ignore condition))
                   (log:error "~&An error occurred: ~a" condition)
-                  (cancel-command condition))))
+                  (cancel-command id condition))))
     (funcall thunk)))
-
-(defmacro cancel-command-on-error (&body body)
-  `(call-with-cancel-command-on-error
-    (lambda () ,@body)))
 
 (defun context-plist-to-hash-table (context-plist)
   (loop
@@ -348,47 +315,38 @@
       :do (setf (gethash normalized-key ht) value)
     :finally (return ht)))
 
-;; (1) There are packages, like trivial-indent, that will call swank,
-;; but swank will signal an error because the symbol
-;; swank::*emacs-connection* and swank::send-counter are bound to nil.
-;;
-;; Furthermore... I need to make my macro work even if swank is not
-;; loaded, so I made this workaround... Hopefully it won't break
-;; anyone's code 'o_o
+;; There are packages, like trivial-indent, that will call swank, but
+;; swank will signal an error because the symbol
+;; swank::*emacs-connection* and swank::send-counter are bound to nil
+;; inside the new threads.
 ;;
 ;; TODO Sly probably needs the same workaround
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (unless (find-package "SWANK")
-    (make-package "SWANK")))
-(defvar swank::*emacs-connection* nil)
-(defvar swank::*send-counter* nil)
+(defun maybe-swank-special-variables ()
+  (if-let ((swank-package (find-package "SWANK")))
+    (flet ((make-binding (symbol-name)
+             (let ((symbol (find-symbol symbol-name swank-package)))
+               (cons
+                symbol (symbol-value symbol)))))
+      (list
+       (make-binding "*EMACS-CONNECTION*")
+       (make-binding "*SEND-COUNTER*")))))
 
-(defmacro make-command-thread ((command-handler) &body body)
-  "Initialize a command-handler's thread."
-  (alexandria:once-only ((command-handler command-handler))
-    (with-gensyms (command
-                   thread
-                   ;; (2)
-                   swank-emacs-connection
-                   swank-send-counter)
-      `(let* ((,command *command*)
-              ;; (3)
-              (,swank-emacs-connection swank::*emacs-connection*)
-              (,swank-send-counter swank::*send-counter*)
-              (,thread
-                (bt:make-thread
-                 #'(lambda ()
-                     (let ((*command* ,command)
-                           ;; (4)
-                           (swank::*emacs-connection* ,swank-emacs-connection)
-                           (swank::*send-counter* ,swank-send-counter))
-                       ,@body))
-                 :name "breeze command handler"
-                 ;; :initial-bindings `((*package* ,*package*) ,@bt:*default-special-bindings*)
-                 )))
-         (setf (thread ,command-handler) ,thread)
-         ,command-handler))))
+#++ (maybe-swank-special-variables)
 
+(defun make-actor-thread (actor fn)
+  "Initialize a actor's thread."
+  (let* ((*command* actor)
+         (thread
+           (bt:make-thread
+            fn
+            :name "breeze command handler"
+            :initial-bindings
+            `((*package* . ,*package*)
+              (*command* . ,actor)
+              ,@(maybe-swank-special-variables)
+              ,@bt:*default-special-bindings*))))
+    (setf (thread actor) thread)
+    actor))
 
 (defun check-special-variables ()
   (unless *command*
@@ -423,51 +381,63 @@
   ;; Sending back a message to tell start-command the command is going to do its job
   (send-out command 'started))
 
-(defun start-command (context-plist thunk)
-  "Start processing a command, initializing *command*."
-  ;; It is possible, especially (when testing breeze...) that there
-  ;; are multiple commands running at the same time. For now, we'll
-  ;; just cancel the currently running one.
-  (cancel-command "start-command cleanup")
-  (cancel-command-on-error
-    (let ((command (make-instance
-                    'command-handler
-                    :context (context-plist-to-hash-table context-plist))))
-      ;; Create the command handler with the right context
-      (setf *command* command)
-      ;; Create the thread for the command handler
-      (make-command-thread (command)
-        (cancel-command-on-error
-          ;; Being very defensive here, because so many
-          ;; things can go wrong.
+(defun start-command (fn context-plist &optional extra-args)
+  "Start processing a command, return its id"
+  (log:debug "Starting command...")
+  (check-type fn (or function symbol))
+  (check-type context-plist (or null cons))
+  (let ((command (make-instance
+                  'command-handler
+                  :context (context-plist-to-hash-table context-plist))))
+    ;; Create the thread for the command handler
+    (make-actor-thread
+     command
+     (lambda ()
+       (cancel-command-on-error
+        (id command)
+        (lambda ()
           (check-special-variables)
           (wait-for-sync command)
           (send-started-message command)
-          (funcall thunk)))
-      (send-sync command)
-      (wait-for-started-message command)
-      (log:debug "Command started.")
-      ;; Get the thread's request and return it.
-      (run-command command nil))))
+          (if extra-args
+              (apply fn extra-args)
+              (funcall fn))))))
+    (send-sync command)
+    (wait-for-started-message command)
+    (log:debug "Command started.")
+    (id command)))
+
+
+;; (run-command command nil)
 
 
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
-(defun continue-command (&rest arguments)
+(defun continue-command (id &rest response)
   "Continue procressing *command*."
-  (let ((command *command*))
-    (unless command
-      (error "Continue-command called when no commands are currently running."))
-    (cancel-command-on-error
-     (run-command command arguments))))
+  ;; TODO cancel-command-on-error
+  (let ((actor (find-actor id :errorp t)))
+    (if (donep actor)
+        (list "done")
+        (progn
+          ;; TODO It would be nice to keep track of whether a response
+          ;; is expected or not.
+          (when response (send-into actor response))
+          (let ((request (recv-from actor)))
+            (cond
+              ((null request)
+               (cancel-command id "Request is null."))
+              ((string= "done" (car request))
+               (cancel-command id "Request is \"done\".")))
+            request)))))
 
 
 ;;; Utilities to get common stuff from the context
 
 (defun context* ()
   "Get the *command*'s context."
-  (if (command*)
-      (context (command*))
-      (warn "(command*) returned nil")))
+  (if *command*
+      (context *command*)
+      (error "*command* is nil")))
 
 (defun context-get (context key)
   "Get the value of KEY CONTEXT."
@@ -476,6 +446,8 @@
 (defun context-set (context key value)
   "Set KEY to VALUE in CONTEXT."
   (setf (gethash key context) value))
+
+;; TODO remove useless prefix "context-"
 
 (defun context-buffer-string (context)
   "Get the \"buffer-string\" from the CONTEXT.
@@ -642,8 +614,7 @@ resulting string to the editor."
 
 ;;; Utilities to help creating commands less painful.
 
-;; TODO This needs to be split-up!
-(defmacro define-command (name (&rest key-arguments)
+(defmacro define-command (name lambda-list
                           &body body)
   "Macro to define command with the basic context.
 More special-purpose context can be passed, but it must be done so
@@ -654,51 +625,18 @@ Example:
 (define-command hi ()
   (message \"Hi ~a\" (read-string \"What is your name?\")))
 "
-  (let ((context-plist (symbolicate 'context-plist))
-        (basic-context-variables (mapcar #'symbolicate
-                                         '(buffer-string
-                                           buffer-name
-                                           buffer-file-name
-                                           point
-                                           point-min
-                                           point-max))))
-    (multiple-value-bind (remaining-forms declarations docstring)
-        (alexandria:parse-body body :documentation t)
-      ;; Docstring are mandatory for commands
-      (check-type docstring string)
-      `(defun ,name (&rest ,context-plist
-                     &key
-                       ,@basic-context-variables
-                       ,@key-arguments)
-         (declare (ignorable
-                   ,context-plist
-                   ,@basic-context-variables
-                   ,@(loop for karg in key-arguments
-                           collect (or (and (symbolp karg) karg)
-                                       (first karg)))))
-         ;; Add the users' declarations
-         ,@(when declarations (list declarations))
-         ,docstring
-         (if (command*)
-             ;; If we're already running a command
-             (call-with-command-signal-handler
-              (lambda ()
-                ,@(loop
-                    :for var :in basic-context-variables
-                    :collect `(unless ,var
-                                (setf ,var (,(let ((*package* #.*package*))
-                                               (symbolicate 'context- var '*))))))
-                ,@remaining-forms
-                ;; Send the "done" command
-                "done"))
-             ;; If we're starting a new command
-             (start-command
-              ,context-plist
-              (lambda ()
-                (call-with-command-signal-handler
-                 (lambda ()
-                   (progn ,@remaining-forms)
-                   (send "done"))))))))))
+  (multiple-value-bind (remaining-forms declarations docstring)
+      (alexandria:parse-body body :documentation t)
+    ;; Docstring are mandatory for commands
+    (check-type docstring string)
+    `(defun ,name ,lambda-list
+       ;; Add the users' declarations
+       ,@declarations
+       ,docstring
+       (call-with-command-signal-handler
+        (lambda ()
+          (progn ,@remaining-forms)
+          (send "done"))))))
 
 
 ;;; Utilities to get more context
@@ -730,50 +668,3 @@ Example:
                              `(context-set context ',key ,key)))
           t)
         nil)))
-
-
-;;; Pieces of code to help debug issues with commands
-
-;; (setf *break-on-signals* 'error)
-
-;; (cancel-command)
-
-#+ (or)
-(trace
- start-command
- continue-command
- run-command
- call-with-cancel-command-on-error
- cancel-command
- donep)
-
-;; (untrace)
-
-#+ (or)
-(trace
- insert*
- ;; start-command ; don't: too verbose
- cancel-command
- continue-command
- run-command
- donep
-
- %recv
- %send
-
- insert
- read-string
- read-string-then-insert
- choose)
-
-#+ (or)
-(trace
- chanl:send
- chanl:recv)
-
-#+ (or)
-(untrace)
-
-;; (log:config :debug)
-;; (log:config '(breeze command) :debug)
-;; (log:config '(breeze command) :error)
