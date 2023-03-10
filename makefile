@@ -17,8 +17,12 @@ demo:
 spell:
 	codespell --write-changes --interactive 3 --ignore-words scripts/ignore-words.txt $$(fd -e lisp) README.md notes.org docs/*.md src/breeze.el
 
+watch:
+	( fd . -e lisp src/ tests/; echo breeze.asd ) | entr time scripts/test.sh
+
 .PHONY: \
 	test \
 	doc \
 	demo \
-	spell
+	spell \
+	watch
