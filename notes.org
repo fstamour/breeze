@@ -768,6 +768,9 @@ Emacs supports ~(declare (pure t) (side-effect-free t))~
 
 [[https://github.com/programingship/common-lisp-sly][Sly with spacemacs]]
 
+
+https://github.com/mmontone/duologue - High level user interaction library for Common Lis
+
 * Discord
 
 Discussion about =#:=
