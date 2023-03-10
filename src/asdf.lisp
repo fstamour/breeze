@@ -1,3 +1,5 @@
+;; https://asdf.common-lisp.dev/asdf.html
+;; https://quickdocs.org/asdf-dependency-graph
 
 (uiop:define-package #:breeze.asdf
     (:documentation "Utilities for adsf")

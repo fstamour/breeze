@@ -5,21 +5,22 @@
   (:use :cl #:breeze.command)
   (:import-from #:alexandria
                 #:assoc-value)
+  ;; symbols not exported
   (:import-from #:breeze.command
-                ;; symbols not exported
                 #:context-plist-to-hash-table
                 #:make-command-thread
                 #:donep
                 #:command-handler
-                #:command-thread
-                #:command-channel-in
-                #:command-channel-out
-                #:command-context
-                #:command-context*
-                #:current-command*
-                #:*current-command*)
+                #:thread
+                #:channel-in
+                #:channel-out
+                #:context
+                #:context*
+                #:command*
+                #:*command*)
   (:import-from #:parachute
                 #:define-test
+                #:define-test+run
                 #:is
                 #:true
                 #:false)
@@ -27,24 +28,34 @@
 
 (in-package #:breeze.test.command)
 
+(define-test donep
+  (true (donep nil)))
+
 (define-test context-plist-to-hash-table
   (let ((plist (alexandria:hash-table-plist
                 (context-plist-to-hash-table '(buffer-string "asdf" ok 42)))))
-    (is equal "asdf" (getf plist 'buffer-string))
-    (false (getf plist :buffer-string))
-    (is = 42 (getf plist 'ok))))
+    (is equal "asdf" (getf plist 'buffer-string)
+        "This context should contain the key 'buffer-string with the value \"asdf\".")
+    (false (getf plist :buffer-string)
+           "Contexts should not contain the key :buffer-string.")
+    (is = 42 (getf plist 'ok)
+        "This context should contain the key 'ok with the value 42.")))
+
+;; (trace donep)
 
 (define-test command-handler-initialization
   (let ((handler (make-instance 'command-handler)))
-    (false (command-thread handler))
-    (true (command-channel-in handler))
-    (true (command-channel-out handler))
-    (false (command-context handler))))
+    (false (donep handler) "A fresh command-handler should not be considered done.")
+    (false (thread handler) "A fresh command-handler should not have a thread yet.")
+    (true (channel-in handler) "A fresh command-handler should have an inbound channel")
+    (true (channel-out handler) "A fresh command-handler should have an outbound channel")
+    (false (context handler) "A fresh command-handler should not have a context yet.")))
 
 
 (define-test cancel-command
   ;; Cancel command should never fail
-  (loop :repeat 3 :do (false (and (cancel-command) nil))))
+  (let ((*command*))
+    (loop :repeat 3 :do (false (and (cancel-command) nil)))))
 
 
 
@@ -54,19 +65,19 @@
 
 (define-test insert
   ;; Repeat the test to shake off race conditions
-  (loop :for i :below 10 :do
-    (cancel-command)
-    (false (current-command*)
-           "~d There should be no running commands." i)
-    (is equal '("insert" "hi Mark") (test-insert :name "Mark")
-        "~d The test-insert command should request to insert that string." i)
-    ;; At this point the command's thread might or might not be done.
-    (is equal '("done") (continue-command)
-        "~d The command should be done after continuing." i)
-    (false (current-command*)
-           "~d There should be no running commands anymore." i)
-    (true (donep (current-command*))
-          "~d The command should still be done." i)))
+  (let ((*command*))
+    (loop :for i :below 10 :do
+      (cancel-command)
+      (false (command*) "~d There shouldn't be any running commands." i)
+      (is equal '("insert" "hi Mark") (test-insert :name "Mark")
+          "~d The test-insert command should request to insert that string." i)
+      ;; At this point the command's thread might or might not be done.
+      (is equal '("done") (continue-command)
+          "~d The command should be done after continuing." i)
+      (false (command*)
+             "~d There should be no running commands anymore." i)
+      (true (donep (command*))
+            "~d The command should still be done." i))))
 
 
 
@@ -78,20 +89,20 @@
 (define-test read-string
   (loop :for i :below 10 :do
     (cancel-command)
-    (false (current-command*)
+    (false (command*)
            "~d There should be no running commands." i)
     (is equal '("read-string" "what's your name? " nil)
         (test-read-string)
         "~d The test-read-string command should request to prompt the user for his name." i)
-    (false (donep (current-command*))
+    (false (donep (command*))
            "~d The command should not be done yet." i)
     (is equal '("insert" "hi Mark") (continue-command "Mark")
         "~d The test-insert command should request to insert that string." i)
     (is equal '("done") (continue-command)
         "~d The command should be done after continuing." i)
-    (false (current-command*)
+    (false (command*)
            "~d There should be no running commands anymore." i)
-    (true (donep (current-command*)))))
+    (true (donep (command*)))))
 
 (define-test choose)
 (define-test insert-at)
