@@ -298,11 +298,13 @@ defun."
 
 ;;; Quickfix
 
+;; TODO move to command.lisp
 (defgeneric describe-command (command)
   (:documentation "Give a user-friendly description for a command.")
   (:method ((command symbol))
     (symbol-package-qualified-name command)))
 
+;; TODO move to command.lisp
 (defun command-description (function)
   "Return a list of 2 elements: (FUNCTION its-docstring)"
   (let ((doc (documentation function 'function)))
@@ -343,6 +345,7 @@ defun."
     *commands-applicable-at-toplevel*
     *commands-applicable-in-a-loop-form*
     *commands-applicable-inside-another-form-or-at-toplevel*)))
+
 
 (defparameter *qf* nil
   "Data from the latest quickfix invocation.
@@ -508,19 +511,22 @@ a message and stop the current command."
       (return-from-command))))
 
 
+(defun maybe-ask-to-load-system ()
+  (if-let ((file-name (context-buffer-file-name*)))
+    (multiple-value-bind (status system)
+        (breeze.asdf:loadedp (context-buffer-file-name*))
+      (when (eq :not-loaded status)
+        (when (ask-y-or-n-p "The current file is part of the system \"~a\", but has not been loaded yet. Do you want to load it now? (y/n) "
+                            (asdf:component-name system))
+          (message "Loading system \"~a\"..." system)
+          (asdf:load-system system)
+          (message "System \"~a\" successfully loaded." system)
+          (return-from-command))))))
+
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
-  (multiple-value-bind (status system)
-      (breeze.asdf:loadedp (context-buffer-file-name*))
-    (when (eq :not-loaded status)
-      (when (ask-y-or-n-p "The current file is part of the system \"~a\", but has not been loaded yet. Do you want to load it now? (y/n) "
-                          (asdf:component-name system))
-        (message "Loading system \"~a\"..." system)
-        (asdf:load-system system))
-      (message "System \"~a\" successfully loaded." system)
-      ;; TODO Remove
-      (return-from-command)))
+  (maybe-ask-to-load-system)
   (augment-context-by-parsing-the-buffer (context*))
   (check-in-package)
   (let* (;; Compute the applicable commands

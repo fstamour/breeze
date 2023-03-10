@@ -111,7 +111,7 @@
   (if (breeze-sly-or-not-slime)
       (sly-eval `(slynk:eval-and-grab-output ,string))
     ;; TODO I should probably use slime-rex, to try to avoid opening
-    ;; the debugger when an error occures during a command... MAYBE
+    ;; the debugger when an error occurs during a command... MAYBE
     (slime-eval `(swank:eval-and-grab-output ,string))))
 
 (defun breeze-eval-value-only (string)
@@ -248,32 +248,34 @@ lisp's reader doesn't convert them."
                   (1- (point-max))))))
 
 (defun breeze-command-start (name)
+  "Returns an id"
   (breeze-debug "Breeze: starting command: %s." name)
-  (let ((request
-         (breeze-cl-to-el-list
-          (breeze-eval-list
-           (format "(%s %s)" name (breeze-compute-buffer-args))))))
-    (breeze-debug "Breeze: got the request: %S" request)
-    (if request
-        request
-      (progn (breeze-debug "Breeze: start-command returned nil")
-             nil))))
+  (let ((id (breeze-eval-value-only
+             (format "(breeze.command:start-command '%s '(%s) %s)"
+                     name
+                     (breeze-compute-buffer-args)
+                     ;; extra-args
+                     nil
+                     ))))
+    ;; (breeze-debug "Breeze: got the request: %S" request)
+    (breeze-debug "Breeze: start-command %S returned %s" name id)
+    id))
 
-(defun breeze-command-cancel ()
+(defun breeze-command-cancel (id reason)
   (breeze-eval
-   (format "(breeze.command:cancel-command)"))
-  (breeze-debug "Breeze: command canceled."))
+   (format "(breeze.command:cancel-command %s %S)" id reason))
+  (breeze-debug "Breeze: command %s canceled." id))
 ;; (breeze-command-cancel)
 
-(defun breeze-command-continue (response send-response-p)
+(defun breeze-command-continue (id response send-response-p)
   (let ((request
          (breeze-cl-to-el-list
           (breeze-eval-list
            (if send-response-p
                (format
-                "(breeze.command:continue-command %S)" response)
-             "(breeze.command:continue-command)")))))
-    (breeze-debug "Breeze: request received: %S" request)
+                "(breeze.command:continue-command %s %S)" id response)
+             (format "(breeze.command:continue-command %s)" id))))))
+    (breeze-debug "Breeze: (#%s) request received: %s" id request)
     request))
 
 (defun breeze-command-process-request (request)
@@ -324,30 +326,34 @@ lisp's reader doesn't convert them."
   (interactive)
   (breeze-debug "breeze-run-command")
   (breeze-ensure-breeze)
-  (condition-case condition
-      (cl-loop
-       ;; guards against infinite loop
-       for i below 1000
-       for
-       ;; Start the command
-       request = (breeze-command-start name)
-       ;; Continue the command
-       then (breeze-command-continue response send-response-p)
-       ;; "Request" might be nil, if it is, we're done
-       while (and request
-                  (not (string= "done" (car request))))
-       ;; Whether or not we need to send arguments to the next callback.
-       for send-response-p = (member (car request)
-                                     '("choose" "read-string"))
-       ;; Process the command's request
-       for response = (breeze-command-process-request request)
-       ;; Log request and response (for debugging)
-       do (breeze-debug "Breeze: request received: %S response to send %S"
-                        request
-                        response))
-    (t
-     (breeze-debug "Breeze run command: got the condition %s" condition)
-     (breeze-command-cancel))))
+  (let ((id (breeze-command-start name)))
+    (condition-case condition
+        (cl-loop
+         ;; guards against infinite loop
+         for i below 1000
+         for
+         ;; Get the first request from the command
+         request = (breeze-command-continue id nil nil)
+         ;; Continue the command
+         then (breeze-command-continue id response send-response-p)
+         ;; "Request" might be nil, if it is, we're done
+         while (and request
+                    (not (string= "done" (car request))))
+         ;; Whether or not we need to send arguments to the next callback.
+         for send-response-p = (member (car request)
+                                       '("choose" "read-string"))
+         ;; Process the command's request
+         for response = (breeze-command-process-request request)
+         ;; Log request and response (for debugging)
+         do (breeze-debug "Breeze: request received: %S response to send %S"
+                          request
+                          response))
+      (quit
+       (breeze-debug "Breeze run command: (%S) " id condition)
+       (breeze-command-cancel id "User-cancelled"))
+      (t
+       (breeze-debug "Breeze run command: (%S) got the condition %s" id condition)
+       (breeze-command-cancel id "Elisp condition")))))
 
 
 ;;; quickfix (similar to code actions in visual studio code)
