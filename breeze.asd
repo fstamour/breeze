@@ -55,7 +55,7 @@
    (:file "reader" :depends-on ("syntax-tree" "utils"))
    (:file "command")
    (:file "asdf")
-   (:file "thread")
+   (:file "thread" :depends-on ("xref"))
    (:file "xref" :depends-on ("utils"))
    (:file "documentation" :depends-on ("xref"))
    (:file "doctor")
