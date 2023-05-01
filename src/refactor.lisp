@@ -194,7 +194,7 @@ defun."
   (let ((package-name
           (read-string
            "Name of the package: "
-           (infer-package-name-from-file buffer-file-name))))
+           (infer-package-name-from-file (context-buffer-file-name*)))))
     (when *insert-defpackage/cl-user-prefix*
       (insert
        "(cl:in-package #:cl-user)~%~%~"))

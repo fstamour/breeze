@@ -50,6 +50,7 @@
    ;; Utilities to create commands
    #:return-from-command
    #:define-command
+   #:commandp
    ;; Utilities to add very useful information into the context
    #:augment-context-by-parsing-the-buffer
    ;; Keys in the *context* hash-table
@@ -614,6 +615,9 @@ resulting string to the editor."
 
 ;;; Utilities to help creating commands less painful.
 
+(defun commandp (symbol)
+  (get symbol 'breeze.command::commandp))
+
 (defmacro define-command (name lambda-list
                           &body body)
   "Macro to define command with the basic context.
@@ -629,14 +633,16 @@ Example:
       (alexandria:parse-body body :documentation t)
     ;; Docstring are mandatory for commands
     (check-type docstring string)
-    `(defun ,name ,lambda-list
-       ;; Add the users' declarations
-       ,@declarations
-       ,docstring
-       (call-with-command-signal-handler
-        (lambda ()
-          (progn ,@remaining-forms)
-          (send "done"))))))
+    `(progn
+       (defun ,name ,lambda-list
+         ;; Add the users' declarations
+         ,@declarations
+         ,docstring
+         (call-with-command-signal-handler
+          (lambda ()
+            (progn ,@remaining-forms)
+            (send "done"))))
+       (setf (get ',name 'commandp) t))))
 
 
 ;;; Utilities to get more context
