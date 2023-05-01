@@ -1,3 +1,5 @@
+# TODO This is _waaay_ out of date
+
 ```mermaid
 sequenceDiagram
     user-->>+breeze.el: User call a command in the editor

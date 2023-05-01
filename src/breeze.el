@@ -247,6 +247,7 @@ lisp's reader doesn't convert them."
                   (1- (point-min))
                   (1- (point-max))))))
 
+;; TODO extra-args
 (defun breeze-command-start (name)
   "Returns an id"
   (breeze-debug "Breeze: starting command: %s." name)
@@ -254,10 +255,8 @@ lisp's reader doesn't convert them."
              (format "(breeze.command:start-command '%s '(%s) %s)"
                      name
                      (breeze-compute-buffer-args)
-                     ;; extra-args
-                     nil
-                     ))))
-    ;; (breeze-debug "Breeze: got the request: %S" request)
+                     ;; TODO extra-args
+                     nil))))
     (breeze-debug "Breeze: start-command %S returned %s" name id)
     id))
 
@@ -321,11 +320,13 @@ lisp's reader doesn't convert them."
     (_ (error "Invalid request: %S" request) )))
 
 
+;; TODO extra-args
 (defun breeze-run-command (name)
   "Runs a \"breeze command\". TODO Improve this docstring."
   (interactive)
   (breeze-debug "breeze-run-command")
   (breeze-ensure-breeze)
+  ;; TODO extra-args
   (let ((id (breeze-command-start name)))
     (condition-case condition
         (cl-loop
@@ -470,6 +471,10 @@ lisp's reader doesn't convert them."
 (define-key breeze-major-mode-map (kbd "C-c C-c") #'breeze-eval-defun)
 
 
+
+;; TODO define-key: This is a legacy function; see ‘keymap-set’ for
+;; the recommended function to use instead.
+
 
 (defun breeze ()
   "Initialize breeze."
