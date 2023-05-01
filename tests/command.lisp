@@ -53,7 +53,7 @@
 
 
 
-(defun drive-command (fn &key context inputs extra-args)
+(defun drive-command (fn &key context inputs extra-args ask-for-missing-input-p)
   "Execute a command FN, with the context CONTEXT and send it
 INPUTS. Returns the execution trace as a pair of input/request.
 
@@ -65,8 +65,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
     (unwind-protect
          (loop
            ;; The first input is always nil
-           :for input-list = (cons nil inputs) :then (cdr input-list)
-           :for input = (car input-list)
+           :with input = nil
            ;; We call continue-command to send the input
            :for request = (if input
                               (continue-command id input)
@@ -75,20 +74,36 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
            ;; an execution trace, and we're going to assert things on
            ;; those traces.
            :collect (list input request)
-           ;; Detect when the command is done.
-           :until (prog ()
-                     (unless request
-                       (error "Commands should not return nil... ideally"))
-                     (ecase (alexandria:make-keyword (string-upcase (car request)))
-                       ;; TODO Add the other types of requests
-                       (:done (return t))
-                       ((:choose :read-string)
-                        (unless (second input-list)
-                          (error "Missing input for request ~S" request)))
-                       (:insert))
-                   nil))
+           :do (unless request
+                 (error "Commands should not return nil... ideally"))
+               ;; Detect when the command is done.
+
+           :until (string= "done" (car request))
+           ;; Otherwise, check if the request looks ok
+           :do (let ((request-type (alexandria:make-keyword (string-upcase (car request)))))
+                 (ecase request-type
+                   ;; TODO Add the other types of requests
+                   ;; Check if we're missing any input
+                   ((:choose :read-string)
+                    (if (first inputs)
+                        (setf input (pop inputs))
+                        (cond
+                          (ask-for-missing-input-p
+                           (breeze.command::send-out *command* request)
+                           (setf input (breeze.command::recv1)))
+                          (t
+                           (error "Missing input for request ~S ~s" request input)))))
+                   (:insert)
+                   (:message)
+                   (:backward-char))
+                 (unless (member request-type '(:choose :read-string))
+                   (setf input nil))))
+      ;; This is flaky, the other thread might or might not be done already
+      #++
       (unless (donep command)
         (error "Command not done.")))))
+
+
 
 
 
@@ -145,3 +160,10 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 (define-test context-point)
 (define-test context-point-min)
 (define-test context-point-max)
+
+;; TODO Test augment-context-by-parsing-the-buffer
+#++
+(augment-context-by-parsing-the-buffer
+ (context-plist-to-hash-table
+  `(:buffer-string ,(string #\Newline)
+    :position 1)))
