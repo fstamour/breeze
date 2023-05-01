@@ -69,6 +69,16 @@
            (uiop:symbol-call
             '#:breeze.test.main '#:run-breeze-tests)))
 
+(defsystem #:breeze/docs
+  :description "Breeze component to generate documentation."
+  :version "0.0.1"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :depends-on (#:breeze)
+  :pathname "src"
+  :serial t
+  :components
+  ((:file "documentation")))
 
 (defsystem #:breeze/kite
   :description "A breeze in a parachute makes a kite: utils for parachute"
