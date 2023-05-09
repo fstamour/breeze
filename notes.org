@@ -16,6 +16,34 @@
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
+** TODO fix integration with sly
+
+I've been using slime only for a long time... Today I tried sly and it
+crashed when I tried to use quickfix.
+
+Here's the problem:
+
+#+begin_src text
+(EVAL (SLYNK:EVAL-AND-GRAB-OUTPUT "(breeze.command:continue-command 1 (1 bit, #x1, #o1, #b1))"))
+#+end_src
+
+Which comes from =breeze.el='s =breeze-interactive-eval= function,
+which calls =slynk:interactive-eval=.
+
+With slime:
+
+#+begin_src emacs-lisp
+  (breeze-interactive-eval "1")
+  ;; => "1"
+#+end_src
+
+With sly:
+
+#+begin_src emacs-lisp
+  (breeze-interactive-eval "1")
+  ;; => "1 (1 bit, #x1, #o1, #b1)"
+#+end_src
+
 ** TODO Make it easy to report a bugs
 
 - os version
