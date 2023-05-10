@@ -4,7 +4,9 @@ This is heavily work-in-progress
 
 ** Status
 
-2022-12-12: It works! Needs some more work to be useful
+- 2022-12-12: It works! Needs some more work to be useful
+- 2023-05-09: Added a way to easily create a demo.tar that contains
+the logs and screenshots.
 
 ** How to run the demo(s)?
 
@@ -21,12 +23,6 @@ This is heavily work-in-progress
 
 ** Tasks
 
-*** TODO Merge the 2 tasks sections
-
-I made a small messs, I took a bunch of notes about tasks to do, but I
-didn't notice there was already a section "tasks" at the end of this
-file.........
-
 *** TODO [#A] The outputs are all over the place
 
 See the function called =dump= in =demo-recorder.sh=, it shows
@@ -38,46 +34,13 @@ where/how to find the log and result files.
 
 **** TODO Put the logs in the output folder
 
-*** TODO [#A] Automate the "output gathering"
-
-This is complex and annoying, because the container needs to be
-running if you want use to =docker cp= command. The alternative is to
-mount the output folder, but then you need to make sure the user id of
-the user inside the container matches the user id of the owner of the
-output folder outside the container.
-
-I prefer keeping the container running.
-
-**** TODO Find a way to determine that the outputs are ready
-
-I like the way I solved the "wait for slime to be up" issue in
-=demo-recorder.sh=: just write a file when ready, the "other process"
-can just poll for the existence of that file.
-
-With docker, I would need to use =docker exec breeze-demo-recorder
-CMD= to check for the existence of the file (let's call it
-"demo-output-ready").
-
-I already have a function called =wait_for_file= in
-=demo-recorder.sh=.
-
-**** TODO Copy the outputs outside of the container
-
-and then use =cp-results.sh= to copy the files
-outside of the container.
-
-**** TODO Close the container
-
-I think I can solve this with the same trick: inside the container, I
-can wait until a file, let's say "can-close-container", exists and
-just ends the =demo-recorder.sh= scripts with that.
-
-This solves the "how do I keep the container opened" and "how do I
-close the container when I'm done" issues.
+*** TODO Merge run-demo.sh into alpine.dockerfile
 
 *** TODO [#B] The screenshots are much bigger than the emacs window
 
 I think I should make the xvfb smaller and maximize emacs.
+
+See [[*resolution][resolution]]
 
 *** TODO [#B] We can't see the choice from quickfix
 
@@ -87,8 +50,6 @@ Vertico is available from ELPA, and only needs =(vertico-mode 1)= to
 have something working.
 
 *** TODO [#C] A video might be nice
-
-
 
 *** TODO [#C] Can't run locally
 
@@ -101,9 +62,11 @@ work at all.
 It's hard to know what either of those do, and it's even more
 confusing that they both have the same name.
 
-*** TODO [#C] Don't run as root inside the container
+*** TODO VNC for interactive debugging inside docker
 
-For security reasons.
+It would be nice to be able to see xvfb's content "live" for
+debugging. Or to interact with it (as opposed to just viewing
+it). (ssh or vnc?)
 
 *** DONE TLS issues with emacs
 
@@ -160,7 +123,7 @@ possible features and dependencies that emacs could possibly have).
 | demo-recorder.sh      | docker's entrypoint, calls ~../demo.el~          |
 | setup-demo.lisp       | use by docker to install ql projects             |
 | docker.nix            | creates a docker base image with all non-ql deps |
-| dockerfile            | init quicklisp, calls setup-demo.lisp            |
+| alpine.dockerfile     | init quicklisp, calls setup-demo.lisp            |
 | build-docker-image.sh | build both base and final docker images          |
 | demo.log              | emacs-director's logs                            |
 | run-demo-recorder.sh  | run the docker image interactively               |
@@ -172,13 +135,6 @@ See `build-docker-image.sh`.
 **** Tips
 
 The image can be run interactively with `run-demo-recorder.sh`
-
-**** Tasks
-
-***** TODO Create a non-root user in the docker image
-
-OR Instead of hacking a proper user in docker, maybe I could just run
-an http server in the docker to download the results.
 
 *** Screenshot and capture
 
@@ -192,12 +148,6 @@ Using `xvfb-run emacs`, I can run emacs in a virtual frame buffer.
 
 xvfb-run creates a 640x480 buffer by default, it _might_ be okay for
 demo though. `-s "-screen 0 1280x800x32"`
-
-***** TODO Interactive debugging inside docker
-
-It would be nice to be able to see xvfb's content "live" for
-debugging. Or to interact with it (as opposed to just viewing
-it). (ssh or vnc?)
 
 **** Screenshot
 
