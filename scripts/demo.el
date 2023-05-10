@@ -22,9 +22,12 @@
                         (pwd))
                     ".git")
                    "./scripts/demo")
-  "Directory where to get the other scripts and to save the outputs.")
+  "Directory where to find the other scripts.")
 
-(defvar demo-log-file (concat demo-root "/demo.log")
+(defvar demo-output-dir (getenv "DEMO_OUTPUT_DIR")
+  "Directory where to save the outputs.")
+
+(defvar demo-log-file (concat demo-output-dir "/demo.log")
   "Location of emacs-director's log file.")
 
 (defvar demo-window-config nil
@@ -46,10 +49,10 @@
 
 (defun demo-log (format-string &rest args)
   "Log a message."
-  ;; Binding inhibit-message to nil will still log the messages to
+  ;; Binding inhibit-message to t will still log the messages to
   ;; *Messages*, but they won't be displayed, making sure this
   ;; script's logs won't appear in the screenshots.
-  (let (inhibit-message)
+  (let ((inhibit-message t))
     (apply #'message format-string args)))
 
 (defun demo-in-container-p ()
@@ -88,7 +91,7 @@
 (defun demo-capture (name)
   "Take a screenshot (using scrot)"
   (interactive)
-  (let ((command (format "scrot %s/%s.png" demo-root name)))
+  (let ((command (format "scrot %s/%s.png" demo-output-dir name)))
     (demo-log "About to run %S" command)
     (demo-shell-command command)))
 
@@ -102,9 +105,9 @@
 (defun demo-finally (success)
   "Called when the emacs-director run ends."
   (with-current-buffer (get-buffer shell-command-buffer-name)
-    (write-file (concat demo-root "/shell-command-output.log")))
+    (write-file (concat demo-output-dir "/shell-command-output.log")))
   (with-current-buffer (get-buffer "*Messages*")
-    (write-file (concat demo-root "/messages.log")))
+    (write-file (concat demo-output-dir "/messages.log")))
   (if success
       (kill-emacs 0)
     (progn

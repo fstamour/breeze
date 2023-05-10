@@ -23,24 +23,32 @@ the logs and screenshots.
 
 ** Tasks
 
-*** TODO [#A] The outputs are all over the place
+*** TODO [#A] VNC for interactive debugging inside docker
+
+It would be nice to be able to see xvfb's content "live" for
+debugging. Or to interact with it (as opposed to just viewing
+it). (ssh or vnc?)
+
+*** DONE [#A] The outputs are all over the place
 
 See the function called =dump= in =demo-recorder.sh=, it shows
 where/how to find the log and result files.
 
-**** TODO Create an output folder
+**** DONE Create an output folder
 
-**** TODO Put the screenshots in the output folder
+**** DONE Put the screenshots in the output folder
 
-**** TODO Put the logs in the output folder
+**** DONE Put the logs in the output folder
 
-*** TODO Merge run-demo.sh into alpine.dockerfile
+*** DONE Merge run-demo.sh into alpine.dockerfile
 
-*** TODO [#B] The screenshots are much bigger than the emacs window
+*** DONE [#B] The screenshots are much bigger than the emacs window
 
 I think I should make the xvfb smaller and maximize emacs.
 
-See [[*resolution][resolution]]
+See [[*resolution][setting xvfb's resolution]]
+
+Resolution: I'm running emacs in fullscreen now.
 
 *** TODO [#B] We can't see the choice from quickfix
 
@@ -56,17 +64,6 @@ have something working.
 I haven't tested, but I'm almost certain I broke the abitilty to run
 =demo-recorder.sh= outside of a container. I just wanted to make it
 work at all.
-
-**** TODO Rename the 2 "demo.sh" scripts
-
-It's hard to know what either of those do, and it's even more
-confusing that they both have the same name.
-
-*** TODO VNC for interactive debugging inside docker
-
-It would be nice to be able to see xvfb's content "live" for
-debugging. Or to interact with it (as opposed to just viewing
-it). (ssh or vnc?)
 
 *** DONE TLS issues with emacs
 
@@ -122,7 +119,6 @@ possible features and dependencies that emacs could possibly have).
 | ../demo.lisp          | setup lisp: start swank, load breeze             |
 | demo-recorder.sh      | docker's entrypoint, calls ~../demo.el~          |
 | setup-demo.lisp       | use by docker to install ql projects             |
-| docker.nix            | creates a docker base image with all non-ql deps |
 | alpine.dockerfile     | init quicklisp, calls setup-demo.lisp            |
 | build-docker-image.sh | build both base and final docker images          |
 | demo.log              | emacs-director's logs                            |
