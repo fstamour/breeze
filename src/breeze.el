@@ -102,12 +102,11 @@
    ((breeze-sly-connection) t)
    ((breeze-slime-connection) nil)))
 
+(defun breeze-%eval (form)
+  (if (breeze-sly-or-not-slime) (sly-eval form) (slime-eval form)))
+
 (defun breeze-eval (string)
-  (let ((value (if (breeze-sly-or-not-slime)
-                   (sly-eval `(breeze.listener:rpc-eval ,string))
-                 ;; TODO I should probably use slime-rex, to try to avoid opening
-                 ;; the debugger when an error occurs during a command... MAYBE
-                 (slime-eval `(breeze.listener:rpc-eval ,string)))))
+  (let ((value (breeze-%eval `(breeze.listener:rpc-eval ,string))))
     (breeze-debug "Breeze: got the value: %S" value)
     value))
 
@@ -144,9 +143,11 @@
 (defun breeze-validate-if-package-exists (package)
   "Returns true if the package PACKAGE exists in the inferior-lisp."
   (breeze-debug "breeze-validate-if-package-exists %S" package)
-  (breeze-eval-predicate
-   (format "(and (or (find-package \"%s\") (find-package \"%s\")) t)"
-           (downcase package) (upcase package))))
+  (breeze-%eval
+   `(cl:eval
+     (cl:and (cl:or (cl:find-package ,(downcase package))
+                    (cl:find-package ,(upcase package)))
+             t))))
 
 (defun breeze-validate-if-breeze-package-exists ()
   "Returns true if the package \"breeze.utils\" exists in the inferior-lisp."
@@ -157,28 +158,16 @@
 (defvar breeze-breeze.el load-file-name
   "Path to \"breeze.el\".")
 
-(defun breeze-system-definition ()
-  "Get the path to \"breeze.asd\" based on the (load-time) location
-of \"breeze.el\"."
-  (expand-file-name
-   (concat
-    (file-name-directory
-     breeze-breeze.el)
-    "../breeze.asd")))
-
 (cl-defun breeze-ensure-breeze ()
   "Make sure that breeze is loaded in swank or slynk."
   (unless (breeze-validate-if-breeze-package-exists)
     (breeze-message "Loading breeze's system...")
-    (breeze-eval
-     (format "(progn (load \"%s\")
-                (unless (asdf:component-loaded-p \"breeze\")
-                  #+quicklisp
-                  (ql:quickload \"breeze\")
-                  #-quicklisp
-                  (require '#:breeze)
-                  (format t \"~&Breeze loaded!~%%\")))"
-             (breeze-system-definition))))
+    (breeze-%eval
+     `(cl:load ,(expand-file-name
+                 (concat
+                  (file-name-directory
+                   breeze-breeze.el)
+                  "/ensure-breeze.lisp")))))
   (breeze-debug "Breeze loaded in inferior-lisp."))
 
 ;; (breeze-ensure-breeze)
