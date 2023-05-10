@@ -11,7 +11,10 @@ doc:
 # This is work-in-progress
 demo:
 	scripts/demo/build-docker-image.sh
-	scripts/demo/run-demo-recorder.sh
+
+demo-debug:
+	scripts/demo/build-docker-image.sh --target debug -t breeze-demo:dev
+	docker run -it --rm --name breeze-demo breeze-demo:dev bash
 
 # Fix spelling
 spell:
