@@ -59,7 +59,7 @@
    (:file "xref" :depends-on ("utils"))
    (:file "documentation" :depends-on ("xref"))
    (:file "doctor")
-   (:file "breeze-listener" :depends-on ("xref" "command"))
+   (:file "listener" :depends-on ("xref" "command"))
    (:file "refactor" :depends-on ("reader" "command" "utils" "cl"))
    (:file "project" :depends-on ("utils" "command"))
    (:file "capture" :depends-on ("utils" "command")))
