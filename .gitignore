@@ -6,3 +6,4 @@ docs/index.html
 
 githooks/*.sample
 /.direnv/
+*.dot
