@@ -150,3 +150,46 @@ This will return false if the file was loaded outside of asdf."
 
 #++
 (loaded-p (breeze.utils:breeze-relative-pathname "src/asdf.lisp"))
+
+
+;;; Inspecting a system's (transitive) dependencies
+
+(defun system-dependencies (system-designator)
+  (let ((system (asdf/system:find-system system-designator nil)))
+    (remove-if-not #'stringp (asdf:system-depends-on system))))
+
+(defun write-dependecy-graph (root-system &optional (stream t)
+                              &aux
+                                (system-ids (make-hash-table :test 'equal))
+                                (sequential-id 0)
+                                graph)
+  ;; Walk the dependencies
+  (labels ((deps (system-designator)
+             (unless (gethash system-designator system-ids)
+               (setf (gethash system-designator system-ids) (incf sequential-id))
+               (loop
+                 :with deps = (system-dependencies system-designator)
+                 :for dep :in deps
+                 :do (push (cons system-designator dep) graph)
+                 :finally (mapcar #'deps deps)))))
+    (deps root-system))
+  ;; Output the graph
+  (format stream "~&digraph {~%node [colorscheme=oranges9]")
+  (loop :for system :being :the :hash-key :of system-ids :using (hash-value id)
+        :do (format stream "~&node~d [label=\"~a\", color=~d, style=\"bold\"]"
+                    id system
+                    ;; the "orange9" colorscheme goes from 1 to 9,
+                    ;; inclusively
+                    (min 9 (1+ (length (system-dependencies system))))))
+  (loop :for (from . to) :in graph
+        :for from-id := (gethash from system-ids)
+        :for to-id := (gethash to system-ids)
+        :do (format stream "~&node~d -> node~d" from-id to-id))
+  (format stream "~&}~%"))
+
+#++
+(alexandria:with-output-to-file (output
+                                 (breeze.utils:breeze-relative-pathname "breeze.dot")
+                                 :if-exists :supersede)
+  (write-dependecy-graph "breeze" output))
+;; dot -Tsvg breeze.dot > breeze.svg
