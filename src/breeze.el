@@ -102,38 +102,25 @@
    ((breeze-sly-connection) t)
    ((breeze-slime-connection) nil)))
 
-(defun breeze-interactive-eval (string)
-  (if (breeze-sly-or-not-slime)
-      (sly-eval `(slynk:interactive-eval ,string))
-    (slime-eval `(swank:interactive-eval ,string))))
-
 (defun breeze-eval (string)
-  (if (breeze-sly-or-not-slime)
-      (sly-eval `(slynk:eval-and-grab-output ,string))
-    ;; TODO I should probably use slime-rex, to try to avoid opening
-    ;; the debugger when an error occurs during a command... MAYBE
-    (slime-eval `(swank:eval-and-grab-output ,string))))
-
-(defun breeze-eval-value-only (string)
-  (cl-destructuring-bind (output value)
-      (breeze-eval string)
+  (let ((value (if (breeze-sly-or-not-slime)
+                   (sly-eval `(breeze.listener:rpc-eval ,string))
+                 ;; TODO I should probably use slime-rex, to try to avoid opening
+                 ;; the debugger when an error occurs during a command... MAYBE
+                 (slime-eval `(breeze.listener:rpc-eval ,string)))))
     (breeze-debug "Breeze: got the value: %S" value)
     value))
 
-;; TODO I should check that it is NOT equal to nil instead
-(defun breeze-eval-predicate (string)
-  (cl-equalp "t" (breeze-eval-value-only string)))
+;; (breeze-interactive-eval "1")
+;; (breeze-interactive-eval "'(a b c)")
+;; (breeze-interactive-eval "t")
+;; (breeze-interactive-eval "(not nil)")
 
+(defun breeze-eval-predicate (string)
+  (breeze-eval string))
 
 (defun breeze-eval-list (string)
-  ;; TODO check breeze-cl-to-el-list
-  (let ((list (car
-               (read-from-string
-                (breeze-eval-value-only string)))))
-    (if (listp list)
-        list
-      (breeze-debug "Breeze: expected a list got: %S" list)
-      nil)))
+  (breeze-eval string))
 
 
 ;;; Prerequisites checks
@@ -165,6 +152,8 @@
   "Returns true if the package \"breeze.utils\" exists in the inferior-lisp."
   (breeze-validate-if-package-exists "breeze.utils"))
 
+;; (breeze-validate-if-breeze-package-exists)
+
 (defvar breeze-breeze.el load-file-name
   "Path to \"breeze.el\".")
 
@@ -181,7 +170,7 @@ of \"breeze.el\"."
   "Make sure that breeze is loaded in swank or slynk."
   (unless (breeze-validate-if-breeze-package-exists)
     (breeze-message "Loading breeze's system...")
-    (breeze-interactive-eval
+    (breeze-eval
      (format "(progn (load \"%s\")
                 (unless (asdf:component-loaded-p \"breeze\")
                   #+quicklisp
@@ -251,7 +240,7 @@ lisp's reader doesn't convert them."
 (defun breeze-command-start (name)
   "Returns an id"
   (breeze-debug "Breeze: starting command: %s." name)
-  (let ((id (breeze-eval-value-only
+  (let ((id (breeze-eval
              (format "(breeze.command:start-command '%s '(%s) %s)"
                      name
                      (breeze-compute-buffer-args)
@@ -268,12 +257,11 @@ lisp's reader doesn't convert them."
 
 (defun breeze-command-continue (id response send-response-p)
   (let ((request
-         (breeze-cl-to-el-list
-          (breeze-eval-list
-           (if send-response-p
-               (format
-                "(breeze.command:continue-command %s %S)" id response)
-             (format "(breeze.command:continue-command %s)" id))))))
+         (breeze-eval
+          (if send-response-p
+              (format
+               "(breeze.command:continue-command %s %S)" id response)
+            (format "(breeze.command:continue-command %s)" id)))))
     (breeze-debug "Breeze: (#%s) request received: %s" id request)
     request))
 

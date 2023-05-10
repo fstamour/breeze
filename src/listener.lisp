@@ -9,11 +9,21 @@
   (:import-from #:breeze.utils
                 #:optimal-string-alignment-distance*)
   (:export
+   #:rpc-eval
    #:interactive-eval
    #:interactive-eval-command
    #:get-recent-interactively-evaluated-forms))
 
 (in-package #:breeze.listener)
+
+
+
+(defun rpc-eval (string)
+  "Low-level eval used as a kind of RPC. We need this to avoid issue from
+differences between swank and slynk."
+  (let ((*package* (find-package "CL-USER"))
+        (*readtable* (cl:copy-readtable nil)))
+    (eval (read-from-string string))))
 
 
 
@@ -284,8 +294,9 @@ of the instance of that had the smallest score."
   (let ((substring string))
     (call-with-correction-suggestion
      (lambda ()
-       (%interactive-eval substring)
-       (run-interactive-eval-after-hooks string substring)
+       (prog1
+           (%interactive-eval substring)
+         (run-interactive-eval-after-hooks string substring))
        ))))
 
 (defparameter *interactive-eval-last-context* ()
