@@ -1,0 +1,91 @@
+This is just a dump of stacktraces of bugs I encounter.
+
+
+This happened when loading "breeze/test" system from the quickfix
+command.
+
+It means that the special variable *command* is nil.
+
+The *command* variable wasn't nil before loading the
+system... (because there was another call to breeze.command:message
+just before.
+
+This should fix it:
+
+```diff
+-(defparameter *command* nil
++(defvar *command* nil
+```
+
+There is no applicable method for the generic function
+  #<STANDARD-GENERIC-FUNCTION BREEZE.COMMAND::SEND-OUT (1)>
+when called with arguments
+  (NIL
+   ("message"
+    "System \"#<SYSTEM \"breeze/test\">\" successfully loaded.")).
+   [Condition of type SB-PCL::NO-APPLICABLE-METHOD-ERROR]
+
+Restarts:
+ 0: [RETRY] Retry calling the generic function.
+ 1: [ABORT] abort thread (#<THREAD "breeze command handler" RUNNING {103F908003}>)
+
+Backtrace:
+ 0: ((:METHOD NO-APPLICABLE-METHOD (T)) #<STANDARD-GENERIC-FUNCTION BREEZE.COMMAND::SEND-OUT (1)> NIL ("message" "System \"#<SYSTEM \"breeze/test\">\" successfully loaded.")) [fast-method]
+ 1: (SB-PCL::CALL-NO-APPLICABLE-METHOD #<STANDARD-GENERIC-FUNCTION BREEZE.COMMAND::SEND-OUT (1)> (NIL ("message" "System \"#<SYSTEM \"breeze/test\">\" successfully loaded.")))
+ 2: (BREEZE.REFACTOR::MAYBE-ASK-TO-LOAD-SYSTEM)
+ 3: ((LAMBDA NIL :IN BREEZE.REFACTOR:QUICKFIX))
+ 4: (BREEZE.COMMAND::CALL-WITH-COMMAND-SIGNAL-HANDLER #<FUNCTION (LAMBDA NIL :IN BREEZE.REFACTOR:QUICKFIX) {538DC22B}>)
+ 5: (BREEZE.COMMAND::CANCEL-COMMAND-ON-ERROR 11 #<FUNCTION (LAMBDA NIL :IN BREEZE.COMMAND:START-COMMAND) {102B1E011B}>)
+ 6: ((LAMBDA NIL :IN BORDEAUX-THREADS::BINDING-DEFAULT-SPECIALS))
+ 7: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
+ 8: ((FLET "WITHOUT-INTERRUPTS-BODY-156" :IN SB-THREAD::RUN))
+ 9: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
+10: ((FLET "WITHOUT-INTERRUPTS-BODY-149" :IN SB-THREAD::RUN))
+11: (SB-THREAD::RUN)
+12: ("foreign function: call_into_lisp_")
+13: ("foreign function: funcall1")
+ --more--
+
+
+
+
+
+This one is fixed by "maybe-slynk-special-variables"
+
+
+NIL fell through ETYPECASE expression.
+Wanted one of (SLYNK::SINGLETHREADED-CONNECTION
+               SLYNK::MULTITHREADED-CONNECTION).
+   [Condition of type SB-KERNEL:CASE-FAILURE]
+
+Restarts:
+ 0: [TRY-RECOMPILING] Recompile toolkit and try loading it again
+ 1: [RETRY] Retry loading FASL for #<CL-SOURCE-FILE "documentation-utils" "toolkit">.
+ 2: [ACCEPT] Continue, treating loading FASL for #<CL-SOURCE-FILE "documentation-utils" "toolkit"> as having been successful.
+ 3: [RETRY] Retry ASDF operation.
+ 4: [CLEAR-CONFIGURATION-AND-RETRY] Retry ASDF operation after resetting the configuration.
+ 5: [RETRY] Retry ASDF operation.
+ --more--
+
+Backtrace:
+ 0: (SLYNK::SEND-TO-INDENTATION-CACHE (:UPDATE-INDENTATION-INFORMATION))
+ 1: (SLYNK:UPDATE-INDENTATION-INFORMATION)
+ 2: ((SETF TRIVIAL-INDENT:INDENTATION) (&REST (&WHOLE 2 0 &BODY)) DOCUMENTATION-UTILS:DEFINE-DOCS)
+ 3: ((SB-C::TOP-LEVEL-FORM (SB-C::%DEFMACRO (QUOTE DOCUMENTATION-UTILS:DEFINE-DOCS) (SB-INT:NAMED-LAMBDA (MACRO-FUNCTION DOCUMENTATION-UTILS:DEFINE-DOCS) (#1=#:EXPR #2=#:ENV) (DECLARE (SB-C::LAMBDA-LIST #..
+ 4: (SB-FASL::LOAD-FASL-GROUP #S(SB-FASL::FASL-INPUT :STREAM #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.2-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/documentat..
+ 5: ((LAMBDA NIL :IN SB-FASL::LOAD-AS-FASL))
+ 6: (SB-IMPL::CALL-WITH-LOADER-PACKAGE-NAMES #<FUNCTION (LAMBDA NIL :IN SB-FASL::LOAD-AS-FASL) {1007B7517B}>)
+ 7: (SB-FASL::LOAD-AS-FASL #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.2-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/documentation-utils-20190710-git/toolkit.fas..
+ 8: ((LABELS SB-FASL::LOAD-STREAM-1 :IN LOAD) #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.2-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/documentation-utils-20190..
+ 9: (SB-FASL::CALL-WITH-LOAD-BINDINGS #<FUNCTION (LABELS SB-FASL::LOAD-STREAM-1 :IN LOAD) {7F236861D6FB}> #<SB-SYS:FD-STREAM for "file /home/fstamour/.cache/common-lisp/sbcl-2.3.2-linux-x64/home/fstamour/..
+10: (LOAD #P"/home/fstamour/.cache/common-lisp/sbcl-2.3.2-linux-x64/home/fstamour/quicklisp/dists/quicklisp/software/documentation-utils-20190710-git/toolkit.fasl" :VERBOSE NIL :PRINT NIL :IF-DOES-NOT-EXI..
+11: (UIOP/UTILITY:CALL-WITH-MUFFLED-CONDITIONS #<FUNCTION (LAMBDA NIL :IN UIOP/LISP-BUILD:LOAD*) {1007B7107B}> ("Overwriting already existing readtable ~S." #(#:FINALIZERS-OFF-WARNING :ASDF-FINALIZERS)))
+12: ((SB-PCL::EMF ASDF/ACTION:PERFORM) #<unused argument> #<unused argument> #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/LISP-ACTION:CL-SOURCE-FILE "documentation-utils" "toolkit">)
+13: ((LAMBDA NIL :IN ASDF/ACTION:CALL-WHILE-VISITING-ACTION))
+14: ((:METHOD ASDF/ACTION:PERFORM-WITH-RESTARTS (ASDF/LISP-ACTION:LOAD-OP ASDF/LISP-ACTION:CL-SOURCE-FILE)) #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/LISP-ACTION:CL-SOURCE-FILE "documentation-utils" "toolkit">)..
+15: ((:METHOD ASDF/ACTION:PERFORM-WITH-RESTARTS :AROUND (T T)) #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/LISP-ACTION:CL-SOURCE-FILE "documentation-utils" "toolkit">) [fast-method]
+16: ((:METHOD ASDF/PLAN:PERFORM-PLAN (T)) #<ASDF/PLAN:SEQUENTIAL-PLAN {1006CB83D3}>) [fast-method]
+17: ((FLET SB-C::WITH-IT :IN SB-C::%WITH-COMPILATION-UNIT))
+18: ((:METHOD ASDF/PLAN:PERFORM-PLAN :AROUND (T)) #<ASDF/PLAN:SEQUENTIAL-PLAN {1006CB83D3}>) [fast-method]
+19: ((:METHOD ASDF/OPERATE:OPERATE (ASDF/OPERATION:OPERATION ASDF/COMPONENT:COMPONENT)) #<ASDF/LISP-ACTION:LOAD-OP > #<ASDF/SYSTEM:SYSTEM "breeze/kite"> :PLAN-CLASS NIL :PLAN-OPTIONS NIL) [fast-method]
+ --more--

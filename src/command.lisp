@@ -222,7 +222,7 @@
 
 ;; No, I won't support multiple client/command at the same time, for
 ;; now™.
-(defparameter *command* nil
+(defvar *command* nil
   "The command that is currently being executed.")
 
 (defun recv ()
