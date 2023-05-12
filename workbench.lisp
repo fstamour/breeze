@@ -41,6 +41,8 @@
 
 (in-package #:breeze.command)
 
+;;; Tracing important functions in the "command" package.
+
 (trace
  find-actor
  ;; start-command ; don't: too verbose
@@ -65,6 +67,7 @@
 
 (untrace)
 
+;;; Manually testing "actors"
 
 (defparameter *id*
   (start-command 'breeze.test.command::test-insert nil '("Mark")))
@@ -83,3 +86,18 @@
  (find-actor *actor-id-counter* :errorp t))
 
 (clear-actors)
+
+;;; Inspecting a command's actor after the command is done
+
+;; Find the latest command
+(apply #'max (alexandria:hash-table-keys *actors*))
+
+;; Find the ids of the commands that ran for/from a specific file
+(loop
+  :for actor-id :being :the :hash-key :of *actors* :using (hash-value actor)
+  :for filename = (context-buffer-file-name (context actor))
+  :when (alexandria:ends-with-subseq "breeze/kite/kite.lisp" filename)
+    :collect actor-id)
+
+(defparameter *a* (gethash 9 *actors*))
+(context *a*)
