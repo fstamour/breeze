@@ -1,6 +1,29 @@
 This is just a dump of stacktraces of bugs I encounter.
 
 
+
+I restarted the lisp process, and now when I run breeze-command (in
+emacs), I get:
+
+sly-connection: Current connection sly-6 is closed.
+
+Which means that the function (sly-current-connection) returns an old
+connection...
+
+Looking at the function's code, it returns this:
+
+(or sly-dispatching-connection
+    sly-buffer-connection
+    sly-default-connection)
+
+evaluation each of these variables (in the right buffer) shows that
+`sly-dispatching-connection` is the one containing the old
+connection. `sly-buffer-connection` is nil and
+`sly-default-connection` has the right one.
+
+Smells like a bug in sly...
+
+
 This happened when loading "breeze/test" system from the quickfix
 command.
 
