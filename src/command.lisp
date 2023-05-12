@@ -322,29 +322,26 @@
       :do (setf (gethash normalized-key ht) value)
     :finally (return ht)))
 
+(defun maybe-variables (package-name &rest symbol-names)
+  (if-let ((package (find-package package-name)))
+    (loop :for symbol-name :in symbol-names
+          :for symbol = (find-symbol symbol-name package)
+          :for value = (symbol-value symbol)
+          :collect (cons symbol value))))
+
 ;; There are packages, like trivial-indent, that will call swank (or
 ;; slynk), but swank will signal an error because the symbol
 ;; swank::*emacs-connection* and swank::send-counter are bound to nil
 ;; inside the new threads.
 (defun maybe-swank-special-variables ()
-  (if-let ((swank-package (find-package "SWANK")))
-    (flet ((make-binding (symbol-name)
-             (let ((symbol (find-symbol symbol-name swank-package)))
-               (cons
-                symbol (symbol-value symbol)))))
-      (list
-       (make-binding "*EMACS-CONNECTION*")
-       (make-binding "*SEND-COUNTER*")))))
+  (maybe-variables "SWANK"
+                   "*EMACS-CONNECTION*"
+                   "*SEND-COUNTER*"))
 
 (defun maybe-slynk-special-variables ()
-  (if-let ((slynk-package (find-package "SLYNK")))
-    (flet ((make-binding (symbol-name)
-             (let ((symbol (find-symbol symbol-name slynk-package)))
-               (cons
-                symbol (symbol-value symbol)))))
-      (list
-       (make-binding "*EMACS-CONNECTION*")
-       (make-binding "*SEND-COUNTER*")))))
+  (maybe-variables "SLYNK"
+                   "*EMACS-CONNECTION*"
+                   "*SEND-COUNTER*"))
 
 #++ (maybe-swank-special-variables)
 #++ (maybe-slynk-special-variables)
