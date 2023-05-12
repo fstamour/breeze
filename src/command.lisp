@@ -73,7 +73,7 @@
 
 ;;; Actors
 
-(defparameter *actors* (make-hash-table)
+(defvar *actors* (make-hash-table)
   "Collection of command-handlers")
 
 (defvar *actor-id-counter* 0
