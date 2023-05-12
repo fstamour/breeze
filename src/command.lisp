@@ -108,7 +108,13 @@
       (error "Failed to find command with id ~S." id))
     actor))
 
-;; TODO cleanup *actors*, in case something went wrong
+;; TODO gabage collect the *actors* that are done (when?)
+;; TODO How to dectect if something went wrong?
+
+(defun clear-actors ()
+  "Forget all the actors"
+  (bt:with-lock-held (*actors-lock*)
+    (clrhash *actors*)))
 
 ;; TODO rename to "actor"
 ;; TODO move to thread.lisp

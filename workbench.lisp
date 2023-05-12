@@ -82,4 +82,4 @@
 (outgoing-messages-p
  (find-actor *actor-id-counter* :errorp t))
 
-(clrhash *actors*)
+(clear-actors)
