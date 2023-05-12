@@ -322,12 +322,10 @@
       :do (setf (gethash normalized-key ht) value)
     :finally (return ht)))
 
-;; There are packages, like trivial-indent, that will call swank, but
-;; swank will signal an error because the symbol
+;; There are packages, like trivial-indent, that will call swank (or
+;; slynk), but swank will signal an error because the symbol
 ;; swank::*emacs-connection* and swank::send-counter are bound to nil
 ;; inside the new threads.
-;;
-;; TODO Sly probably needs the same workaround
 (defun maybe-swank-special-variables ()
   (if-let ((swank-package (find-package "SWANK")))
     (flet ((make-binding (symbol-name)
@@ -338,7 +336,18 @@
        (make-binding "*EMACS-CONNECTION*")
        (make-binding "*SEND-COUNTER*")))))
 
+(defun maybe-slynk-special-variables ()
+  (if-let ((slynk-package (find-package "SLYNK")))
+    (flet ((make-binding (symbol-name)
+             (let ((symbol (find-symbol symbol-name slynk-package)))
+               (cons
+                symbol (symbol-value symbol)))))
+      (list
+       (make-binding "*EMACS-CONNECTION*")
+       (make-binding "*SEND-COUNTER*")))))
+
 #++ (maybe-swank-special-variables)
+#++ (maybe-slynk-special-variables)
 
 (defun make-actor-thread (actor fn)
   "Initialize a actor's thread."
@@ -351,6 +360,7 @@
             `((*package* . ,*package*)
               (*command* . ,actor)
               ,@(maybe-swank-special-variables)
+              ,@(maybe-slynk-special-variables)
               ,@bt:*default-special-bindings*))))
     (setf (thread actor) thread)
     actor))
