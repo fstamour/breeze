@@ -50,7 +50,8 @@
                 #:define-test+run
                 #:is
                 #:true
-                #:false))
+                #:false
+                #:of-type))
 
 (in-package #:breeze.test.refactor)
 
@@ -207,22 +208,37 @@
                      :inputs '("var" "42" "This is a nice var")
                      :context '())))
 
+;; WIP Trying to make less brittle asserts
+(define-test+run insert-defclass
+    (let* ((inputs '("k"))
+           (trace (drive-command #'insert-defclass
+                                 :inputs inputs
+                                 :context '())))
+      (of-type 'list trace
+               "Drive command should return a list.")
 
-(define-test insert-defclass
-  (is equal
-      '((nil ("read-string" "Name of the class: " nil))
-        ("k"
-         ("insert" "(defclass k ()
-  ((slot
-    :initform nil
-    :initarg :slot
-    :accessor k-slot))
-  (:documentation \"\"))"))
-        (nil ("done")))
-      (drive-command #'insert-defclass
-                     :inputs '("k")
-                     :context '())))
+      (destructuring-bind (input request) (first trace)
+        (false input "The first input should always be nil.")
+        (is equal '("read-string" "Name of the class: " nil)
+            request
+            "Should ask for the name of the class."))
 
+      (destructuring-bind (input request) (second trace)
+        (is string= "k" input)
+        (is string= "insert" (first request))
+        (is equal
+            '("(defclass k ()"
+              "  ((slot"
+              "    :initform nil"
+              "    :initarg :slot"
+              "    :accessor k-slot))"
+              "  (:documentation \"\"))")
+            (str:split #\Newline (second request))))
+
+      (is equal '(nil ("done")) (alexandria:lastcar trace)
+          "The command should be done.")
+
+      (is = 3 (length trace))))
 
 (define-test insert-defmacro
   (is equal
