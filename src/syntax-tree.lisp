@@ -252,6 +252,9 @@
             (remove-if #'skipped-node-p (node-content node))
             (node-content node)))))
 
+;; TODO This does not take the symbol's package into account.
+;; TODO This assumes the client can pass a symbol (which is true for
+;; symbols from cl, but no other package, in general.
 (defun node-symbol= (symbol node)
   "Does NODE represent the symbol SYMBOL."
   (and (symbol-node-p node)
@@ -269,6 +272,9 @@
              (typep node 'skipped-node))
          nodes))
 
+(defun list-car-symbol= (node car-symbol-name)
+  (and (list-node-p node)
+       (node-symbol= car-symbol-name (node-first node))))
 
 (defmacro define-node-form-predicates (types)
   "Helper macro to define lots of predicates."

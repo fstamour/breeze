@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.command
-    (:documentation "Interactive commands' core")
+  (:documentation "Interactive commands' core")
   (:use :cl)
   (:import-from #:alexandria
                 #:symbolicate
@@ -42,6 +42,7 @@
    #:choose
    #:read-string-then-insert
    #:insert-at
+   #:insert-at-saving-excursion
    #:replace-region
    #:backward-char
    #:message
@@ -581,21 +582,24 @@ collection."
   (send "choose" prompt collection)
   (recv1))
 
-;; TODO This could benefit from FORMAT
-(defun insert-at (position string save-excursion-p)
+(defun insert-at (position control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
 POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
 position."
-  (send
-   (if save-excursion-p
-       "insert-at-saving-excursion"
-       "insert-at")
-   position
-   string))
+  (send "insert-at" position (format* control-string args)))
 
+(defun insert-at-saving-excursion (position control-string &rest args)
+  "Send a message to the editor telling it to insert STRING at
+POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
+position."
+  (send "insert-at-saving-excursion"
+        position
+        (format* control-string args)))
+
+;; TODO use format*, add control-string &rest args
+;; TODO add a version that saves excursion
 (defun replace-region (position-from position-to
-                       replacement-string
-                       &optional (save-excursion-p t))
+                       replacement-string)
   "Send a message to the editor telling it to replace the text between
 POSITION-FROM POSITION-TO by REPLACEMENT-STRING. Set SAVE-EXCURSION-P
 to non-nil to keep the current position."
@@ -603,8 +607,7 @@ to non-nil to keep the current position."
    "replace"
    position-from
    position-to
-   replacement-string
-   save-excursion-p))
+   replacement-string))
 
 (defun backward-char (&optional n)
   "Send a message to the editor to move backward."

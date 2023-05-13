@@ -243,8 +243,8 @@ defun."
               ":depends-on ()"
               ";; :pathname \"src\""
               ":serial t"
-              "  :components
-    (#+(or) (:file \"todo\")))"))))
+              ":components"
+              "  (#+(or) (:file \"todo\")))"))))
 
 
 

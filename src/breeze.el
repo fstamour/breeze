@@ -276,15 +276,11 @@ lisp's reader doesn't convert them."
      (cl-destructuring-bind (_ string) request (insert string)))
     ("replace"
      (cl-destructuring-bind
-         (point-from point-to replacement-string save-excursion-p)
+         (point-from point-to replacement-string)
          (cdr request)
-       (if save-excursion-p
-           (save-excursion
-             (kill-region point-from point-to)
-             (insert replacement))
-         (progn
-           (kill-region point-from point-to)
-           (insert replacement)))))
+       (kill-region (1+ point-from) (1+ point-to))
+       (goto-char (1+ point-from))
+       (insert replacement-string)))
     ("backward-char"
      (backward-char (cl-second request))
      ;; Had to do this hack so the cursor is positioned

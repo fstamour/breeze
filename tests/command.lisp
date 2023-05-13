@@ -53,7 +53,11 @@
 
 
 
-(defun drive-command (fn &key context inputs extra-args ask-for-missing-input-p)
+(defun drive-command (fn &key
+                           context
+                           inputs
+                           extra-args
+                           ask-for-missing-input-p)
   "Execute a command FN, with the context CONTEXT and send it
 INPUTS. Returns the execution trace as a pair of input/request.
 
