@@ -573,6 +573,11 @@ position."
   "Send a message to the editor to ask the user to choose one element
 in the collection. The user can also enter a value not in the
 collection."
+  (check-type collection list)
+  ;; TODO Not sure yet if this check should be optional or not.
+  ;; Check that the list of choice is not empty
+  (unless collection
+    (error "The list of choices is empty."))
   (send "choose" prompt collection)
   (recv1))
 
@@ -655,6 +660,7 @@ Example:
           (lambda ()
             (progn ,@remaining-forms)
             (send "done"))))
+       ;; Add a flag into the symbol's plist
        (setf (get ',name 'commandp) t))))
 
 

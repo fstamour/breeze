@@ -56,13 +56,17 @@
 
 (defparameter *directory* "./")
 
+
+;;; Testing suggestions
+
+;; TODO...
 
 
 ;;; Test refactoring commands
 
 (define-test "All commands must be exported"
-    (let ((commands (remove-if #'breeze.xref:externalp (breeze.refactor::all-commands))))
-      (false commands "The following commands are not exported:~%~{  - ~S~%~}" commands)))
+  (let ((commands (remove-if #'breeze.xref:externalp (breeze.refactor::all-commands))))
+    (false commands "The following commands are not exported:~%~{  - ~S~%~}" commands)))
 
 (defun missing-tests ()
   (set-difference
@@ -90,7 +94,10 @@
                        ;; (breeze.refactor::all-commands)
                        (missing-tests)
                        ))
-         (symbol (find-symbol name (find-package :breeze.refactor)))
+         (symbol
+           (read-from-string name)
+           #++ (or (find-symbol name (find-package :breeze.refactor))
+                   (error "Failed to find the symbol ~s" name)))
          (output (drive-command symbol
                                 :inputs '()
                                 :context '()
@@ -111,6 +118,7 @@
 
      name
      inputs)))
+
 
 
 ;; This is emacs lisps to add a binding to the command "insert-test"
@@ -229,17 +237,28 @@
                      :inputs '("mac" "(x) &boby body")
                      :context '())))
 
-
 (define-test insert-defgeneric
   (is equal
-      '((nil ("read-string" "Name of the generic: " nil))
+      '((nil ("read-string" "Name of the generic function: " nil))
         ("gen"
          ("insert" "(defgeneric gen ()
   (:documentation \"\")
+  #++(:method-combination + #++ :most-specific-last)
   (:method () ()))"))
         (nil ("done")))
-      (drive-command #'insert-defgeneric
+      (drive-command #'breeze.refactor:insert-defgeneric
                      :inputs '("gen")
+                     :context '())))
+
+(define-test insert-defmethod
+  (is equal
+      '((nil ("read-string" "Name of the method: " nil))
+        ("frob"
+         ("insert" "(defmethod frob ()
+  )"))
+        (nil ("done")))
+      (drive-command #'breeze.refactor:insert-defmethod
+                     :inputs '("frob")
                      :context '())))
 
 ;; TODO Variants: *insert-defpackage/cl-user-prefix*
@@ -247,18 +266,18 @@
 ;; TODO infer-is-test-file
 ;; TODO infer-package-name-from-file
 (define-test+run insert-defpackage
-  (is equal
-      '((nil ("read-string" "Name of the package: " nil))
-        ("pkg"
-         ("insert" "(defpackage #:pkg
+    (is equal
+        '((nil ("read-string" "Name of the package: " nil))
+          ("pkg"
+           ("insert" "(defpackage #:pkg
   (:documentation \"\")
   (:use #:cl))
 
 (in-package #:pkg)"))
-        (nil ("done")))
-      (drive-command #'insert-defpackage
-                     :inputs '("pkg")
-                     :context '())))
+          (nil ("done")))
+        (drive-command #'insert-defpackage
+                       :inputs '("pkg")
+                       :context '())))
 
 (define-test insert-defparameter
   (is equal
@@ -374,7 +393,11 @@
 ;;; much everything, so it is be better to test smaller parts
 ;;; individually.
 
+;; Sly's !@$%@#$% is getting tripped up by a "(in-package" that is in a string -_-
+;; *package*
+;; => #<PACKAGE "COMMON-LISP-USER">
 
+(in-package #:breeze.test.refactor)
 
 (defun test-quickfix (buffer-name pre post &key (inputs (list "")))
   "Helper function to test the quickfix command. The PRE and POST
@@ -394,6 +417,10 @@ strings get concatenated."
 
 #++
 (test-quickfix "blah.lisp" "" ""
+               :inputs '("Insert a defpackage form."))
+
+#++
+(test-quickfix "blah.lisp" "  " "  "
                :inputs '("Insert a defpackage form."))
 
 

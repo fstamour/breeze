@@ -3,7 +3,7 @@
 (in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.refactor
-    (:documentation "Snippets and refactoring commands")
+  (:documentation "Snippets and refactoring commands")
   (:use #:cl #:breeze.command #:breeze.reader)
   (:import-from
    #:alexandria
@@ -37,6 +37,7 @@
    #:insert-asdf
    #:insert-defclass
    #:insert-defgeneric
+   #:insert-defmethod
    #:insert-print-unreadable-object-boilerplate
    #:insert-lambda
    ;; Other commands
@@ -261,11 +262,23 @@ defun."
 
 (define-command insert-defgeneric ()
   "Insert a defgeneric form."
-  (read-string-then-insert
-   "Name of the generic: "
-   "(defgeneric ~a ()~
-   ~%  (:documentation \"\")~
-   ~%  (:method () ()))"))
+  (let ((name (read-string
+               "Name of the generic function: ")))
+    (insert
+     "(defgeneric ~a ()~
+     ~%  (:documentation \"\")~
+     ~%  #++(:method-combination + #++ :most-specific-last)~
+     ~%  (:method () ()))"
+     name)))
+
+(define-command insert-defmethod ()
+  "Insert a defmethod form."
+  (let ((name (read-string
+               "Name of the method: ")))
+    (insert
+     "(defmethod ~a ()~
+    ~%  )"
+     name)))
 
 (define-command insert-print-unreadable-object-boilerplate ()
   "Insert a print-object method form."
@@ -325,6 +338,7 @@ defun."
     insert-defparameter
     insert-defclass
     insert-defgeneric
+    insert-defmethod
     insert-print-unreadable-object-boilerplate
     insert-breeze-define-command))
 
@@ -347,44 +361,9 @@ defun."
     *commands-applicable-inside-another-form-or-at-toplevel*)))
 
 
-(defparameter *qf* nil
-  "Data from the latest quickfix invocation.
-For debugging purposes ONLY.")
-
-#++
-(let* ((context (cdr (assoc :context *qf*)))
-       (inner-node (gethash 'BREEZE.COMMAND::INNER-NODE context))
-       (nodes (gethash 'BREEZE.COMMAND::NODEs context)))
-  ;; context
-  ;; (mapcar-form-p inner-node)
-  (values nodes
-          (nodes-emptyp nodes))
-  ;; (node-symbol= 'uiop:define-package inner-node)
-  )
-
-#+ (or)
-(let* ((*standard-output* *debug-io*)
-       (nodes )
-       (path )
-       (outer-node )
-       (parent-node )
-       (inner-node ))
-  (loop :for (node . index) :in path
-        :for i :from 0
-        :do (format t "~%=== Path part #~d, index ~d ===~%~s"
-                    i index node))
-  (format t "~%innore-node source: ~d-~d"
-          (node-start inner-node)
-          (node-end inner-node))
-  (format t "~%unparsed inner-node: ~s"
-          (breeze.reader:unparse-to-string inner-node))
-  (format t "~%nearest in-package: ~a" (find-nearest-in-package-form nodes outer-node))
-  (format t "~%parent node: ~a" parent-node))
-
-;; (cdr (assoc :context *qf*))
-
-
 (defun validate-nearest-in-package (nodes outer-node)
+  "Find the lastest \"in-package\" form, test if the packages can be
+found."
   (let* ((previous-in-package-form
            (find-nearest-sibling-in-package-form nodes (or outer-node
                                                            (context-point*)))))
@@ -395,10 +374,14 @@ For debugging purposes ONLY.")
         (when (null package)
           package-designator)))))
 
+
+
 (defmacro let+ctx (bindings &body body)
+  "Helper macro, to ease the access to the current commands' context."
   `(let*
        (,@ (loop :for binding :in bindings
                  :if (listp binding)
+                   ;; acts like a regular "let*"
                    :collect binding
                  :else
                    :collect `(,binding (context-get (context*) ',binding))))
@@ -409,64 +392,19 @@ For debugging purposes ONLY.")
 (let+ctx ((x 42)
           nodes position path))
 
-(defun compute-suggestions (&aux commands)
-  "Compute the list of applicable commands given the current context."
-  (let+ctx (nodes
-            point
-            path
-            outer-node
-            inner-node
-            inner-node-index
-            parent-node)
-    (if nodes
-        ;; (declare (ignorable path inner-node-index parent-node))
-        (labels ((append-commands (cmds)
-                   (setf commands (append cmds commands)))
-                 (push-command (fn)
-                   (push fn commands))
-                 (push-command* (&rest fns)
-                   (mapcar #'push-command fns)))
-          (cond
-            ((ends-with-subseq ".asd" (context-buffer-name*)
-                               :test #'string-equal)
-             (push-command 'insert-asdf))
-            ;; When the buffer is empty, or only contains comments and
-            ;; whitespaces.
-            ((nodes-emptyp nodes)
-             (push-command* 'insert-defpackage))
-            ;; TODO Use breeze.cl:higher-order-function-p
-            ;; TODO Must extract the symbol from the parent-node first
-            ;; Higher-order functions
-            ((and (mapcar-form-p inner-node)
-                  ;; TODO Find the position inside the form
-                  )
-             (push-command 'insert-lambda))
-            ((or
-              ;; in-between forms
-              (null outer-node)
-              ;; just at the start or end of a form
-              (= point (node-start outer-node))
-              (= point (node-end outer-node))
-              ;; inside a comment (or a form disabled by a
-              ;; feature-expression)
-              (typep outer-node
-                     'breeze.reader:skipped-node))
-             (append-commands *commands-applicable-at-toplevel*)
-             (append-commands
-              *commands-applicable-inside-another-form-or-at-toplevel*))
-            ;; Loop form
-            ((or
-              ;; (loop-form-p parent-node)
-              (loop-form-p inner-node))
-             (append-commands *commands-applicable-in-a-loop-form*))
-            ;; Defpackage form
-            ((or (defpackage-form-p inner-node)
-                 (uiop/package--define-package-form-p inner-node))
-             (push-command 'insert-local-nicknames))
-            (t
-             (append-commands
-              *commands-applicable-inside-another-form-or-at-toplevel*))))
-        *commands-applicable-at-toplevel*))
+(defparameter *qf* nil
+  "Data from the latest quickfix invocation.
+For debugging purposes ONLY.")
+
+(defun sanitize-list-of-commands (commands)
+  ;; Some methods returns lists, some just a symbol.
+  ;; We flatten that to just a list of symbols.
+  (setf commands (alexandria:flatten
+                  (copy-seq (alexandria:ensure-list commands))))
+
+  ;; Fallback to suggesting _all_ commands.
+  (unless commands
+    (setf commands (copy-seq (all-commands))))
 
   ;; Deduplicate commands
   (setf commands (remove-duplicates commands))
@@ -477,10 +415,87 @@ For debugging purposes ONLY.")
   ;; Save some information for debugging
   (setf *qf* `((:context . ,(context*))
                (:commands . ,commands)))
-
   ;; Returns the list of applicable commands
   commands)
 
+(defun shortcircuit (x)
+  (throw 'shortcircuit x))
+
+(defun suggest-defpackage ()
+  "When the buffer is empty, or only contains comments and whitespaces."
+  (let+ctx (nodes)
+    (when (or (null nodes)
+              (and nodes
+                   (nodes-emptyp nodes)))
+      ;; TODO Add a configuration to decide whether to shortcircuit or
+      ;; not. Because suggesting to insert a "defpackage" form when in
+      ;; an empty file is pretty much just my personal preference.
+      (shortcircuit 'insert-defpackage))))
+
+(defun suggest-system-definition ()
+  "When in an .asd file"
+  (when (ends-with-subseq ".asd" (context-buffer-name*)
+                          :test #'string-equal)
+    'insert-asdf))
+
+(defun suggest-lambda ()
+  "When inside a higher-order function, like mapcar."
+  (let+ctx (inner-node)
+    ;; TODO Use breeze.cl:higher-order-function-p
+    ;; TODO Must extract the symbol from the parent-node first
+    ;; Higher-order functions
+    (when (and inner-node
+               (mapcar-form-p inner-node))
+      (shortcircuit 'insert-lambda))))
+
+(defun suggest-loop-clauses ()
+  "When inside a loop form."
+  (let+ctx (inner-node)
+    (when (and inner-node
+               (loop-form-p inner-node))
+      (shortcircuit *commands-applicable-in-a-loop-form*))))
+
+(defun suggest-defpackage-clauses ()
+  "When inside a defpackage form."
+  (let+ctx (inner-node)
+    (when (and inner-node
+               (or (defpackage-form-p inner-node)
+                   (uiop/package--define-package-form-p inner-node)))
+      (shortcircuit 'insert-local-nicknames))))
+
+(defun suggest-other ()
+  "Otherwise"
+  (let+ctx (point outer-node)
+    (if
+     ;; if "at top-level"
+     (or
+      ;; in-between forms
+      (null outer-node)
+      ;; just at the start or end of a form
+      (= point (node-start outer-node))
+      (= point (node-end outer-node))
+      ;; inside a comment (or a form disabled by a
+      ;; feature-expression)
+      (typep outer-node
+             'breeze.reader:skipped-node))
+     *commands-applicable-at-toplevel*
+     *commands-applicable-inside-another-form-or-at-toplevel*)))
+
+
+(defun compute-suggestions ()
+  "Given the current commands' context, suggests an appropriate list of
+commands that the user might want to run."
+  (alexandria:ensure-list
+   (catch 'shortcircuit
+     (mapcar #'funcall
+             '(suggest-defpackage
+               suggest-system-definition
+               suggest-lambda
+               suggest-loop-clauses
+               suggest-defpackage-clauses
+               suggest-other)))))
+
+
 
 ;; I made this command mostly for manually testing replace-region
 (define-command delete-parent-form
@@ -530,7 +545,7 @@ a message and stop the current command."
   (augment-context-by-parsing-the-buffer (context*))
   (check-in-package)
   (let* (;; Compute the applicable commands
-         (commands (compute-suggestions))
+         (commands (sanitize-list-of-commands (compute-suggestions)))
          ;; TODO What if there are no suggestions?
          ;; Ask the user to choose a command
          (choice (choose "Choose a command: "
