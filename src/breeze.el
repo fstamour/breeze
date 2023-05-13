@@ -351,6 +351,8 @@ lisp's reader doesn't convert them."
   (interactive)
   (breeze-run-command "breeze.listener:interactive-eval-command"))
 
+;; TODO narrow-to-defun (maybe clone the buffer too?) -- "focus to defun"...
+
 
 ;;; code evaluation
 ;;
