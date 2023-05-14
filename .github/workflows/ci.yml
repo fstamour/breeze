@@ -43,6 +43,9 @@ jobs:
         run: |
           brew install sbcl
 
+      - name: "Print sbcl version"
+        run: sbcl --version
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
