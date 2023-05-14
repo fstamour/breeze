@@ -27,16 +27,8 @@
 
 
 
-;; This is the default
-(log:config :info)
-
-(log:config :debug)
-(log:config '(breeze command) :debug)
-(log:config '(breeze command) :error)
-
 (setf *break-on-signals* 'error)
 (setf *break-on-signals* nil)
-
 
 
 (in-package #:breeze.command)
@@ -139,3 +131,20 @@
   (format t "~%parent node: ~a" parent-node))
 
 (cdr (assoc :context *qf*))
+
+
+
+;;; reader.lisp
+
+(in-package #:breeze.reader)
+
+(sb-profile:profile
+ parse
+ read-all-forms
+ eclector.parse:read-from-string
+ make-instance
+ eclector.parse-result:make-expression-result
+ eclector.parse-result:read-preserving-whitespace
+ raw)
+
+;; #+ (or) (sb-profile:report)
