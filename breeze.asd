@@ -43,14 +43,12 @@
                ;; For reading lisp
                #:eclector
                #:trivial-package-local-nicknames
-               ;; Listener(s) stuff
-               ;; #:swank
-               ;; Logging
-               #:log4cl
+               ;; For some portability checks
                #:trivial-features)
   :pathname "src"
   :components
-  ((:file "cl")
+  ((:file "logging")
+   (:file "cl")
    (:file "utils")
    (:file "syntax-tree")
    (:file "reader" :depends-on ("syntax-tree" "utils"))

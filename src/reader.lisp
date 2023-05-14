@@ -23,8 +23,6 @@ This package also re-exports symbols from breeze.syntax-tree.")
 
 (in-package #:breeze.reader)
 
-;; (log:config '(breeze reader) :debug)
-
 
 ;;; Data structures (there's even more in "syntax-tree.lisp")
 
@@ -85,17 +83,14 @@ This package also re-exports symbols from breeze.syntax-tree.")
   (let* ((raw (raw client (car source) (cdr source)))
          (node
            (progn
-             (log4cl:log-debug result children source raw)
-             ;; (dbg "~&make-expression result: ~s children: ~s source: ~s raw: ~s" result children source raw)
              (cond
                ((or (alexandria:starts-with-subseq "#+" raw)
                     (alexandria:starts-with-subseq "#-" raw))
-                ;; (let ((content (node-content))))
                 (make-instance 'feature-expression-node
                                :feature-expression (first children)
                                :content
                                (if (nodep result)
-                                   result ;;(node-content result)
+                                   result
                                    (cdr children))))
                (;; If result is a node, populate it
                 (typep result 'node)
@@ -116,9 +111,7 @@ This package also re-exports symbols from breeze.syntax-tree.")
                                :content (or children result)))))))
     (setf (node-source node) source
           (node-raw node) raw)
-    (log4cl:log-debug node)
     (when (in-package-form-p node)
-      (log:debug "Changing the current package...")
       ;; TODO Add current-package to the client, to avoid changing the
       ;; user's current-package when reading
       ;; Will need to change the package-local-nickname logic
@@ -134,7 +127,6 @@ This package also re-exports symbols from breeze.syntax-tree.")
   "Create a skipped-node parse result."
   (add-offset client source)
   (let ((content (raw client (car source) (cdr source))))
-    (log4cl:log-debug content)
     (make-instance 'skipped-node
                    :content content
                    :source source)))
@@ -148,7 +140,6 @@ This package also re-exports symbols from breeze.syntax-tree.")
             (:current *package*)
             (:keyword (find-package "KEYWORD"))
             (t (find-package package-indicator)))
-    (log:debug package-indicator symbol-name *package*)
     (if-let (actual-package
              (cdr (assoc package-indicator
                          (trivial-package-local-nicknames:package-local-nicknames *package*)
@@ -250,17 +241,3 @@ This package also re-exports symbols from breeze.syntax-tree.")
                     (return-from parse-string
                       (make-instance 'code :condition condition))))))
     (make-code (read-all-forms string))))
-
-#+ (or)
-(sb-profile:profile
- parse
- read-all-forms
- eclector.parse:read-from-string
- make-instance
- eclector.parse-result:make-expression-result
- eclector.parse-result:read-preserving-whitespace
- raw)
-
-;; #+ (or) (sb-profile:report)
-
-;; (log:config :debug)

@@ -2,7 +2,7 @@
 
 (uiop:define-package #:breeze.command
   (:documentation "Interactive commands' core")
-  (:use :cl)
+  (:use :cl :breeze.logging)
   (:import-from #:alexandria
                 #:symbolicate
                 #:with-gensyms
@@ -255,8 +255,7 @@
                     (sleep 0.001))
           (unless (bordeaux-threads:thread-alive-p thread)
             ;; Kill the associated thread.
-            (bt:destroy-thread thread)
-            (log:error "Had to..")))
+            (bt:destroy-thread thread)))
       ;; This is signaled when interrupting a thread fails because the
       ;; thread is not alive. (p.s. on sbcl, both bt:interrupt-thread
       ;; and bt:destroy-thread ends up interrupting th thread)
@@ -268,10 +267,9 @@
   "Cancel a command."
   (let ((actor (find-actor id :errorp t)))
     (stop-actor actor)
-    ;; Log
     (if reason
-        (log:debug "Command canceled because ~a." reason)
-        (log:debug "Command canceled for unspecified reason.")))
+        (log-debug "Command canceled because ~a." reason)
+        (log-debug "Command canceled for unspecified reason.")))
   ;; Return nil
   nil)
 
@@ -300,7 +298,7 @@
 (defun cancel-command-on-error (id thunk)
   (handler-bind
       ((error #'(lambda (condition)
-                  (log:error "~&An error occurred: ~a" condition)
+                  (log-error "~&An error occurred: ~a" condition)
                   (cancel-command id condition))))
     (funcall thunk)))
 
@@ -371,21 +369,21 @@
 
 (defun wait-for-sync (command)
   ;; Waiting for a message from start-command
-  (log:debug "Waiting for 'sync message")
+  (log-debug "Waiting for 'sync message")
   (let ((sync-message (recv-into command)))
     (unless (eq 'sync sync-message)
       (error "In start-command: expected to receive the datum 'sync, received ~S instead"
              sync-message))
-    (log:debug "Received 'sync message")))
+    (log-debug "Received 'sync message")))
 
 (defun send-sync (command)
   ;; Send a message to the thread for synchronisation.
-  (log:debug "Sending 'sync message...")
+  (log-debug "Sending 'sync message...")
   (send-into command 'sync)
-  (log:debug "'sync message sent"))
+  (log-debug "'sync message sent"))
 
 (defun wait-for-started-message (command)
-  (log:debug "Waiting for the thread to be up and running...")
+  (log-debug "Waiting for the thread to be up and running...")
   ;; Wait for the thread to be up and running
   (let ((started-message (recv-from command)))
     (unless (eq 'started started-message)
@@ -398,7 +396,7 @@
 
 (defun start-command (fn context-plist &optional extra-args)
   "Start processing a command, return its id"
-  (log:debug "Starting command...")
+  (log-debug "Starting command...")
   (check-type fn (or function symbol))
   (check-type context-plist (or null cons))
   (let ((command (make-instance
@@ -419,7 +417,7 @@
               (funcall fn))))))
     (send-sync command)
     (wait-for-started-message command)
-    (log:debug "Command started.")
+    (log-debug "Command started.")
     (id command)))
 
 
