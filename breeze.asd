@@ -46,7 +46,8 @@
                ;; Listener(s) stuff
                ;; #:swank
                ;; Logging
-               #:log4cl)
+               #:log4cl
+               #:trivial-features)
   :pathname "src"
   :components
   ((:file "cl")
