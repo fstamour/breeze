@@ -148,3 +148,20 @@
  raw)
 
 ;; #+ (or) (sb-profile:report)
+
+
+
+;;; reader2.lisp
+
+(trace
+ read-string*
+ read-char*)
+
+(trace
+ %read-whitespaces
+ %read-block-comment
+ %read-token
+ read-parens
+ read-extraneous-closing-parens)
+
+(untrace)
