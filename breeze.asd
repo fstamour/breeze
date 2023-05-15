@@ -50,9 +50,11 @@
   ((:file "logging")
    (:file "cl")
    (:file "utils")
+   ;; TODO #++
    (:file "syntax-tree")
    #++
    (:file "reader" :depends-on ("syntax-tree" "utils"))
+   (:file "reader2" :depends-on ("utils"))
    (:file "command"
     :depends-on (#++"reader"
                  #++"syntax-tree"
@@ -85,7 +87,7 @@
   :components
   ((:file "documentation")))
 
-(defsystem #:breeze/kite
+(defsystem "breeze/kite"
   :description "A breeze in a parachute makes a kite: utils for parachute"
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -108,6 +110,7 @@
   ((:file "utils")
    #++
    (:file "reader")
+   (:file "reader2")
    (:file "command")
    (:file "refactor")
    (:file "dummy-package")
