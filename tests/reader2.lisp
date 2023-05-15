@@ -38,6 +38,8 @@ newline or +end+)
 
 ;;; testing helpers
 
+(defparameter *ctx* nil)
+
 (defun test (input got &optional (expected nil expectedp))
   (flet ((fmt (&rest args)
            (let ((str (apply #'format nil args))
@@ -48,17 +50,19 @@ newline or +end+)
     (if expectedp
         (if (equalp got expected)
             t
-            (fmt "«~a» got: ~s expected: ~s" input got expected))
-        (fmt "«~a» => ~s" input got))))
+            (fmt "~A «~a» got: ~s expected: ~s" *ctx* input got expected))
+        (fmt "~A «~a» => ~s" *ctx* input got))))
 
-(list
- (test 'meta (with-output-to-string (*debug-io*)
-               (test 'test-input 42 t))
-       "«TEST-INPUT» got: 42 expected: T")
- (test 'meta (with-output-to-string (*debug-io*)
-               (test 'test-input 42 42))
-       "")
- (test 'meta (test 'test-input 42 42) t))
+#++
+(let ((*ctx* "Testing the \"test\" function."))
+  (list
+   (test 'meta (with-output-to-string (*debug-io*)
+                 (test 'test-input 42 t))
+         "«TEST-INPUT» got: 42 expected: T")
+   (test 'meta (with-output-to-string (*debug-io*)
+                 (test 'test-input 42 42))
+         "")
+   (test 'meta (test 'test-input 42 42) t)))
 
 (defmacro with-state ((string) &body body)
   `(let ((state (make-state ,string)))
@@ -91,15 +95,16 @@ newline or +end+)
 ;;; Reader position (in the source string)
 
 ;; TODO valid-position-p
-(with-state*
-  (""
-   (test* (valid-position-p state -1) nil)
-   (test* (valid-position-p state 0) nil)
-   (test* (valid-position-p state 1) nil))
-  (" "
-   (test* (valid-position-p state -1) nil)
-   (test* (valid-position-p state 0) t)
-   (test* (valid-position-p state 1) nil)))
+(let ((*ctx* 'valid-position-p))
+  (with-state*
+    (""
+     (test* (valid-position-p state -1) nil)
+     (test* (valid-position-p state 0) nil)
+     (test* (valid-position-p state 1) nil))
+    (" "
+     (test* (valid-position-p state -1) nil)
+     (test* (valid-position-p state 0) t)
+     (test* (valid-position-p state 1) nil))))
 
 ;; TODO donep
 (with-state*
@@ -196,10 +201,11 @@ newline or +end+)
 
 ;; TODO read-whitespaces
 (defun test-read-whitespaces (input expected-end)
-  (with-state (input)
-    (test* (read-whitespaces state)
-           (when expected-end
-             (whitespace 0 expected-end)))))
+  (let ((*ctx* 'read-whitespaces))
+    (with-state (input)
+      (test* (read-whitespaces state)
+             (when expected-end
+               (whitespace 0 expected-end))))))
 (list
  (test-read-whitespaces "" nil)
  (test-read-whitespaces "a" nil)
@@ -208,10 +214,11 @@ newline or +end+)
 
 ;; TODO read-block-comment
 (defun test-read-block-comment (input expected-end &rest children)
-  (with-state (input)
-    (test input (read-block-comment state)
-          (when expected-end
-            (block-comment 0 expected-end children)))))
+  (let ((*ctx* 'read-block-comment))
+    (with-state (input)
+      (test input (read-block-comment state)
+            (when expected-end
+              (block-comment 0 expected-end children))))))
 
 (list
  (test-read-block-comment "" nil)
@@ -233,10 +240,11 @@ newline or +end+)
 
 ;; TODO read-line-comment
 (defun test-read-line-comment (input expected-end)
-  (with-state ((format nil input))
-    (test* (read-line-comment state)
-           (when expected-end
-             (line-comment 0 expected-end)))))
+  (let ((*ctx* 'read-line-comment))
+    (with-state ((format nil input))
+      (test* (read-line-comment state)
+             (when expected-end
+               (line-comment 0 expected-end))))))
 (list
  (test-read-line-comment "" nil)
  (test-read-line-comment ";" +end+)
@@ -244,11 +252,12 @@ newline or +end+)
 
 ;; TODO read-punctuation
 (defun test-read-punctuation (input expected-type)
-  (with-state (input)
-    (test input
-          (read-punctuation state)
-          (when expected-type
-            (punctuation expected-type 0)))))
+  (let ((*ctx* 'read-punctuation))
+    (with-state (input)
+      (test input
+            (read-punctuation state)
+            (when expected-type
+              (punctuation expected-type 0))))))
 (list
  (test-read-punctuation "" nil)
  (test-read-punctuation " " nil)
@@ -264,26 +273,28 @@ newline or +end+)
 
 ;; TODO read-quoted-string
 ;; TODO Add tests with VALIDP
-(list
- (with-state ("")
-   (test* (read-quoted-string state #\| #\/) nil))
- (with-state ("|")
-   (test* (read-quoted-string state #\| #\/) (list 0  +end+)))
- (with-state ("||")
-   (test* (read-quoted-string state #\| #\/) '(0 2)))
- (with-state ("| |")
-   (test* (read-quoted-string state #\| #\/) '(0 3)))
- (with-state ("|/||")
-   (test* (read-quoted-string state #\| #\/) '(0 4)))
- (with-state ("|/|")
-   (test* (read-quoted-string state #\| #\/) (list 0 +end+))))
+(let ((*ctx* 'read-quoted-string))
+  (list
+   (with-state ("")
+     (test* (read-quoted-string state #\| #\/) nil))
+   (with-state ("|")
+     (test* (read-quoted-string state #\| #\/) (list 0  +end+)))
+   (with-state ("||")
+     (test* (read-quoted-string state #\| #\/) '(0 2)))
+   (with-state ("| |")
+     (test* (read-quoted-string state #\| #\/) '(0 3)))
+   (with-state ("|/||")
+     (test* (read-quoted-string state #\| #\/) '(0 4)))
+   (with-state ("|/|")
+     (test* (read-quoted-string state #\| #\/) (list 0 +end+)))))
 
 ;; TODO read-string
 (defun test-read-string (input expected-end)
-  (with-state (input)
-    (test* (read-string state)
-           (when expected-end
-             (node 'string 0 expected-end)))))
+  (let ((*ctx* 'read-string))
+    (with-state (input)
+      (test* (read-string state)
+             (when expected-end
+               (node 'string 0 expected-end))))))
 (list
  (test-read-string "" nil)
  (test-read-string "\"" +end+)
@@ -294,10 +305,11 @@ newline or +end+)
 
 ;; TODO read-token
 (defun test-read-token (input expected-end)
-  (with-state (input)
-    (test* (read-token state)
-           (when expected-end
-             (token 0 expected-end)))))
+  (let ((*ctx* 'read-token))
+    (with-state (input)
+      (test* (read-token state)
+             (when expected-end
+               (token 0 expected-end))))))
 (list
  (test-read-token "" nil)
  (test-read-token " " nil)
@@ -343,31 +355,32 @@ newline or +end+)
       (test input (parse* input) expected)
       (test input (parse* input))))
 
-(list
- (eq (parse "") nil)
- (test-parse "  " (whitespace 0 2))
- (test-parse "#|" (block-comment 0 +end+))
- (test-parse " #| "
-             (whitespace 0 1)
-             (block-comment 1 +end+)
-             (whitespace 3 4))
- (test-parse "#||#" (block-comment 0 4))
- (test-parse "#|#||#" (block-comment 0 +end+ (block-comment 2 6)))
- (test-parse "#| #||# |#" (block-comment 0 10 (block-comment 3 7)))
- (test-parse "'" (punctuation 'quote 0))
- (test-parse "`" (punctuation 'quasiquote 0))
- (test-parse "#" (punctuation 'sharp 0))
- (test-parse "," (punctuation 'comma 0))
- (test-parse "+-*/" (token 0 4))
- (test-parse "123" (token 0 3))
- (test-parse "asdf#" (token 0 5))
- (test-parse "| asdf |" (token 0 8))
- (test-parse "arg| asdf | " (token 0 11) (whitespace 11 12))
- (test-parse "arg| asdf |more" (token 0 15))
- (test-parse "arg| asdf |more|" (token 0 +end+))
- (test-parse ";" (line-comment 0 +end+))
- (test-parse "(12" (parens 0 +end+ (token 1 3)))
- (test-parse "\"" (node 'string 0 +end+)))
+(let ((*ctx* 'test-parse))
+  (list
+   (eq (parse "") nil)
+   (test-parse "  " (whitespace 0 2))
+   (test-parse "#|" (block-comment 0 +end+))
+   (test-parse " #| "
+               (whitespace 0 1)
+               (block-comment 1 +end+)
+               (whitespace 3 4))
+   (test-parse "#||#" (block-comment 0 4))
+   (test-parse "#|#||#" (block-comment 0 +end+ (block-comment 2 6)))
+   (test-parse "#| #||# |#" (block-comment 0 10 (block-comment 3 7)))
+   (test-parse "'" (punctuation 'quote 0))
+   (test-parse "`" (punctuation 'quasiquote 0))
+   (test-parse "#" (punctuation 'sharp 0))
+   (test-parse "," (punctuation 'comma 0))
+   (test-parse "+-*/" (token 0 4))
+   (test-parse "123" (token 0 3))
+   (test-parse "asdf#" (token 0 5))
+   (test-parse "| asdf |" (token 0 8))
+   (test-parse "arg| asdf | " (token 0 11) (whitespace 11 12))
+   (test-parse "arg| asdf |more" (token 0 15))
+   (test-parse "arg| asdf |more|" (token 0 +end+))
+   (test-parse ";" (line-comment 0 +end+))
+   (test-parse "(12" (parens 0 +end+ (token 1 3)))
+   (test-parse "\"" (node 'string 0 +end+))))
 
 
 
