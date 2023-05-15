@@ -3,8 +3,7 @@
 (uiop:define-package #:breeze.test.refactor
   (:use :cl #:breeze.refactor)
   ;; Importing non-exported symbols of the "package under test"
-  (:import-from #:breeze.refactor
-                #:augment-context-by-parsing-the-buffer)
+  (:import-from #:breeze.refactor)
   ;; Things needed to "drive" a command
   (:import-from #:breeze.command
                 #:start-command
@@ -21,6 +20,7 @@
                 #:outer-node)
   (:import-from #:breeze.test.command
                 #:drive-command)
+  #++
   (:import-from #:breeze.reader
                 #:node-content
                 #:parse-string
@@ -714,6 +714,7 @@ strings get concatenated."
     (() ("done"))))
 
 
+#++
 (define-test "quickfix: mapcar"
   ;; TODO Make less brittle assertions, like "Insert lambda form."
   ;; must be suggested, but don't fail the test if there are other

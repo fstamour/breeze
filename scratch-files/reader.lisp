@@ -204,6 +204,7 @@ parse" begins.
                 (if expectedp
                     (test input got expected)
                     (test input got))))
+       (declare (ignorable (function test*)))
        ,@body)))
 
 (defmacro %with-state* ((string) &body body)

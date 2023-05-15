@@ -9,8 +9,10 @@
                 #:if-let
                 #:lastcar
                 #:when-let*)
+  #++
   (:import-from #:breeze.reader
                 #:parse-string)
+  #++
   (:import-from #:breeze.syntax-tree
                 #:find-path-to-node)
   (:import-from #:breeze.utils
@@ -668,12 +670,10 @@ Example:
 ;;; Utilities to get more context
 
 (defun parse-buffer (context)
+  #++
   (let* ((buffer-string (context-buffer-string context))
          (code (parse-string buffer-string)))
-    (breeze.reader:forms code)
-    #++
-    (unless (breeze.reader:forms code)
-      (signal (breeze.reader:parser-condition code)))))
+    (breeze.reader:forms code)))
 
 ;; TODO Add lots of error-handling...
 (defun augment-context-by-parsing-the-buffer (context)
