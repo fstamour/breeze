@@ -51,15 +51,21 @@
    (:file "cl")
    (:file "utils")
    (:file "syntax-tree")
+   #++
    (:file "reader" :depends-on ("syntax-tree" "utils"))
-   (:file "command")
+   (:file "command"
+    :depends-on (#++"reader"
+                 #++"syntax-tree"
+                 "utils"))
    (:file "asdf")
    (:file "thread" :depends-on ("xref"))
    (:file "xref" :depends-on ("utils"))
    (:file "documentation" :depends-on ("xref"))
    (:file "doctor")
-   (:file "listener" :depends-on ("xref" "command"))
-   (:file "refactor" :depends-on ("reader" "command" "utils" "cl"))
+   (:file "listener"
+    :depends-on ("xref"
+                 "command"))
+   (:file "refactor" :depends-on (#++"reader" "command" "utils" "cl"))
    (:file "project" :depends-on ("utils" "command"))
    (:file "capture" :depends-on ("utils" "command")))
   :in-order-to ((test-op (load-op #:breeze/test)))
@@ -100,6 +106,7 @@
   :serial t
   :components
   ((:file "utils")
+   #++
    (:file "reader")
    (:file "command")
    (:file "refactor")

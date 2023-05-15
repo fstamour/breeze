@@ -144,12 +144,22 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
           (nil ("done")))
         (drive-command 'test-read-string :inputs '("Mark")))))
 
+;; TODO
 (define-test choose)
+
+;; TODO
 (define-test insert-at)
 
+;; TODO
 (define-test read-string-then-insert)
+
+;; TODO
 (define-test replace-region)
+
+;; TODO
 (define-test backward-char)
+
+;; TODO
 (define-test message)
 
 (define-test context-buffer-string
@@ -159,10 +169,19 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
        (alexandria:plist-hash-table
         '(buffer-string "asdf")))))
 
+;; TODO
 (define-test context-buffer-name)
+
+;; TODO
 (define-test context-buffer-file-name)
+
+;; TODO
 (define-test context-point)
+
+;; TODO
 (define-test context-point-min)
+
+;; TODO
 (define-test context-point-max)
 
 ;; TODO Test augment-context-by-parsing-the-buffer

@@ -4,7 +4,7 @@
 
 (uiop:define-package #:breeze.refactor
   (:documentation "Snippets and refactoring commands")
-  (:use #:cl #:breeze.command #:breeze.reader)
+  (:use #:cl #:breeze.command #++ #:breeze.reader)
   (:import-from
    #:alexandria
    #:ends-with-subseq
@@ -45,7 +45,7 @@
 
 (in-package #:breeze.refactor)
 
-
+#++
 (define-node-form-predicates (uiop:define-package))
 
 
@@ -424,13 +424,14 @@ For debugging purposes ONLY.")
 (defun suggest-defpackage ()
   "When the buffer is empty, or only contains comments and whitespaces."
   (let+ctx (nodes)
-    (when (or (null nodes)
-              (and nodes
-                   (nodes-emptyp nodes)))
-      ;; TODO Add a configuration to decide whether to shortcircuit or
-      ;; not. Because suggesting to insert a "defpackage" form when in
-      ;; an empty file is pretty much just my personal preference.
-      (shortcircuit 'insert-defpackage))))
+    (cond
+      ((null nodes) 'insert-defpackage)
+      ((and nodes
+            (nodes-emptyp nodes))
+       ;; TODO Add a configuration to decide whether to shortcircuit or
+       ;; not. Because suggesting to insert a "defpackage" form when in
+       ;; an empty file is pretty much just my personal preference.
+       (shortcircuit 'insert-defpackage)))))
 
 (defun suggest-system-definition ()
   "When in an .asd file"
@@ -466,20 +467,22 @@ For debugging purposes ONLY.")
 (defun suggest-other ()
   "Otherwise"
   (let+ctx (point outer-node)
-    (if
-     ;; if "at top-level"
-     (or
-      ;; in-between forms
-      (null outer-node)
-      ;; just at the start or end of a form
-      (= point (node-start outer-node))
-      (= point (node-end outer-node))
-      ;; inside a comment (or a form disabled by a
-      ;; feature-expression)
-      (typep outer-node
-             'breeze.reader:skipped-node))
-     *commands-applicable-at-toplevel*
-     *commands-applicable-inside-another-form-or-at-toplevel*)))
+    (when outer-node
+      (if
+       ;; if "at top-level"
+       (or
+        ;; in-between forms
+        (null outer-node)
+        ;; just at the start or end of a form
+        (= point (node-start outer-node))
+        (= point (node-end outer-node))
+        ;; inside a comment (or a form disabled by a
+        ;; feature-expression)
+        #++
+        (typep outer-node
+               'breeze.reader:skipped-node))
+       *commands-applicable-at-toplevel*
+       *commands-applicable-inside-another-form-or-at-toplevel*))))
 
 
 (defun compute-suggestions ()
@@ -520,9 +523,13 @@ a message and stop the current command."
   (let+ctx (nodes
             outer-node
             ;; Check if the closes defpackage was evaluated once
-            (invalid-in-package (validate-nearest-in-package nodes outer-node)))
+            (invalid-in-package
+             (and nodes
+                  outer-node
+                  (validate-nearest-in-package nodes outer-node))))
     (when invalid-in-package
-      (message "The nearest in-package form designates a package that doesn't exists: ~s"        invalid-in-package)
+      (message "The nearest in-package form designates a package that doesn't exists: ~s"
+               invalid-in-package)
       (return-from-command))))
 
 
