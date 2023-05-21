@@ -329,15 +329,19 @@ defun."
     (symbol-package-qualified-name command)))
 
 ;; TODO move to command.lisp
-(defun command-description (function)
-  "Return a list of 2 elements: (FUNCTION its-docstring)"
+(defun command-docstring (function)
+  "Return the function's docstring, signals an error if it's nil."
   (let ((doc (documentation function 'function)))
     (unless doc
       (error
        "Function ~s does not have a documentation string.~
                   Is it defined?"
        function))
-    (list function doc)))
+    doc))
+
+(defun command-description (function)
+  "Return a list of 2 elements: (FUNCTION its-docstring)"
+  (list function (command-docstring function)))
 
 (defparameter *commands-applicable-at-toplevel*
   '(insert-asdf
@@ -587,3 +591,27 @@ a message and stop the current command."
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
+
+
+
+(defun command-to-emacs-lisp (command &optional stream)
+  "Take the symbol COMMAND generates the emacs lisp code to create an
+emacs command,"
+  (let ((docstring (command-docstring command)))
+    (format stream
+            "(defun breeze-~(~a~) ()~
+           ~%  ~s~
+           ~%  (interactive)~
+           ~%  (breeze-run-command ~(\"~a\"~)))"
+            command
+            docstring
+            (symbol-package-qualified-name command))))
+
+#++
+(alexandria:with-output-to-file (output
+                                 (breeze.utils:breeze-relative-pathname "src/breeze-commands.el")
+                                 :if-exists :supersede)
+  (loop :for command :in (all-commands)
+        :do (command-to-emacs-lisp command output)
+            (terpri output)
+            (terpri output)))
