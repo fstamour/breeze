@@ -30,6 +30,16 @@ differences between swank and slynk."
 (defparameter *recent-forms* ()
   "A list of recently-evaluated forms (as strings).")
 
+
+
+#|
+
+TODO Would be nice to have a "Shadow-import all" restart.
+
+|#
+
+
+
 ;; TODO Use a heap to get the N smallest values!
 ;; TODO Put that into utils?
 (defmacro minimizing ((var
