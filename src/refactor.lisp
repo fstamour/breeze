@@ -153,6 +153,8 @@ defun."
   "Insert a defmacro form."
   (insert-defun-shaped "defmacro"))
 
+;; TODO Move to config?
+;; TODO This might change per-project... We could try to infer it?
 (defparameter *insert-defpackage/cl-user-prefix* nil
   "Whether to include (in-package #:cl-user) before a defpackage form.")
 
@@ -199,8 +201,11 @@ defun."
     (when *insert-defpackage/cl-user-prefix*
       (insert
        "(cl:in-package #:cl-user)~%~%~"))
+    (if t ;; TODO
+        (insert "(uiop:define-package ")
+        (insert "(defpackage "))
     (insert
-     "(defpackage #:~a~
+     "#:~a~
     ~%  (:documentation \"\")~
     ~%  (:use #:cl))~
     ~%~
@@ -302,6 +307,12 @@ defun."
 
 ;; TODO quick-insert (format *debug-io* "~&")
 
+(define-command insert-parachute-define-test ()
+  "Insert a parachute:define-test form"
+  (insert "(define-test+run ")
+  (read-string-then-insert "Name of the test: "
+                           "~a~%)~%"))
+
 
 ;;;
 
@@ -340,7 +351,9 @@ defun."
     insert-defgeneric
     insert-defmethod
     insert-print-unreadable-object-boilerplate
-    insert-breeze-define-command))
+    ;; not specfic to cl
+    insert-breeze-define-command
+    insert-parachute-define-test))
 
 (defparameter *commands-applicable-in-a-loop-form*
   '(insert-loop-clause-for-in-list
@@ -431,7 +444,9 @@ For debugging purposes ONLY.")
        ;; TODO Add a configuration to decide whether to shortcircuit or
        ;; not. Because suggesting to insert a "defpackage" form when in
        ;; an empty file is pretty much just my personal preference.
-       (shortcircuit 'insert-defpackage)))))
+       #++
+       (shortcircuit 'insert-defpackage)
+       'insert-defpackage))))
 
 (defun suggest-system-definition ()
   "When in an .asd file"
@@ -467,22 +482,25 @@ For debugging purposes ONLY.")
 (defun suggest-other ()
   "Otherwise"
   (let+ctx (point outer-node)
-    (when outer-node
-      (if
-       ;; if "at top-level"
-       (or
-        ;; in-between forms
-        (null outer-node)
-        ;; just at the start or end of a form
-        (= point (node-start outer-node))
-        (= point (node-end outer-node))
-        ;; inside a comment (or a form disabled by a
-        ;; feature-expression)
-        #++
-        (typep outer-node
-               'breeze.reader:skipped-node))
-       *commands-applicable-at-toplevel*
-       *commands-applicable-inside-another-form-or-at-toplevel*))))
+    (append *commands-applicable-at-toplevel*
+            *commands-applicable-inside-another-form-or-at-toplevel*
+            *commands-applicable-in-a-loop-form*)
+    #++(if
+        ;; if "at top-level"
+        (and outer-node
+             (or
+              ;; in-between forms
+              (null outer-node)
+              ;; just at the start or end of a form
+              (= point (node-start outer-node))
+              (= point (node-end outer-node))
+              ;; inside a comment (or a form disabled by a
+              ;; feature-expression)
+              #++
+              (typep outer-node
+                     'breeze.reader:skipped-node)))
+        *commands-applicable-at-toplevel*
+        *commands-applicable-inside-another-form-or-at-toplevel*)))
 
 
 (defun compute-suggestions ()

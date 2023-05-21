@@ -133,6 +133,16 @@
 (cdr (assoc :context *qf*))
 
 
+(trace
+ shortcircuit
+ compute-suggestions
+ suggest-defpackage
+ suggest-system-definition
+ suggest-lambda
+ suggest-loop-clauses
+ suggest-defpackage-clauses
+ suggest-other)
+
 
 ;;; reader.lisp
 
