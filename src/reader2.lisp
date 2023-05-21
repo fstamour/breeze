@@ -88,11 +88,8 @@ parse" begins.
 (defun whitespace (start end)
   (node 'whitespace start end))
 
-(defun block-comment (start end &optional children)
-  (node 'block-comment start end
-        (if (nodep children)
-            (list children)
-            children)))
+(defun block-comment (start end)
+  (node 'block-comment start end))
 
 (defun line-comment (start end)
   (node 'line-comment start end))
@@ -159,20 +156,20 @@ position."
       (incf (pos state))
       c)))
 
-;; TODO Better name (read-maybe???)
-(defun read-string* (state string)
+(defun read-string* (state string &optional (advance-position-p t))
   "Search STRING in the STATE's source, at the current STATE's
-position. If found, advance the STATE's position to _after_ the
-occurence of STRING."
+position. If found, optinally advance the STATE's position to _after_
+the occurence of STRING."
   (check-type string string)
   (let ((start (pos state))
         (end (+ (pos state) (length string))))
     (when (valid-position-p state (1- end))
       (when-let ((foundp (search string (source state) :start2 start :end2 end)))
-        (setf (pos state) end)
+        (when advance-position-p
+          (setf (pos state) end))
         (list start end)))))
 
-
+;; 2023-05-20 only used in read-token
 (defun read-while (state predicate &aux (start (pos state)))
   (loop
     ;; :for guard :upto 10
@@ -184,8 +181,8 @@ occurence of STRING."
             (return (list start pos)))
           (return nil))))
 
-
 ;; Will be useful for finding some synchronization points
+;; 2023-05-20 not used anymore, since I refactored read-block-comment
 (defun find-all (needle string)
   (when (and (plusp (length needle))
              (plusp (length string)))
@@ -193,19 +190,6 @@ occurence of STRING."
             :then (search needle string :start2 (+ pos (length needle)))
           :while pos
           :collect pos)))
-
-;; TODO Not the most efficient...
-;; Also, so far I only need it to search for "#|" or "|#"
-(defun search-or (needles state)
-  (loop
-    :with foundp
-    :for needle :in needles
-    :for pos = (search needle (source state) :start2 (pos state))
-    :when pos
-      :do (setf foundp t)
-    :when pos
-      :minimize pos :into min-pos
-    :finally (when foundp (return min-pos))))
 
 
 ;;; Actual reader
@@ -219,37 +203,38 @@ occurence of STRING."
                (setf (pos state) pos)
                (return (whitespace start pos)))))
 
-
-;; This is more useful to trace, and easier to debug (we can more
-;; easily see the START in the debugger).
 (defun read-block-comment (state  &aux (start (pos state)))
   "Read #||#"
-  (when (read-string* state "#|")
+  (when (read-string* state "#|" nil)
     (loop
-      :with inner-comments
-      ;; :for guard :upto 10 ; infinite loop guard
-      :for previous-pos = nil :then pos
-      :for pos = #++ (position #\# (source state) :start (pos state))
-                     (search-or '("#|" "|#") state)
-      :when (and previous-pos (eql pos previous-pos))
-        :do (error "read-block-comment: failed to move forward, this is a bug!
-Previous position: ~A
-New position ~A"
-                   previous-pos
-                   pos)
-      :do
-         (when pos
-           ;; Whatever happens, we move forward
-           (setf (pos state) (+ pos 2))
-           (if (char= #\# (at state pos))
-               ;; if #|
-               (push (read-block-comment state) inner-comments)
-               ;; else |#
-               (return (block-comment start (pos state)
-                                      (nreverse inner-comments)))))
-         (unless pos
-           (return (block-comment start +end+
-                                  (nreverse inner-comments)))))))
+      :with stack
+      :with situation = 'other
+      ;; :for guard :upto 1000 ; infinite loop guard
+      :for char = (read-char* state)
+      :do #++
+          (format *debug-io* "~&situation: ~(~a~) char: ~s"
+                  situation
+                  char)
+          (unless char
+            (return (block-comment start +end+)))
+          (ecase situation
+            (other (case char
+                     (#\| (setf situation 'pipe))
+                     (#\# (setf situation 'sharp))))
+            (sharp (case char
+                     (#\|
+                      (setf situation 'other)
+                      (push (- (pos state) 2) stack))
+                     (t
+                      (setf situation 'other))))
+            (pipe (case char
+                    (#\#
+                     (setf situation 'other)
+                     (pop stack)
+                     (when (null stack)
+                       (return (block-comment start (pos state)))))
+                    (t
+                     (setf situation 'other))))))))
 
 (defun read-line-comment (state)
   "Read ;"
@@ -320,17 +305,29 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                            +whitespaces+)
                     :test #'char=))))
 
+(defun not-terminatingp-nor-pipe (c)
+  "Test whether a character is terminating or #\|. See
+http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
+  (and c
+       (not (member c '#. (append
+                           (coerce ";\"'(),`|" 'list)
+                           +whitespaces+)
+                    :test #'char=))))
+
 (defun read-token (state &aux (start (pos state)))
   "Read one token."
   (loop
-    :for char = (current-char state)
+    :for char = (let ((char (current-char state)))
+                  (format *debug-io* "~&char: ~s" char)
+                  char)
     :while (not-terminatingp char)
     :for part = (if (char= char #\|)
                     (read-quoted-string state #\| #\\)
-                    (read-while state #'not-terminatingp))
+                    (read-while state #'not-terminatingp-nor-pipe))
     :while (and part (not-terminatingp (current-char state)))
     :finally (return (unless (= start (pos state))
                        (token start (if part (second part) +end+))))))
+
 
 
 ;; TODO Do something with this, to help error recovery, or at least

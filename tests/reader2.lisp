@@ -29,7 +29,6 @@
                 #:read-string*
                 #:read-token
                 #:read-whitespaces
-                #:search-or
                 #:source
                 #:token
                 #:valid-position-p
@@ -81,31 +80,20 @@ newline or +end+)
 
 ;;; testing helpers
 
-(defparameter *ctx* nil)
-
 (defun test (input got &optional (expected nil expectedp))
-  (flet ((fmt (&rest args)
-           (let ((str (apply #'format nil args))
-                 (*print-circle* t)
-                 (*print-right-margin* nil))
-             (format *debug-io* "~&~a" str)
-             str))
-         (*print-pretty* nil))
-    #++ (true expectedp "~A «~a» => ~s" *ctx* input got)
-    #++ (is equalp expected got "~A «~a» got: ~s expected: ~s" *ctx* input got expected)
-    (true expectedp "«~a» => ~s" input got)
-    (is equalp expected got "For «~a»~%~tgot:~%~t~t~s~%~texpected:~%~t~t~s" input got expected)))
-
-#++
-(let ((*ctx* "Testing the \"test\" function."))
-  (list
-   (test 'meta (with-output-to-string (*debug-io*)
-                 (test 'test-input 42 t))
-         "«TEST-INPUT» got: 42 expected: T")
-   (test 'meta (with-output-to-string (*debug-io*)
-                 (test 'test-input 42 42))
-         "")
-   (test 'meta (test 'test-input 42 42) t)))
+  (let ((*print-pretty* nil)
+        (*print-circle* t)
+        (*print-right-margin* nil))
+    (flet ((fmt (&rest args)
+             (let ((str (apply #'format nil args))
+                   )
+               (format *debug-io* "~&~a" str)
+               str)))
+      (unless parachute:*context*
+        (unless (equalp expected got)
+          (fmt "«~a» got: ~s expected: ~s" input got expected)))
+      (true expectedp "«~a» => ~s" input got)
+      (is equalp expected got "For «~a»~%~tgot:~%~t~t~s~%~texpected:~%~t~t~s" input got expected))))
 
 (defmacro with-state ((string) &body body)
   `(let ((state (make-state ,string)))
@@ -239,26 +227,14 @@ newline or +end+)
   (test-find-all "a" "aaa" '(0 1 2))
   (test-find-all "b" "aaa" nil))
 
-(defun test-search-or (needles input expected)
-  (with-state (input)
-    (test input (search-or needles state) expected)))
-
-(define-test+run search-or
-  (test-search-or '("a" "b") "" nil)
-  (test-search-or '("a" "b") "c" nil)
-  (test-search-or '("a" "b") "-ab" 1)
-  (test-search-or '("a" "b") "--ba" 2))
-
 
 ;;; Actual reader
 
-;; TODO read-whitespaces
 (defun test-read-whitespaces (input expected-end)
-  (let ((*ctx* 'read-whitespaces))
-    (with-state (input)
-      (test* (read-whitespaces state)
-             (when expected-end
-               (whitespace 0 expected-end))))))
+  (with-state (input)
+    (test* (read-whitespaces state)
+           (when expected-end
+             (whitespace 0 expected-end)))))
 
 (define-test+run read-whitespaces
   ;; :depends-on (whitespacep)
@@ -267,54 +243,45 @@ newline or +end+)
   (test-read-whitespaces " " 1)
   (test-read-whitespaces "  " 2))
 
-;; TODO read-block-comment
-(defun test-read-block-comment (input expected-end &rest children)
-  (let ((*ctx* 'read-block-comment))
-    (with-state (input)
-      (test input (read-block-comment state)
-            (when expected-end
-              (block-comment 0 expected-end children))))))
+(defun test-read-block-comment (input expected-end)
+  (with-state (input)
+    (test input (read-block-comment state)
+          (when expected-end
+            (block-comment 0 expected-end)))))
 
-;; TODO Fixme :/
 (define-test+run read-block-comment
-  :depends-on (read-string* search-or)
+  :depends-on (read-string*)
   (test-read-block-comment "" nil)
   (test-read-block-comment "#|" +end+)
   (test-read-block-comment "#| " +end+)
   (test-read-block-comment "#||#" 4)
   (test-read-block-comment "#|#" +end+)
-  (test-read-block-comment "#|#|#" +end+ (block-comment 2 +end+))
-  (test-read-block-comment "#|#||##" +end+ (block-comment 2 6))
-  (test-read-block-comment "#|#|#|#" +end+
-                           (block-comment 2 +end+
-                                          (block-comment 4 +end+)))
-  (test-read-block-comment "#|#|#||##" +end+
-                           (block-comment 2 +end+
-                                          (block-comment 4 8)))
-  (test-read-block-comment "#|#||#|##"
-                           ;; There's 9 characters, the last # is not part of any comments
-                           8 (block-comment 2 6)))
+  (test-read-block-comment "#|#|#" +end+)
+  (test-read-block-comment "#|#||##" +end+)
+  (test-read-block-comment "#|#|#|#" +end+)
+  (test-read-block-comment "#|#|#||##" +end+)
+  (test-read-block-comment "#|#||#|## "
+                           ;; There's 9 characters, the last # is not
+                           ;; part of any comments
+                           8))
 
 (defun test-read-line-comment (input expected-end)
-  (let ((*ctx* 'read-line-comment))
-    (with-state ((format nil input))
-      (test* (read-line-comment state)
-             (when expected-end
-               (line-comment 0 expected-end))))))
+  (with-state ((format nil input))
+    (test* (read-line-comment state)
+           (when expected-end
+             (line-comment 0 expected-end)))))
 
 (define-test+run read-line-comment
   (test-read-line-comment "" nil)
   (test-read-line-comment ";" +end+)
   (test-read-line-comment "; asdf~%" 7))
 
-;; TODO read-punctuation
 (defun test-read-punctuation (input expected-type)
-  (let ((*ctx* 'read-punctuation))
-    (with-state (input)
-      (test input
-            (read-punctuation state)
-            (when expected-type
-              (punctuation expected-type 0))))))
+  (with-state (input)
+    (test input
+          (read-punctuation state)
+          (when expected-type
+            (punctuation expected-type 0)))))
 
 (define-test+run read-punctuation
   :depends-on (current-char)
@@ -347,11 +314,10 @@ newline or +end+)
     (test* (read-quoted-string state #\| #\/) (list 0 +end+))))
 
 (defun test-read-string (input expected-end)
-  (let ((*ctx* 'read-string))
-    (with-state (input)
-      (test* (read-string state)
-             (when expected-end
-               (node 'string 0 expected-end))))))
+  (with-state (input)
+    (test* (read-string state)
+           (when expected-end
+             (node 'string 0 expected-end)))))
 
 (define-test+run read-string
   :depends-on (read-quoted-string)
@@ -367,11 +333,10 @@ newline or +end+)
           '(#\; #\" #\' #\( #\) #\, #\`)))
 
 (defun test-read-token (input expected-end)
-  (let ((*ctx* 'read-token))
-    (with-state (input)
-      (test* (read-token state)
-             (when expected-end
-               (token 0 expected-end))))))
+  (with-state (input)
+    (test* (read-token state)
+           (when expected-end
+             (token 0 expected-end)))))
 
 ;; TODO Fix read-token
 (define-test+run read-token
@@ -384,17 +349,18 @@ newline or +end+)
   (test-read-token "+-*/" 4)
   (test-read-token "123" 3)
   (test-read-token "| asdf |" 8)
+  (test-read-token "| a\\|sdf |" 10)
   (test-read-token "| asdf |qwer#" 13)
   (test-read-token "arg| asdf | " 11)
   (test-read-token "arg| asdf |more" 15)
   (test-read-token "arg| asdf |more|" +end+)
   (test-read-token "arg| asdf |more|mmoooore|done" 29)
   (test-read-token "arg| asdf |no  |mmoooore|done" 13)
-  (test-read-token "look|another\| case\| didn't think of|" 22))
+  (test-read-token "look|another\\| case\\| didn't think of| " 38))
+
 
 ;; TODO read-extraneous-closing-parens
 
-;; TODO read-parens
 (defun test-read-parens (input expected-end &rest children)
   (with-state (input)
     (test* (read-parens state)
@@ -435,10 +401,11 @@ newline or +end+)
   (test-parse " #| "
               (whitespace 0 1)
               (block-comment 1 +end+)
+              #++
               (whitespace 3 4))
   (test-parse "#||#" (block-comment 0 4))
-  (test-parse "#|#||#" (block-comment 0 +end+ (block-comment 2 6)))
-  (test-parse "#| #||# |#" (block-comment 0 10 (block-comment 3 7)))
+  (test-parse "#|#||#" (block-comment 0 +end+))
+  (test-parse "#| #||# |#" (block-comment 0 10))
   (test-parse "'" (punctuation 'quote 0))
   (test-parse "`" (punctuation 'quasiquote 0))
   (test-parse "#" (punctuation 'sharp 0))
