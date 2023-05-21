@@ -159,9 +159,9 @@ position."
       (incf (pos state))
       c)))
 
-;; rename to read-literal ?? or something like that
+;; TODO Better name (read-maybe???)
 (defun read-string* (state string)
-  "Test if STRING in the STATE's source, at the current STATE's
+  "Search STRING in the STATE's source, at the current STATE's
 position. If found, advance the STATE's position to _after_ the
 occurence of STRING."
   (check-type string string)
@@ -255,7 +255,9 @@ New position ~A"
   "Read ;"
   (let ((start (pos state)))
     (when (read-char* state #\;)
-      (let ((newline (search #.(format nil "~%") (source state) :start2 (pos state))))
+      (let ((newline (search #.(format nil "~%")
+                             (source state)
+                             :start2 (pos state))))
         (if newline
             (progn
               (setf (pos state) (1+ newline))
