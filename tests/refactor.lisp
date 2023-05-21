@@ -439,25 +439,30 @@ newline in the expected result."
 ;; TODO infer-is-test-file
 ;; TODO infer-package-name-from-file
 (define-test+run insert-defpackage
-    (let* ((trace (drive-command #'insert-defpackage
-                                 :inputs '("pkg")
-                                 :context '())))
-      (common-trace-asserts 'insert-defpackage trace 3)
-      (destructuring-bind (input request) (first trace)
-        (false input)
-        (is string= "read-string" (first request))
-        (is string= "Name of the package: " (second request))
-        (false (third request)))
-      (destructuring-bind (input request) (second trace)
-        (is string= "pkg" input)
-        (is string= "insert" (first request))
-        (is equal
-            '("(defpackage #:pkg"
-              "  (:documentation \"\")"
-              "  (:use #:cl))"
-              ""
-              "(in-package #:pkg)")
-            (str:split #\Newline (second request))))))
+  (let* ((trace (drive-command #'insert-defpackage
+                               :inputs '("pkg")
+                               :context '())))
+
+    (common-trace-asserts 'insert-defpackage trace 4)
+    (destructuring-bind (input request) (first trace)
+      (false input)
+      (is string= "read-string" (first request))
+      (is string= "Name of the package: " (second request))
+      (false (third request)))
+    (destructuring-bind (input request) (second trace)
+      (is string= "pkg" input)
+      (is string= "insert" (first request))
+      (is equal "(defpackage " (second request)))
+    (destructuring-bind (input request) (third trace)
+      (false input)
+      (is string= "insert" (first request))
+      (is equal
+          '("#:pkg"
+            "  (:documentation \"\")"
+            "  (:use #:cl))"
+            ""
+            "(in-package #:pkg)")
+          (str:split #\Newline (second request))))))
 
 
 (define-test+run insert-defparameter
@@ -668,6 +673,10 @@ newline in the expected result."
             "      (node stream :type t :identity nil)"
             "    (format stream \"~s\" (node-something node))))")
           (str:split #\Newline (second request))))))
+
+;; TODO
+(define-test+run insert-parachute-define-test)
+
 
 
 ;;; TODO

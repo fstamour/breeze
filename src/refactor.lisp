@@ -3,7 +3,7 @@
 (in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.refactor
-  (:documentation "Snippets and refactoring commands")
+    (:documentation "Snippets and refactoring commands")
   (:use #:cl #:breeze.command #++ #:breeze.reader)
   (:import-from
    #:alexandria
@@ -20,6 +20,7 @@
    #:command-description
    ;; Simple transformation commands
    #:insert-breeze-define-command
+   #:insert-parachute-define-test
    #:insert-loop-clause-for-on-list
    #:insert-loop-clause-for-in-list
    #:insert-loop-clause-for-hash
@@ -201,7 +202,7 @@ defun."
     (when *insert-defpackage/cl-user-prefix*
       (insert
        "(cl:in-package #:cl-user)~%~%~"))
-    (if t ;; TODO
+    (if nil ; TODO
         (insert "(uiop:define-package ")
         (insert "(defpackage "))
     (insert
