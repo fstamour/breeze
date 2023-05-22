@@ -143,178 +143,170 @@
     :report (find-symbol \"INTERACTIVE\" \"PARACHUTE\")))"))))
 
 
+;;; Trying to design a DSL for small refactors
 
-(defun symbol-name-string= (string symbol)
-  (and
-   (stringp string)
-   (symbolp symbol)
-   (string= (symbol-name symbol) string)))
+(defparameter *syntaxes* (make-hash-table :test 'equal)
+  "Stores all the \"syntax definitions\".")
 
-(defun with-clause-p (form)
-  (when (listp form)
-    (symbol-name-string= #.(symbol-name 'with) (car form))))
+(defun list-vector (list)
+  "Recursively convert a list into a vector."
+  (if (atom list) list
+      (map 'vector #'list-vector list)))
 
-(with-clause-p '()) nil
-(with-clause-p '(with)) t
-(with-clause-p '(:with)) t
+(defmacro defsyntax (name &body body)
+  `(setf (gethash ',name *syntaxes*)
+         ',(list-vector (if (breeze.utils:length>1? body)
+                            body
+                            (first body)))))
 
-(defun check-with-clause (clause)
-  (destructuring-bind (with binding =-symbol callback) clause
-    (declare (ignore with)
-	     (ignorable callback))
-    (unless (symbolp binding)
-      (error "A \"with\" clause expects a symbol ~
-                            after the \"with\". Got ~s" binding))
-    (unless (symbol-name-string= #.(symbol-name '=) =-symbol)
-      (error "A \"with\" clause expects a = after the ~
-                           name of the binding. Got ~s." =-symbol))))
+(defsyntax optional-parameters
+  &optional
+  (:zero-or-more
+   (:alternation (:symbol ?var)
+                 ((:symbol ?var)
+                  ?init-form (:maybe (:symbol ?supplied-p-parameter))))))
 
-(let ((context '()) ; context is actually a plist
-      (body
-	`((with system-name = (read-string
-			       "Name of the system: "))
-	  (with author = (read-string
-			  "Author: "))
-	  (with licence = (read-string
-			   "Licence name: "))
-	  (insert '("(cl:in-package #:cl)~%~%"))
-	  ;; TODO don't insert a defpackage if it already exists
-	  (insert (list
-		   "(defpackage #:~a.asd~%  (:use :cl :asdf))~%~%"
-		   system-name))
-	  (insert (list
-		   "(in-package #:~a.asd)~%~%"
-		   system-name))
-	  (insert (list
-		   "(asdf:defsystem #:~a~%~{  ~a~%~}"
-		   system-name
-		   `(":description \"\""
-		     ":version \"0.0.1\""
-		     ,(format nil ":author \"~a\"" author)
-		     ,(format nil ":licence \"~a\"" licence)
-		     ":depends-on '()"
-		     ";; :pathname src"
-		     ":serial t"
-		     "  :components
-    (#+(or) (:file \"todo.lisp\")))")))
-	  ))
-      (bindings nil)
-      (bindings-tail nil))
-  (loop
-    :for clause :in body
-    :for with-clause-p = (with-clause-p clause)
-    :for new-binding = (when with-clause-p
-			 (second clause))
-    :for new-callback = (if with-clause-p
-			    (fourth clause)
-			    clause)
-    :when with-clause-p
-      :do (check-with-clause clause)
-    :collect
-    (let ((callback
-	    (if with-clause-p
-		(alexandria:with-gensyms (continuation x)
-		  `(lambda (,continuation)
-		     (,@new-callback
-		      (lambda (,x)
-			(setf (getf ',new-binding context) ,x)
-			(funcall ,continuation)))))
-		new-callback)))
-      (prog1
-	  `(symbol-macrolet
-	       (,@(loop :for binding :in bindings
-			:collect
-			`(,binding (getf context ',binding))))
-	     ,callback)
-	;; Push the new binding
-	(when new-binding
-	  (if bindings
-	      (setf (cdr bindings-tail) (cons new-binding nil)
-		    bindings-tail (cdr bindings-tail))
-	      (setf bindings (cons new-binding nil)
-		    bindings-tail bindings)))))))
+(defsyntax rest-parameter &rest ?var)
+
+(defsyntax body-parameter &body ?var)
+
+(defsyntax key-parameters
+  &key
+  (:zero-or-more
+   (:alternation (:symbol ?var)
+                 ((:symbol ?var)
+                  ?init-form (:maybe (:symbol ?supplied-p-parameter))))))
+
+(defsyntax aux-parameters
+  &aux
+  (:zero-or-more
+   (:alternation (:symbol ?var)
+                 ((:symbol ?var) ?init-form)))
+  (:maybe &allow-other-keys))
+
+;; p.s. "match" is not implemented, it should look a lot like
+;; unification; maybe I should look into using trivia?
+#++
+(match 'optional-parameters
+  '(&optional))
+
+(list
+ '(&optional x)
+ '(&optional (x 1))
+ '(&optional (x 1 supplied-p))
+ '(&optional x y (z t)))
+
+(defsyntax ordinary-lambda-list
+  (:zero-or-more ?var)
+  optional-parameters
+  rest-parameter
+  key-parameters
+  aux-parameters)
+
+(defsyntax defun
+  defun (:symbol ?name) ordinary-lambda-list (:body ?body))
+
+#|
+
+So far, I have the following cases:
+- symbols that starts with ?
+- list that starts with
+-   :zero-or-more
+-   :maybe
+-   :alternation
+-   :symbol
+-   :body
+- other lists
+
+|#
 
 
-(defun %with-clause-binding (clause)
-  "Extract the \"binding\" part from a \"with\" CLAUSE."
-  (second clause))
+;;; Imagine I have a structure that looks like this:
 
-(defun with-clause-binding (clause)
-  "Extract the \"binding\" part from a \"with\" CLAUSE."
-  (when (with-clause-p clause)
-    (%with-clause-binding clause)))
+`(defun <ws> foo <ws> (x <ws> y) <nl> <ws> (+ <ws> x <ws> y))
+;; where <ws> stands for whitespaces and <nl> for newlines
 
-(defun %with-clause-callback (clause)
-  "Extract the \"callback\" part from a \"with\" CLAUSE."
-  (fourth clause))
+;; To match it against
 
-(defun with-clause-callback (clause)
-  "Extract the \"callback\" part from a \"with\" CLAUSE."
-  (when (with-clause-p clause)
-    (%with-clause-callback clause)))
+`(defun ?name ?ordinary-lambda-list ?body)
 
-(defun transform-with-clause (clause context-var)
-  (alexandria:with-gensyms (continuation x)
-    `(lambda (,continuation)
-       (,@ (%with-clause-callback clause)
-	   (lambda (,x)
-	     (setf (getf ',(%with-clause-binding clause) ,context-var)
-		   ,x)
-	     (funcall ,continuation))))))
+;; I _cannot_ iterate over both in at the same speed.
 
-(defun clause-callback (clause context-var)
-  (cond
-    ((with-clause-p clause)
-     (check-with-clause clause)
-     (transform-with-clause clause context-var))
-    (t clause)))
+;; Proof of concept:
+(flet ((var-p (symbol)
+         (char= #\? (char (symbol-name symbol) 0)))
+       (skip-p (x)
+         (and (symbolp x)
+              (char= #\< (char (symbol-name x) 0)))))
+  (let ((pattern
+          (list-vector `(defun ?name ?ordinary-lambda-list ?body)))
+        (input
+          (list-vector `(defun <ws> foo <ws> (x <ws> y) <nl> <ws> (+ <ws> x <ws> y)))))
+    (let ((i 0)
+          (j 0))
+      (flet ((advance-input ()
+               (loop
+                 :do (incf j)
+                 :while (and (< j (length input))
+                             (skip-p (aref input j))))))
+        (loop
+          :for guard :below 1000
+          :while (< i (length pattern))
+          :while (< j (length input))
+          :collect (cons (aref pattern i)
+                         (aref input j))
+          :do (incf i)
+              (advance-input)
 
-(defmacro with-chaining ((context-var) &body body)
-  `(list
-    ,@(loop
-	:for clause :in body
-	:for new-binding = (with-clause-binding clause)
-	:for callback = (clause-callback clause context-var)
-	:collect
-	`(symbol-macrolet
-	     (,@(loop :for binding :in bindings
-		      :collect
-		      `(,binding (getf ,context-var ',binding))))
-	   ,callback)
-	:when new-binding
-	  :collect new-binding :into bindings)))
+          )))))
 
 
-(let ((context (list)))
-  (with-chaining (context)
-    (with system-name = (read-string
-			 "Name of the system: "))
-    (with author = (read-string
-		    "Author: "))
-    (with licence = (read-string
-		     "Licence name: "))
-    (insert '("(cl:in-package #:cl)~%~%"))
-    ;; TODO don't insert a defpackage if it already exists
-    (insert (list
-	     "(defpackage #:~a.asd~%  (:use :cl :asdf))~%~%"
-	     system-name))
-    (insert (list
-	     "(in-package #:~a.asd)~%~%"
-	     system-name))
-    (insert (list
-	     "(asdf:defsystem #:~a~%~{  ~a~%~}"
-	     system-name
-	     `(":description \"\""
-	       ":version \"0.0.1\""
-	       ,(format nil ":author \"~a\"" author)
-	       ,(format nil ":licence \"~a\"" licence)
-	       ":depends-on '()"
-	       ";; :pathname src"
-	       ":serial t"
-	       "  :components
-    (#+(or) (:file \"todo.lisp\")))")))
-    ))
+(defun variable-p (x)
+  (and (symbolp x)
+       (char= #\? (char (symbol-name x) 0))))
+
+(defmethod skip-input-p (x)
+  (and (symbolp x)
+       (char= #\< (char (symbol-name x) 0))))
+
+(defmethod match (pattern input)
+  (if (variable-p pattern)
+      ;; second value is the new binding
+      (values t (cons pattern input))
+      (equal pattern input)))
+
+(match 'x 'x)
+(match 'x 'y)
+(match 2 2)
+
+(match '?x 2)
+
+(defmethod match ((pattern vector) (input vector)
+                  &aux (i 0) (j 0))
+  (labels
+      ((pattern () (aref pattern i))
+       (input () (aref input j))
+       (advance-pattern () (incf i))
+       (advance-input ()
+         (loop
+           :do (incf j)
+           :while (and (< j (length input))
+                       (skip-input-p (input))))))
+    (loop
+      :for guard :below 1000
+      :for (match . bindings) = (multiple-value-list
+                                 (match (pattern) (input)))
+      :unless match
+        :return nil
+      :append bindings
+      :do (advance-pattern)
+      :while (< i (length pattern))
+      :do (advance-input)
+      :while (< j (length input)))))
 
 
-(require 'asdf)
-(asdf:map-systems #'print)
+(let ((pattern
+        (list-vector `(defun ?name ?ordinary-lambda-list ?body)))
+      (input
+        (list-vector `(defun <ws> foo <ws> (x <ws> y) <nl> <ws> (+ <ws> x <ws> y)))))
+  (match pattern input))
