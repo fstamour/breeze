@@ -145,25 +145,76 @@
 
 ;;; Trying to design a DSL for small refactors
 
+(defpackage #:breeze.refactor-scratch
+  (:documentation "")
+  (:use #:cl))
+
+(in-package #:breeze.refactor-scratch)
+
 (defparameter *syntaxes* (make-hash-table :test 'equal)
   "Stores all the \"syntax definitions\".")
+
+(defun variable-p (x)
+  (and (symbolp x)
+       (char= #\? (char (symbol-name x) 0))))
+
+(defstruct (var
+            (:constructor var (name))
+            :constructor)
+  (name nil :type symbol :read-only t))
+
+(defstruct (constrained-var
+            (:constructor the-var (constraints name))
+            :constructor
+            (:include var))
+  (constraints nil :read-only t))
+
+;; (var 'hey)
+;; (the-var 'ho 'symbolp)
+
+(defstruct (maybe :constructor) (pattern nil :read-only t))
+(defstruct (zero-or-more :constructor) (pattern nil :read-only t))
+(defstruct (alternation :constructor) (pattern nil :read-only t))
 
 (defun list-vector (list)
   "Recursively convert a list into a vector."
   (if (atom list) list
       (map 'vector #'list-vector list)))
 
+(defun compile-syntax (tree)
+  (if (listp tree)
+      (case (car tree)
+        (the (apply #'the-var (rest tree)))
+        (:zero-or-more (make-zero-or-more :pattern (compile-syntax (rest tree))))
+        (:maybe (make-maybe :pattern (compile-syntax (rest tree))))
+        (:alternation (make-alternation :pattern (compile-syntax (rest tree))))
+        (otherwise (mapcar #'compile-syntax tree)))
+      (if (variable-p tree) (var tree) tree)))
+
+(compile-syntax '?x)
+(compile-syntax '(the symbol ?x))
+(compile-syntax 'x)
+(compile-syntax '42)
+(compile-syntax '(:maybe ?x))
+(compile-syntax '((:maybe ?x)))
+
+(trace compile-syntax variable-p)
+
 (defmacro defsyntax (name &body body)
   `(setf (gethash ',name *syntaxes*)
-         ',(list-vector (if (breeze.utils:length>1? body)
-                            body
-                            (first body)))))
+         ',(list-vector
+            (compile-syntax
+             (if (breeze.utils:length>1? body)
+                 body
+                 (first body))))))
+
+
 
 (defsyntax optional-parameters
   &optional
   (:zero-or-more
-   (:alternation (:symbol ?var)
-                 ((:symbol ?var)
+   (:alternation (the symbol ?var)
+                 ((the symbol ?var)
                   ?init-form (:maybe (:symbol ?supplied-p-parameter))))))
 
 (defsyntax rest-parameter &rest ?var)
@@ -261,10 +312,6 @@ So far, I have the following cases:
           )))))
 
 
-(defun variable-p (x)
-  (and (symbolp x)
-       (char= #\? (char (symbol-name x) 0))))
-
 (defmethod skip-input-p (x)
   (and (symbolp x)
        (char= #\< (char (symbol-name x) 0))))
@@ -280,6 +327,14 @@ So far, I have the following cases:
 (match 2 2)
 
 (match '?x 2)
+
+(defmethod match ((pattern cons) input)
+  (if (variable-p pattern)
+      ;; second value is the new binding
+      (values t (cons pattern input))
+      (equal pattern input)))
+
+(match '(:symbol x) 'y)
 
 (defmethod match ((pattern vector) (input vector)
                   &aux (i 0) (j 0))
