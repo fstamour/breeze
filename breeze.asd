@@ -55,6 +55,7 @@
    #++
    (:file "reader" :depends-on ("syntax-tree" "utils"))
    (:file "reader2" :depends-on ("utils"))
+   (:file "pattern")
    (:file "command"
     :depends-on (#++"reader"
                  #++"syntax-tree"
@@ -111,6 +112,7 @@
    #++
    (:file "reader")
    (:file "reader2")
+   (:file "pattern")
    (:file "command")
    (:file "refactor")
    (:file "dummy-package")
