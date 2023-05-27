@@ -13,10 +13,12 @@
                 #:line-comment
                 #:make-state
                 #:node
+                #:tree
                 #:not-terminatingp
                 #:parens
                 #:parse
                 #:parse*
+                #:unparse
                 #:pos
                 #:punctuation
                 #:read-block-comment
@@ -46,7 +48,9 @@
                 #:is
                 #:true
                 #:false
-                #:of-type))
+                #:of-type)
+ (:import-from #:breeze.kite
+               #:is-equalp))
 
 (in-package #:breeze.test.reader2)
 
@@ -80,34 +84,21 @@ newline or +end+)
 
 ;;; testing helpers
 
-(defun test (input got &optional (expected nil expectedp))
-  (let ((*print-pretty* nil)
-        (*print-circle* t)
-        (*print-right-margin* nil))
-    (flet ((fmt (&rest args)
-             (let ((str (apply #'format nil args))
-                   )
-               (format *debug-io* "~&~a" str)
-               str)))
-      (unless parachute:*context*
-        (unless (equalp expected got)
-          (fmt "«~a» got: ~s expected: ~s" input got expected)))
-      (true expectedp "«~a» => ~s" input got)
-      (is equalp expected got "For «~a»~%~tgot:~%~t~t~s~%~texpected:~%~t~t~s" input got expected))))
+(defvar *test-strings* (make-hash-table :test 'equal))
+
+(defun register-test-string (string)
+  (setf (gethash string *test-strings*) t)
+  string)
 
 (defmacro with-state ((string) &body body)
-  `(let ((state (make-state ,string)))
-     ;; Wrap #'test
-     (labels ((test* (got &optional (expected nil expectedp) extra-context
-                      &aux (input (if (and extra-context
-                                           (not (eq extra-context state)))
-                                      (list extra-context
-                                            (format nil "«~a»" (source state)))
-                                      (source state))))
-                ;; (list input got expected)
+  `(let ((state (make-state (register-test-string ,string))))
+     ;; Wraps #'is-equal to use the state's source as input
+     ;; remainder: the input is only used (unless (equalp got expected))
+     ;; the input is used to give
+     (labels ((test* (got &optional (expected nil expectedp))
                 (if expectedp
-                    (test input got expected)
-                    (test input got))))
+                    (is-equalp (source state) got expected)
+                    (is-equalp (source state) got))))
        (declare (ignorable (function test*)))
        ,@body)))
 
@@ -216,7 +207,9 @@ newline or +end+)
 (define-test+run read-while)
 
 (defun test-find-all (needle string expected)
-  (test (list 'find-all needle string)
+  (register-test-string string)
+  (register-test-string needle)
+  (is-equalp (list 'find-all needle string)
         (find-all needle string)
         expected))
 
@@ -245,7 +238,7 @@ newline or +end+)
 
 (defun test-read-block-comment (input expected-end)
   (with-state (input)
-    (test input (read-block-comment state)
+    (is-equalp input (read-block-comment state)
           (when expected-end
             (block-comment 0 expected-end)))))
 
@@ -278,7 +271,7 @@ newline or +end+)
 
 (defun test-read-punctuation (input expected-type)
   (with-state (input)
-    (test input
+    (is-equalp input
           (read-punctuation state)
           (when expected-type
             (punctuation expected-type 0)))))
@@ -387,15 +380,18 @@ newline or +end+)
 ;;; Putting it all toghether
 
 ;; TODO parse
-
 (defun test-parse (input &rest expected)
-  (if expected
-      (test input (parse* input) expected)
-      (test input (parse* input))))
+  (register-test-string input)
+  (let* ((state (parse input))
+         (tree (tree state)))
+    (if expected
+        (is-equalp input tree expected)
+        (is-equalp input tree))))
 
 (define-test+run "parse"
   :depends-on (read-parens)
   (eq (parse "") nil)
+  (test-parse " (" (whitespace 0 1) (parens 1 +end+))
   (test-parse "  " (whitespace 0 2))
   (test-parse "#|" (block-comment 0 +end+))
   (test-parse " #| "
@@ -417,12 +413,62 @@ newline or +end+)
   (test-parse "arg| asdf | " (token 0 11) (whitespace 11 12))
   (test-parse "arg| asdf |more" (token 0 15))
   (test-parse "arg| asdf |more|" (token 0 +end+))
+  (test-parse "arg| asdf " (token 0 +end+))
   (test-parse ";" (line-comment 0 +end+))
   (test-parse "(12" (parens 0 +end+ (token 1 3)))
   (test-parse "\"" (node 'string 0 +end+)))
 
+(defun test-parse* (input &rest expected)
+  (register-test-string input)
+  (if expected
+      (is-equalp input (parse* input) expected)
+      (is-equalp input (parse* input))))
+
+(define-test+run "parse"
+  :depends-on (read-parens)
+  (eq (parse "") nil)
+  (test-parse* "  " (whitespace 0 2))
+  (test-parse* "#|" (block-comment 0 +end+))
+  (test-parse* " #| "
+              (whitespace 0 1)
+              (block-comment 1 +end+)
+              #++
+              (whitespace 3 4))
+  (test-parse* "#||#" (block-comment 0 4))
+  (test-parse* "#|#||#" (block-comment 0 +end+))
+  (test-parse* "#| #||# |#" (block-comment 0 10))
+  (test-parse* "'" (punctuation 'quote 0))
+  (test-parse* "`" (punctuation 'quasiquote 0))
+  (test-parse* "#" (punctuation 'sharp 0))
+  (test-parse* "," (punctuation 'comma 0))
+  (test-parse* "+-*/" (token 0 4))
+  (test-parse* "123" (token 0 3))
+  (test-parse* "asdf#" (token 0 5))
+  (test-parse* "| asdf |" (token 0 8))
+  (test-parse* "arg| asdf | " (token 0 11) (whitespace 11 12))
+  (test-parse* "arg| asdf |more" (token 0 15))
+  (test-parse* "arg| asdf |more|" (token 0 +end+))
+  (test-parse* ";" (line-comment 0 +end+))
+  (test-parse* "(12" (parens 0 +end+ (token 1 3)))
+  (test-parse* "\"" (node 'string 0 +end+)))
 
 
+#|
+
+
+(list
+ (parse "#<>")
+ (parse "#+"))
+
+http://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
+
+(list of reader macros
+ "\\'(*:boxrcasp=+-<")
+
+
+#) and #<any whitespace> are **invalid**
+
+|#
 
 #++
 (multiple-value-bind (tree state)
@@ -434,3 +480,22 @@ newline or +end+)
 
 ;; Slightly cursed syntax:
 ;; "#+#."
+
+
+
+;;; Unparse
+
+(defun test-round-trip (input)
+  (register-test-string input)
+  (let* ((state (parse input))
+         (result (unparse state nil)))
+    (is-equalp input result input)))
+
+(time
+ (progn
+   (define-test unparse
+     (test-round-trip "#' () () ()")
+     (test-round-trip " (")
+     (loop :for string :being :the :hash-key :of *test-strings*
+           :do (test-round-trip string)))
+   (parachute:test 'unparse :report 'parachute:quiet)))

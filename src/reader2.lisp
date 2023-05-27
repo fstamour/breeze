@@ -54,7 +54,12 @@ parse" begins.
     :initform 0
     :initarg :pos
     :accessor pos
-    :documentation "The position withing the string."))
+    :documentation "The position within the string.")
+   (tree
+    :initform 0
+    :initarg :pos
+    :accessor tree
+    :documentation "The parsed nodes."))
   ;; TODO More state:
   ;; - current package
   ;; - readtable case (is it case converting)
@@ -68,19 +73,24 @@ parse" begins.
 
 (alexandria:define-constant +end+ -1)
 
-
-(defstruct (node
-            (:constructor node (type start end &optional children))
+(defstruct (range
+            (:constructor range (start end))
             :constructor
-            (:predicate nodep))
-  (type 'nil
-   :type symbol
-   :read-only t)
+            (:predicate rangep))
   (start 0
    :type (integer 0)
    :read-only t)
   (end +end+
    :type (integer -1)
+   :read-only t))
+
+(defstruct (node
+            (:constructor node (type start end &optional children))
+            :constructor
+            (:predicate nodep)
+            (:include range))
+  (type 'nil
+   :type symbol
    :read-only t)
   (children '()
    :read-only t))
@@ -112,6 +122,27 @@ parse" begins.
                     (and
                      (plusp (node-end node))
                      (node-end node))))
+
+(defmethod start ((node node))
+  (node-start node))
+
+(defmethod end ((node node))
+  (node-end node))
+
+(defmethod start ((range range))
+  (range-start range))
+
+(defmethod end ((range range))
+  (range-end range))
+
+(defmethod no-end-p ((x integer))
+  (= +end+ x))
+
+(defmethod no-end-p ((node node))
+  (no-end-p (node-end node)))
+
+(defmethod no-end-p ((range range))
+  (no-end-p (range-end range)))
 
 
 ;;; Reader position (in the source string)
@@ -317,9 +348,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 (defun read-token (state &aux (start (pos state)))
   "Read one token."
   (loop
-    :for char = (let ((char (current-char state)))
-                  (format *debug-io* "~&char: ~s" char)
-                  char)
+    :for char = (current-char state)
     :while (not-terminatingp char)
     :for part = (if (char= char #\|)
                     (read-quoted-string state #\| #\\)
@@ -332,10 +361,16 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 
 ;; TODO Do something with this, to help error recovery, or at least
 ;; tell the user something.
-(defun read-extraneous-closing-parens (state)
+(defun read-extraneous-closing-parens (state &aux (start (pos state)))
   (read-char* state #\))
-  ;; We return nil all the time because this isn't valid lisp.
-  nil)
+  (make-node :type :extraneous-closing-parens
+             :start start
+             :end +end+))
+
+(defun valid-node-p (node)
+  (and node
+       (typep node 'node)
+       (not (no-end-p node))))
 
 ;; don't forget to handle dotted lists
 (defun read-parens (state &aux (start (pos state)))
@@ -345,12 +380,12 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       ;; :for guard :below 1000 ; infinite loop guard
       :while (not (read-char* state #\))) ; good ending
       :for el = (read-any state)          ; mutual recursion
-      :if el
+      :if (valid-node-p el)
         :collect el :into content
       :else
         :do (return (if (donep state)
                         (parens start +end+ content)
-                        nil))
+                        (error "This is a bug: read-any returned NIL.")))
       :finally (return (parens start (pos state) content)))))
 
 (defun read-any (state)
@@ -370,13 +405,15 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 
 (defun parse (string &aux (state (make-state string)))
   "Parse a string, stop at the end, or when there's a parse error."
-  (values (loop
-            :for node-start = (pos state)
-            :for node = (read-any state)
-            :while (and node
-                        (plusp (node-end node)))
-            :collect node)
-          state))
+  (setf (tree state)
+        (loop
+          :for node-start = (pos state)
+          :for node = (read-any state)
+          :when node
+            :collect node
+          :while (and node
+                      (plusp (node-end node)))))
+  state)
 
 ;; (parse "#2()")
 ;; (parse "(")
@@ -419,3 +456,41 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       :do (if unknown-start
               (return (append result `((unknown ,unknown-start ,(pos state)))))
               (return result))))
+
+
+;;; TODO Unparse
+;;;
+;;; N.B. an "unparse" that doesn't change anything is useless except
+;;; for testing. because we could just use the source string,
+;;; unchanged.
+;;;
+;;; How to make changes to the nodes, without actually modifying them?
+;;;
+;;; I thought about keeping track of "before" "after" and "instead" changes.
+;;; keyed by the node itself...
+;;;
+
+;; Should I pass the depth here too?
+(defun write-node (node state stream)
+  (write-string (source state) stream
+                :start (start node)
+                :end (if (no-end-p node)
+                         (length (source state))
+                         (end node))))
+
+;; (trace write-node)
+;; (untrace)
+
+(defun %unparse (tree state stream depth)
+  (if (listp tree)
+      (mapcar (lambda (node) (%unparse node state stream (1+ depth))) tree)
+      (write-node tree state stream)))
+
+(defun unparse (state &optional (stream t))
+  (if stream
+      (%unparse (tree state) state
+                (if (eq t stream) *standard-output* stream)
+                0)
+      ;; if stream is nil
+      (with-output-to-string (out)
+        (%unparse (tree state) state out 0))))
