@@ -28,8 +28,9 @@ parse" begins.
 |#
 
 
-(defpackage #:breeze.reader2
-  (:documentation "")
+(defpackage #:breeze.lossless-reader
+  (:documentation "A fast, lossless, robust and superficial reader for a superset of
+common lisp.")
   (:use #:cl)
   (:import-from #:breeze.utils
                 #:subseq-displaced
@@ -39,7 +40,7 @@ parse" begins.
                 #:when-let
                 #:when-let*))
 
-(in-package #:breeze.reader2)
+(in-package #:breeze.lossless-reader)
 
 
 ;;; Reader state

@@ -161,7 +161,7 @@
 
 
 
-;;; reader2.lisp
+;;; lossless-reader.lisp
 
 (trace
  read-string*
