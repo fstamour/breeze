@@ -109,6 +109,7 @@
   :serial t
   :components
   ((:file "utils")
+   (:file "logging")
    #++
    (:file "reader")
    (:file "reader2")
