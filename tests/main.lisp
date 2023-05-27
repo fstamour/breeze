@@ -10,10 +10,10 @@
 (defun run-breeze-tests (&optional exitp)
   "Run breeze's tests."
   (let ((packages (breeze.xref:find-packages-by-prefix "breeze.test")))
-    (format *debug-io*
+    (format *trace-output*
             "~&About to run tests for the packages: ~{~A~^, ~}"
             packages)
-    (finish-output *debug-io*)
+    (finish-output *trace-output*)
     (let ((report (parachute:test packages)))
       (if exitp
           (uiop:quit (if (eq :failed (parachute:status report)) 1 0))
