@@ -54,7 +54,7 @@
    (:file "syntax-tree")
    #++
    (:file "reader" :depends-on ("syntax-tree" "utils"))
-   (:file "reader2" :depends-on ("utils"))
+   (:file "lossless-reader" :depends-on ("utils"))
    (:file "pattern")
    (:file "command"
     :depends-on (#++"reader"
@@ -112,7 +112,7 @@
    (:file "logging")
    #++
    (:file "reader")
-   (:file "reader2")
+   (:file "lossless-reader")
    (:file "pattern")
    (:file "command")
    (:file "refactor")

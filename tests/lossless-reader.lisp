@@ -1,16 +1,10 @@
 
 (cl:in-package #:cl-user)
 
-(defpackage #:breeze.test.reader2
-  (:documentation "Test package for #:breeze.reader2")
-  (:use #:cl #:breeze.reader2)
-  (:import-from #:breeze.reader2
-                #:+end+
-                #:at
-                #:block-comment
-                #:donep
-                #:find-all
-                #:line-comment
+(defpackage #:breeze.test.lossless-reader
+  (:documentation "Test package for #:breeze.lossless-reader")
+  (:use #:cl #:breeze.lossless-reader)
+  (:import-from #:breeze.lossless-reader
                 #:make-state
                 #:node
                 #:tree
@@ -52,7 +46,7 @@
  (:import-from #:breeze.kite
                #:is-equalp))
 
-(in-package #:breeze.test.reader2)
+(in-package #:breeze.test.lossless-reader)
 
 #|
 
