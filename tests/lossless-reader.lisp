@@ -14,6 +14,7 @@
                 ;; nodes
                 #:+end+
                 #:node
+                #:valid-node-p
                 ;; node constructors
                 #:block-comment
                 #:parens
@@ -510,11 +511,25 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
 
 ;;; Unparse
 
-(defun test-round-trip (input)
-  (register-test-string input)
-  (let* ((state (parse input))
-         (result (unparse state nil)))
-    (is-equalp input result input)))
+(defun test-round-trip (string &key context check-for-error)
+  (register-test-string string)
+  (let* ((state (parse string))
+         (result (unparse state nil))
+         (success (equalp string result)))
+    (is-equalp (or context string) result string)
+    (when (and success check-for-error)
+      ;; Would be nice to (signal ...), not error, just signal, when
+      ;; there's a parsing failure, because right now it's pretty hard
+      ;; to pinpoint where something went wrong.
+      (let ((bad-node (find-if-not #'valid-node-p (tree state))))
+        (setf success
+              (true (null bad-node)
+                    "Failed to parse correctly ~S~%~?"
+                    context
+                    *state-control-string*
+                    (list
+                     (state-context state))))))
+    success))
 
 (progn
   (define-test unparse
@@ -524,3 +539,12 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
           :do (test-round-trip string)))
   #++
   (parachute:test 'unparse))
+
+
+(define-test+run round-trip-breeze
+  (loop :for file :in (breeze.asdf:system-files 'breeze)
+        :for content = (alexandria:read-file-into-string file)
+        :do (test-round-trip content
+                             :context file
+                             ;; :check-for-error t
+                             )))
