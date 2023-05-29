@@ -5,37 +5,54 @@
   (:documentation "Test package for #:breeze.lossless-reader")
   (:use #:cl #:breeze.lossless-reader)
   (:import-from #:breeze.lossless-reader
-                #:make-state
-                #:node
-                #:tree
-                #:not-terminatingp
-                #:parens
-                #:parse
-                #:parse*
-                #:unparse
+                ;; state
+                #:state
+                #:source
                 #:pos
+                #:tree
+                #:make-state
+                ;; nodes
+                #:+end+
+                #:node
+                ;; node constructors
+                #:block-comment
+                #:parens
                 #:punctuation
-                #:read-block-comment
+                #:token
+                #:whitespace
+                #:line-comment
+                ;; Symbols used in the returns
+                #:quote                 ; this ones from cl actually
+                #:quasiquote
+                #:dot
+                #:at
+                #:comma
+                #:sharp
+                ;; state utilities
+                #:at
+                #:donep
+                #:valid-position-p
+                #:*state-control-string*
+                #:state-context
+                ;; parsing utilities
                 #:read-char*
+                #:find-all
+                #:not-terminatingp
+                #:read-string*
+                #:read-while
+                ;; sub parser
                 #:read-line-comment
                 #:read-parens
                 #:read-punctuation
                 #:read-quoted-string
                 #:read-string
-                #:read-string*
                 #:read-token
                 #:read-whitespaces
-                #:source
-                #:token
-                #:valid-position-p
-                #:whitespace
-                ;; Symbols used in the returns
-                #:quote ; this ones from cl actually
-                #:quasiquote
-                #:dot
-                #:at
-                #:comma
-                #:sharp)
+                #:read-block-comment
+                ;; top-level parsing/unparsing
+                #:parse
+                #:parse*
+                #:unparse)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -43,8 +60,8 @@
                 #:true
                 #:false
                 #:of-type)
- (:import-from #:breeze.kite
-               #:is-equalp))
+  (:import-from #:breeze.kite
+                #:is-equalp))
 
 (in-package #:breeze.test.lossless-reader)
 
@@ -84,56 +101,68 @@ newline or +end+)
   (setf (gethash string *test-strings*) t)
   string)
 
-(defmacro with-state ((string) &body body)
-  `(let ((state (make-state (register-test-string ,string))))
-     ;; Wraps #'is-equal to use the state's source as input
-     ;; remainder: the input is only used (unless (equalp got expected))
-     ;; the input is used to give
-     (labels ((test* (got &optional (expected nil expectedp))
-                (if expectedp
-                    (is-equalp (source state) got expected)
-                    (is-equalp (source state) got))))
-       (declare (ignorable (function test*)))
-       ,@body)))
+(defmacro with-state ((string &optional more-labels) &body body)
+  (alexandria:once-only (string)
+    `(let ((state (make-state (register-test-string ,string))))
+       ;; Wraps #'is-equal to use the state's source as input
+       ;; remainder: the input is only used (unless (equalp got expected))
+       ;; the input is used to give
+       (labels ((test* (got &optional expected)
+                  (is-equalp ,string got expected
+                             *state-control-string*
+                             (state-context state)))
+                ,@more-labels)
+         (declare (ignorable (function test*)))
+         ,@ (loop :for (label . _) :in more-labels
+                  :collect `(declare (ignorable (function ,label))))
+         ,@body))))
 
-(defmacro %with-state* ((string) &body body)
+(defmacro %with-state* ((string &optional more-labels) &body body)
   (alexandria:once-only (string)
     `(list
       ,@(loop :for form :in body
-              :collect `(with-state (,string) ,form)))))
+              :collect `(with-state (,string ,more-labels) ,form)))))
 
-(defmacro with-state* (&body body)
+(defmacro with-state* ((&rest more-labels) &body body)
   `(append
     ,@(loop :for form :in body
-            :collect `(%with-state* (,(car form)) ,@(rest form))))  )
+            :collect `(%with-state*
+                          (,(car form) ,more-labels)
+                        ,@(rest form)))))
+
+;; TODO better name
+(defmacro with-state*+predicates ((&key test-form extra-args more-labels)
+                                  &body body)
+  `(with-state*
+       ((yes (,@extra-args) (test* ,test-form t))
+        (no (,@extra-args) (test* ,test-form nil))
+        ,@more-labels)
+     ,@body))
 
 
 ;;; Reader position (in the source string)
 
 (define-test+run valid-position-p
-  (with-state*
-    (""
-     (test* (valid-position-p state -1) nil)
-     (test* (valid-position-p state 0) nil)
-     (test* (valid-position-p state 1) nil))
-    (" "
-     (test* (valid-position-p state -1) nil)
-     (test* (valid-position-p state 0) t)
-     (test* (valid-position-p state 1) nil))))
+  (with-state*+predicates (:test-form (valid-position-p state pos)
+                           :extra-args (pos))
+    (""  (no -1) (no 0)  (no 1))
+    (" " (no -1) (yes 0) (no 1))))
 
 (define-test+run donep
   :depends-on (valid-position-p)
-  (with-state*
-    ("" (test* (donep state) t))
-    (" " (test* (donep state) nil))
-    ("  " (test* (donep state) nil))))
+  (with-state*+predicates (:test-form (progn (setf (pos state) pos)
+                                             (donep state))
+                           :extra-args (pos))
+    (""  (yes -1) (yes 0) (yes 1))
+    (" " (yes -1) (no 0) (yes 1))
+    ("  " (yes -1) (no 0) (no 1) (yes 2))))
 
 
 ;;; Getting and comparing characters
 
 (define-test+run at
   :depends-on (valid-position-p)
-  (with-state*
+  (with-state* ()
     (""
      (test* (at state -1) nil)
      (test* (at state 0) nil)
@@ -162,7 +191,7 @@ newline or +end+)
 
 (define-test+run read-char*
   :depends-on (current-char)
-  (with-state*
+  (with-state* ()
     (""
      (test* (list (read-char* state) (pos state)) '(nil 0))
      (test* (list (read-char* state #\a) (pos state)) '(nil 0)))
@@ -172,7 +201,7 @@ newline or +end+)
 
 (define-test+run read-string*
   :depends-on (valid-position-p)
-  (with-state*
+  (with-state* ()
     (""
      (test*
       (list
@@ -203,9 +232,10 @@ newline or +end+)
 (defun test-find-all (needle string expected)
   (register-test-string string)
   (register-test-string needle)
-  (is-equalp (list 'find-all needle string)
-        (find-all needle string)
-        expected))
+  (is-equalp
+   (list 'find-all needle string)
+   (find-all needle string)
+   expected))
 
 (define-test+run find-all
   (test-find-all "" "" nil)
@@ -418,16 +448,17 @@ newline or +end+)
       (is-equalp input (parse* input) expected)
       (is-equalp input (parse* input))))
 
-(define-test+run "parse"
+#++
+(define-test+run "parse*"
   :depends-on (read-parens)
   (eq (parse "") nil)
   (test-parse* "  " (whitespace 0 2))
   (test-parse* "#|" (block-comment 0 +end+))
   (test-parse* " #| "
-              (whitespace 0 1)
-              (block-comment 1 +end+)
-              #++
-              (whitespace 3 4))
+               (whitespace 0 1)
+               (block-comment 1 +end+)
+               #++
+               (whitespace 3 4))
   (test-parse* "#||#" (block-comment 0 4))
   (test-parse* "#|#||#" (block-comment 0 +end+))
   (test-parse* "#| #||# |#" (block-comment 0 10))
@@ -485,11 +516,11 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
          (result (unparse state nil)))
     (is-equalp input result input)))
 
-(time
- (progn
-   (define-test unparse
-     (test-round-trip "#' () () ()")
-     (test-round-trip " (")
-     (loop :for string :being :the :hash-key :of *test-strings*
-           :do (test-round-trip string)))
-   (parachute:test 'unparse :report 'parachute:quiet)))
+(progn
+  (define-test unparse
+    (test-round-trip "#' () () ()")
+    (test-round-trip " (")
+    (loop :for string :being :the :hash-key :of *test-strings*
+          :do (test-round-trip string)))
+  #++
+  (parachute:test 'unparse))

@@ -11,7 +11,7 @@
   "Run breeze's tests."
   (let ((packages (breeze.xref:find-packages-by-prefix "breeze.test")))
     (format *trace-output*
-            "~&About to run tests for the packages: ~{~A~^, ~}"
+            "~&About to run tests for the packages: ~{  - ~A~^~%~}"
             packages)
     (finish-output *trace-output*)
     (let ((report (parachute:test packages)))

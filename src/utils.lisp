@@ -3,6 +3,7 @@
   (:use :cl)
   (:documentation "Utilities")
   (:export
+   #:around
    #:package-apropos
    #:optimal-string-alignment-distance
    #:optimal-string-alignment-distance*
@@ -12,6 +13,7 @@
    #:indent-string
    #:remove-indentation
    #:print-comparison
+   #:summarize
    #:breeze-relative-pathname
    #:+whitespaces+
    #:whitespacep
@@ -26,6 +28,10 @@
 
 (in-package #:breeze.utils)
 
+
+;;; Other
+
+;; TODO I don't think I use this
 (defun walk (tree fn  &optional (recurse-p (constantly t)))
   "Walk a tree and call fn on every elements"
   (dolist (node tree)
@@ -34,6 +40,7 @@
           (walk node fn recurse-p))
         (funcall fn node))))
 
+;; TODO I don't think I use this
 (defun walk-list (tree fn &optional (recurse-p (constantly t)))
   "Walk a tree and call fn on each list parts"
   (when (and (listp tree) (listp (cdr tree)))
@@ -42,6 +49,7 @@
       (when (funcall recurse-p node)
         (walk-list node fn recurse-p)))))
 
+;; TODO I don't think I use this
 (defun walk-car (tree fn &optional (recurse-p (constantly t)))
   "Walk a tree and call fn on each first elements (cars)"
   (walk-list tree
@@ -56,6 +64,8 @@
                              :test #'string-equal))
                  (list-all-packages)))
 
+
+;;; String stuff
 
 (defun optimal-string-alignment-distance (vec-a vec-b)
   "Compute an edit distance between two vector."
@@ -98,7 +108,8 @@
       (diff-0 n))))
 
 (defun optimal-string-alignment-distance* (vec-a vec-b max-distance)
-  "Compute an edit distance between two vector. Stops as soon as max-distance is reached, returns nil in that case."
+  "Compute an edit distance between two vector. Stops as soon as
+max-distance is reached, returns nil in that case."
   (unless (> (abs (- (length vec-a)
                      (length vec-b)))
              max-distance)
@@ -196,6 +207,8 @@ b
                 :do (write-string line output)
               :do (write-char #\newline output))))))
 
+;; TODO IIRC this function sucked, I think it might just need some
+;; *print- variables set to the right thing... TO TEST
 (defun print-comparison (stream string1 string2)
   "Print two (close) string in a way that the difference are easier to see."
   (let* ((mismatch (mismatch string1 string2)))
@@ -219,20 +232,52 @@ b
 sytsem-files"
 |#
 
-(defun breeze-relative-pathname (pathname)
-  "Returns a pathname relative to breeze's location."
-  (if (cl-fad:pathname-relative-p pathname)
-      (asdf:system-relative-pathname :breeze pathname)
-      pathname))
+
+(defun summarize (string)
+  "Keep only the first sentence, remove parenthesis."
+  (cl-ppcre:regex-replace-all
+   "\\([^)]*\\) *"
+   (alexandria:if-let (position (position #\. string))
+     (subseq string 0 position)
+     string)
+   ""))
+
+
+(defun around (string position &optional (around 10))
+  "Returns part of STRING, from POSITIONITION - AROUND to POSITIONITION + AROUND."
+  (let* ((min-size (1+ (* 2 around)))
+         (before (- position around))
+         (start (max 0 before))
+         (after  (+ start min-size))
+         (end (min (length string) after))
+         (start (max 0 (min start (- end min-size))))
+         (ellipsis-left (max 0 (min 3 start)))
+         (ellipsis-right (max 0 (min 3 (- (length string) end)))))
+    (with-output-to-string (out)
+      (loop :for i :below ellipsis-left :do (write-char #\. out))
+      (write-string string out :start start :end end)
+      (loop :for i :below ellipsis-right :do (write-char #\. out)))))
+
 
 (alexandria:define-constant +whitespaces+
-    '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page #\Return
-      #\Rubout)
+  #. (coerce '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page #\Return
+               #\Rubout)
+             'string)
   :test 'equal)
 
 (defun whitespacep (char)
   "Is CHAR a whitespace?"
-  (member char +whitespaces+))
+  (position char +whitespaces+ :test #'char=))
+
+
+(defun symbol-package-qualified-name (symbol)
+  "Given a SYMBOL return a string of the form package:symbol."
+  (let ((*print-escape* t)
+        (*package* (find-package "KEYWORD")))
+    (prin1-to-string symbol)))
+
+
+;;; Stream stuff
 
 ;; TODO This is horrible performance-wise, I should never use this
 (defun read-stream-range (stream start end)
@@ -255,20 +300,14 @@ sytsem-files"
              (file-position stream))
         (file-position stream current-position)))))
 
-(defun symbol-package-qualified-name (symbol)
-  "Given a SYMBOL return a string of the form package:symbol."
-  (let ((*print-escape* t)
-        (*package* (find-package "KEYWORD")))
-    (prin1-to-string symbol)))
+
+;;; Path stuff
 
-(defun before-last (list)
-  "Return the cons just before the last cons in LIST."
-  (loop :for rest :on list
-        :for ahead = (cddr list) :then (cdr ahead)
-        :while ahead
-        :finally (return
-                   (when (cdr rest)
-                     (car rest)))))
+(defun breeze-relative-pathname (pathname)
+  "Returns a pathname relative to breeze's location."
+  (if (cl-fad:pathname-relative-p pathname)
+      (asdf:system-relative-pathname :breeze pathname)
+      pathname))
 
 (defun find-witness-in-parent-directories (starting-path witness
                                            &key (test #'uiop:probe-file*))
@@ -301,6 +340,9 @@ should be easy to add."
   (find-witness-in-parent-directories starting-path "*.asd"
                                       :test #'directory))
 
+
+;;; Sequence stuff
+
 (defun subseq-displaced (sequence start &optional end)
   "Like subseq, but returns a displaced array instead."
   (let* ((end (or end (length sequence)))
@@ -313,3 +355,13 @@ should be easy to add."
 (defun length>1? (list)
   "Is the length of LIST greater than 1?"
   (not (null (cdr list))))
+
+
+(defun before-last (list)
+  "Return the cons just before the last cons in LIST."
+  (loop :for rest :on list
+        :for ahead = (cddr list) :then (cdr ahead)
+        :while ahead
+        :finally (return
+                   (when (cdr rest)
+                     (car rest)))))

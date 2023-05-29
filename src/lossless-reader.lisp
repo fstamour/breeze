@@ -332,19 +332,20 @@ provided."
   "Test whether a character is terminating. See
 http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (and c
-       (not (member c '#. (append
-                           (coerce ";\"'(),`" 'list)
-                           +whitespaces+)
-                    :test #'char=))))
+       (not (position c '#. (concatenate 'string
+                                         ";\"'(),`"
+                                         +whitespaces+)
+                      :test #'char=))))
 
 (defun not-terminatingp-nor-pipe (c)
   "Test whether a character is terminating or #\|. See
 http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (and c
-       (not (member c '#. (append
-                           (coerce ";\"'(),`|" 'list)
-                           +whitespaces+)
-                    :test #'char=))))
+       (not (position c '#. (concatenate 'string
+                                         ";\"'(),`"
+                                         "|"
+                                         +whitespaces+)
+                      :test #'char=))))
 
 (defun read-token (state &aux (start (pos state)))
   "Read one token."
@@ -354,7 +355,9 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
     :for part = (if (char= char #\|)
                     (read-quoted-string state #\| #\\)
                     (read-while state #'not-terminatingp-nor-pipe))
-    :while (and part (not-terminatingp (current-char state)))
+    :while (and part
+                (not-terminatingp (current-char state))
+                (not (donep state)))
     :finally (return (unless (= start (pos state))
                        (token start (if part (second part) +end+))))))
 
@@ -363,15 +366,26 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 ;; TODO Do something with this, to help error recovery, or at least
 ;; tell the user something.
 (defun read-extraneous-closing-parens (state &aux (start (pos state)))
-  (read-char* state #\))
-  (make-node :type :extraneous-closing-parens
-             :start start
-             :end +end+))
+  (when (read-char* state #\))
+    (make-node :type :extraneous-closing-parens
+               :start start
+               :end +end+)))
 
 (defun valid-node-p (node)
   (and node
        (typep node 'node)
        (not (no-end-p node))))
+
+
+(defparameter *state-control-string*
+  "~{position: ~D char: ~s context: «~a»~}")
+
+(defun state-context (state)
+  (let* ((pos (pos state))
+         (string (source state)))
+    `(,pos
+      ,(at state pos)
+      ,(breeze.utils:around string pos))))
 
 ;; don't forget to handle dotted lists
 (defun read-parens (state &aux (start (pos state)))
@@ -386,20 +400,27 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       :else
         :do (return (if (donep state)
                         (parens start +end+ content)
-                        (error "This is a bug: read-any returned NIL.")))
+                        (error "This is a bug: read-any returned an invalid node, but we're not done reading the file...~%~?"
+                               *state-control-string*
+                               (state-context state))))
       :finally (return (parens start (pos state) content)))))
 
 (defun read-any (state)
-  (some #'(lambda (fn)
-            (funcall fn state))
-        '(read-whitespaces
-          read-block-comment
-          read-punctuation
-          read-string
-          read-line-comment
-          read-token
-          read-parens ; recursion
-          read-extraneous-closing-parens)))
+  (or
+   (some #'(lambda (fn)
+             (funcall fn state))
+         '(read-whitespaces
+           read-block-comment
+           read-punctuation
+           read-string
+           read-line-comment
+           read-token
+           read-parens                ; recursion
+           read-extraneous-closing-parens))
+   (unless (donep state)
+     (error "This is a bug: read-any read nothing and would return nil, but we're not done reading the file...~%~?"
+            *state-control-string*
+            (state-context state)))))
 
 
 ;;; Putting it all toghether
@@ -412,8 +433,8 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
           :for node = (read-any state)
           :when node
             :collect node
-          :while (and node
-                      (plusp (node-end node)))))
+          :while (and (valid-node-p node)
+                      (not (donep state)))))
   state)
 
 ;; (parse "#2()")
@@ -429,10 +450,18 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
     ;; :for guard :upto 1000               ; infinite loop guard
     :for token = (read-any state)
 
-    :when (and token (not unknown-start)) ; Happy path
+    ;; Loop invariant
+    :when (= (pos state)
+             token-start)
+      :do (error "This is a bug: failed to advance the position at ~D, character ~C, token: ~s"
+                 token-start
+                 (at state token-start)
+                 token)
+
+    :when (and (valid-node-p token) (not unknown-start)) ; Happy path
       :collect token :into result
 
-    :when (and token unknown-start)   ;  Back on the happy path
+    :when (and (valid-node-p token) unknown-start)   ;  Back on the happy path
       :append (list
                (prog1
                    (list 'unknown unknown-start token-start)

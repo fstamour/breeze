@@ -4,7 +4,6 @@
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
-                #:is
                 #:true
                 #:false
                 #:of-type)
@@ -32,32 +31,49 @@
     :do (parachute:remove-test test))
 
 
-(defun is-equalp (input got &optional (expected nil expectedp))
+(defun is-equalp (input got &optional expected description &rest format-args)
   "Helper for testing that GOT and EXPECTED are EQUALP.
 
-It is more useful than a plain parachute:is because you can run it
-interactively, without an expected value. In which case it will return
-the value that was gotten.
+Can be run interactively.
 
-It will also print in the *debug-io*.
+Can be run without an expected value.
 
-The main point though, is that the error message is going to be nice.
+Will always return GOT.
+
+If GOT is not equalp to EXPECTED, generate a nice error message. Print
+that message to *trace-output* and return it as a second value.
 "
   (let ((*print-pretty* nil)
         (*print-circle* t)
         (*print-right-margin* nil)
-        (control "For «~a»~%~tgot:~%~t~t~s~%~texpected:~%~t~t~s"))
+        ;; Nothing to see here...
+        (control
+          (concatenate 'string
+                       "For "
+                       "«~a»"
+                       (if description "~1{~?~}" "~*")
+                       "~%"
+                       "~tgot:~%"
+                       "~t~t~s~%"
+                       "~texpected:~%"
+                       "~t~t~s")))
+    #++
+    (format t "~%control: ~s~%input: ~s~%got: ~s~%expected: ~s~%description: ~s~%format-args: ~s"
+            control input got expected description format-args)
     (flet ((fmt (&rest args)
              (let ((str (apply #'format nil args)))
                (unless parachute:*context*
-                 (format *debug-io* "~&~a" str))
+                 (format *trace-output* "~&~a" str))
                str)))
-      (if expectedp
-          (is equalp expected got control input got expected)
-          (true expectedp "«~a» => ~s" input got))
-      (unless (equalp expected got)
-        (fmt control input got expected))
-      got)))
+      (parachute:is equalp expected got
+                    control
+                    input (list description format-args) got expected)
+      (if (equalp expected got)
+          got
+          (values
+           got
+           (fmt control
+                input (list description format-args) got expected))))))
 
 #|
 Examples
@@ -83,5 +99,16 @@ For «32 »
 (is-equalp "32 " 2 2)
 returns 2
 doesn't print
+
+(is-equalp "32 " 2 1 "  (~{~a~^, ~})" '(a b c))
+returns 2
+prints
+For «32 »  (A, B, C)
+ got:
+  2
+ expected:
+  1
+
+;; (is-equalp "32 " 2 1 "  (~a ~s)" "thirty-two" 32)
 
 |#
