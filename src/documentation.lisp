@@ -10,6 +10,9 @@
                 #:macrop
                 #:classp
                 #:simple-function-p)
+  (:import-from #:breeze.utils
+                #:breeze-relative-pathname
+                #:summarize)
   (:export
    #:find-undocumented-symbols))
 
@@ -83,12 +86,12 @@
 ;; To complete the 3 TODOs, I need to figure out:
 ;; how to check if a symbol represent a structure (for a class, I just need to use (find-class)
 ;; how to check if a symbol represent a type-specifier
-;; hot to check if a symbol represent a method-combination
+;; how to check if a symbol represent a method-combination
 
 
 ;;; Utilities for document generation
 
-(defmacro map-external-symbol ((var package )
+(defmacro map-external-symbol ((var package)
                                predicate-body
                                prelude-body
                                wrapper
@@ -128,27 +131,14 @@
   (:dt (symbol-name symbol))
   (:dd (documentation symbol 'variable)))
 
-(defun relative-pathname (pathname)
-  (if (cl-fad:pathname-relative-p pathname)
-      (asdf:system-relative-pathname :breeze pathname)
-      pathname))
 
 (defun render-markdown (pathname)
   "Read a markdown file and render it in spinneret's *html* stream."
   (let ((3bmd-tables:*tables* t))
     (3bmd:parse-and-print-to-stream
-     (relative-pathname pathname)
+     (breeze-relative-pathname pathname)
      spinneret:*html*)))
 
-;; TODO Move to utilities
-(defun summarize (string)
-  "Keep only the first sentence, remove parenthesis."
-  (cl-ppcre:regex-replace-all
-   "\\([^)]*\\) *"
-   (if-let (position (position #\. string))
-     (subseq string 0 position)
-     string)
-   ""))
 
 ;; TODO
 (defun function-lambda-list (function)
@@ -187,7 +177,7 @@
         (loop
           :for package :in packages
           :for package-name = (string-downcase (package-name package))
-          :for docfile = (relative-pathname
+          :for docfile = (breeze-relative-pathname
                           (format nil "docs/~a.md" package-name))
           :do
              (if (probe-file docfile)
@@ -209,7 +199,7 @@
       (loop
         :for package :in packages
         :for package-name = (string-downcase (package-name package))
-        :for docfile = (relative-pathname
+        :for docfile = (breeze-relative-pathname
                         (format nil "docs/~a.md" package-name))
         :do
            (macrolet ((gen (title
@@ -255,7 +245,7 @@
           (render-reference)))))))
 
 (defun generate-documentation ()
-  (let ((index (relative-pathname "docs/index.html")))
+  (let ((index (breeze-relative-pathname "docs/index.html")))
     (with-output-to-file
         (output
          index
