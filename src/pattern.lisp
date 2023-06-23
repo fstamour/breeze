@@ -101,19 +101,19 @@
 (defmethod pattern= (a b)
   (equal a b))
 
-(macrolet ((def= (name)
-             `(defmethod pattern= ((a ,name) (b ,name))
-                (,(alexandria:symbolicate name '=) a b))))
-  (def= ref)
-  (def= term)
-  (def= typed-term)
-  (def= maybe)
-  (def= zero-or-more)
-  (def= alternation))
+(defmethod pattern= ((a vector) (b vector))
+  (or (eq a b)
+      (and (= (length a) (length b))
+           (loop :for x :across a
+                 :for y :across b
+                 :always (pattern= x y)))))
 
 (macrolet ((def (name)
-             `(defmethod make-load-form ((s ,name) &optional environment)
-                (make-load-form-saving-slots s :environment environment))))
+             `(progn
+                (defmethod pattern= ((a ,name) (b ,name))
+                  (,(alexandria:symbolicate name '=) a b))
+                (defmethod make-load-form ((s ,name) &optional environment)
+                  (make-load-form-saving-slots s :environment environment)))))
   (def ref)
   (def term)
   (def typed-term)
@@ -122,39 +122,33 @@
   (def alternation))
 
 
+;;; Pattern compilation from lists and symbols to vectors and structs
 
 (defun symbol-starts-with (symbol char)
   (and (symbolp symbol)
        (char= char (char (symbol-name symbol) 0))))
 
-(defun symbol-name-butfirst (symbol)
-  (let ((name (symbol-name symbol)))
-    (subseq name 1 (1- (length name)))))
-
 (defun term-symbol-p (x)
   (symbol-starts-with x #\?))
 
-#++
-(defun ref-symbol-p (x)
-  (symbol-starts-with x #\$))
-
-;; Default compile
+;; Default: leave as-is
 (defmethod compile-pattern (pattern) pattern)
 
 ;; Compile symbols
 (defmethod compile-pattern ((pattern symbol))
   (cond
     ((term-symbol-p pattern) (term pattern))
-    #++ ((ref-symbol-p pattern) (ref pattern))
     (t pattern)))
 
 ;; Compile lists
 (defmethod compile-pattern ((pattern cons))
+  ;; Dispatch to another method that is eql-specialized on the firt
+  ;; element of the list.
   (compile-compound-pattern (first pattern) pattern))
 
-;; Default list compilation
+;; Default list compilation: recurse and convert to vector.
 (defmethod compile-compound-pattern (token pattern)
-  (mapcar #'compile-pattern pattern))
+  (map 'vector #'compile-pattern pattern))
 
 ;; Compile (:the ...)
 (defmethod compile-compound-pattern ((token (eql :the)) pattern)
@@ -162,10 +156,13 @@
   ;; TODO check if type is nil, that's very likely that's an error.
   (apply #'typed-term (rest pattern)))
 
+;; Compile (:ref ...)
 (defmethod compile-compound-pattern ((token (eql :ref)) pattern)
   ;; TODO Check length of "rest"
   (ref (second pattern)))
 
+;; Helper function for compound patterns that can take an arbitrary
+;; number of subpatterns.
 (defun rest-or-second (list)
   (if (cddr list) (rest list) (second list)))
 ;; (rest-or-second '(a b c)) => '(b c)
@@ -192,36 +189,66 @@
                 body
                 (first body)))))
 
+(defun ref-pattern (pattern)
+  (check-type pattern ref)
+  (or (gethash (ref-name pattern) *patterns*)
+      (error "Failed to find the pattern ~S." (ref-name pattern))))
+
 
+;; Will I regret implemeting this?
 
-(defmethod iterate ((sequence list))
-  sequence)
+(defstruct iterator
+  vector
+  (position 0)
+  (step 1)
+  parent)
 
-(defmethod iterator-next ((iterator list) (sequence list))
-  (declare (ignore sequence))
-  (cdr iterator))
+(defun iterator-done-p (iterator)
+  "Check if there's any values left to iterator over."
+  (check-type iterator iterator)
+  (not (< -1
+          (iterator-position iterator)
+          (length (iterator-vector iterator)))))
 
-(defmethod iterator-value ((iterator list) (sequence list))
-  (declare (ignore sequence))
-  (car iterator))
+(defun iterator-push (iterator vector)
+  (check-type iterator iterator)
+  (check-type vector vector)
+  (make-iterator :vector vector :parent iterator))
 
-(defmethod iterator-done-p ((iterator list) (sequence list))
-  (null iterator))
+(defun iterator-maybe-push (iterator)
+  (if (iterator-done-p iterator)
+      iterator
+      (let ((value (iterator-value iterator)))
+        (if (refp value)
+            (iterator-push iterator (ref-pattern value))
+            iterator))))
+
+(defun iterator-maybe-pop (iterator)
+  (check-type iterator iterator)
+  (if (and (iterator-done-p iterator)
+           (iterator-parent iterator))
+      (iterator-maybe-pop (iterator-parent iterator))
+      iterator))
+
+(defun iterate (vector)
+  "Create a new iterator."
+  (check-type vector vector)
+  (iterator-maybe-push (make-iterator :vector vector)))
 
 
+(defun iterator-next (iterator)
+  "Advance the iterator. Might return a whole new iterator."
+  (check-type iterator iterator)
+  (incf (iterator-position iterator)
+        (iterator-step iterator))
+  (iterator-maybe-push (iterator-maybe-pop iterator)))
 
-(defmethod iterate ((sequence vector))
-  0)
-
-(defmethod iterator-next ((iterator integer) (sequence vector))
-  (declare (ignore sequence))
-  (incf iterator))
-
-(defmethod iterator-value ((iterator integer) (sequence vector))
-  (aref sequence iterator))
-
-(defmethod iterator-done-p ((iterator integer) (sequence vector))
-  (>= iterator (length sequence)))
+(defun iterator-value (iterator)
+  (check-type iterator iterator)
+  (when (iterator-done-p iterator)
+    (error "No more values in this iterator."))
+  (aref (iterator-vector iterator)
+        (iterator-position iterator)))
 
 
 
@@ -235,9 +262,9 @@
   (when (typep input (typed-term-type pattern))
     (cons pattern input)))
 
+#++
 (defmethod match ((pattern ref) input)
-  (match (gethash (ref-name pattern) *patterns*) input))
-
+  (match (ref-pattern pattern) input))
 
 (defmethod match ((pattern string) (input string))
   (string= pattern input))
@@ -248,23 +275,41 @@
 (defmethod match ((pattern null) input)
   nil)
 
-
-
+#++
 (defmethod match ((pattern sequence) input)
-  (loop
-    :for pattern-iterator := (iterate pattern) :then (iterator-next pattern-iterator pattern)
-    :while (not (iterator-done-p pattern-iterator pattern))
-    :for pat = (iterator-value pattern-iterator pattern)
-    :for input-iterator := (iterate input) :then (iterator-next input-iterator input)
-    :while (not (iterator-done-p input-iterator input))
-    :for in = (iterator-value input-iterator input)
-    :for match = (match pat in)
-    :do (format *debug-io* "~%pat: ~s in: ~s" pat in)
-    :unless match
-      :do (return-from match nil)
-    :when (listp match)
-      :append match)
-  t)
+  (error "Only vector patterns are supported."))
+
+(defmethod match ((pattern vector) (input sequence))
+  (match pattern (coerce input 'vector)))
+
+(defmethod match ((pattern iterator) (input iterator))
+  (match (iterator-value pattern) (iterator-value input)))
+
+;; (trace iterator-next iterator-value iterator-push iterator-maybe-pop)
+
+(defmethod match ((pattern vector) (input vector))
+  (or (loop
+        ;; Iterate over the pattern
+        :for pattern-iterator := (iterate pattern) :then (iterator-next pattern-iterator)
+        :until (iterator-done-p pattern-iterator)
+        ;; :for pat = (iterator-value pattern-iterator)
+        ;; Iterate over the input
+        :for input-iterator := (iterate input) :then (iterator-next input-iterator)
+        :until (iterator-done-p input-iterator)
+        ;; :for in = (iterator-value input-iterator)
+        ;; recurse
+        :for match = #++ (match pat in)
+                         (match pattern-iterator input-iterator)
+                         ;; debug print
+                         ;; :do (format *debug-io* "~%pat: ~s in: ~s" pat in)
+        :unless match
+          ;; failed to match, bail out of the whole function
+          :do (return-from match nil)
+        :when (listp match)
+          ;; collect all the bindings
+          ;; TODO We might want to "merge" the bindings.
+          :append match)
+      t))
 
 
 #++
