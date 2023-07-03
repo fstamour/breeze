@@ -390,6 +390,72 @@ lisp's reader doesn't convert them."
   (breeze-run-command "breeze.capture:capture"))
 
 
+;;; WIP Alternate files (this is currently very brittle, but it should
+;;; work for most of my projects).
+;;;
+;;; TODO Better docstrings
+
+(defun breeze--candidate-aternate-directories ()
+  "Generate a list of existing alternate directories."
+  (let ((root (vc-root-dir)))
+    (cl-remove-if-not
+     (lambda (fullpath)
+       (and
+        (file-exists-p fullpath)
+        (file-directory-p fullpath)))
+     (mapcar
+      (lambda (dirname) (expand-file-name
+                         (file-name-concat root dirname)))
+      '("src" "t" "test" "tests")))))
+
+;; (breeze--candidate-aternate-directories)
+;; => '("/home/fstamour/dev/breeze/src" "/home/fstamour/dev/breeze/tests")
+
+(defun breeze--split-file-name (file-name)
+  (cl-loop
+   for altdir in (breeze--candidate-aternate-directories)
+   for relative-path = (file-relative-name file-name altdir)
+   when (string-prefix-p altdir (expand-file-name relative-path))
+   do (cl-return (list altdir relative-path))))
+
+;; (breeze--split-file-name (buffer-file-name))
+;; => '("/home/fstamour/dev/breeze/src" "breeze.el")
+
+(defun breeze--alternate-files (file-name)
+  (cl-loop
+   with (dir path) = (breeze--split-file-name file-name)
+   for altdir in (breeze--candidate-aternate-directories)
+   for altpath = (file-name-concat altdir path)
+   when (and (not (string= dir altdir))
+             (file-exists-p altpath))
+   collect altpath))
+
+;; TODO I should really check how to unit-tests emacs lisp...
+;; (equal
+;;  (breeze--alternate-files
+;;   (file-name-concat (vc-root-dir) "src/pattern.lisp"))
+;;  (list (expand-file-name
+;;         (file-name-concat (vc-root-dir) "tests/pattern.lisp"))))
+
+
+;;; The names breeze-other-file and breeze-other-file-other-window are
+;;; inspired by projectile's equivalent commands.
+
+(defun breeze-other-file ()
+  "Open other file."
+  (interactive)
+  (let ((other-file (car (breeze--alternate-files (buffer-file-name)))))
+    (when other-file
+      (find-file other-file))))
+
+(defun breeze-other-file-other-window ()
+  "Open other file in other window."
+  (interactive)
+  (let ((other-file (car (breeze--alternate-files (buffer-file-name)))))
+    (when other-file
+      (find-file-other-window other-file))))
+
+
 ;;; managing threads
 
 ;; TODO as of 2022-02-08, there's code for that in listener.lisp
