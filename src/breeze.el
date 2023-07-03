@@ -158,6 +158,11 @@
 (defvar breeze-breeze.el load-file-name
   "Path to \"breeze.el\".")
 
+;; I don't remember why I needed this? maybe I had redefined the
+;; defcommand macro.
+(defun breeze-reload ()
+  (breeze-eval "(asdf:load-system '#:breeze :force t)"))
+
 (cl-defun breeze-ensure-breeze ()
   "Make sure that breeze is loaded in swank or slynk."
   (unless (breeze-validate-if-breeze-package-exists)
