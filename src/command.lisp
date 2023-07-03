@@ -327,8 +327,8 @@
   (if-let ((package (find-package package-name)))
     (loop :for symbol-name :in symbol-names
           :for symbol = (find-symbol symbol-name package)
-          :for value = (symbol-value symbol)
-          :collect (cons symbol value))))
+          :when (and symbol (boundp symbol))
+            :collect (cons symbol (symbol-value symbol)))))
 
 ;; There are packages, like trivial-indent, that will call swank (or
 ;; slynk), but swank will signal an error because the symbol
