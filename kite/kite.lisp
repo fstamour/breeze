@@ -1,5 +1,5 @@
 (uiop:define-package #:breeze.kite
-    (:documentation "")
+    (:documentation "Utilities for the test framework parachute.")
   (:use #:cl)
   (:import-from #:parachute
                 #:define-test
