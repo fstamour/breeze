@@ -33,10 +33,14 @@
   "Scaffold a project using quickproject's make-project."
   (apply #'quickproject:make-project args))
 
+
 (defun ql-local-project-directories ()
   "Get the list of quicklisp local-projects directories (as strings)."
+  #+quicklisp
   (mapcar #'namestring
-          ql:*local-project-directories*))
+          ql:*local-project-directories*)
+  ;; To appease sbcl's type checking xD
+  #-quicklisp (list))
 
 (defun choose-local-project-directories ()
   (let ((directories (ql-local-project-directories)))
