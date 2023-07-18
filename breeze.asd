@@ -33,7 +33,7 @@
                ;; Utilities
                #:alexandria
                #:anaphora
-               #:cl-hash-util
+               ;; #:cl-hash-util
                #:cl-ppcre
                #:closer-mop
                #:str
