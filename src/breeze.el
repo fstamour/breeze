@@ -53,11 +53,17 @@
 ;; Useful for debugging whether slime or sly is running
 ;; (process-list)
 
+;; TODO handle multiple connections
 (defun breeze-sly-connection ()
   "If sly loaded, get the list of connections."
   (and (fboundp 'sly-current-connection)
        (sly-current-connection)))
 
+;; TODO this doesn't do the right thing if there are multiple
+;; connections e.g. I had 2 connections opened, I closed the one the
+;; current buffer was using, when I called breeze-quickfix, it
+;; launched a whole new swank. It just happened that it's what I
+;; wanted that time, but in general, that's not good.
 (defun breeze-slime-connection ()
   "If slime is loaded, get the list of connections."
   (and (fboundp 'slime-current-connection)
