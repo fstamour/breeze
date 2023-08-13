@@ -32,13 +32,18 @@
 
 (define-command capture ()
   "Quickly create a lisp file in a pre-determined directory."
+  ;; TODO Make sure *capture-folder* is set
+  ;; TODO Otherwise, ask the user to choose a directory _and save it_
+  (unless *capture-folder*
+    (error "*capture-folder* not set"))
+  ;; TODO ensure that *capture-folder* is a valid directory pathname
   ;; TODO check if *capture-folder* exists
   ;; We use "chose" instead of "read-string" so that the user can
   ;; easily see if he's trying to create a file with a name that
   ;; already exists.
-  (let* ((name (concatenate 'string
-                            (choose "Name of the file and package: "
-                                    (list-existing-captured-files))
+  (let* ((files (list-existing-captured-files))
+         (name (concatenate 'string
+                            (choose "Name of the file and package: " files)
                             ".lisp"))
          (pathname (merge-pathnames name *capture-folder*)))
     (unless (probe-file pathname)

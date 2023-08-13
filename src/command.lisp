@@ -570,14 +570,15 @@ position."
   (insert control-string
           (read-string prompt)))
 
-(defun choose (prompt collection)
+(defun choose (prompt collection &key (allow-empty-collection-p t))
   "Send a message to the editor to ask the user to choose one element
 in the collection. The user can also enter a value not in the
 collection."
   (check-type collection list)
   ;; TODO Not sure yet if this check should be optional or not.
   ;; Check that the list of choice is not empty
-  (unless collection
+  (when (and (null collection)
+             (not allow-empty-collection-p))
     (error "The list of choices is empty."))
   (send "choose" prompt collection)
   (recv1))
