@@ -40,11 +40,15 @@
 (define-test find-undocumented-symbols
   (let ((undocumented-symbols (find-undocumented-symbols-in-dummy-package)))
     (is
-      equal undocumented-symbols
-      '((:function breeze.dummy.test:function-undocumented)
-        (:generic-method breeze.dummy.test:generic-function-undocumented)
-        (:method breeze.dummy.test:another-generic-function)
-        (:method breeze.dummy.test:generic-function-undocumented)
-        (:package "BREEZE.DUMMY.TEST")
-        (:special-variable breeze.dummy.test:*bound-variable-undocumented*)
-        (:special-variable breeze.dummy.test:*unbound-variable-undocumented*)))))
+     equal undocumented-symbols
+     '((:function breeze.dummy.test:function-undocumented)
+       (:generic-method breeze.dummy.test:generic-function-undocumented)
+       (:method breeze.dummy.test:another-generic-function)
+       (:method breeze.dummy.test:generic-function-undocumented)
+       (:package "BREEZE.DUMMY.TEST")
+       (:special-variable breeze.dummy.test:*bound-variable-undocumented*)
+       (:special-variable breeze.dummy.test:*unbound-variable-undocumented*)))))
+
+
+(define-test generate-documentation
+  (breeze.documentation::generate-documentation))
