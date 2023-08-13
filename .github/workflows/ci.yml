@@ -58,3 +58,9 @@ jobs:
       - name: Tests
         shell: bash
         run: scripts/test.sh
+
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs
+          path: docs/
