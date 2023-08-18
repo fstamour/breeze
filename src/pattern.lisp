@@ -10,6 +10,7 @@
   "Stores all the patterns.")
 
 
+;;; Refs and Terms
 
 ;; TODO Think about (defstruct hole ...)
 
