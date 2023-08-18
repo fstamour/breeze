@@ -196,6 +196,28 @@ the run."
          ,@body
          (fmt "</html>")))))
 
+(defun link-to-id (name id)
+  (format nil "<a href=\"#~a\">~a</a>" id name))
+
+(defun file-id (filename)
+  filename)
+
+(defun link-to-file (filename)
+  (link-to-id (file-id filename) filename))
+
+;; (link-to-file "asdf")
+
+(defun page-id (filename page-number)
+  (format nil "~a-~d" filename page-number))
+
+(defun link-to-page (filename page-number)
+  (link-to-id
+   ;; that's an em-dash
+   (format nil "~a &#8212; page ~d" filename page-number)
+   (page-id filename page-number)))
+
+;; (link-to-page "asdf" 42)
+
 (defun render ()
   (with-html-file (out "docs/report.html")
     ;; https://github.com/emareg/classlesscss
@@ -208,7 +230,17 @@ the run."
     (fmt "<ol>")
     (loop
       :for (filename state pages) :in files
-      :do (fmt "<li><a href=\"#~a~:*\">~a</a></li>" filename))
+      :do
+         (fmt "<li>")
+         (fmt "~a" (link-to-file filename))
+         (when (breeze.utils:length>1? pages)
+           (fmt "<ol>")
+           (loop
+             :for page :in pages
+             :for i :from 0
+             :do (fmt "<li>~a</li>" (link-to-page filename i)))
+           (fmt "</ol>"))
+         (fmt "</li>"))
     (fmt "</ol>")
     (loop
       :for (filename state pages) :in files
@@ -219,8 +251,8 @@ the run."
            :for page :in pages
            :for i :from 0
            :do
-              (when (< number-of-pages 1)
-                (fmt "<h3>Page ~d</h3>" i))
+              (when (> number-of-pages 1)
+                (fmt "<h3 id=\"~a\">Page ~d</h3>" (page-id filename i) i))
               (render-page out state page)))))
 
 #++
