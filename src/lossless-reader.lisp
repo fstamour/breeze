@@ -70,7 +70,7 @@ common lisp.")
   (:documentation "The reader's state"))
 
 (defun make-state (string)
-  (make-instance 'state  :source string))
+  (make-instance 'state :source string))
 
 (alexandria:define-constant +end+ -1)
 
@@ -117,32 +117,62 @@ common lisp.")
             (list children)
             children)))
 
-(defun node-content (state node)
+(macrolet ((p (type)
+             `(export
+               (defun
+                   ,(alexandria:symbolicate type '-node-p)
+                   (node)
+                 ,(format nil "Is this a node of type ~s" type)
+                 (and (nodep node)
+                      (eq (node-type node) ',type))))))
+  (p whitespace)
+  (p block-comment)
+  (p line-comment)
+  (p token)
+  (p parens))
+
+(defun comment-node-p (node)
+  "Is this node a block or line comment?"
+  (or (line-comment-node-p node)
+      (block-comment-node-p node)))
+
+(defun source-substring (state start end)
+  "Get a (displaced) substring of the state's source string."
   (subseq-displaced (source state)
-                    (node-start node)
-                    (and
-                     (plusp (node-end node))
-                     (node-end node))))
+                    start
+                    (and (plusp end) end)))
+
+;; TODO rename to node-string
+(defun node-content (state node)
+  "Get a (displaced) string of the node's range."
+  (source-substring state (node-start node) (node-end node)))
 
 (defmethod start ((node node))
+  "Get the start position of the node."
   (node-start node))
 
 (defmethod end ((node node))
+  "Get the end position of the node."
   (node-end node))
 
 (defmethod start ((range range))
+  "Get the start of the range."
   (range-start range))
 
 (defmethod end ((range range))
+  "Get the end of the range."
   (range-end range))
 
 (defmethod no-end-p ((x integer))
+  "Does this number represent the +infinity?"
   (= +end+ x))
 
 (defmethod no-end-p ((node node))
+  "Is this node's end position open-ended?"
   (no-end-p (node-end node)))
 
 (defmethod no-end-p ((range range))
+  "Is this range open-ended?"
   (no-end-p (range-end range)))
 
 
@@ -230,7 +260,7 @@ the occurence of STRING."
   (loop
     :for pos :from start
     :for c = (at state pos)
-    :while (and c (whitespacep c))
+    :while (and c (whitespacep c) (not (char= #\page c)))
     :finally (when (/= pos start)
                (setf (pos state) pos)
                (return (whitespace start pos)))))
@@ -293,7 +323,8 @@ the occurence of STRING."
                                 (#\. . dot)
                                 (#\@ . at)
                                 (#\, . comma)
-                                (#\# . sharp))
+                                (#\# . sharp)
+                                (#\page . page))
                               :key #'car)))
     (prog1 (punctuation (cdar foundp) (pos state))
       (incf (pos state)))))
