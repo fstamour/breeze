@@ -39,6 +39,9 @@ breeze project (system)."
 ;; => ""
 
 
+(defun page-node-p (node)
+  (eq 'breeze.lossless-reader::page (node-type node)))
+
 
 (defun pages (state)
   "Split a parse-tree by top-level ^L"
@@ -47,7 +50,7 @@ breeze project (system)."
     :with page = nil
     :for node :in
               (tree state)
-    :when (eq 'breeze.lossless-reader::page (node-type node))
+    :when (page-node-p node)
       :do (push (nreverse page) pages)
           (setf page nil)
     :do (push node page)
@@ -160,6 +163,15 @@ the run."
 #++ ;; this is annoying af...
 (setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
 
+(defun page-title-node (page)
+  (loop
+    :for node :in (if (page-node-p (first page))
+                      (rest page)
+                      page)
+    :when (line-comment-node-p node)
+      :do (return node)
+    :while (whitespace-node-p node)))
+
 (defun render-page (out state page)
   "Render 1 page as html, where PAGE is a list of nodes."
   (loop
@@ -210,10 +222,11 @@ the run."
 (defun page-id (filename page-number)
   (format nil "~a-~d" filename page-number))
 
-(defun link-to-page (filename page-number)
+(defun link-to-page (filename page-number &optional name)
   (link-to-id
    ;; that's an em-dash
-   (format nil "~a &#8212; page ~d" filename page-number)
+   (or name
+       (format nil "~a &#8212; page ~d" filename page-number))
    (page-id filename page-number)))
 
 ;; (link-to-page "asdf" 42)
@@ -237,8 +250,12 @@ the run."
            (fmt "<ol>")
            (loop
              :for page :in pages
-             :for i :from 0
-             :do (fmt "<li>~a</li>" (link-to-page filename i)))
+             :for i :from 1
+             :for page-title = (let ((node (page-title-node page)))
+                                 (when node
+                                   (breeze.utils:summarize
+                                    (remove-leading-semicolons (node-content state node)))))
+             :do (fmt "<li>~a</li>" (link-to-page filename i page-title)))
            (fmt "</ol>"))
          (fmt "</li>"))
     (fmt "</ol>")
@@ -249,7 +266,7 @@ the run."
          (fmt "<h2 id=\"~a~:*\">~a</h2>~%" filename)
          (loop
            :for page :in pages
-           :for i :from 0
+           :for i :from 1
            :do
               (when (> number-of-pages 1)
                 (fmt "<h3 id=\"~a\">Page ~d</h3>" (page-id filename i) i))
