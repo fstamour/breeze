@@ -15,10 +15,11 @@
 
 (in-package #:breeze.asdf)
 
-(defun system-files (system-designator)
+(defun system-files (system-designator &key (include-asd t))
   "List all the files in a system. Including the .asd file itself."
   (let ((system (asdf/system:find-system system-designator)))
-    `(,(asdf/system:system-source-file system)
+    `(,@(when include-asd
+          (list (asdf/system:system-source-file system)))
       ,@(remove-if #'uiop/pathname:directory-pathname-p
                    (mapcar #'asdf/component:component-pathname
                            (asdf/component:sub-components system))))))

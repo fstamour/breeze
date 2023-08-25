@@ -15,10 +15,23 @@
 
 (in-package #:breeze.report)
 
-(ql:quickload
- '(cl-markless
-   cl-markless-plump
-   cl-markless-epub))
+#++ ;; this is annoying af...
+(setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
+
+
+(defun find-all-breeze-systems ()
+  "Find all systems defined in breeze.asd."
+  (let ((result ())
+        (asd-pathname (asdf:system-source-file 'breeze)))
+    (asdf:map-systems (lambda (system)
+                        ;; TODO Perhaps use asdf:primary-system-name
+                        (when (equal asd-pathname
+                                     (asdf:system-source-file system))
+                          (push system result))))
+    result))
+
+#++ (mapcar 'asdf:coerce-name (find-all-breeze-systems))
+
 
 (defun enough-breeze (pathname)
   "Given a pathname, return the relative pathname from the root of the
@@ -39,12 +52,31 @@ breeze project (system)."
 ;; => ""
 
 
+
+
+(defun paragraphs (string)
+  (cl-ppcre:split
+   (cl-ppcre:create-scanner "\\n\\n+"
+                            :multi-line-mode t
+                            :single-line-mode t)
+   string))
+
+#+example
+(paragraphs
+ (format nil "asd~5%qwe~%ert~2%jkl"))
+
+
+
+
+
+
 (defun page-node-p (node)
+  "Is the node (from the lossless parser) a new-page (^L) character?"
   (eq 'breeze.lossless-reader::page (node-type node)))
 
 
 (defun pages (state)
-  "Split a parse-tree by top-level ^L"
+  "Split a parse-tree by top-level new-page character (^L)"
   (loop
     :with pages = nil
     :with page = nil
@@ -59,12 +91,15 @@ breeze project (system)."
          (push (nreverse page) pages))
        (return (nreverse pages))))
 
-(defun parse-system ()
+;; TODO rename to parse-system-file, maybe (probably)?
+(defun parse-system (&optional (system 'breeze))
   "Parse (with lossless-reader) all files we want to include."
   ;; TODO include files from other systems in this project.
   ;; TODO include all files that are tracked under git...
   (loop
-    :for file :in (breeze.asdf:system-files 'breeze)
+    :for file :in (breeze.asdf:system-files
+                   system
+                   :include-asd (asdf:primary-system-p system))
     :for filename = (enough-breeze file)
     :for content-str = (alexandria:read-file-into-string file)
     :for state = (parse content-str)
@@ -138,39 +173,20 @@ the run."
 
 ;; (defun render-line-comments (nodes))
 
-(defun ml (out string)
-  (cl-markless:output
-   (cl-markless:parse
-    string
-    (make-instance 'cl-markless:parser :line-break-mode :hide))
-   :format
-   'cl-markless-plump:plump
-   ;; 'cl-markless-epub:epub
-   :target out))
-
-#++
-(with-output-to-string (out)
-  (ml out
-      (remove-leading-semicolons
-       "
-;;;; See fndb.lisp and knownfn.lisp in \"sbcl\"(https://github.com/sbcl/sbcl/blob/master/src/compiler/fndb.lisp)
-;;;; and \"phoe/portable-condition-system\"(https://github.com/phoe/portable-condition-system/blob/1307ec146d227a9d8ea42312c1ba2a5206a9eb3c/t/ansi-test-data.lisp)
-;;;;
-;;;;
-;;;; See https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/package-def.lisp
-;;;; For a list of CLs")))
-
-#++ ;; this is annoying af...
-(setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
 
 (defun page-title-node (page)
+  "Try to infer the page's title. (Reminder: page is a list of node)"
   (loop
-    :for node :in (if (page-node-p (first page))
+    :for node :in (if (page-node-p (first page)) ; skip the page node
                       (rest page)
                       page)
     :when (line-comment-node-p node)
       :do (return node)
     :while (whitespace-node-p node)))
+
+(defun render-line-comment (out comment)
+  (format out "~{<p>~a</p>~%~}"
+          (paragraphs comment)))
 
 (defun render-page (out state page)
   "Render 1 page as html, where PAGE is a list of nodes."
@@ -184,29 +200,37 @@ the run."
           (line-comment-node-p node)
           (multiple-value-bind (start end)
               (group-line-comments nodes)
-            (ml
-             out
-             (remove-leading-semicolons
-              (source-substring state start end)))))
+            (render-line-comment out (remove-leading-semicolons
+                                      (source-substring state start end)))))
          (;; don't print whitespace nodes
           (whitespace-node-p node))
          (t
           ;; TODO I should escape STRING
           (format out "~%<pre>~a</pre>" (node-content state node))))))
 
-;; I made this into a macro mainly to reduce the indentation... meh
 (defmacro with-html-file ((stream-var filename) &body body)
   `(alexandria:with-output-to-file (,stream-var
                                     (breeze.utils:breeze-relative-pathname ,filename)
                                     :if-exists :supersede)
      (labels ((fmt (&rest rest)
-                (apply #'format out rest))
-              #++ (html (tag &rest rest)
-                    (fmt "<~a>~{~a~}</~a>" tag rest tag)))
-       (let ((files (parse-system)))
-         (fmt "<html>")
-         ,@body
-         (fmt "</html>")))))
+                (apply #'format out rest)))
+       (fmt "<html>")
+       ;; https://github.com/emareg/classlesscss
+       (fmt "<link rel=\"stylesheet\" href=\"style.css\" title=\"classless\" >")
+       ;; https://github.com/raj457036/attriCSS/tree/master
+       (fmt "<link rel=\"alternate stylesheet\" href=\"brightlight-green.css\" title=attri-css-brightlight-green\" >")
+       (fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/normalize.css\" title=\"concrete\" >")
+       (fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/concrete.css\" title=\"concrete\">")
+       ,@body
+       (fmt "</html>"))))
+
+;; I made this into a macro mainly to reduce the indentation... meh
+(defmacro with-system-listing ((system stream-var filename) &body body)
+  `(with-html-file (,stream-var ,filename)
+     (let ((files (parse-system ,system)))
+       (fmt "<html>")
+       ,@body
+       (fmt "</html>"))))
 
 (defun link-to-id (name id)
   (format nil "<a href=\"#~a\">~a</a>" id name))
@@ -227,19 +251,17 @@ the run."
    ;; that's an em-dash
    (or name
        (format nil "~a &#8212; page ~d" filename page-number))
-   (page-id filename page-number)))
+       (page-id filename page-number)))
 
 ;; (link-to-page "asdf" 42)
 
-(defun render ()
-  (with-html-file (out "docs/report.html")
-    ;; https://github.com/emareg/classlesscss
-    (fmt "<link rel=\"stylesheet\" href=\"style.css\" title=\"classless\" >")
-    ;; https://github.com/raj457036/attriCSS/tree/master
-    (fmt "<link rel=\"alternate stylesheet\" href=\"brightlight-green.css\" title=attri-css-brightlight-green\" >")
-    (fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/normalize.css\" title=\"concrete\" >")
-    (fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/concrete.css\" title=\"concrete\">")
+(defun system-listing-pathname (system)
+  (format nil "docs/listing-~a.html"
+          (cl-ppcre:regex-replace-all "/" (asdf:coerce-name system) "--")))
 
+(defun render (system &aux (pathname (system-listing-pathname system)))
+  (with-html-file (system out pathname)
+    ;; TODO "back to listings"
     (fmt "<ol>")
     (loop
       :for (filename state pages) :in files
@@ -270,7 +292,39 @@ the run."
            :do
               (when (> number-of-pages 1)
                 (fmt "<h3 id=\"~a\">Page ~d</h3>" (page-id filename i) i))
-              (render-page out state page)))))
+              (render-page out state page))))
+  pathname)
 
 #++
-(render)
+(render 'breeze)
+
+#++
+(mapcar 'render (find-all-breeze-systems))
+
+(defun listings.html ()
+  (with-html-file (out (breeze.utils:breeze-relative-pathname "docs/listings.html"))
+    (fmt "<ol>")
+    (loop
+      :for system :in (find-all-breeze-systems)
+      :for name = (asdf:coerce-name system)
+      :for file = (file-namestring (system-listing-pathname system))
+      :do (fmt "<li><a href=\"~a\">~a</a></li>" file name))
+    (fmt "</ol>")))
+
+#|
+
+FIXME I originally named this "report" because I wanted
+something "holistic", but now I started calling this "listing", which
+is not holistic.
+
+TODO In the same vein... I would like to have _all_ the listings in
+the same file (currently 1 file per system). I want this because it
+would be easier to convert to something else afterwards.
+
+TODO I _could_ generate objects instead of directly generating
+html... that way it _could_ be possible to generate something else
+than html.
+
+TODO Nice to haves: line numbers
+
+|#
