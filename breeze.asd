@@ -50,6 +50,7 @@
   ((:file "logging")
    (:file "cl")
    (:file "utils")
+   (:file "string-utils")
    ;; TODO #++
    (:file "syntax-tree")
    #++

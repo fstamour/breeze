@@ -19,20 +19,6 @@
 (setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
 
 
-(defun find-all-breeze-systems ()
-  "Find all systems defined in breeze.asd."
-  (let ((result ())
-        (asd-pathname (asdf:system-source-file 'breeze)))
-    (asdf:map-systems (lambda (system)
-                        ;; TODO Perhaps use asdf:primary-system-name
-                        (when (equal asd-pathname
-                                     (asdf:system-source-file system))
-                          (push system result))))
-    result))
-
-#++ (mapcar 'asdf:coerce-name (find-all-breeze-systems))
-
-
 (defun enough-breeze (pathname)
   "Given a pathname, return the relative pathname from the root of the
 breeze project (system)."
@@ -50,22 +36,6 @@ breeze project (system)."
 #++
 (remove-leading-semicolons "; ; ; ")
 ;; => ""
-
-
-
-
-(defun paragraphs (string)
-  (cl-ppcre:split
-   (cl-ppcre:create-scanner "\\n\\n+"
-                            :multi-line-mode t
-                            :single-line-mode t)
-   string))
-
-#+example
-(paragraphs
- (format nil "asd~5%qwe~%ert~2%jkl"))
-
-
 
 
 
@@ -91,15 +61,14 @@ breeze project (system)."
          (push (nreverse page) pages))
        (return (nreverse pages))))
 
-;; TODO rename to parse-system-file, maybe (probably)?
+
 (defun parse-system (&optional (system 'breeze))
   "Parse (with lossless-reader) all files we want to include."
-  ;; TODO include files from other systems in this project.
   ;; TODO include all files that are tracked under git...
   (loop
-    :for file :in (breeze.asdf:system-files
-                   system
-                   :include-asd (asdf:primary-system-p system))
+    :for file :in (sort (breeze.asdf:find-all-related-files system)
+                        #'string<
+                        :key #'namestring)
     :for filename = (enough-breeze file)
     :for content-str = (alexandria:read-file-into-string file)
     :for state = (parse content-str)
@@ -170,9 +139,6 @@ the run."
 #++
 (let ((node-list (tree (parse (format nil "; c~%  (+ 2 2) #| |#")))))
   (group-line-comments node-list))
-
-;; (defun render-line-comments (nodes))
-
 
 (defun page-title-node (page)
   "Try to infer the page's title. (Reminder: page is a list of node)"
@@ -297,19 +263,6 @@ the run."
 
 #++
 (render 'breeze)
-
-#++
-(mapcar 'render (find-all-breeze-systems))
-
-(defun listings.html ()
-  (with-html-file (out (breeze.utils:breeze-relative-pathname "docs/listings.html"))
-    (fmt "<ol>")
-    (loop
-      :for system :in (find-all-breeze-systems)
-      :for name = (asdf:coerce-name system)
-      :for file = (file-namestring (system-listing-pathname system))
-      :do (fmt "<li><a href=\"~a\">~a</a></li>" file name))
-    (fmt "</ol>")))
 
 #|
 

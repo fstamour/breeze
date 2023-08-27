@@ -2,11 +2,13 @@
 ;; https://quickdocs.org/asdf-dependency-graph
 
 (uiop:define-package #:breeze.asdf
-    (:documentation "Utilities for adsf")
+  (:documentation "Utilities for asdf")
   (:nicknames #:basdf)
   (:use :cl #:alexandria)
   (:export
    #:system-files
+   #:find-all-related-systems
+   #:find-all-related-files
    #:clear-fasl
    #:reload-system
    #:recompile-system
@@ -14,6 +16,18 @@
    #:loadedp))
 
 (in-package #:breeze.asdf)
+
+(defun find-all-related-systems (system)
+  "Given a system, find all systems defined in the same system definition
+file (including the one passed as argument)."
+  (let ((result ())
+        (asd-pathname (asdf:system-source-file system)))
+    (asdf:map-systems (lambda (system)
+                        ;; TODO Perhaps use asdf:primary-system-name
+                        (when (equal asd-pathname
+                                     (asdf:system-source-file system))
+                          (push system result))))
+    result))
 
 (defun system-files (system-designator &key (include-asd t))
   "List all the files in a system. Including the .asd file itself."
@@ -23,6 +37,13 @@
       ,@(remove-if #'uiop/pathname:directory-pathname-p
                    (mapcar #'asdf/component:component-pathname
                            (asdf/component:sub-components system))))))
+
+(defun find-all-related-files (system)
+  "List all files in SYSTEM and in the other systems defined in the same
+system definition file."
+  (remove-duplicates
+   (alexandria:flatten
+    (mapcar #'system-files (find-all-related-systems system)))))
 
 (defun system-fasl-directory (system-designator)
   "Find the directory of a system's fasl files."
