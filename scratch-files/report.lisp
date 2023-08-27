@@ -18,13 +18,7 @@
 #++ ;; this is annoying af...
 (setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
 
-
-(defun enough-breeze (pathname)
-  "Given a pathname, return the relative pathname from the root of the
-breeze project (system)."
-  (uiop:enough-pathname
-   pathname
-   (asdf:system-source-directory 'breeze)))
+
 
 (defun remove-leading-semicolons (string)
   "Remove leading semicolons (e.g. from line comments)."
@@ -38,7 +32,22 @@ breeze project (system)."
 ;; => ""
 
 
+(defun escape-html (string)
+  (cl-ppcre:regex-replace-all
+   ;; I'm sure this is rock solid /s
+   (cl-ppcre:create-scanner "<((?!a |\/a|br).*?)>"
+                            :multi-line-mode t)
+   string
+   "&lt;\\1&gt;"))
 
+#++
+(progn
+  (escape-html "<br>")
+  (escape-html "<a>")
+  (escape-html "<a href=\"\"></a>")
+  (escape-html "=> (#<ASDF/SYSTEM:SYSTEM \"breeze/test\"> #<ASDF/SYSTEM:SYSTEM \"breeze/config\">)"))
+
+
 
 (defun page-node-p (node)
   "Is the node (from the lossless parser) a new-page (^L) character?"
@@ -52,7 +61,7 @@ breeze project (system)."
     :with page = nil
     :for node :in
               (tree state)
-    :when (page-node-p node)
+    :when (and page (page-node-p node))
       :do (push (nreverse page) pages)
           (setf page nil)
     :do (push node page)
@@ -60,6 +69,15 @@ breeze project (system)."
        (when page
          (push (nreverse page) pages))
        (return (nreverse pages))))
+
+
+
+(defun enough-breeze (pathname)
+  "Given a pathname, return the relative pathname from the root of the
+breeze project (system)."
+  (uiop:enough-pathname
+   pathname
+   (asdf:system-source-directory 'breeze)))
 
 
 (defun parse-system (&optional (system 'breeze))
@@ -125,6 +143,7 @@ the run."
           list))
 ;; => (1 3), (3 4 5)
 
+
 
 (defun line-comment-or-ws (node)
   (and node
@@ -152,7 +171,7 @@ the run."
 
 (defun render-line-comment (out comment)
   (format out "~{<p>~a</p>~%~}"
-          (paragraphs comment)))
+          (paragraphs (escape-html comment))))
 
 (defun render-page (out state page)
   "Render 1 page as html, where PAGE is a list of nodes."
@@ -169,10 +188,12 @@ the run."
             (render-line-comment out (remove-leading-semicolons
                                       (source-substring state start end)))))
          (;; don't print whitespace nodes
-          (whitespace-node-p node))
+          (or (whitespace-node-p node) (page-node-p node)))
          (t
           ;; TODO I should escape STRING
-          (format out "~%<pre>~a</pre>" (node-content state node))))))
+          (format out "~%<pre><code>~a</code></pre>"
+                  (escape-html
+                   (node-content state node)))))))
 
 (defmacro with-html-file ((stream-var filename) &body body)
   `(alexandria:with-output-to-file (,stream-var
@@ -225,28 +246,31 @@ the run."
   (format nil "docs/listing-~a.html"
           (cl-ppcre:regex-replace-all "/" (asdf:coerce-name system) "--")))
 
+
+
 (defun render (system &aux (pathname (system-listing-pathname system)))
-  (with-html-file (system out pathname)
-    ;; TODO "back to listings"
+  (with-system-listing (system out pathname)
+    ;; Table of content
     (fmt "<ol>")
     (loop
       :for (filename state pages) :in files
       :do
          (fmt "<li>")
          (fmt "~a" (link-to-file filename))
-         (when (breeze.utils:length>1? pages)
+         (progn ;;when (breeze.utils:length>1? pages)
            (fmt "<ol>")
            (loop
              :for page :in pages
              :for i :from 1
              :for page-title = (let ((node (page-title-node page)))
                                  (when node
-                                   (breeze.utils:summarize
+                                   (escape-html
                                     (remove-leading-semicolons (node-content state node)))))
              :do (fmt "<li>~a</li>" (link-to-page filename i page-title)))
            (fmt "</ol>"))
          (fmt "</li>"))
     (fmt "</ol>")
+    ;; The actual content
     (loop
       :for (filename state pages) :in files
       :for number-of-pages = (length pages)
@@ -256,8 +280,9 @@ the run."
            :for page :in pages
            :for i :from 1
            :do
-              (when (> number-of-pages 1)
-                (fmt "<h3 id=\"~a\">Page ~d</h3>" (page-id filename i) i))
+              (if (> number-of-pages 1)
+                  (fmt "<hr id=\"~a\"></h3>" (page-id filename i))
+                  (fmt "<div id=\"~a\"></div>" (page-id filename i)))
               (render-page out state page))))
   pathname)
 
@@ -269,10 +294,6 @@ the run."
 FIXME I originally named this "report" because I wanted
 something "holistic", but now I started calling this "listing", which
 is not holistic.
-
-TODO In the same vein... I would like to have _all_ the listings in
-the same file (currently 1 file per system). I want this because it
-would be easier to convert to something else afterwards.
 
 TODO I _could_ generate objects instead of directly generating
 html... that way it _could_ be possible to generate something else

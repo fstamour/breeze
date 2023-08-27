@@ -1,5 +1,4 @@
-;; https://asdf.common-lisp.dev/asdf.html
-;; https://quickdocs.org/asdf-dependency-graph
+;;;; Utilities for <a href="https://asdf.common-lisp.dev/asdf.html">ASDF</a>
 
 (uiop:define-package #:breeze.asdf
   (:documentation "Utilities for asdf")
@@ -175,6 +174,7 @@ This will return false if the file was loaded outside of asdf."
 
 
 ;;; Inspecting a system's (transitive) dependencies
+;;; See also <a href="https://quickdocs.org/asdf-dependency-graph">asdf-dependency-graph</a>
 
 (defun system-dependencies (system-designator)
   (let ((system (asdf/system:find-system system-designator nil)))

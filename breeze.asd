@@ -1,3 +1,7 @@
+;;;; System definitions for breeze and auxiliary systems
+
+
+;;; breeze.asd package
 
 (defpackage #:breeze.asd
   (:documentation "Package containing breeze's system defintions")
@@ -5,7 +9,10 @@
 
 (in-package #:breeze.asd)
 
-(asdf:defsystem breeze/config
+
+;;; breze/config system
+
+(asdf:defsystem #:breeze/config
   :description "Configurations for breeze."
   :version "0"
   :author "Francis St-Amour"
@@ -15,6 +22,8 @@
   :components
   ((:file "configuration")))
 
+
+;;; breeze system
 
 (defsystem breeze
   :name "breeze"
@@ -78,7 +87,10 @@
            (uiop:symbol-call
             'breeze.test.main 'run-breeze-tests)))
 
-(defsystem breeze/docs
+
+;;; breeze/docs system
+
+(defsystem #:breeze/docs
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -88,6 +100,9 @@
   :serial t
   :components
   ((:file "documentation")))
+
+
+;;; breeze/kite system
 
 (defsystem "breeze/kite"
   :description "A breeze in a parachute makes a kite: utils for parachute"
@@ -99,6 +114,9 @@
   :serial t
   :components
   ((:file "kite")))
+
+
+;;; breeze/test system
 
 (defsystem "breeze/test"
   :description "Tests for the breeze system."

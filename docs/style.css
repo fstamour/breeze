@@ -21,7 +21,7 @@ ul, ol, dl, fieldset, pre, pre > code {
 }
 body {
 	margin: auto;
-	max-width: 50rem;
+	max-width: 80rem;
 	padding: 2rem 0.5rem 0rem;
 	overflow-x: hidden;
 }
@@ -75,6 +75,7 @@ pre > code {
   padding: 0.5rem 1.0rem;
   border-left: 0.3rem solid #3273dc;
   background-color: #f4f5f6;
+  width: 80em;
 }
 code, kbd, samp {
 	padding: 0.3em; background: #f4f5f6; white-space: pre; font-size: 90%;

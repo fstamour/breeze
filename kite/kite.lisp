@@ -1,5 +1,8 @@
+
+;;; breeze.kite package
+
 (uiop:define-package #:breeze.kite
-    (:documentation "Utilities for the test framework parachute.")
+  (:documentation "Utilities for the test framework parachute.")
   (:use #:cl)
   (:import-from #:parachute
                 #:define-test
@@ -11,6 +14,8 @@
 
 (in-package #:breeze.kite)
 
+
+;;; WIP
 
 ;; Find empty tests
 #++
@@ -30,6 +35,8 @@
   :when (stringp name)
     :do (parachute:remove-test test))
 
+
+;;; Assertion helpers
 
 (defun is-equalp (input got &optional expected description &rest format-args)
   "Helper for testing that GOT and EXPECTED are EQUALP.
