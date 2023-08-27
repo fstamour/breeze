@@ -28,7 +28,7 @@ parse" begins.
 |#
 
 
-(defpackage #:breeze.lossless-reader
+(uiop:define-package #:breeze.lossless-reader
   (:documentation "A fast, lossless, robust and superficial reader for a superset of
 common lisp.")
   (:use #:cl)
@@ -189,24 +189,36 @@ common lisp.")
 
 ;; Could be further generalized by adding `&key key test`, and/or
 ;; making variants `at-if`, `at-if-not`.
-(defun at (state position &optional char)
+(defun at (state position)
   "Get the character at POSITION in the STATE's source.
-Returns nil if POSITION is invalid.  If the optional parameter CHAR is
-not nil, further compare the char at POSITION with CHAR and return the
-character if they're char=."
+Returns nil if POSITION is invalid."
   (when (valid-position-p state position)
-    (when-let ((c (char (source state) position)))
-      (when (or (null char) (char= c char)) c))))
+    (char (source state) position)))
 
-(defun current-char (state &optional char)
+(defun at= (state position char)
+  "Compare the character at POSITION in the STATE's source with the parameter CHAR and returns the CHAR if they're char=.
+Returns nil if POSITION is invalid."
+  (when-let ((c (at state position))) (and (char= c char) c)))
+
+(defun current-char (state)
   "Get the character at the current STATE's position, without changing
 the position."
-  (at state (pos state) char))
+  (at state (pos state)))
 
-(defun next-char (state &optional char)
+(defun current-char= (state char)
+  "Get the character at the current STATE's position, without changing
+the position."
+  (at= state (pos state) char))
+
+(defun next-char (state &optional (n 1))
   "Peek at the next character to be read, without changing the
 position."
-  (at state (1+ (pos state)) char))
+  (at state (+ n (pos state))))
+
+(defun next-char= (state char &optional (n 1))
+  "Peek at the next character to be read, without changing the
+position."
+  (at= state (+ n (pos state)) char))
 
 
 ;;; Low-level parsing helpers
@@ -265,7 +277,7 @@ the occurence of STRING."
                (setf (pos state) pos)
                (return (whitespace start pos)))))
 
-(defun read-block-comment (state  &aux (start (pos state)))
+(defun read-block-comment (state &aux (start (pos state)))
   "Read #||#"
   (when (read-string* state "#|" nil)
     (loop
@@ -298,21 +310,20 @@ the occurence of STRING."
                     (t
                      (setf situation 'other))))))))
 
-(defun read-line-comment (state)
+(defun read-line-comment (state &aux (start (pos state)))
   "Read ;"
-  (let ((start (pos state)))
-    (when (read-char* state #\;)
-      (let ((newline (search #.(format nil "~%")
-                             (source state)
-                             :start2 (pos state))))
-        (if newline
-            (progn
-              (setf (pos state) (1+ newline))
-              (line-comment start (pos state)))
-            ;; TODO (defun (setf donep) ...)
-            (progn
-              (setf (pos state) (length (source state)))
-              (line-comment start +end+)))))))
+  (when (read-char* state #\;)
+    (let ((newline (search #.(format nil "~%")
+                           (source state)
+                           :start2 (pos state))))
+      (if newline
+          (progn
+            (setf (pos state) (1+ newline))
+            (line-comment start (pos state)))
+          ;; TODO (defun (setf donep) ...)
+          (progn
+            (setf (pos state) (length (source state)))
+            (line-comment start +end+))))))
 
 (defun read-punctuation (state)
   "Read ' or `"
@@ -334,7 +345,7 @@ the occurence of STRING."
 is ESCAPE. Optionally check if the characters is valid if VALIDP is
 provided."
   (let ((start (pos state)))
-    (when (at state (pos state) delimiter)
+    (when (at= state (pos state) delimiter)
       (loop
         ;; :for guard :upto 10
         :for pos :from (1+ (pos state))

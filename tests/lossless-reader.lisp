@@ -15,6 +15,12 @@
                 #:+end+
                 #:node
                 #:valid-node-p
+                #:at
+                #:at=
+                #:current-char
+                #:current-char=
+                #:next-char
+                #:next-char=
                 ;; node constructors
                 #:block-comment
                 #:parens
@@ -26,7 +32,6 @@
                 #:quote                 ; this ones from cl actually
                 #:quasiquote
                 #:dot
-                #:at
                 #:comma
                 #:sharp
                 ;; state utilities
@@ -167,24 +172,36 @@ newline or +end+)
     (""
      (test* (at state -1) nil)
      (test* (at state 0) nil)
-     (test* (at state 1) nil)
-     (test* (at state -1 #\a) nil)
-     (test* (at state 0 #\b) nil)
-     (test* (at state 1 #\c) nil))
+     (test* (at state 1) nil))
     ("c"
      (test* (at state -1) nil)
      (test* (at state 0) #\c)
-     (test* (at state 1) nil)
-     (test* (at state -1 #\c) nil)
-     (test* (at state 0 #\c) #\c)
-     (test* (at state 0 #\a) nil)
-     (test* (at state 1 #\c) nil))))
+     (test* (at state 1) nil))))
+
+(define-test+run at=
+  :depends-on (at)
+  (with-state* ()
+    (""
+     (test* (at= state -1 #\a) nil)
+     (test* (at= state 0 #\b) nil)
+     (test* (at= state 1 #\c) nil))
+    ("c"
+     (test* (at= state -1 #\c) nil)
+     (test* (at= state 0 #\c) #\c)
+     (test* (at= state 0 #\a) nil)
+     (test* (at= state 1 #\c) nil))))
 
 ;; TODO test "current-char"
 (define-test+run current-char)
 
+;; TODO test "current-char="
+(define-test+run current-char=)
+
 ;; TODO test "next-char"
 (define-test+run next-char)
+
+;; TODO test "next-char="
+(define-test+run next-char=)
 
 
 
@@ -297,9 +314,9 @@ newline or +end+)
 (defun test-read-punctuation (input expected-type)
   (with-state (input)
     (is-equalp input
-          (read-punctuation state)
-          (when expected-type
-            (punctuation expected-type 0)))))
+               (read-punctuation state)
+               (when expected-type
+                 (punctuation expected-type 0)))))
 
 (define-test+run read-punctuation
   :depends-on (current-char)
