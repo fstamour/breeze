@@ -3,12 +3,12 @@
 
 * Roadmap
 
-1. Add tests on the breeze.refactor package
-2. Implement better refactor commands
-3. Add a breeze-eval function instead of advising swank/slynk
-4. Improve the reader to support more reader-macros
-5. Reduce breeze's dependencies
-6. Make commands more declarative; generate elisp from list of command
+1. Improve the reader, add tests
+2. Make commands more declarative (see [[file:src/pattern.lisp][pattern.lisp]])
+3. Improve the documentation
+4. Implement better refactor commands
+5. Improve breeze-eval function, add tests
+6. Reduce breeze's dependencies
 7. Add support for other editors
 
 * Tasks
@@ -16,7 +16,7 @@
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
-** TODO fix integration with sly
+** DONE fix integration with sly
 
 I've been using slime only for a long time... Today I tried sly and it
 crashed when I tried to use quickfix.
@@ -44,9 +44,9 @@ With sly:
   ;; => "1 (1 bit, #x1, #o1, #b1)"
 #+end_src
 
-** TODO Make it easy to report a bugs
+** TODO Make it easy to report a bugs                                :ux:ops:
 
-- os version
+- OS version
 - lisp version
 - editor version
 - quicklisp
@@ -56,7 +56,7 @@ With sly:
   - from which distribution the system come from
   - version of the system
 
-** TODO Make sure the commands are executed against _common lisp_ code
+** TODO Make sure the commands are executed against _common lisp_ code :ux:editor:
 
 Gavinok tried breeze, but ran ~C-.~ on ~breeze.el~, this causes
 confusion for everybody.
@@ -73,7 +73,7 @@ Instead of having 2 definitions
 
 https://github.com/phoe/with-branching
 
-** TODO Use messages in quickfix
+** DONE Use messages in quickfix                                  :ux:editor:
 
 e.g. "There is no applicable quickfixes in the current context"
 
@@ -89,9 +89,17 @@ OR the "client" should be responsible to always execute the commands
 with on the "initial" buffer, unless stated otherwise (but that would
 add even more state on the protocol).
 
-** TODO Replace the basic command ~backwar-char~
+** TODO Remove the command ~backward-char~                 :tech_debt:editor:
 
-By something like ~relatve-move~.
+I introduced the command ~backward-char~ as a hacky workaround: the
+integration with the editor edits the buffer incrementally, but then
+some other editor configuration would interfere with that process (for
+example =aggressive-indent-mode= in emacs.
+
+I would prefer to improve the whole integration with the editor than
+using "backward-chard" as a crutch.
+
+Something like ~relative-move~ would be better.
 
 ** Showcase/demo                                                        :doc:
 
@@ -112,7 +120,7 @@ To help revision
 
 ** TODO Add command "next todo"                                      :editor:
 
-Don't reimplement it, just figure out which how to configure the
+Don't re-implement it, just figure out which how to configure the
 editor to do that.
 
 ** TODO Use header-line in emacs to show the test results         :editor:ux:
@@ -128,7 +136,7 @@ As opposed to explain the principles, goals, non-goals, etc.
 Actually explain what breeze *does*.
 
 ** DONE add a "What is this?" section                                   :doc:
-** OBSOLETE CANCELED [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
+** OBSOLETE [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
 
 Start by documenting how to start using breeze, then automate it.
 
@@ -256,9 +264,41 @@ already has a prototype in emacs lisp
 A.k.a transpose-forms, but keep the cursor at the start of the form
 that we just moved.
 
-** TODO trying to find discrepancies between the packages and test packages
+** trying to find discrepancies between the packages and test packages :test:
 
 or betweew test system and the system under test
+
+I consider this task "DONE" because I did _try_ to find discrepancies
+between the package ~breeze.refactor~ and ~breeze.test.refactor~. I
+used the convention that each "command" defined in ~breeze.refator~
+should have a test with the same name (i.e. the same symbol-name). I
+have a test that fails if this "invariant" is not held.
+
+In the future, I would like to
+
+*** TODO Figure out how to generalize "finding missing tests by discrepancies" :test:ux:config:
+
+Not everyone is going to have the same conventions.
+
+*** TODO Improve the current test by looking for prefix instead
+
+E.g package ~a~ has an exported symbol ~s~, it's corresponding test
+package is ~a.test~.
+
+The current implementation would try to find a test named ~s~ in
+~a.test~ (for example ~a.test::s~, or ~"s"~ (test names can be string
+in parachute), it would be nice to have it also considers tests that
+have the _prefix_ ~s~.
+
+Why? Because I have some automatically generated test (a bit like
+snapshot tests), it's very convenient that they have the same name as
+the thing they are testing. Using a prefix would let me have multiple
+kind of tests for each (automatically generated or not).
+
+Do I want to check if each "types" of tests are implemented?
+
+Can parachute's `deftest`'s be easily augmented with some metadata?
+That might help too.
 
 ** TODO Integrate with multiple test framework                         :test:
 
@@ -396,8 +436,7 @@ specify some more constraints, by giving types, writing tests, etc.
 #+end_src
 
 #+RESULTS:
-| trying to find discrepancies between the packages and test packages |
-| Programming with holes                                              |
+| Programming with holes |
 
 * Design decisions
 
@@ -467,9 +506,23 @@ that I only use dependencies from quicklisp so that if somebody wants
 to try it out they'll just need to clone this repository in
 quicklisp's local-projects folder.
 
-* Other projects with slime integration
+* Other projects with slime/sly integration
+
 ** log4cl
+
+- https://github.com/sharplispers/log4cl/blob/master/log4cl.log4slime.asd
+- https://github.com/sharplispers/log4cl/blob/master/log4cl.log4sly.asd
+- https://github.com/sharplispers/log4cl/tree/master/elisp
+
 ** cepl
+
+- https://github.com/cbaggers/cepl/blob/master/docs/single-thread-swank.md
+- https://github.com/cbaggers/livesupport
+- https://github.com/cbaggers/swank.live
+
+** cl-routes
+
+https://github.com/archimag/cl-routes/blob/master/src/routes-swank.lisp
 
 * Portable file watching
 
@@ -480,6 +533,9 @@ http://eradman.com/entrproject/
 https://github.com/Ralt/fs-watcher (polls)
 
 https://github.com/Shinmera/file-notify <===
+
+2023-09-25 I briefly talked with Shinmera this summer, and they
+mentioned that this project doesn't currently work.
 
 * Random ideas
 ** (tips), (tips "test"), (tips "doc")
@@ -565,7 +621,7 @@ only arithmetic (again, just an example) and nothing else, that use
 equality saturation to find interesting equivalent forms and propose
 them to the user.
 
-*** Small discussion I had on lobste.rs
+*** Small discussion I had on lobste.rs about e-graphs on lisp
 
 - [[https://lobste.rs/s/myyznl/tooling_for_tooling#c_apjopu][Comment on Lobste.rs]]
 
@@ -630,6 +686,10 @@ https://github.com/neil-lindquist/SLIMA
 - https://colab.research.google.com/drive/1tNOQijJqe5tw-Pk9iqd6HHb2abC5aRid?usp=sharing
 - https://arxiv.org/pdf/2004.03082.pdf
 
+** TODO My old elisp snippet to eval with slime and kill the result
+
+https://gist.github.com/fstamour/2d7569beaf42c0a0883dc0ae559c6638
+
 * Libraries we might need in the future
 
 ** PROtocol and TESTcase manager                                       :test:
@@ -654,24 +714,13 @@ I'm sure there are tons of other user-case:
 - infer types
 - interpret code (symbolically or not)
 
-
 ** How froute uses mop to keep track of a set of definitions
 
+#+begin_comment
+Maybe I should have a section about "code snippets that could be useful"?
+#+end_comment
+
 [[https://github.com/StephenWakely/froute/blob/3d9ea3114537e1451cccec91f7cbe2321a49a1e0/src/froute-class.lisp][froute-class.lisp]]
-
-* Scratch files
-
-Pieces of code that could be useful
-
-#+begin_src lisp
-  (require 'bordeaux-threads)
-  (bordeaux-threads:destroy-thread
-   (let ((current-thread (bt:current-thread)))
-     (find-if #'(lambda (thread)
-		  (and (not (eq current-thread thread))
-		       (string= "worker" (bt:thread-name thread))))
-	      (sb-thread:list-all-threads))))
-#+end_src
 
 * Prior Arts
 
