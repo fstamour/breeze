@@ -49,6 +49,7 @@
   "Find threads by name, then destroy them."
   (%kill-threads (find-threads-by-name name)))
 
+;; TODO make a command with this...
 (defun kill-worker-threads ()
   "Find threads named \"worker\", then destroy them."
   (%kill-threads (find-threads-by-name "worker")))
