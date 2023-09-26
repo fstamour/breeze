@@ -5,7 +5,7 @@
 
 (in-package #:breeze.asd)
 
-(asdf:defsystem #:breeze/config
+(asdf:defsystem breeze/config
   :description "Configurations for breeze."
   :version "0"
   :author "Francis St-Amour"
@@ -16,35 +16,35 @@
   ((:file "configuration")))
 
 
-(defsystem #:breeze
+(defsystem breeze
   :name "breeze"
   :version "0"
   :maintainer "Francis St-Amour"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
-  :depends-on (#:breeze/config
+  :depends-on (breeze/config
                ;; Multi-threading
-               #:bordeaux-threads
-               #:chanl
-               #:trivial-timeout
+               bordeaux-threads
+               chanl
+               trivial-timeout
                ;; To create projects
-               #:quickproject
+               quickproject
                ;; Utilities
-               #:alexandria
-               #:anaphora
-               ;; #:cl-hash-util
-               #:cl-ppcre
-               #:closer-mop
-               #:str
-               #:uiop
+               alexandria
+               anaphora
+               ;; cl-hash-util
+               cl-ppcre
+               closer-mop
+               str
+               uiop
                ;; For documentation generation
-               #:3bmd #:3bmd-ext-code-blocks #:3bmd-ext-tables #:spinneret
+               3bmd 3bmd-ext-code-blocks 3bmd-ext-tables spinneret
                ;; For reading lisp
-               #:eclector
-               #:trivial-package-local-nicknames
+               eclector
+               trivial-package-local-nicknames
                ;; For some portability checks
-               #:trivial-features)
+               trivial-features)
   :pathname "src"
   :components
   ((:file "logging")
@@ -71,18 +71,18 @@
    (:file "refactor" :depends-on (#++"reader" "command" "utils" "cl"))
    (:file "project" :depends-on ("utils" "command"))
    (:file "capture" :depends-on ("utils" "command")))
-  :in-order-to ((test-op (load-op #:breeze/test)))
+  :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
            (uiop:symbol-call
-            '#:breeze.test.main '#:run-breeze-tests)))
+            'breeze.test.main 'run-breeze-tests)))
 
-(defsystem #:breeze/docs
+(defsystem breeze/docs
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (#:breeze)
+  :depends-on (breeze)
   :pathname "src"
   :serial t
   :components
@@ -93,7 +93,7 @@
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (#:parachute #:breeze)
+  :depends-on (parachute breeze)
   :pathname "kite"
   :serial t
   :components
@@ -104,7 +104,7 @@
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (#:breeze #:parachute #:breeze/kite)
+  :depends-on (breeze parachute breeze/kite)
   :pathname "tests"
   :serial t
   :components
