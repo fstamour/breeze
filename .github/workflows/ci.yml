@@ -59,8 +59,26 @@ jobs:
         shell: bash
         run: scripts/test.sh
 
-      - name: 'Upload Artifact'
+      - name: 'Upload docs'
         uses: actions/upload-artifact@v3
         with:
           name: docs
           path: docs/
+
+  emacs:
+    name: "Integration test - emacs"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run tests
+        run: |
+          scripts/demo/build-docker-image.sh
+
+      - name: 'Upload screenshots'
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshots
+          path: demo.tar

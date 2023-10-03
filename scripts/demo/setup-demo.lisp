@@ -19,13 +19,22 @@
    #:swank-arglists
    #:swank-repl))
 
+(format t "~&About to load breeze.asd...~%")
+(force-output)
+
 ;; install breeze's dependencies
 (asdf:load-asd (truename "breeze.asd"))
+
+(format t "~&About to quickload breeze's dependencies...~%")
+(force-output)
 
 (ql:quickload
  (remove-if
   (lambda (system-name)
     (string= "breeze/config" system-name))
   (asdf:system-depends-on (asdf:find-system "breeze"))))
+
+(format t "~&About to dump core \"dependencies.core\"...~%")
+(force-output)
 
 (uiop:dump-image "dependencies.core")
