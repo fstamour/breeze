@@ -296,3 +296,115 @@ mark{ background-color: transparent; color: #007c30; text-decoration: underline 
 	[class*="col"] > * { margin-top: 1rem !important; }
 }
 @media (max-width: 61rem) { aside {position: relative; margin: 0.5rem 0; } }
+
+
+
+
+/*
+class paren1...N
+
+ background-color 0.2s linear;
+
+
+code .no-paren-fx,
+code .no-paren-fx:hover{
+    background-color: #F1F1F1;
+}
+
+code .symbol{
+    color: #770055;
+}
+
+code a.symbol:link,
+code a.symbol:active,
+code a.symbol:visited,
+code a.symbol:hover{
+    color: #2AA198;
+}
+
+code .special{
+    color: #CB4B16;
+}
+
+code .keyword{
+    color: #770000;
+}
+
+code .comment{
+    color: #586E75;
+}
+
+code .string{
+    color: #B58900;
+}
+
+code .atom{
+    color: #314F4F;
+}
+
+code .macro{
+    color: #CB4B16;
+}
+
+code .variable{
+    color: #36648B;
+}
+
+code .function{
+    color: #8B4789;
+}
+
+code .attribute{
+    color: #CB4B16;
+}
+
+code .character{
+    color: #0055AA;
+}
+
+code .syntaxerror{
+    color: #FF0000;
+}
+
+code .diff-deleted{
+    color: #5F2121;
+}
+
+code .diff-added{
+    color: #215F21;
+}
+
+
+code span.paren1,
+code span.paren2,
+code span.paren3,
+code span.paren4,
+code span.paren5,
+code span.paren6{
+    -webkit-transition: background-color 0.2s linear;
+}
+
+code span.paren1:hover{
+    background-color: #BAFFFF;
+}
+
+code span.paren2:hover{
+    background-color: #FFCACA;
+}
+
+code span.paren3:hover{
+    background-color: #FFFFBA;
+}
+
+code span.paren4:hover{
+    background-color: #CACAFF;
+}
+
+code span.paren5:hover{
+    background-color: #CAFFCA;
+}
+
+code span.paren6:hover{
+    background-color: #FFBAFF;
+}
+*/
