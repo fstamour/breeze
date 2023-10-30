@@ -379,6 +379,14 @@
   '(&optional))
 
 #++
+(match (ref 'optional-parameters)
+  '(&optional))
+
+#++
+(match `#(,(ref 'optional-parameters))
+  '(&optional x))
+
+#++
 (list
  '(&optional x)
  '(&optional (x 1))
@@ -389,13 +397,21 @@
 
 ;; (trace match :methods t)
 
-#++
-(define-test "match ref"
-  (true (match `#(,(ref 'a)) '(a 42)))
-  (true (match `#(,(ref 'b)) '(a 42 a 73)))
-  (false (match `#(,(ref 'body-parameter)) '(42)))
-  (true (match `#(,(ref 'body-parameter)) '(&body 42))))
+(defun test-match-ref (result &key matchp bindings)
+  (if matchp
+      (is equalp bindings result)
+      (false result)))
 
-;; TODO I tested if match return the right generalized boolean, but I
-;; haven't tested the actual value it returns when it's true. Which
-;; should be either t or a list of new bindings.
+(define-test+run "match ref"
+  (test-match-ref (match `#(,(ref 'a)) '(a 42))
+                  :matchp t
+                  :bindings '(#s(term :name ?a) 42))
+  (test-match-ref (match `#(,(ref 'b)) '(a 42 a 73))
+                  :matchp t
+                  ;; TODO this "works", but I don't think that's the behaviour we want
+                  :bindings '(#s(term :name ?a) 42 #s(term :name ?a) 73))
+  (test-match-ref (match `#(,(ref 'body-parameter)) '(42))
+                  :matchp nil)
+  (test-match-ref (match `#(,(ref 'body-parameter)) '(&body 42))
+                  :matchp t
+                  :bindings '(#s(term :name ?var)  42)))

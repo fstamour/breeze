@@ -274,7 +274,7 @@ a new iterator."
   (equal pattern input))
 
 (defmethod match ((pattern term) input)
-  (cons pattern input))
+  (list pattern input))
 
 (defmethod match ((pattern typed-term) input)
   (when (typep input (typed-term-type pattern))
@@ -297,9 +297,11 @@ a new iterator."
 (defmethod match ((pattern sequence) input)
   (error "Only vector patterns are supported."))
 
+;; Coerce inputs into vectors
 (defmethod match ((pattern vector) (input sequence))
   (match pattern (coerce input 'vector)))
 
+;; Match over iterators
 (defmethod match ((pattern iterator) (input iterator))
   (match (iterator-value pattern) (iterator-value input)))
 
@@ -316,10 +318,9 @@ a new iterator."
         :until (iterator-done-p input-iterator)
         ;; :for in = (iterator-value input-iterator)
         ;; recurse
-        :for match = #++ (match pat in)
-                         (match pattern-iterator input-iterator)
-                         ;; debug print
-                         ;; :do (format *debug-io* "~%pat: ~s in: ~s" pat in)
+        :for match = (match pattern-iterator input-iterator)
+        ;; debug print
+        ;; :do (format *debug-io* "~%pat: ~s in: ~s" pat in)
         :unless match
           ;; failed to match, bail out of the whole function
           :do (return-from match nil)
