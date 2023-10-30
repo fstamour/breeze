@@ -8,7 +8,8 @@
                 #:isnt
                 #:true
                 #:false
-                #:of-type)
+                #:of-type
+                #:fail)
   (:import-from #:breeze.pattern
                 ;; Structures
                 #:ref
@@ -186,12 +187,23 @@
 
 ;; I _cannot_ iterate over both in at the same speed.
 
+(defun test-iterator (iterator vector
+                      &key (pos 0) donep value)
+  (is eq vector (iterator-vector iterator)
+      "The iterator was not intialized with the right vector.")
+  (is = pos (iterator-position iterator)
+      "The iterator's position was not correctly initialized to 0.")
+  (is = 1 (iterator-step iterator)
+      "The iterator's step was not correctly initialized to 1.")
+  (when donep
+    (true (iterator-done-p iterator)))
+  (when value
+    (is pattern= value (iterator-value iterator))))
+
 (define-test make-iterator
   (let* ((vector #(1 2 3))
          (iterator (make-iterator :vector vector)))
-    (is eq vector (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator))))
+    (test-iterator iterator vector)))
 
 (define-test iterator-done-p
   (true (iterator-done-p (make-iterator :vector #())))
@@ -201,109 +213,89 @@
   (false (iterator-done-p (make-iterator :vector #(1 2 3))))
   (true (iterator-done-p (make-iterator :vector #(1 2 3) :position 10))))
 
-#++
 (define-test iterator-push
   (let* ((vector1 #(1 2 3))
          (vector2 #(a b c d e f))
          (iterator (iterator-push
                     (make-iterator :vector vector1)
                     vector2)))
-    (is eq vector2 (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator))))
+    (test-iterator iterator vector2)))
 
-#++
 (define-test iterator-maybe-push
   ;; empty case, so the iterator is donep from the start
   (let* ((vector #())
          (iterator (iterator-maybe-push (make-iterator :vector vector))))
-    (is eq vector (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator)))
+    (test-iterator iterator vector))
   ;; non-empty, no ref
   (let* ((vector #(1 2 3))
          (iterator (iterator-maybe-push (make-iterator :vector vector))))
-    (is eq vector (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator)))
+    (test-iterator iterator vector))
   ;; starts with a ref
   (let* ((ref (ref 'a))
          (vector `#(,ref))
          (root-iterator (make-iterator :vector vector))
          (iterator (iterator-maybe-push root-iterator)))
     (isnt eq root-iterator iterator)
-    (is eq (ref-pattern ref) (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator))
+    (test-iterator iterator (ref-pattern ref))
     (is pattern= 'a (iterator-value iterator))))
 
-#++
+;; This also tests iterator-maybe-{push,pop}
 (define-test iterator-next
   ;; empty case, so the iterator is donep from the start
   (let* ((vector #())
-         (iterator (iterator-next (iterator-maybe-push (make-iterator :vector vector)))))
-    ;; TODO check done-p
-    ;; TODO check value
-    (is eq vector (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator)))
+         (iterator (iterate vector)))
+    (test-iterator iterator vector :pos 0 :donep t)
+    (parachute:fail (iterator-value iterator))
+    (iterator-next iterator)
+    (test-iterator iterator vector :pos 1 :donep t)
+    (fail (iterator-value iterator)))
   ;; non-empty, no ref
   (let* ((vector #(1 2 3))
-         (iterator (iterator-next (iterator-maybe-push (make-iterator :vector vector)))))
-    ;; TODO
-    (is eq vector (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator)))
+         (iterator (iterate vector)))
+    (test-iterator iterator vector :pos 0 :value 1)
+    (iterator-next iterator)
+    (test-iterator iterator vector :pos 1 :value 2))
   ;; starts with a ref
   (let* ((ref (ref 'a))
          (vector `#(,ref))
          (root-iterator (make-iterator :vector vector))
-         (iterator (iterator-next (iterator-maybe-push root-iterator))))
-    ;; TODO
+         (iterator (iterator-maybe-push root-iterator))
+         )
     (isnt eq root-iterator iterator)
-    (is eq (ref-pattern ref) (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator))
-    (is pattern= 'a (iterator-value iterator))))
+    (test-iterator root-iterator vector)
+    ;;; We're referencing the pattern '(a ?a)
+    ;; check the first value
+    (test-iterator iterator (ref-pattern ref) :pos 0 :value 'a)
+    ;; advance the iterator
+    (setf iterator (iterator-next iterator)) ; maybe a macro for this? (nextf iterator)
+    ;; check the second value
+    (test-iterator iterator (ref-pattern ref) :pos 1 :value #S(term :name ?a))
+    ;; (is pattern= #S(term :name ?a) (iterator-value iterator))
+    ;; advance the iterator
+    (let ((iterator2 (iterator-next iterator)))
+      (test-iterator iterator (ref-pattern ref) :pos 2 :donep t)
+      (isnt eq iterator iterator2 "iterator-next should have returned a different iterator.")
+      (is eq root-iterator iterator2 "iterator-next should have returned the root iterator.")
+      (test-iterator iterator2 vector :pos 1 :donep t)
+      (fail (iterator-value iterator2)))))
 
-#++
-(define-test iterator-maybe-pop
-  ;; empty case
-  (let* ((vector #())
-         (iterator (iterator-maybe-pop (iterator-maybe-push (make-iterator :vector vector)))))
-    (is eq vector (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator)))
-  ;; non-empty, no ref
-  (let* ((vector #(1 2 3))
-         (iterator (iterator-maybe-pop (iterator-maybe-push (make-iterator :vector vector)))))
-    (is eq vector (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator)))
-;;;; WIP
-  ;; starts with a ref
-  (let* ((ref (ref 'a))
-         (vector `#(,ref))
-         (root-iterator (make-iterator :vector vector))
-         (iterator (iterator-maybe-push root-iterator)))
-    (iterator-next)
-    (isnt eq root-iterator iterator)
-    (is eq (ref-pattern ref) (iterator-vector iterator))
-    (is = 0 (iterator-position iterator))
-    (is = 1 (iterator-step iterator))
-    (is pattern= 'a (iterator-value iterator)))
-  )
-
-#++
-(defun test-iterator (vector)
+;; TODO This _could_ be renamed "flatten pattern" ?
+(defun test-iterator* (vector)
   (loop
+    :for i :from 0
     :for iterator := (iterate vector) :then (iterator-next iterator)
-    :until (iterator-done-p iterator)
+    :until (prog1 (iterator-done-p iterator)
+             ;; (format *debug-io* "~%~%~d: ~S" i iterator)
+             )
     :for value = (iterator-value iterator)
-    :do (format *debug-io* "~%~%~S~%~%" value)
+    ;; :do (format *debug-io* "~&~d: ~S~%~%" i value)
     :collect value))
-#++
-(test-iterator `#(,(ref 'a)))
+
+(define-test iterator
+  (is equalp '(a #s(term :name ?a))
+      (test-iterator* `#(,(ref 'a))))
+  (is equalp '(a #s(term :name ?a) a #s(term :name ?a))
+      (test-iterator* `#(,(ref 'b)))))
 
 
 

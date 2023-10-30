@@ -27,7 +27,7 @@
        (eq (ref-name a)
            (ref-name b))))
 
-;; Decision: I chose "term" and not "variable" to avoid clashed with
+;; Decision: I chose "term" and not "variable" to avoid clashes with
 ;; cl:variable
 (defstruct (term
             (:constructor term (name))
@@ -199,36 +199,51 @@
 ;; Will I regret implemeting this?
 
 (defstruct iterator
+  ;; The vector being iterated on
   vector
+  ;; The current position in the vector
   (position 0)
+  ;; How much to advance the position per iteration
   (step 1)
+  ;; The iterator to return when the current one is done
   parent)
 
 (defun iterator-done-p (iterator)
   "Check if there's any values left to iterator over."
   (check-type iterator iterator)
+  ;; Simply check if "position" is out of bound.
   (not (< -1
           (iterator-position iterator)
           (length (iterator-vector iterator)))))
 
 (defun iterator-push (iterator vector)
+  "Create a new iterator on VECTOR, with ITERATOR as parent. Returns the
+new iterator."
   (check-type iterator iterator)
   (check-type vector vector)
   (make-iterator :vector vector :parent iterator))
 
 (defun iterator-maybe-push (iterator)
+  "If ITERATOR is not done and the current value is a reference, \"push\"
+a new iterator."
   (if (iterator-done-p iterator)
       iterator
       (let ((value (iterator-value iterator)))
         (if (refp value)
-            (iterator-push iterator (ref-pattern value))
+            (iterator-maybe-push (iterator-push iterator (ref-pattern value)))
             iterator))))
 
 (defun iterator-maybe-pop (iterator)
+  "If ITERATOR is done and has a parent, return the next parent."
   (check-type iterator iterator)
   (if (and (iterator-done-p iterator)
            (iterator-parent iterator))
-      (iterator-maybe-pop (iterator-parent iterator))
+      (let ((parent (iterator-parent iterator)))
+        ;; Advance the position
+        (incf (iterator-position parent)
+              (iterator-step parent))
+        ;; return the parent
+        (iterator-maybe-pop parent))
       iterator))
 
 (defun iterate (vector)
@@ -236,15 +251,17 @@
   (check-type vector vector)
   (iterator-maybe-push (make-iterator :vector vector)))
 
-
 (defun iterator-next (iterator)
   "Advance the iterator. Might return a whole new iterator."
   (check-type iterator iterator)
+  ;; Advance the position
   (incf (iterator-position iterator)
         (iterator-step iterator))
+  ;; Maybe return a new iterator
   (iterator-maybe-push (iterator-maybe-pop iterator)))
 
 (defun iterator-value (iterator)
+  "Get the value at the current ITERATOR's position."
   (check-type iterator iterator)
   (when (iterator-done-p iterator)
     (error "No more values in this iterator."))

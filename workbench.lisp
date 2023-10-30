@@ -175,3 +175,14 @@
  read-extraneous-closing-parens)
 
 (untrace)
+
+
+
+
+(in-package #:breeze.pattern)
+
+(trace iterator-next
+       iterator-maybe-push
+       iterator-maybe-pop)
+
+(untrace)
