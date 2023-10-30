@@ -280,7 +280,6 @@ a new iterator."
   (when (typep input (typed-term-type pattern))
     (cons pattern input)))
 
-#++
 (defmethod match ((pattern ref) input)
   (match (ref-pattern pattern) input))
 

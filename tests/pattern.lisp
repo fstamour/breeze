@@ -338,6 +338,10 @@
   (false (match (typed-term 'cons :?x) 'a)))
 
 
+;;; TODO test :maybe :zero-or-more and :alternation
+
+
+;;; Testing patterns with references in them
 
 (defpattern optional-parameters
     &optional
@@ -345,6 +349,22 @@
      (:alternation (:the symbol ?var)
                    ((:the symbol ?var)
                     ?init-form (:maybe (:the symbol ?supplied-p-parameter))))))
+
+#++
+(match (ref 'optional-parameters)
+  '(&optional))
+
+#++
+(match (ref 'optional-parameters)
+  '(&optional x))
+
+#++
+(list
+ '(&optional x)
+ '(&optional (x 1))
+ '(&optional (x 1 supplied-p))
+ '(&optional x y (z t)))
+
 
 (defpattern rest-parameter &rest ?var)
 
@@ -374,24 +394,6 @@
 (defpattern defun
     (defun (:the symbol ?name) $ordinary-lambda-list ?body))
 
-#++
-(match 'optional-parameters
-  '(&optional))
-
-#++
-(match (ref 'optional-parameters)
-  '(&optional))
-
-#++
-(match `#(,(ref 'optional-parameters))
-  '(&optional x))
-
-#++
-(list
- '(&optional x)
- '(&optional (x 1))
- '(&optional (x 1 supplied-p))
- '(&optional x y (z t)))
 
 
 
@@ -403,15 +405,15 @@
       (false result)))
 
 (define-test+run "match ref"
-  (test-match-ref (match `#(,(ref 'a)) '(a 42))
+  (test-match-ref (match (ref 'a) '(a 42))
                   :matchp t
                   :bindings '(#s(term :name ?a) 42))
-  (test-match-ref (match `#(,(ref 'b)) '(a 42 a 73))
+  (test-match-ref (match (ref 'b) '(a 42 a 73))
                   :matchp t
                   ;; TODO this "works", but I don't think that's the behaviour we want
                   :bindings '(#s(term :name ?a) 42 #s(term :name ?a) 73))
-  (test-match-ref (match `#(,(ref 'body-parameter)) '(42))
+  (test-match-ref (match (ref 'body-parameter) '(42))
                   :matchp nil)
-  (test-match-ref (match `#(,(ref 'body-parameter)) '(&body 42))
+  (test-match-ref (match (ref 'body-parameter) '(&body 42))
                   :matchp t
                   :bindings '(#s(term :name ?var)  42)))
