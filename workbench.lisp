@@ -187,4 +187,6 @@
 
 (trace merge-bindings)
 
+(trace match)
+
 (untrace)

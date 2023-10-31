@@ -167,13 +167,6 @@
   ;; TODO Check length of "rest"
   (ref (second pattern)))
 
-;; Helper function for compound patterns that can take an arbitrary
-;; number of subpatterns.
-(defun rest-or-second (list)
-  (if (cddr list) (rest list) (second list)))
-;; (rest-or-second '(a b c)) => '(b c)
-;; (rest-or-second '(a b)) => 'b
-
 ;; Compile (:maybe ...)
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
   ;; TODO check the length of "pattern"
@@ -181,11 +174,11 @@
 
 ;; Compile (:zero-or-more ...)
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
-  (zero-or-more (compile-pattern (rest-or-second pattern))))
+  (zero-or-more (compile-pattern (rest pattern))))
 
 ;; Compile (:alternation ...)
 (defmethod compile-compound-pattern ((token (eql :alternation)) patterns)
-  (alternation (compile-pattern (rest-or-second patterns))))
+  (alternation (compile-pattern (rest patterns))))
 
 
 
@@ -254,10 +247,11 @@ a new iterator."
         (iterator-maybe-pop parent))
       iterator))
 
-(defun iterate (vector)
+(defun iterate (vector &key (step 1))
   "Create a new iterator."
   (check-type vector vector)
-  (iterator-maybe-push (make-iterator :vector vector)))
+  (iterator-maybe-push
+   (make-iterator :vector vector :step step)))
 
 (defun iterator-next (iterator)
   "Advance the iterator. Might return a whole new iterator."
@@ -316,6 +310,44 @@ a new iterator."
   (some (lambda (pat) (match pat input))
         (alternation-pattern pattern)))
 
+(defmethod match ((pattern zero-or-more) (input null))
+  t)
+
+(defmethod match ((pattern zero-or-more) input)
+  (match (zero-or-more-pattern pattern) input))
+
+;; TODO This is a mess
+(defmethod match ((pattern zero-or-more) (input vector))
+  (or (loop
+        ;; TODO  (make-empty-bindings)
+        :with bindings = t
+        :with pat = (zero-or-more-pattern pattern)
+        :for guard :below 100 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                              ;; Iterate over the input
+        :for input-iterator := (iterate input)
+          :then (iterator-next input-iterator)
+        :until (iterator-done-p input-iterator)
+        ;; save the input iterator's position
+        ;; :for input-iterator-position = (iterator-position input-iterator)
+        ;; recurse+
+        :for new-bindings = (match pat input-iterator)
+        :if new-bindings
+          ;; collect all the bindings
+          :do (setf bindings (merge-bindings bindings new-bindings))
+        :else
+          ;; failed to match
+          :do
+             ;; rewind the input iterator
+             ;; (setf (iterator-position input-iterator) input-iterator-position)
+             ;; bail out of the whole function
+             (return-from match nil)
+        :finally (return-from match (if (iterator-done-p input-iterator)
+                                        nil
+                                        bindings)))
+      ;; if we get there, it means the pattern matched successfully,
+      ;; but there were no new bindings.
+      t))
+
 ;; Match a string literal
 (defmethod match ((pattern string) (input string))
   (string= pattern input))
@@ -360,7 +392,9 @@ a new iterator."
         :else
           ;; failed to match, bail out of the whole function
           :do (return-from match nil)
-        :finally (return bindings))
+        :finally (return-from match (if (iterator-done-p input-iterator)
+                                        nil
+                                        bindings)))
       ;; if we get there, it means the pattern matched successfully,
       ;; but there were no new bindings.
       t))

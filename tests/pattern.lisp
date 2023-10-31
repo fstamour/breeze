@@ -170,9 +170,9 @@
   (is pattern= (maybe :x) (compile-pattern '(:maybe :x)))
   (is pattern= (maybe :x :?y) (compile-pattern '(:maybe :x :?y)))
   (is pattern= (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
-  (is pattern= (zero-or-more :x) (compile-pattern '(:zero-or-more :x)))
+  (is pattern= (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
   (is pattern= (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
-  (is pattern= (alternation :x) (compile-pattern '(:alternation :x)))
+  (is pattern= (alternation #(:x)) (compile-pattern '(:alternation :x)))
   (is pattern= (alternation #(:x :y)) (compile-pattern '(:alternation :x :y))))
 
 
@@ -335,6 +335,10 @@
   (false (match 'x 'y))
   (true (match #(a) '(a)))
   ;; TODO add vectors (but not arrays)
+  (false (match #(a b) #(a)))
+  (true (match #(a b) #(a b)))
+  ;; TODO this test fails
+  (false (match #(a b) #(a b a)))
   )
 
 ;;; TODO check the actual return values
@@ -382,6 +386,15 @@
     (is equalp '(#s(maybe :name ?x :pattern a) a) (test-match pat 'a))
     (is eq t (test-match pat 'b))
     (false (test-match pat 'c))))
+
+;; TODO This is a mess
+(define-test+run "match zero-or-more"
+  (true (test-match '(:zero-or-more a) nil))
+  (false (test-match '(:zero-or-more a b) '(a)))
+  (is eq t (test-match '(:zero-or-more a b) '(a b)))
+  ;; TODO (false (test-match '(:zero-or-more a b) '(a b a)))
+  (is eq t (test-match '(:zero-or-more a b) '(a b a b)))
+  (false (test-match '(:zero-or-more a b) 'a)))
 
 
 ;;; Testing patterns with references in them
