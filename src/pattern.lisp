@@ -176,7 +176,8 @@
 
 ;; Compile (:maybe ...)
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
-  (maybe (compile-pattern (rest-or-second pattern))))
+  ;; TODO check the length of "pattern"
+  (maybe (compile-pattern (second pattern)) (third pattern)))
 
 ;; Compile (:zero-or-more ...)
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
@@ -311,6 +312,10 @@ a new iterator."
             bindings))
       (not input)))
 
+(defmethod match ((pattern alternation) input)
+  (some (lambda (pat) (match pat input))
+        (alternation-pattern pattern)))
+
 ;; Match a string literal
 (defmethod match ((pattern string) (input string))
   (string= pattern input))
@@ -335,16 +340,17 @@ a new iterator."
 (defmethod match ((pattern iterator) (input iterator))
   (match (iterator-value pattern) (iterator-value input)))
 
-;; (trace iterator-next iterator-value iterator-push iterator-maybe-pop)
-
 (defmethod match ((pattern vector) (input vector))
   (or (loop
-        :with bindings = t ;; (make-empty-bindings)
+        ;; TODO  (make-empty-bindings)
+        :with bindings = t
         ;; Iterate over the pattern
-        :for pattern-iterator := (iterate pattern) :then (iterator-next pattern-iterator)
+        :for pattern-iterator := (iterate pattern)
+          :then (iterator-next pattern-iterator)
         :until (iterator-done-p pattern-iterator)
         ;; Iterate over the input
-        :for input-iterator := (iterate input) :then (iterator-next input-iterator)
+        :for input-iterator := (iterate input)
+          :then (iterator-next input-iterator)
         :until (iterator-done-p input-iterator)
         ;; recurse
         :for new-bindings = (match pattern-iterator input-iterator)
@@ -355,6 +361,8 @@ a new iterator."
           ;; failed to match, bail out of the whole function
           :do (return-from match nil)
         :finally (return bindings))
+      ;; if we get there, it means the pattern matched successfully,
+      ;; but there were no new bindings.
       t))
 
 

@@ -168,7 +168,8 @@
   (is pattern= (term :?x) (compile-pattern :?x))
   (is pattern= (ref :x) (compile-pattern '(:ref :x)))
   (is pattern= (maybe :x) (compile-pattern '(:maybe :x)))
-  (is pattern= (maybe #(:x :y)) (compile-pattern '(:maybe :x :y)))
+  (is pattern= (maybe :x :?y) (compile-pattern '(:maybe :x :?y)))
+  (is pattern= (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
   (is pattern= (zero-or-more :x) (compile-pattern '(:zero-or-more :x)))
   (is pattern= (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
   (is pattern= (alternation :x) (compile-pattern '(:alternation :x)))
@@ -362,7 +363,7 @@
 
 ;;; TODO test :maybe :zero-or-more and :alternation
 
-(define-test+run "match maybe"
+(define-test "match maybe"
   (is eq t (match (maybe 'a) 'a))
   (is eq t (match (maybe 'a) nil))
   (is eq t (match (maybe 'a :?x) nil))
@@ -371,6 +372,16 @@
   (is equalp '(#s(maybe :name :?x :pattern a) a) (match (maybe 'a :?x) 'a))
   (is equalp '(#s(term :name ?x) a) (match (maybe (term '?x)) 'a))
   (is equalp '(#s(term :name ?x) nil) (match (maybe (term '?x)) nil)))
+
+(define-test "match alternations"
+  (is eq t (test-match '(:alternation a b) 'a))
+  (is eq t (test-match '(:alternation a b) 'b))
+  (false (test-match '(:alternation a b) 'c))
+  (is equalp '(#s(term :name ?x) c) (test-match '(:alternation ?x b) 'c))
+  (let ((pat (compile-pattern '(:alternation (:maybe a ?x) b))))
+    (is equalp '(#s(maybe :name ?x :pattern a) a) (test-match pat 'a))
+    (is eq t (test-match pat 'b))
+    (false (test-match pat 'c))))
 
 
 ;;; Testing patterns with references in them
