@@ -57,6 +57,8 @@
                 #:iterator-next
                 #:iterator-value
                 ;; Match
+                #:make-binding
+                #:merge-bindings
                 #:match))
 
 (in-package #:breeze.test.pattern)
@@ -105,7 +107,14 @@
     (true (maybep maybe))
     (is eq :x (maybe-pattern maybe))))
 
-;; TODO maybe=
+(define-test+run maybe=
+  (is maybe= (maybe 'a) (maybe 'a))
+  (is maybe= (maybe 'a :?x) (maybe 'a))
+  (is maybe= (maybe 'a :?x) (maybe 'a :?x))
+  (isnt maybe= (maybe 'a) (maybe 'b))
+  (isnt maybe= (maybe 'a :?x) (maybe 'b))
+  (isnt maybe= (maybe 'a :?x) (maybe 'a :?y))
+  (isnt maybe= (maybe 'a :?x) (maybe 'b :?x)))
 
 (define-test zero-or-more
   (let ((zero-or-more (zero-or-more :x)))
@@ -299,6 +308,17 @@
 
 
 
+(define-test merge-bindings
+  (false (merge-bindings nil nil))
+  (false (merge-bindings nil t))
+  (false (merge-bindings t nil))
+  (true (merge-bindings t t))
+  (false (merge-bindings (make-binding :?x 'a) nil))
+  (false (merge-bindings nil (make-binding :?x 'a)))
+  (is equal '(:?x a) (merge-bindings (make-binding :?x 'a) t))
+  (is equal '(:?x a) (merge-bindings t (make-binding :?x 'a)))
+  (is equal '(:?x a :?y b) (merge-bindings (make-binding :?x 'a) (make-binding :?y 'b))))
+
 (defun test-match (pattern input)
   (match (compile-pattern pattern) input))
 
@@ -316,6 +336,7 @@
   ;; TODO add vectors (but not arrays)
   )
 
+;;; TODO check the actual return values
 (define-test "match terms"
   (true (match (term :?x) nil))
   (true (match (term :?x) 1))
@@ -325,6 +346,7 @@
   (true (match (term :?x) (term :?x)))
   (true (match `#(,(term :?x)) (list 42))))
 
+;;; TODO check the actual return values
 (define-test "match typed-terms"
   (true (match (typed-term 'null :?x) nil))
   (false (match (typed-term 'null :?x) t))
@@ -339,6 +361,16 @@
 
 
 ;;; TODO test :maybe :zero-or-more and :alternation
+
+(define-test+run "match maybe"
+  (is eq t (match (maybe 'a) 'a))
+  (is eq t (match (maybe 'a) nil))
+  (is eq t (match (maybe 'a :?x) nil))
+  (false (match (maybe 'a :?x) 'b))
+  (false (match (maybe 'a) 'b))
+  (is equalp '(#s(maybe :name :?x :pattern a) a) (match (maybe 'a :?x) 'a))
+  (is equalp '(#s(term :name ?x) a) (match (maybe (term '?x)) 'a))
+  (is equalp '(#s(term :name ?x) nil) (match (maybe (term '?x)) nil)))
 
 
 ;;; Testing patterns with references in them

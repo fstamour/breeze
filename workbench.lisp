@@ -185,4 +185,6 @@
        iterator-maybe-push
        iterator-maybe-pop)
 
+(trace merge-bindings)
+
 (untrace)

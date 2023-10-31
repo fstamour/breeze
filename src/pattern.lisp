@@ -64,16 +64,21 @@
 ;; TODO Maybe generalize "maybe" and "zero-or-more" into "repetition"
 
 (defstruct (maybe
-            (:constructor maybe (pattern))
+            (:constructor maybe (pattern &optional name))
             :constructor
-            (:predicate maybep))
+            (:predicate maybep)
+            (:include term))
   (pattern nil :read-only t))
 
 (defun maybe= (a b)
   (and (maybep a)
        (maybep b)
        (pattern= (maybe-pattern a)
-                 (maybe-pattern b))))
+                 (maybe-pattern b))
+       (or (null (maybe-name a))
+           (null (maybe-name b))
+           (eq (maybe-name a)
+               (maybe-name b)))))
 
 (defstruct (zero-or-more
             (:constructor zero-or-more (pattern))
@@ -198,6 +203,8 @@
 
 ;; Will I regret implemeting this?
 
+;;; TODO the iterator should take care of skipping inputs
+
 (defstruct iterator
   ;; The vector being iterated on
   vector
@@ -270,25 +277,49 @@ a new iterator."
 
 
 
+(defun make-binding (term input)
+  (list term input))
+
+(defun merge-bindings (bindings1 bindings2)
+  (cond
+    ((eq t bindings1) bindings2)
+    ((eq t bindings2) bindings1)
+    ((or (eq nil bindings1) (eq nil bindings2)) nil)
+    (t (append bindings1 bindings2))))
+
+;; Basic "equal" matching
 (defmethod match (pattern input)
   (equal pattern input))
 
+;; Match a term (create a binding)
 (defmethod match ((pattern term) input)
-  (list pattern input))
+  (make-binding pattern input))
 
+;; Match a typed term (creates a binding)
 (defmethod match ((pattern typed-term) input)
   (when (typep input (typed-term-type pattern))
-    (cons pattern input)))
+    (make-binding pattern input)))
 
+;; Recurse into a referenced pattern
 (defmethod match ((pattern ref) input)
   (match (ref-pattern pattern) input))
 
+(defmethod match ((pattern maybe) input)
+  (or (alexandria:when-let ((bindings (match (maybe-pattern pattern) input)))
+        (if (maybe-name pattern)
+            (merge-bindings bindings (make-binding pattern input))
+            bindings))
+      (not input)))
+
+;; Match a string literal
 (defmethod match ((pattern string) (input string))
   (string= pattern input))
 
+;; "nil" must match "nil"
 (defmethod match ((pattern null) (input null))
   t)
 
+;; the pattern "nil" matches nothing else than "nil"
 (defmethod match ((pattern null) input)
   nil)
 
@@ -308,25 +339,22 @@ a new iterator."
 
 (defmethod match ((pattern vector) (input vector))
   (or (loop
+        :with bindings = t ;; (make-empty-bindings)
         ;; Iterate over the pattern
         :for pattern-iterator := (iterate pattern) :then (iterator-next pattern-iterator)
         :until (iterator-done-p pattern-iterator)
-        ;; :for pat = (iterator-value pattern-iterator)
         ;; Iterate over the input
         :for input-iterator := (iterate input) :then (iterator-next input-iterator)
         :until (iterator-done-p input-iterator)
-        ;; :for in = (iterator-value input-iterator)
         ;; recurse
-        :for match = (match pattern-iterator input-iterator)
-        ;; debug print
-        ;; :do (format *debug-io* "~%pat: ~s in: ~s" pat in)
-        :unless match
+        :for new-bindings = (match pattern-iterator input-iterator)
+        :if new-bindings
+          ;; collect all the bindings
+          :do (setf bindings (merge-bindings bindings new-bindings))
+        :else
           ;; failed to match, bail out of the whole function
           :do (return-from match nil)
-        :when (listp match)
-          ;; collect all the bindings
-          ;; TODO We might want to "merge" the bindings.
-          :append match)
+        :finally (return bindings))
       t))
 
 
