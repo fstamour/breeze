@@ -33,6 +33,7 @@ pages:
     - echo "nothing to do!"
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+    - when: manual
 
 test:
   extends: .base
