@@ -46,3 +46,13 @@ test:
           # - abcl
           # - ccl
           # - ecl
+
+# TODO "make demo" is currently broken
+# demo:
+#   # https://hub.docker.com/_/docker/tags
+#   image: docker:24.0.7
+#   script:
+#     - make demo
+#   artifacts:
+#     paths:
+#       - demo.tgz
