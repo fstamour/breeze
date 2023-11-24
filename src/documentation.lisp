@@ -245,7 +245,9 @@
           (render-reference)))))))
 
 (defun generate-documentation ()
-  (let ((index (breeze-relative-pathname "docs/index.html")))
+  (let* ((root (breeze-relative-pathname "public/"))
+         (index (merge-pathnames "index.html" root)))
+    (ensure-directories-exist root)
     (with-output-to-file
         (output
          index

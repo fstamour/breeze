@@ -1,6 +1,15 @@
-.test:
+
+# Only run pipelines for merge requests, tags, and protected branches.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+.base:
   image: clfoundation/$LISP:latest
   variables:
+    LISP: sbcl
     QUICKLISP_ADD_TO_INIT_FILE: "true"
     QUICKLISP_DIST_VERSION: "latest"
   before_script:
@@ -8,27 +17,40 @@
   script:
     - make test
 
+doc:
+  extends: .base
+  script:
+    - make doc
+  artifacts:
+    paths:
+      - public
 
+pages:
+  needs:
+    - job: doc
+      artifacts: true
+  script:
+    - echo "nothing to do!"
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 
 test:sbcl:
-  extends: .test
+  extends: .base
   variables:
     LISP: sbcl
 
-
-
 # TODO
 # test:abcl:
-#   extends: .test
+#   extends: .base
 #   variables:
 #     LISP: abcl
 
 # test:ccl:
-#   extends: .test
+#   extends: .base
 #   variables:
 #     LISP: ccl
 
 # test:ecl:
-#   extends: .test
+#   extends: .base
 #   variables:
 #     LISP: ecl
