@@ -1,0 +1,158 @@
+:PROPERTIES:
+:ID:       598a884c-56d0-4378-b5f5-acb2671d5112
+:END:
+#+title: Inbox
+
+#+begin_quote
+This contains the notes that needs to be categorized/cleaned up.
+#+end_quote
+
+* Prior Arts
+
+** TODO This is just a dump of links, I need at least a small description and reason why it might be useful
+
+** Tinker (1980)
+http://web.media.mit.edu/%7Elieber/Lieberary/Tinker/Tinker/Tinker.html
+
+** Image Based development
+
+[Image based development](https://www.informatimago.com/develop/lisp/com/informatimago/small-cl-pgms/ibcl/index.html)
+
+** Code refactoring tools and libraries, linters, etc.
+
+*** General
+
+https://comby.dev/ (and https://github.com/s-kostyaev/comby.el)
+https://github.com/reviewdog/reviewdog
+
+*** common lisp
+
+https://github.com/hyotang666/trivial-formatter
+https://github.com/yitzchak/cl-indentify
+https://github.com/vindarel/colisper (uses comby)
+  - its catalog of rewrites: https://github.com/vindarel/colisper/tree/master/src/catalog/lisp
+https://github.com/cxxxr/sblint
+https://github.com/g000001/lisp-critic/
+https://github.com/eschulte/lisp-format
+
+*** javascript and front-end in general
+
+https://github.com/facebookarchive/codemod replaced by
+https://github.com/facebook/jscodeshift, which uses
+https://github.com/benjamn/recast
+
+Examples: https://github.com/cpojer/js-codemod
+
+*** Ruby
+
+https://github.com/whitequark/parser
+https://github.com/seattlerb/ruby_parser
+https://github.com/seattlerb/ruby2ruby/
+https://docs.rubocop.org/rubocop-ast/node_pattern_compiler.html
+https://nodepattern.herokuapp.com/
+https://github.com/mbj/unparser
+
+*** Other
+
+Probably Rosely for C# and clang for C/C++. I'm sure there are tons of
+tools/libraries for Java.
+
+For python, there's the ast module, but I don't know if it can
+preserve the formatting. There's a bunch of tools to format the code.
+
+** Zulu.inuoe's attempt - clution
+
+- https://github.com/Zulu-Inuoe/clution
+- https://github.com/Zulu-Inuoe/clution.lib
+- https://github.com/Zulu-Inuoe/lob
+* Protocols
+
+- [[https://chromedevtools.github.io/devtools-protocol/][Chrome DevTools Protocol]]
+- Slime/Sly
+- LSP (Language Server Protocol)
+- LSIF (Language Server Index Format)
+- Debug Adapter Protocol
+
+* To classify
+
+https://quickdocs.org/cl-scripting
+https://quickdocs.org/repl-utilities
+[[https://github.com/slime/slime/issues/532][slime issue #532: Rename package and all the symbol prefixes]]
+https://blog.cddr.org/posts/2021-11-23-on-new-ides/
+https://common-lisp.net/project/slime/doc/html/Contributed-Packages.html
+
+https://quickdocs.org/external-symbol-not-found
+https://github.com/Bike/compiler-macro
+https://quickdocs.org/dotenv
+
+https://github.com/tdrhq/slite
+https://quickdocs.org/slite - SLIME based Test-runner for FiveAM tests
+(and possibly others in the future)
+
+In SLIME's debugger, press ~v~ to navigate to its definition.
+
+https://github.com/melisgl/journal - for logging and trace-based
+testing
+https://github.com/melisgl/try/ - for a test framework that looks a
+lot with what I want from a test framework.
+
+For a pretty nice review of existing testing framework:
+https://sabracrolleton.github.io/testing-framework
+
+[[https://github.com/emacs-elsa/Elsa][Emacs Lisp Static Analyzer]]
+
+https://github.com/ruricolist/moira - Monitor and restart background threads.
+
+https://github.com/pokepay/cl-string-generator - Generate string from regular expression
+
+Emacs supports ~(declare (pure t) (side-effect-free t))~
+
+[[https://github.com/programingship/common-lisp-sly][Sly with spacemacs]]
+
+
+https://github.com/mmontone/duologue - High level user interaction library for Common Lis
+* Discord
+
+Discussion about =#:=
+https://discord.com/channels/297478281278652417/569524818991644692/915330555334234192
+
+* SICL
+
+A fresh implementation of Common Lisp
+https://github.com/robert-strandh/SICL
+
+I'm sure there are tons of other user-case:
+- infer types
+- interpret code (symbolically or not)
+
+* How froute uses mop to keep track of a set of definitions
+
+#+begin_comment
+Maybe I should have a section about "code snippets that could be useful"?
+#+end_comment
+
+[[https://github.com/StephenWakely/froute/blob/3d9ea3114537e1451cccec91f7cbe2321a49a1e0/src/froute-class.lisp][froute-class.lisp]]
+
+* See
+** DONE uses locative: http://quickdocs.org/mgl-pax/                 :editor:
+
+2022-03-17 - I read most of the readme, this system looks awesome
+
+It's mostly for documentation, but it also expand slime/swank for
+easier navigation (using the concept of locative).
+
+** DONE CCL's Watches https://ccl.clozure.com/manual/chapter4.12.html#watched-objects :editor:
+
+> Clozure CL provides a way for lisp objects to be watched so that a
+condition will be signaled when a thread attempts to write to the
+watched object
+
+Very useful for debugging.
+
+** DONE CCL's Advise https://ccl.clozure.com/manual/chapter4.3.html#Advising
+
+> The advise macro can be thought of as a more general version of
+trace.
+
+I think I kept this link just for the general interface (~advise~,
+~unadvise~ and ~advisep~)

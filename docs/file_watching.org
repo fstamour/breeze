@@ -1,0 +1,16 @@
+:PROPERTIES:
+:ID:       373c4a22-b450-40e1-8d00-1319e0277b68
+:END:
+#+title: File watching
+* Portable file watching
+
+https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/
+
+http://eradman.com/entrproject/
+
+https://github.com/Ralt/fs-watcher (polls)
+
+https://github.com/Shinmera/file-notify <===
+
+2023-09-25 I briefly talked with Shinmera this summer, and they
+mentioned that this project doesn't currently work.

@@ -1,0 +1,231 @@
+:PROPERTIES:
+:ID:       a56d3ee1-b97c-4201-b210-c5d20e602663
+:END:
+#+title: Tasks
+#+todo: TODO | DONE OBSOLETE
+
+* Tasks
+
+**Regularly review the tasks** it helps to see the big picture and
+prioritize accordingly.
+
+** TODO Use with-branching to define optimal-string-alignment-distance :tech_debt:
+
+Instead of having 2 definitions
+
+https://github.com/phoe/with-branching
+
+** TODO Basic commands should send the buffer to the editor          :editor:
+
+e.g. If the common-lisp side ask the editor to insert a string, but
+the user changed buffer, the editor will insert the string in the
+wrong buffer.
+
+OR the "client" should be responsible to always execute the commands
+with on the "initial" buffer, unless stated otherwise (but that would
+add even more state on the protocol).
+
+** TODO Remove the command ~backward-char~                 :tech_debt:editor:
+
+I introduced the command ~backward-char~ as a hacky workaround: the
+integration with the editor edits the buffer incrementally, but then
+some other editor configuration would interfere with that process (for
+example =aggressive-indent-mode= in emacs.
+
+I would prefer to improve the whole integration with the editor than
+using "backward-chard" as a crutch.
+
+Something like ~relative-move~ would be better.
+
+** Showcase/demo                                                        :doc:
+
+*** TODO Show the integration with quickproject            :doc:quickproject:
+
+*** TODO Show how breeze can help create a project from a file :doc:refactor:capture:
+
+e.g. you made a "capture" with breeze, and now you want to turn that
+into a project.
+
+*** TODO Create a demo to show how to install breeze             :doc:config:
+
+** TODO Add command "go to next missing documentation"               :editor:
+
+** TODO Add command "got to next documentation"                      :editor:
+
+To help revision
+
+** TODO Add command "next todo"                                      :editor:
+
+Don't re-implement it, just figure out which how to configure the
+editor to do that.
+
+** TODO Use header-line in emacs to show the test results         :editor:ux:
+
+Instead of a lighter
+
+The lighter could still be used though, it could be a ✓ or χ.
+
+** DONE Better explain what Breeze currently is in the readme           :doc:
+
+As opposed to explain the principles, goals, non-goals, etc.
+
+Actually explain what breeze *does*.
+
+** DONE add a "What is this?" section                                   :doc:
+** OBSOLETE [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
+
+Start by documenting how to start using breeze, then automate it.
+
+N.B. Since I remove the test-runner and etc. breeze doesn't really
+need to be "started". But it still needs to be loaded.
+
+** TODO Add links to all the "TODOs" in the documentation               :doc:
+
+grep TODO -h | to_github_url | to_html
+
+** DONE Breeze shouldn't suggest symbol that are "too far"               :ux:
+
+e.g not suggest "slot-exists-p" when trying to eval
+"this-really-doesnt-exists".
+
+*** TODO Still need to add tests on this...                  :test:tech_debt:
+** DONE Make a "string distance" function that stops after a threshold
+
+** TODO Use a heap to find the N closest matches                         :ux:
+
+- Maybe look into VP-trees (Vantage-Point trees)
+
+How would that help the user? Adding a restart for each candidate
+would really pollute the list of restarts. Perhaps we could keep the
+current restart, and add another one that shows more candidate
+(restarts).
+
+Maybe we can refine that list of candidate based on other, perhaps
+heavier criteria?
+
+** TODO Document (with screenshots) how to setup and use emacs integration :doc:
+** TODO Document how to use quickproject integration                    :doc:
+** TODO Add binding to run test at point                                 :ux:
+** TODO Add command to choose a test and run it                          :ux:
+** TODO [#B] When inserting a package definition in an empty buffer, evaluate the buffer :easy:ux:
+** TODO Generate the documentation in the CI                        :ops:doc:
+
+Really not a priority, even though generating the documentation
+locally and committing the result is less than ideal, it works well.
+
+The main problem is that, AFAIK, you can't host something in github
+pages without committing it into a repository. Which means that you
+have to hack a CI pipeline that commit its results back into the
+repository. This sucks IMO.
+
+An alternative would be to use GitLab pages, which are way more sane
+as they allow (require, really) that your pages' content be generated
+from the CI pipeline (from a job called "pages" to be exact). On the
+other hand (again), I've had really janky load time with GitLab, but
+that might just have been the Authentication + boatload of js.
+
+** TODO [#C] Add a link to the GitHub repository in the documentation :doc:ux:
+** Add integration tests
+*** TODO Look into emacs-director                                      :test:
+
+https://github.com/bard/emacs-director
+*** TODO Look into makem.sh                                        :test:ops:
+
+[[https://github.com/alphapapa/makem.sh][makem.sh]] - Makefile-like script for building and testing Emacs Lisp
+packages
+
+** TODO Try to detect when the current buffer/file was not loaded (evaluated). :ux:
+
+The goal would be to warn the user "hey, you're trying to evaluate
+that function, but the package declared in this file/buffer doesn't
+exists".
+
+Could pass the file to br:next. What if
+- it's a buffer that's not visiting a file?
+- it's not a buffer in lisp-mode
+- the buffer is empty
+- the buffer requires some reader-macro
+- the buffer is visiting a file, but there are unsaved modifications
+
+** TODO Try to suggest new and old projects?                             :ux:
+
+When the user just initialized breeze, try to find out if the user has
+any lisp project(s) already opened, help him work on it.
+
+If not projects are found guide him through =breeze-scaffold=
+
+** TODO Suggest corrections when typos are detected                      :ux:
+
+We already suggest stuff when there's, for example, an
+undefined-function error. We could go one step further and suggest a
+quickfix in the editor. We should probably suggest that quickfix only
+when the edit-distance is not too great, or we would get some wild quickfixes.
+
+** TODO Maybe add this document (notes.org) to the documentation?       :doc:
+
+** TODO Maybe split the documentation in multiple pages                 :doc:
+
+** Commands                                                          :editor:
+
+*** wrap with                                                      :refactor:
+
+**** TODO let
+
+**** TODO multiple-value-bind
+
+*** TODO add import-from                                           :refactor:
+
+already has a prototype in emacs lisp
+
+*** TODO move-form-into-let                                        :refactor:
+
+already has a prototype in emacs lisp
+
+*** TODO Comment current form                                      :refactor:
+
+*** TODO Move top-level form up/down                               :refactor:
+
+A.k.a transpose-forms, but keep the cursor at the start of the form
+that we just moved.
+
+** Follow up on issues                                          :3rd_parties:
+
+*** In [[https://github.com/slime/slime][Slime]]
+
+**** TODO [[https://github.com/slime/slime/issues/645][Is there a way to run a function when slime's repl is ready #645]]
+
+*** In [[https://github.com/phoe-trash/value-semantics-utils][phoe-trash/value-semantics-utils]]
+
+**** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structural sharing #4]]
+
+**** TODO [[https://github.com/phoe/trivial-method-combinations/issues/4][Add method-combination-name-p #4]]
+
+*** In [[https://github.com/phoe/external-symbol-not-found/][phoe/external-symbol-not-found]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/1][Improve tests #1]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/2][Add CI pipeline #2]]
+
+**** TODO [[https://github.com/phoe/external-symbol-not-found/issues/3][Add a macro that transforms the conditions into portable conditions #3]]
+
+*** In [[https://github.com/40ants/ci/issues/7][40ants/ci]]
+
+**** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
+
+*** In [[https://github.com/s-expressionists/Eclector][s-expressionists/Eclector]]
+
+**** [[https://github.com/s-expressionists/Eclector/issues/28][Ensure every CST element has a SOURCE, suggest how to capture whitespace and comments #28]]
+
+** TODO Add code coverage                                          :test:ops:
+
+** TODO Fake packages?                                               :reader:
+
+- https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/package-pac.lisp
+- https://github.com/s-expressionists/Clostrum
+* TODO Add command to add package local nicknames
+
+#+begin_src lisp
+(add-package-local-nickname '#:jzon '#:com.inuoe.jzon)
+#+end_src
+
+* TODO command to "copy current package" / "package at point"

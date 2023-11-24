@@ -1,0 +1,21 @@
+:PROPERTIES:
+:ID:       1bfee55a-11ef-47d6-924b-2ce1a9b39f3b
+:END:
+#+title: Support for bug reports
+
+* TODO Make it easy to report a bugs                                 :ux:ops:
+
+- OS version
+- lisp version
+- editor version
+- quicklisp
+  - client version
+  - distributions
+- for each dependency
+  - from which distribution the system come from
+  - version of the system
+
+* Generalized support for bug reports                                  :idea:
+
+Maybe there could be a way to report bugs for any projects (not just
+breeze)?

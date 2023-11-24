@@ -1,15 +1,17 @@
 # <a name="readme">Breeze</a>
 
+TODO add link to documentation...
+TODO split this file into .org file in docs/
+ - Goal
+ - Getting started
+ - Current state
+ - Contributing
+
 Breeze is a set of tools that aims to make lisp development a breeze
 (hence the name).
 
 It is very much alpha quality, I'm experimenting with a lot of things
 in parallel.
-
-<!-- TODO include notes.org in the generated pages -->
-Please take a look at the
-[notes.org](https://gitlab.com/fstamour/breeze/-/blob/main/notes.org)
-to get a better idea of the things I wanna try.
 
 [gitlab.com/fstamour/breeze](https://gitlab.com/fstamour/breeze)
 
@@ -22,7 +24,7 @@ pretty much all the time.
 
 ## Features
 
-* [Emacs integration](#emacs)
+* Emacs integration
 * Integration with quickproject
 * Context-aware, configurable snippets and refactorings
 * Command for quick code capture (trying out code in a new file)

@@ -2,7 +2,7 @@
 *.core
 *.svg
 result
-docs/index.html
+public/
 
 githooks/*.sample
 /.direnv/

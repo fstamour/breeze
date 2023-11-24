@@ -1,0 +1,7 @@
+:PROPERTIES:
+:ID:       7d0f5cd2-d216-4882-84ac-27c004ad6fbd
+:END:
+#+title: Links to some dependencies' documentation
+* Resources
+
+- [alexandria](https://alexandria.common-lisp.dev/draft/alexandria.html)

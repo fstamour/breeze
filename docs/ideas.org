@@ -1,0 +1,110 @@
+:PROPERTIES:
+:ID:       e2ff6189-1fd8-4d3c-9b7d-3d3ddbf2b0aa
+:END:
+#+title: Ideas
+* Random ideas
+** (tips), (tips "test"), (tips "doc")
+** (next) ;; what's next? print functions that aren't done, that have no tests or documentation.
+*** functions that aren't implemented or done
+*** functions that have no tests
+*** functions that have no documentation
+*** Have a plain user-controlled task list
+** Evaluate quality of documentation
+*** e.g. if the documentation is almost just the name of the function
+*** Make sure it doesn't "only" refer to another function
+*** It's more that the content of the function
+
+(defun print-x (x)
+  "print (* x x)"
+  (print (* x x))
+
+*** Make sure that all package have a :documentation
+*** Make sure that all classes have a :documentation
+** Evaluation the quality of the code
+*** Cyclomatic complexity
+*** Length of variable names
+*** linting in general
+** Compare the files in a system's directory and the actual components.
+** See BIST to probalistically compare functions
+*** Use a PRNG to generate inputs, use a hash to fingerprint the outputs
+See [[file:scratch-files/function-fingerprinting.lisp][function-fingerprinting.lisp]]
+
+** Generate test for existing functions
+
+- The more we know the types of the expression, the more we can narrow
+  down the search.
+- It would be easier if we knew which expression are safe to execute
+
+** Generate code based on desired input/output
+
+https://github.com/webyrd/Barliman
+
+- The more we know the types of the expression, the more we can narrow
+  down the search.
+- It would be easier if we knew which expression are safe to execute
+- The linter can help choose better results
+- Using e-graph to refactor candidates can help suggest helper
+  functions
+
+
+*** See Programming by examples (inductive synthesis)
+
+** A lot of things could be done by instrumenting the code
+
+Which is one of the reason behind wrapping the definitions (e.g. =breeze:defun=)
+
+- fault injection
+- program (dynamic) slicing
+- Stepping though code
+- profiling
+- test coverage
+- coverage guided
+- profile-guided optimization
+
+** Program slicing
+
+*** For code navigation
+
+It would be nice to be able to search for something (e.g. calls to
+make-instance) only in a certain slice (e.g. from the "call tree" of
+foo).
+
+*** Correlate with unit tests
+
+If we have multiple tests on the same piece of code, we can use the
+slices from the tests that pass and the tests that fail to narrow down
+which slice is probably the source of the failure.
+
+** Use equivalence-graph e-graph to suggest refactors
+
+Main resource: [[https://egraphs-good.github.io/][E-Graphs Good]]
+
+This might be hard and complicated, I was thinking that I should start
+by making this work on a very small scope. For example, if the user
+ask to suggest some refactors, we can look for forms that contains
+only arithmetic (again, just an example) and nothing else, that use
+equality saturation to find interesting equivalent forms and propose
+them to the user.
+
+*** Small discussion I had on lobste.rs about e-graphs on lisp
+
+- [[https://lobste.rs/s/myyznl/tooling_for_tooling#c_apjopu][Comment on Lobste.rs]]
+
+The important bit:
+
+#+begin_quote
+egg is great for algebraic rewrites, but doesn’t have good builtin
+tools for associative/commutative operations, nor for
+alpha-equivalence and rewriting under binders. I deliberately left
+names out of my syntax so that rewriting would be easier; this won’t
+be as simple for Lisps in general.
+#+end_quote
+
+*** I already started working on implementing equivalence graphs
+
+A while ago I started by writing a disjoint sets data structure (also
+known as union-find, based on the 2 mains operations it supports).
+
+https://github.com/fstamour/disjoint-sets
+
+** Semantic diffs using breeze.reader

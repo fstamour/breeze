@@ -1,0 +1,79 @@
+:PROPERTIES:
+:ID:       31236780-159e-4a58-9019-37f57f5b4997
+:END:
+#+title: FAQ from newbies about common lisp
+
+This is useful for breeze's development, to figure out the pain
+points. Ideally, this should go somewhere else, like in tutorial, a
+cookbook or some kind of reference (like [[https://github.com/fstamour/lisp-docs.github.io][lisp-docs.github.io]]).
+
+* FAQ from newbies about common lisp
+
+** What's the difference between load and require?
+
+** What's asdf v. quicklisp v. packages v. "os packages"?
+
+** The heck is RPLACA?
+
+** What's the difference between =setf= and =setq=?
+
+https://stackoverflow.com/questions/869529/difference-between-set-setq-and-setf-in-common-lisp
+
+** Why use #:symbol (especially in =defpackage=)?
+
+** Why start a file with =(cl:in-package #:cl-user)=?
+
+** Why interactivity is important?
+
+They don't actually ask that, they usually just don't think or know
+about it.
+
+Here's something that does an OK job at explaining the importance:
+https://technotales.wordpress.com/2007/10/03/like-slime-for-vim/
+
+** What's the difference between ~defvar~ and ~defparameter~?
+
+** Something about using ~setf~ to create variables...
+
+** A symbol can represent many things
+
+- variables/symbol macros
+- functions/macros
+- classes/conditions/types
+- method combinations
+- block names
+- catch tags
+- tagbody tags
+- restarts
+- packages
+- compiler macros
+- slot names
+- compiler macros
+
+** When coming from another language
+
+*** How to create a function-local variable?
+
+** Proclaim v.s. Declaim v.s. Declare
+
+http://www.lispworks.com/documentation/lw50/LWUG/html/lwuser-90.htm
+
+** How packages and symbols works?
+
+https://flownet.com/ron/packages.pdf
+
+** Alternatives to the Hyperspec
+
+- [[http://clqr.boundp.org/download.html][Common Lisp Quick Reference]]
+- Ultraspec (dead)
+- Simplified something something
+- The lisp cookbook
+
+** What the hell are pathnames?
+
+- Don't forget trailing backslashes for directories.
+
+** Where are the functions to operate on strings?
+
+- Use the functions that operate on sequences.
+- Use libraries, like alexandria, split-sequences, serapeum, etc.
