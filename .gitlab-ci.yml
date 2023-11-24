@@ -34,23 +34,15 @@ pages:
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 
-test:sbcl:
+test:
   extends: .base
   variables:
     LISP: sbcl
-
-# TODO
-# test:abcl:
-#   extends: .base
-#   variables:
-#     LISP: abcl
-
-# test:ccl:
-#   extends: .base
-#   variables:
-#     LISP: ccl
-
-# test:ecl:
-#   extends: .base
-#   variables:
-#     LISP: ecl
+  parallel:
+    matrix:
+      - STACK:
+          - sbcl
+          # TODO
+          # - abcl
+          # - ccl
+          # - ecl
