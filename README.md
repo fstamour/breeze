@@ -6,13 +6,12 @@ Breeze is a set of tools that aims to make lisp development a breeze
 It is very much alpha quality, I'm experimenting with a lot of things
 in parallel.
 
+<!-- TODO include notes.org in the generated pages -->
 Please take a look at the
-[notes.org](https://github.com/fstamour/breeze/blob/master/notes.org)
+[notes.org](https://gitlab.com/fstamour/breeze/-/blob/main/notes.org)
 to get a better idea of the things I wanna try.
 
-![ci](https://github.com/fstamour/breeze/actions/workflows/ci.yml/badge.svg)
-
-[github.com/fstamour/breeze](https://github.com/fstamour/breeze)
+[gitlab.com/fstamour/breeze](https://gitlab.com/fstamour/breeze)
 
 ## What is this?
 
