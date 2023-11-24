@@ -1,8 +1,34 @@
-test:
-  image: clfoundation/sbcl:latest
+.test:
+  image: clfoundation/$LISP:latest
   variables:
     QUICKLISP_ADD_TO_INIT_FILE: "true"
+    QUICKLISP_DIST_VERSION: "latest"
   before_script:
     - install-quicklisp
   script:
     - make test
+
+
+
+test:sbcl:
+  extends: .test
+  variables:
+    LISP: sbcl
+
+
+
+# TODO
+# test:abcl:
+#   extends: .test
+#   variables:
+#     LISP: abcl
+
+# test:ccl:
+#   extends: .test
+#   variables:
+#     LISP: ccl
+
+# test:ecl:
+#   extends: .test
+#   variables:
+#     LISP: ecl
