@@ -1,0 +1,8 @@
+test:
+  image: clfoundation/sbcl:latest
+  variables:
+    QUICKLISP_ADD_TO_INIT_FILE: "true"
+  before_script:
+    - install-quicklisp
+  script:
+    - make test
