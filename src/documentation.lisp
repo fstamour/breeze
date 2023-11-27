@@ -123,15 +123,16 @@
 
 #+nil
 (map-external-symbol
-    (symbol (find-package :br))
-    (boundp symbol)
-    (:h3 "Special variables")
-    :dl
-  :do
-  (:dt (symbol-name symbol))
-  (:dd (documentation symbol 'variable)))
+ (symbol (find-package :br))
+ (boundp symbol)
+ (:h3 "Special variables")
+ :dl
+ :do
+ (:dt (symbol-name symbol))
+ (:dd (documentation symbol 'variable)))
 
 
+#++
 (defun render-markdown (pathname)
   "Read a markdown file and render it in spinneret's *html* stream."
   (let ((3bmd-tables:*tables* t))
@@ -166,62 +167,62 @@
 |#
 (defun render-reference ()
   (spinneret:with-html
-    (let ((packages
-            (sort
-             (breeze.xref:find-packages-by-regex "^breeze\\.[^.]+$")
-             #'string<
-             :key #'package-name)))
-      #+nil
-      (progn
-        (:h1 "Packages' documentation")
+      (let ((packages
+             (sort
+              (breeze.xref:find-packages-by-regex "^breeze\\.[^.]+$")
+              #'string<
+              :key #'package-name)))
+        #+nil
+        (progn
+          (:h1 "Packages' documentation")
+          (loop
+                :for package :in packages
+                :for package-name = (string-downcase (package-name package))
+                :for docfile = (breeze-relative-pathname
+                                (format nil "docs/~a.md" package-name))
+                :do
+                (if (probe-file docfile)
+                    (progn
+                      (:h2 (:a :id package-name package-name))
+                      #++(render-markdown docfile))
+                    (warn "Could not find \"~a\"." docfile))))
+        (:h1 (:a :id "reference" "Reference"))
+        ;; Package index
+        (:dl
+         (loop
+               :for package :in packages
+               :for package-name = (string-downcase (package-name package))
+               :do
+               (:dt (:a :href (format nil "#~A" package-name) package-name))
+               (:dd
+                (if-let (doc (documentation package t))
+                    (summarize doc)))))
         (loop
-          :for package :in packages
-          :for package-name = (string-downcase (package-name package))
-          :for docfile = (breeze-relative-pathname
-                          (format nil "docs/~a.md" package-name))
-          :do
-             (if (probe-file docfile)
-                 (progn
-                   (:h2 (:a :id package-name package-name))
-                   (render-markdown docfile))
-                 (warn "Could not find \"~a\"." docfile))))
-      (:h1 (:a :id "reference" "Reference"))
-      ;; Package index
-      (:dl
-       (loop
-         :for package :in packages
-         :for package-name = (string-downcase (package-name package))
-         :do
-            (:dt (:a :href (format nil "#~A" package-name) package-name))
-            (:dd
-             (if-let (doc (documentation package t))
-               (summarize doc)))))
-      (loop
-        :for package :in packages
-        :for package-name = (string-downcase (package-name package))
-        :for docfile = (breeze-relative-pathname
-                        (format nil "docs/~a.md" package-name))
-        :do
-           (macrolet ((gen (title
-                            predicate-body
-                            documentation-type)
-                        `(map-external-symbol
+              :for package :in packages
+              :for package-name = (string-downcase (package-name package))
+              :for docfile = (breeze-relative-pathname
+                              (format nil "docs/~a.md" package-name))
+              :do
+              (macrolet ((gen (title
+                               predicate-body
+                               documentation-type)
+                           `(map-external-symbol
                              (symbol package)
                              ,predicate-body
                              (:h3 ,title)
                              :dl
-                           :do
-                           (:dt (symbol-name symbol) (function-lambda-list symbol))
-                           (:dd (or (documentation symbol
-                                                   ,documentation-type)
-                                    "No documentation.")))))
-             (:h2 (:a :id package-name package-name))
-             (:p (or (documentation package t) "No description."))
-             (gen "Special variables" (specialp symbol) 'variable)
-             (gen "Classes" (classp symbol) 'type)
-             (gen "Generic methods" (generic-method-p symbol) 'function)
-             (gen "Functions" (simple-function-p symbol) 'function)
-             (gen "Macros" (macrop symbol) 'function))))))
+                             :do
+                             (:dt (symbol-name symbol) (function-lambda-list symbol))
+                             (:dd (or (documentation symbol
+                                                     ,documentation-type)
+                                      "No documentation.")))))
+                (:h2 (:a :id package-name package-name))
+                (:p (or (documentation package t) "No description."))
+                (gen "Special variables" (specialp symbol) 'variable)
+                (gen "Classes" (classp symbol) 'type)
+                (gen "Generic methods" (generic-method-p symbol) 'function)
+                (gen "Functions" (simple-function-p symbol) 'function)
+                (gen "Macros" (macrop symbol) 'function))))))
 
 (defun generate-documentation-to-stream (stream)
   (let ((spinneret:*html* stream))
@@ -230,23 +231,23 @@
           (spinneret:*html-style* :tree)
           (*print-pretty* nil))
       (spinneret:with-html
-        (:doctype)
+          (:doctype)
         (:html
          (:head
-          (:title "Breeze")
+          (:title "Reference")
           (:link :rel "stylesheet" :href "style.css"))
          (:body
-          (:ol
-           (:li (:a :href "#readme" "Breeze"))
-           (:li (:a :href "#emacs" "Emacs integration"))
-           (:li (:a :href "#reference" "Reference")))
-          (render-markdown "README.md")
-          (render-markdown "docs/emacs.md")
+          #++ (:ol
+               (:li (:a :href "#readme" "Breeze"))
+               (:li (:a :href "#emacs" "Emacs integration"))
+               (:li (:a :href "#reference" "Reference")))
+          #++ (render-markdown "README.md")
+          ;; (render-markdown "docs/emacs.md")
           (render-reference)))))))
 
 (defun generate-documentation ()
   (let* ((root (breeze-relative-pathname "public/"))
-         (index (merge-pathnames "index.html" root)))
+         (index (merge-pathnames "reference.html" root)))
     (ensure-directories-exist root)
     (with-output-to-file
         (output

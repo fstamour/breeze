@@ -61,12 +61,12 @@ string.
 This is a very tiny decision, but I know I'll forget it.
 
 What made me decide between the two: =licence= is what asdf use, and
-it's what the user will see in their project.
+it's what the user will see in their projects.
 
 ** Only use dependencies from quicklisp's distribution
 
 This project is not in quicklisp, and I don't plan to add it to
-quicklisp until it stabilize (which might take years). But I make sure
-that I only use dependencies from quicklisp so that if somebody wants
-to try it out they'll just need to clone this repository in
-quicklisp's local-projects folder.
+quicklisp until it stabilizes (which might take years). I make sure to
+only use dependencies from quicklisp so that if somebody wants to try
+it out they'll just need to clone this repository in quicklisp's
+local-projects folder.

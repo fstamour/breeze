@@ -1,16 +1,20 @@
 :PROPERTIES:
 :ID:       9c910250-abdc-4cbe-961b-46ad5c4f82d4
 :END:
-#+title: Breeze's documentation
+#+title: Breeze
+#+options: toc:nil
+
+* Documentation
 
 - [[id:11dd9906-75ff-4abc-82a5-b7dda0936f06][Roadmap]]
 - [[id:5d211d9a-0749-4adb-abe0-e66133d09b5b][Editor integrations]]
 - [[id:14d42b3a-0a2f-4a3b-8937-7175e621c6ec][Design Decisions]]
 - [[id:bb5c6ad4-0f89-48aa-9295-13e5e248a897][Glossary]]
+# TODO WIP - [[file://reference.html][Reference]]
 
 * Internal notes
 
-[[id:7d0f5cd2-d216-4882-84ac-27c004ad6fbd][Links to some dependencies' documentation]]
+- [[id:7d0f5cd2-d216-4882-84ac-27c004ad6fbd][Links to some dependencies' documentation]]
 - [[id:598a884c-56d0-4378-b5f5-acb2671d5112][Inbox]]
 - [[id:e2ff6189-1fd8-4d3c-9b7d-3d3ddbf2b0aa][Ideas]]
 - [[id:b9f7e1f4-dc86-46e0-860b-f845f180110e][Breeze on the internets]]

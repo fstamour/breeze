@@ -1,6 +1,3 @@
-;;; TODO This should come with its own system, so that people can
-;;; configure breeze in their init file, without loading the whole
-;;; breeze system.
 
 (defpackage #:breeze.configuration
   (:documentation "Breeze's configuration")

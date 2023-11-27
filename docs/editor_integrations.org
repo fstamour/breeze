@@ -6,8 +6,6 @@
 - [[id:6bd2b06d-0a3c-4d32-9a1e-4f6f36e1003d][Emacs integration]]
 - [[id:086c7705-e5ec-4dc0-852d-211c055eb145][Visual Studio Code integration]] (not implemented)
 
-* TODO Move
-
 * TODO Make sure the commands are executed against _common lisp_ code :ux:editor:
 
 Gavinok tried breeze, but ran ~C-.~ on ~breeze.el~, this causes

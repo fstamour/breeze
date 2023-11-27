@@ -48,7 +48,8 @@
                str
                uiop
                ;; For documentation generation
-               3bmd 3bmd-ext-code-blocks 3bmd-ext-tables spinneret
+               ;; 3bmd 3bmd-ext-code-blocks 3bmd-ext-tables
+               spinneret
                ;; For reading lisp
                eclector
                trivial-package-local-nicknames
@@ -73,7 +74,7 @@
    (:file "asdf")
    (:file "thread" :depends-on ("xref"))
    (:file "xref" :depends-on ("utils"))
-   (:file "documentation" :depends-on ("xref"))
+   ;; (:file "documentation" :depends-on ("xref"))
    (:file "doctor")
    (:file "listener"
     :depends-on ("xref"
@@ -90,7 +91,7 @@
 
 ;;; breeze/docs system
 
-(defsystem #:breeze/docs
+(defsystem #:breeze/doc
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"

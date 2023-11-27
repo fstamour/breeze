@@ -4,4 +4,4 @@
 #+title: Links to some dependencies' documentation
 * Resources
 
-- [alexandria](https://alexandria.common-lisp.dev/draft/alexandria.html)
+- [[https://alexandria.common-lisp.dev/draft/alexandria.html][alexandria]]
