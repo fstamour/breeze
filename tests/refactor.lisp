@@ -177,7 +177,7 @@ newline in the expected result."
 
 ;; This is emacs lisps to add a binding to the command "insert-test"
 ;; defined just above:
-#++
+#+elisp
 (progn
   (defun breeze--insert-test ()
     (interactive)

@@ -2,6 +2,13 @@
 
 ** TODO This is broken since I started to split everything into small files
 
+Use =org-roam-db-query=
+
+example:
+https://d12frosted.io/posts/2021-01-16-task-management-with-roam-vol5.html
+
+See https://github.com/ahmed-shariff/org-roam-ql
+
 ** Tag descriptions
 
 #+NAME: tags

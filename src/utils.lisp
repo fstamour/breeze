@@ -97,6 +97,8 @@
       (asdf:system-relative-pathname :breeze pathname)
       pathname))
 
+;; TODO This is kinda like "locate-dominating-file" in emacs, it might
+;; be a better name?
 (defun find-witness-in-parent-directories (starting-path witness
                                            &key (test #'uiop:probe-file*))
   "Search for a directory called WITNESS in current and parent

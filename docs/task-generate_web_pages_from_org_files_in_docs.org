@@ -1,0 +1,6 @@
+:PROPERTIES:
+:ID:       02d8e1a2-ecea-4c47-8808-b5f7a906b553
+:END:
+#+title: Generate web pages from org files in docs/
+
+* TODO Generate web pages from org files in docs/

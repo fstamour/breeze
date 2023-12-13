@@ -156,3 +156,10 @@ trace.
 
 I think I kept this link just for the general interface (~advise~,
 ~unadvise~ and ~advisep~)
+
+* CLI / TUI
+
+Gum is getting more and more interesting, perhaps I could try using it
+as a prototype (just like I used emacs to bootstrap this project).
+
+https://github.com/charmbracelet/gum

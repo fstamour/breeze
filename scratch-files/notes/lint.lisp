@@ -1,3 +1,5 @@
+;; For examples of equivalent forms, search for the string "==" in
+;; ~/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/
 
 ;; definitely don't need the "if"
 ;; probably don't need the "null"
