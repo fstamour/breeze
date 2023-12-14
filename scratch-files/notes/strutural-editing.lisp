@@ -19,6 +19,9 @@ Skip: t ; It's not implemented yet
 
 Name: contextual split sexp
 Skip: t ; It's not implemented yet
+Code: (with-buffer (x)
+                   (breeze:split-sexp
+                         x)
 
 =-=
 (:export
@@ -37,6 +40,7 @@ Skip: t ; It's not implemented yet
 
 Name: fill-paragraph in multiline-comments
 Skip: t ; It's not implemented yet
+Code: (breeze:fill-paragraph x)
 
 =-=
 #| this is a long line this is a long line this is a long line this is a long line |#
@@ -69,3 +73,24 @@ a long line |#
 ;; should do).
 
 ;; M-" doesn't warp the next expression in quotes inside comments.
+
+
+Name: delete-char should let you delete a character to fix syntax errors
+Skip: t ; It's not implemented yet
+Code: (breeze:delete-char x)
+
+=-=
+(if ¦; test)
+=-=
+(if ¦ test)
+=-=-=
+
+Name: delete-forward-char should let you delete a character to fix syntax errors
+Skip: t ; It's not implemented yet
+Code: (breeze:delete-forward-char x)
+
+=-=
+(if ;¦ test)
+=-=
+(if ¦ test)
+=-=-=

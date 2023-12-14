@@ -294,3 +294,24 @@ prog*
 
 ;; it's redundent to add a quote before t, nil, or any keywords
 ':ok 'nil 'y
+
+Bad:
+(defmethod ((x '(:eql y))))
+(defmethod ((x (:eql y))))
+(defmethod ((x (:eql 'y))))
+(defmethod ((x '(:eql 'y))))
+(defmethod ((x 'y)))
+(defmethod ((x :y)))
+Good:
+(defmethod (x (eql 'y)))
+(defmethod (x (eql :y)))
+
+
+
+(defun f (y)
+  ;; Copy-pasted code, where the variables doesn't match, breeze
+  ;; should be able to "quickfix" this relpacing either x or y by the
+  ;; other.
+  (if (plusp x)
+      x
+      (- x)))
