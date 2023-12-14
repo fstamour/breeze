@@ -116,3 +116,39 @@ Command: breeze:forward-slurp-sexp
 (¦
  #| asdf |#)
 =-=-=
+
+Name: quickfix #:#:
+
+=-=
+#:#:x
+=-=
+#:x
+=-=-=
+
+
+Name: quickfix spaces between closing parens
+
+=-=
+(() )
+=-=
+(())
+=-=-=
+
+
+=-=
+((
+ ) )
+=-=
+((
+ ))
+=-=-=
+
+
+=-=
+((
+ )
+)
+=-=
+((
+ ))
+=-=-=

@@ -36,7 +36,6 @@
                ;; Multi-threading
                bordeaux-threads
                chanl
-               trivial-timeout
                ;; To create projects
                quickproject
                ;; Utilities
@@ -47,9 +46,6 @@
                closer-mop
                str
                uiop
-               ;; For documentation generation
-               ;; 3bmd 3bmd-ext-code-blocks 3bmd-ext-tables
-               spinneret
                ;; For reading lisp
                eclector
                trivial-package-local-nicknames
@@ -60,7 +56,8 @@
   ((:file "logging")
    (:file "cl")
    (:file "utils")
-   (:file "string-utils")
+   (:file "string-utils" :depends-on ("utils"))
+   (:file "test-file" :depends-on ("utils" "string-utils"))
    ;; TODO #++
    (:file "syntax-tree")
    #++
@@ -91,12 +88,15 @@
 
 ;;; breeze/docs system
 
-(defsystem #:breeze/doc
+(defsystem breeze/doc
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze)
+  :depends-on (breeze
+               ;; For documentation generation
+               ;; 3bmd 3bmd-ext-code-blocks 3bmd-ext-tables
+               spinneret)
   :pathname "src"
   :serial t
   :components
@@ -105,7 +105,7 @@
 
 ;;; breeze/kite system
 
-(defsystem "breeze/kite"
+(defsystem breeze/kite
   :description "A breeze in a parachute makes a kite: utils for parachute"
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -119,12 +119,12 @@
 
 ;;; breeze/test system
 
-(defsystem "breeze/test"
+(defsystem breeze/test
   :description "Tests for the breeze system."
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze parachute breeze/kite)
+  :depends-on (breeze parachute breeze/kite breeze/doc)
   :pathname "tests"
   :serial t
   :components

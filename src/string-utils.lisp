@@ -207,6 +207,9 @@ AROUND. Add elipseses before and after if necessary."
   "Is CHAR a whitespace?"
   (position char +whitespaces+ :test #'char=))
 
+(defun trim-whitespace (string)
+  (string-trim +whitespaces+ string))
+
 (defun symbol-package-qualified-name (symbol)
   "Given a SYMBOL return a string of the form package:symbol."
   (let ((*print-escape* t)
