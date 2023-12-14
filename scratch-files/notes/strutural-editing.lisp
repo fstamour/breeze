@@ -5,7 +5,9 @@ Point-Char: ¦
 ;; with paredit, you can't use paredit-splice-sexp-killing-backward
 ;; (M-up) without losing the comment
 Name: splice backward keeps comments
-Skip: t ; It's not implemented yet
+Command: breeze:splice-sexp-backwards
+;; TODO automatically skip if the "command" doesn't exist
+Skip: t
 
 =-=
 (progn
@@ -18,10 +20,7 @@ Skip: t ; It's not implemented yet
 
 
 Name: contextual split sexp
-Skip: t ; It's not implemented yet
-Code: (with-buffer (x)
-                   (breeze:split-sexp
-                         x)
+Command: breeze:split-sexp
 
 =-=
 (:export
@@ -39,8 +38,7 @@ Code: (with-buffer (x)
 =-=-=
 
 Name: fill-paragraph in multiline-comments
-Skip: t ; It's not implemented yet
-Code: (breeze:fill-paragraph x)
+Command: breeze:fill-paragraph
 
 =-=
 #| this is a long line this is a long line this is a long line this is a long line |#
@@ -67,17 +65,17 @@ a long line |#
 ; =-=-=
 
 
-
+;; TODO:
 ;; C-<left> and C-<right> don't work inside comments (M-<left> and
 ;; M-<right> do what I instinctively think C-<left> and C-<right>
 ;; should do).
 
+;; TODO:
 ;; M-" doesn't warp the next expression in quotes inside comments.
 
 
 Name: delete-char should let you delete a character to fix syntax errors
-Skip: t ; It's not implemented yet
-Code: (breeze:delete-char x)
+Command: breeze:delete-char
 
 =-=
 (if ¦; test)
@@ -86,11 +84,35 @@ Code: (breeze:delete-char x)
 =-=-=
 
 Name: delete-forward-char should let you delete a character to fix syntax errors
-Skip: t ; It's not implemented yet
-Code: (breeze:delete-forward-char x)
+Command: breeze:delete-forward-char
 
 =-=
 (if ;¦ test)
 =-=
 (if ¦ test)
+=-=-=
+
+
+Name: forward-slurp-sexp should not ignore comments
+Command: breeze:forward-slurp-sexp
+
+=-=
+(¦) ;; asdf
+=-=
+(¦ ;; asdf
+ )
+=-=-=
+
+=-=
+(¦) #| asdf |#
+=-=
+(¦ #| asdf |#)
+=-=-=
+
+=-=
+(¦)
+#| asdf |#
+=-=
+(¦
+ #| asdf |#)
 =-=-=
