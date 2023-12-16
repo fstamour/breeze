@@ -315,3 +315,7 @@ Good:
   (if (plusp x)
       x
       (- x)))
+
+
+;; Would be nice if we could detect this kind of typos...
+(defu nasdf (...) ...)

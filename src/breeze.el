@@ -90,6 +90,7 @@
      ((string= listener "SLIME") (slime))
      (t (error "Unknown listener: %S" listener)))))
 
+;; TODO use slime-connected-p
 (defun breeze-check-if-listener-connected (&optional errorp)
   (or (breeze-sly-connection)
       (breeze-slime-connection)
