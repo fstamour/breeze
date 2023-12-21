@@ -171,3 +171,10 @@ kind of modifications."
 ;; - reset/clean the buffer
 ;; - sprinkle with overlays or text properties
 ;; - overlays are not usually deleted automatically
+
+
+
+;; (thing-at-point THING &optional NO-PROPERTIES)
+;; ‘symbol’, ‘list’, ‘sexp’, ‘defun’,
+;; ‘filename’, ‘existing-filename’, ‘url’, ‘email’, ‘uuid’, ‘word’,
+;; ‘sentence’, ‘whitespace’, ‘line’, ‘number’, ‘face’ and ‘page’.

@@ -1,5 +1,6 @@
 ;;; These are drafts of tests for breeze.el
 
+;;; (ert-test-erts-file ...)
 
 (breeze-eval "(+ 1 2)")
 ;; ("" "3 (2 bits, #x3, #o3, #b11)")

@@ -4,7 +4,6 @@
 ;;; Commentary:
 ;;
 ;; Features:
-;; - snippets with abbrevs
 ;; - capture
 ;; - interactive make-project
 

@@ -12,7 +12,8 @@
                 #:whitespacep
                 #:trim-whitespace
                 #:with-collectors
-                #:with))
+                #:with)
+  (:export #:read-spec-file))
 
 (in-package #:breeze.test-file)
 

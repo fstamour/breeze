@@ -1,0 +1,26 @@
+:PROPERTIES:
+:ID:       f3e3952d-e6f7-4bb9-a85c-662ae82874eb
+:END:
+#+title: Change Impact Analysis
+
+I wanted to make breeze able to detect changes that haev impacts that
+are hard for beginners to keep in mind (and easy to forget even for
+experienced users).
+
+For example, you define a function, you rename it and re-evaluate the
+defun. The source code only has the new function, but the image has
+both the new and the old. It would be nice to have breeze help with
+perhaps =fmakunbound= it or to update the package's exports (both in
+the source and in the image).
+
+This is hard.
+
+But I just found a "keyword" that could help me find relevant
+techniques: [[https://en.wikipedia.org/wiki/Change_impact_analysis][Change Impact Analysis (Wikipedia)]].
+
+Furthermore, I found this "change impact analysis" while looking at
+papers about "AST hashing", which is something I've had in my mind for
+practically a decade, if not more. I did _some_ experiments around
+this subject (AST hashing), but I was waiting for a better
+reader/parser before trying something more fancy (than hashing nested
+lists).
