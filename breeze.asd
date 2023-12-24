@@ -26,7 +26,6 @@
                quickproject
                ;; Utilities
                alexandria
-               str
                uiop
                trivial-package-local-nicknames
                ;; For some portability checks

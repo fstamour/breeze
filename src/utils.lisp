@@ -7,6 +7,8 @@
    #:around
    #:optimal-string-alignment-distance
    #:optimal-string-alignment-distance*
+   #:repeat-string
+   #:split-by-newline
    #:indent-string
    #:remove-indentation
    #:print-comparison

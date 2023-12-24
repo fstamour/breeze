@@ -102,6 +102,26 @@ max-distance is reached, returns nil in that case."
                       (aref diff-0 0) (1+ i)))))
         (diff-0 n)))))
 
+
+
+(defun repeat-string (n string &optional stream)
+  (if stream
+      (loop :repeat n :do (write-string string stream))
+      (with-output-to-string (output)
+        (repeat-string n string output))))
+
+
+
+(defun split-by-newline (string)
+  (uiop:split-string string :separator '(#\Newline)))
+
+#++
+(split-by-newline "a
+b
+c")
+
+
+
 (defun indent-string (indentation string)
   "Prepend INDENTATION spaces at the beginning of each line in STRING."
   (check-type indentation (integer 0))
@@ -109,7 +129,10 @@ max-distance is reached, returns nil in that case."
     (with-output-to-string (output)
       (loop :for line = (read-line input nil nil)
             :while line
-            :do (format output "~a~a~%" (str:repeat indentation " ") line)))))
+            :do
+               (repeat-string indentation " " output)
+               (write-string line output)
+               (terpri output)))))
 
 #|
 (indent-string 4 (format nil "a~%b"))
@@ -151,7 +174,7 @@ b
             string1
             (if (null mismatch)
                 ""
-                (str:repeat mismatch "="))
+                (repeat-string mismatch "="))
             string2)))
 
 #|
