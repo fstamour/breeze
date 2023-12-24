@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.command
-  (:documentation "Interactive commands' core")
+    (:documentation "Interactive commands' core")
   (:use :cl :breeze.logging)
   (:import-from #:alexandria
                 #:symbolicate
@@ -9,12 +9,6 @@
                 #:if-let
                 #:lastcar
                 #:when-let*)
-  #++
-  (:import-from #:breeze.reader
-                #:parse-string)
-  #++
-  (:import-from #:breeze.syntax-tree
-                #:find-path-to-node)
   (:import-from #:breeze.utils
                 #:before-last)
   (:export

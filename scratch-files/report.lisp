@@ -18,6 +18,22 @@
 #++ ;; this is annoying af...
 (setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
 
+
+(defun paragraphs (string)
+  "Split a string in \"paragraphs\" (a bit like markdown does, where two
+newlines or more marks the start of a new paragraph)."
+  ;; TODO What if it starts with newlines? or if it's only newlines; I
+  ;; should probably use string-trim before split.
+  (cl-ppcre:split
+   (cl-ppcre:create-scanner "\\n\\n+"
+                            :multi-line-mode t
+                            :single-line-mode t)
+   string))
+
+#++;; TODO Make a test
+(paragraphs
+ (format nil "asd~5%qwe~%ert~2%jkl"))
+
 
 
 (defun remove-leading-semicolons (string)

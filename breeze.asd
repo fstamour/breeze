@@ -10,19 +10,6 @@
 (in-package #:breeze.asd)
 
 
-;;; breze/config system
-
-(asdf:defsystem #:breeze/config
-  :description "Configurations for breeze."
-  :version "0"
-  :author "Francis St-Amour"
-  :licence "BSD 2-Clause License"
-  :pathname "src"
-  :serial t
-  :components
-  ((:file "configuration")))
-
-
 ;;; breeze system
 
 (defsystem breeze
@@ -32,22 +19,15 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
-  :depends-on (breeze/config
-               ;; Multi-threading
+  :depends-on (;; Multi-threading
                bordeaux-threads
                chanl
-               ;; To create projects
+               ;; To create projects (scaffolds)
                quickproject
                ;; Utilities
                alexandria
-               anaphora
-               ;; cl-hash-util
-               cl-ppcre
-               closer-mop
                str
                uiop
-               ;; For reading lisp
-               eclector
                trivial-package-local-nicknames
                ;; For some portability checks
                trivial-features)
@@ -58,27 +38,22 @@
    (:file "utils")
    (:file "string-utils" :depends-on ("utils"))
    (:file "test-file" :depends-on ("utils" "string-utils"))
-   ;; TODO #++
-   (:file "syntax-tree")
-   #++
-   (:file "reader" :depends-on ("syntax-tree" "utils"))
+   (:file "configuration")
    (:file "lossless-reader" :depends-on ("utils"))
    (:file "pattern")
    (:file "command"
-    :depends-on (#++"reader"
-                 #++"syntax-tree"
-                 "utils"))
+    :depends-on ("utils"
+                 "configuration"))
    (:file "asdf")
    (:file "thread" :depends-on ("xref"))
    (:file "xref" :depends-on ("utils"))
-   ;; (:file "documentation" :depends-on ("xref"))
    (:file "doctor")
    (:file "listener"
     :depends-on ("xref"
                  "command"))
-   (:file "refactor" :depends-on (#++"reader" "command" "utils" "cl"))
-   (:file "project" :depends-on ("utils" "command"))
-   (:file "capture" :depends-on ("utils" "command")))
+   (:file "refactor" :depends-on ("command" "utils" "cl"))
+   (:file "project" :depends-on ("utils" "command" "configuration"))
+   (:file "capture" :depends-on ("utils" "command" "configuration")))
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
@@ -96,7 +71,8 @@
   :depends-on (breeze
                ;; For documentation generation
                ;; 3bmd 3bmd-ext-code-blocks 3bmd-ext-tables
-               spinneret)
+               spinneret
+               closer-mop)
   :pathname "src"
   :serial t
   :components
@@ -130,8 +106,6 @@
   :components
   ((:file "utils")
    (:file "logging")
-   #++
-   (:file "reader")
    (:file "lossless-reader")
    (:file "pattern")
    (:file "command")

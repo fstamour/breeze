@@ -165,64 +165,70 @@
 - [ ] Structures
 - [ ] Type definitions (I'm not sure this one can be done with introspection alone).
 |#
+
+(defun find-breeze-packages ()
+  (remove-if (lambda (package)
+               (position #\. (package-name package) :start (length #1="breeze.")))
+             (breeze.xref:find-packages-by-prefix #1#)))
+
 (defun render-reference ()
   (spinneret:with-html
-      (let ((packages
-             (sort
-              (breeze.xref:find-packages-by-regex "^breeze\\.[^.]+$")
-              #'string<
-              :key #'package-name)))
-        #+nil
-        (progn
-          (:h1 "Packages' documentation")
-          (loop
-                :for package :in packages
-                :for package-name = (string-downcase (package-name package))
-                :for docfile = (breeze-relative-pathname
-                                (format nil "docs/~a.md" package-name))
-                :do
-                (if (probe-file docfile)
-                    (progn
-                      (:h2 (:a :id package-name package-name))
-                      #++(render-markdown docfile))
-                    (warn "Could not find \"~a\"." docfile))))
-        (:h1 (:a :id "reference" "Reference"))
-        ;; Package index
-        (:dl
-         (loop
-               :for package :in packages
-               :for package-name = (string-downcase (package-name package))
-               :do
-               (:dt (:a :href (format nil "#~A" package-name) package-name))
-               (:dd
-                (if-let (doc (documentation package t))
-                    (summarize doc)))))
+    (let ((packages
+            (sort
+             (find-breeze-packages)
+             #'string<
+             :key #'package-name)))
+      #+nil
+      (progn
+        (:h1 "Packages' documentation")
         (loop
-              :for package :in packages
-              :for package-name = (string-downcase (package-name package))
-              :for docfile = (breeze-relative-pathname
-                              (format nil "docs/~a.md" package-name))
-              :do
-              (macrolet ((gen (title
-                               predicate-body
-                               documentation-type)
-                           `(map-external-symbol
+          :for package :in packages
+          :for package-name = (string-downcase (package-name package))
+          :for docfile = (breeze-relative-pathname
+                          (format nil "docs/~a.md" package-name))
+          :do
+             (if (probe-file docfile)
+                 (progn
+                   (:h2 (:a :id package-name package-name))
+                   #++(render-markdown docfile))
+                 (warn "Could not find \"~a\"." docfile))))
+      (:h1 (:a :id "reference" "Reference"))
+      ;; Package index
+      (:dl
+       (loop
+         :for package :in packages
+         :for package-name = (string-downcase (package-name package))
+         :do
+            (:dt (:a :href (format nil "#~A" package-name) package-name))
+            (:dd
+             (if-let (doc (documentation package t))
+               (summarize doc)))))
+      (loop
+        :for package :in packages
+        :for package-name = (string-downcase (package-name package))
+        :for docfile = (breeze-relative-pathname
+                        (format nil "docs/~a.md" package-name))
+        :do
+           (macrolet ((gen (title
+                            predicate-body
+                            documentation-type)
+                        `(map-external-symbol
                              (symbol package)
                              ,predicate-body
                              (:h3 ,title)
                              :dl
-                             :do
-                             (:dt (symbol-name symbol) (function-lambda-list symbol))
-                             (:dd (or (documentation symbol
-                                                     ,documentation-type)
-                                      "No documentation.")))))
-                (:h2 (:a :id package-name package-name))
-                (:p (or (documentation package t) "No description."))
-                (gen "Special variables" (specialp symbol) 'variable)
-                (gen "Classes" (classp symbol) 'type)
-                (gen "Generic methods" (generic-method-p symbol) 'function)
-                (gen "Functions" (simple-function-p symbol) 'function)
-                (gen "Macros" (macrop symbol) 'function))))))
+                           :do
+                           (:dt (symbol-name symbol) (function-lambda-list symbol))
+                           (:dd (or (documentation symbol
+                                                   ,documentation-type)
+                                    "No documentation.")))))
+             (:h2 (:a :id package-name package-name))
+             (:p (or (documentation package t) "No description."))
+             (gen "Special variables" (specialp symbol) 'variable)
+             (gen "Classes" (classp symbol) 'type)
+             (gen "Generic methods" (generic-method-p symbol) 'function)
+             (gen "Functions" (simple-function-p symbol) 'function)
+             (gen "Macros" (macrop symbol) 'function))))))
 
 (defun generate-documentation-to-stream (stream)
   (let ((spinneret:*html* stream))

@@ -168,14 +168,39 @@ sytsem-files"
 |#
 
 
+;; all this to get rid of cl-ppcre xD
+(defun remove-parentheses (string)
+  "Return new string with the parts between parentheses removed, along
+with the spaces following the closing parentheses. Do not support
+nested parentheses."
+  (with-output-to-string (o)
+    (loop
+      :with skipping
+      :for c across string
+      :do (cond
+            ;; Opening paren
+            ((and (not skipping)
+                  (char= #\( c))
+             (setf skipping c))
+            ;; Closing paren
+            ((and skipping
+                  (char= #\) c))
+             (setf skipping c))
+            ;; Common case
+            ((not skipping) (write-char c o))
+            ;; Non-space char after closing paren
+            ((and skipping
+                  (char= #\) skipping)
+                  (char/= #\Space c))
+             (setf skipping nil)
+             (write-char c o))))))
+
 (defun summarize (string)
   "Keep only the first sentence, remove parenthesis."
-  (cl-ppcre:regex-replace-all
-   "\\([^)]*\\) *"
+  (remove-parentheses
    (alexandria:if-let (position (position #\. string))
      (subseq string 0 position)
-     string)
-   ""))
+     string)))
 
 
 ;; This is a good candidate for a funtion where the unit tests would
@@ -215,18 +240,3 @@ AROUND. Add elipseses before and after if necessary."
   (let ((*print-escape* t)
         (*package* (find-package "KEYWORD")))
     (prin1-to-string symbol)))
-
-(defun paragraphs (string)
-  "Split a string in \"paragraphs\" (a bit like markdown does, where two
-newlines or more marks the start of a new paragraph)."
-  ;; TODO What if it starts with newlines? or if it's only newlines; I
-  ;; should probably use string-trim before split.
-  (cl-ppcre:split
-   (cl-ppcre:create-scanner "\\n\\n+"
-                            :multi-line-mode t
-                            :single-line-mode t)
-   string))
-
-#++ ;; TODO Make a test
-(paragraphs
- (format nil "asd~5%qwe~%ert~2%jkl"))

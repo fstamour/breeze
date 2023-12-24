@@ -14,7 +14,7 @@
 (define-test find-package
   (is equal
       (find-packages-by-prefix "breeze")
-      (find-packages-by-regex "breeze.*")))
+      (find-packages-by-prefix "breeze.")))
 
 (defparameter *symbols*
   '(dum:*bound-variable*

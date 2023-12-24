@@ -323,6 +323,7 @@ of the instance of that had the smallest score."
           (progn
             ;; TODO (pulse-momentary-highlight-region begin end)
             ;; TODO Find what's the value of *package* at this node...
+            #++
             (let ((string (breeze.syntax-tree:node-raw node)))
               (interactive-eval string)
               ;; (message "~s" string)

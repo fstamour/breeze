@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.test.refactor
-  (:use :cl #:breeze.refactor)
+    (:use :cl #:breeze.refactor)
   ;; Importing non-exported symbols of the "package under test"
   (:import-from #:breeze.refactor)
   ;; Things needed to "drive" a command
@@ -20,27 +20,6 @@
                 #:outer-node)
   (:import-from #:breeze.test.command
                 #:drive-command)
-  #++
-  (:import-from #:breeze.reader
-                #:node-content
-                #:parse-string
-                #:unparse-to-string
-
-                ;; Types of node
-                #:skipped-node
-                #:symbol-node
-                #:read-eval-node
-                #:character-node
-                #:list-node
-                #:function-node
-
-                ;; Type predicates
-                #:skipped-node-p
-                #:symbol-node-p
-                #:read-eval-node-p
-                #:character-node-p
-                #:list-node-p
-                #:function-node-p)
   (:import-from #:breeze.utils
                 #:remove-indentation)
   (:import-from #:parachute
@@ -111,6 +90,7 @@ newline in the expected result."
 ;; TODO I sorely need something more declarative for those kinds of
 ;; snippets... Which is why I'm working so much on having good tests
 ;; for the snippets in the first place!
+#++
 (define-command insert-test ()
   "Insert a missing test!"
   (augment-context-by-parsing-the-buffer (breeze.command:context*))
