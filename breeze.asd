@@ -26,10 +26,7 @@
                quickproject
                ;; Utilities
                alexandria
-               uiop
-               trivial-package-local-nicknames
-               ;; For some portability checks
-               trivial-features)
+               uiop)
   :pathname "src"
   :components
   ((:file "logging")
