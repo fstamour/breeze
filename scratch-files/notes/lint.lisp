@@ -319,3 +319,10 @@ Good:
 
 ;; Would be nice if we could detect this kind of typos...
 (defu nasdf (...) ...)
+
+
+Very bad:
+char\=
+
+Good:
+char/=

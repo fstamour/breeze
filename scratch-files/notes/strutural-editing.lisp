@@ -152,3 +152,18 @@ Name: quickfix spaces between closing parens
 ((
  ))
 =-=-=
+
+
+Name: forward-barf-sexp and comments
+
+=-=
+(;; 1
+ a¦
+ ;; 2
+ b)
+=-=
+(;; 1
+ a)
+;; 2
+b
+=-=-=
