@@ -48,6 +48,7 @@
    #:return-from-command
    #:define-command
    #:commandp
+   #:list-all-commands
    ;; Utilities to add very useful information into the context
    #:augment-context-by-parsing-the-buffer
    ;; Keys in the *context* hash-table
@@ -417,9 +418,6 @@
     (id command)))
 
 
-;; (run-command command nil)
-
-
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
 (defun continue-command (id &rest response)
   "Continue procressing *command*."
@@ -634,6 +632,23 @@ resulting string to the editor."
 (defun commandp (symbol)
   (get symbol 'breeze.command::commandp))
 
+
+(defun list-all-commands (&optional with-details-p)
+  (loop
+    :for package :in (list-all-packages)
+    #++ (breeze.xref:find-packages-by-prefix "breeze.")
+    :append (loop
+              :for symbol :being :each :external-symbol :of package
+              :for lambda-list-or-t = (commandp symbol)
+              :when lambda-list-or-t
+                :collect (if with-details-p
+                             (list symbol (if (eq t lambda-list-or-t)
+                                              nil
+                                              lambda-list-or-t)
+                                   (documentation symbol 'function))
+                             symbol))))
+
+
 (defmacro define-command (name lambda-list
                           &body body)
   "Macro to define command with the basic context.
@@ -659,7 +674,7 @@ Example:
             (progn ,@remaining-forms)
             (send "done"))))
        ;; Add a flag into the symbol's plist
-       (setf (get ',name 'commandp) t))))
+       (setf (get ',name 'commandp) ',(or lambda-list t)))))
 
 
 ;;; Utilities to get more context

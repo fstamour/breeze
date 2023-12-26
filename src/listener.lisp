@@ -70,6 +70,7 @@ of the instance of that had the smallest score."
 
 (defun find-most-similar-symbol (input)
   (minimizing (candidate)
+    ;; TODO do-symbols only iterate on *package*
     (do-symbols (sym)
       (when (fboundp sym)
         (candidate sym

@@ -64,6 +64,9 @@ exists, we need their confirmation to continue."
       (return-from-command)))
   directory)
 
+;; TODO project-name and directory _must_ be supplied by the
+;; editor... that's not what I want. I want the command to be able to
+;; interactively ask the user for those values.
 (define-command scaffold-project (project-name directory)
   "Create a project interactively using quickproject."
   (let* (;; TODO Currently the user is able to enter an empty string
