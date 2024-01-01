@@ -240,26 +240,19 @@
 (defun breeze-translate-command-lambda-list (lambda-list)
   (loop for symbol in lambda-list
         for sanitized-symbol = (intern (car (last (split-string (symbol-name symbol) ":"))))
-        collect sanitized-symbol into symbols
-        collect (format "%s%S? \n"
-                        (case sanitized-symbol
-                          (directory "G")
-                          (t "s"))
-                        sanitized-symbol)
-        into interactives
-        finally (return (list symbols interactives))))
+        collect sanitized-symbol))
 
 (defun breeze-refresh-commands ()
   "Ask the inferior lisp which commands it has and define
 corresponding commands in emacs."
   (interactive)
-  (cl-loop for (symbol lambda-list docstring) in (breeze-eval "(breeze.command:list-all-commands t)")
+  (cl-loop for (symbol cl-lambda-list docstring) in (breeze-eval "(breeze.command:list-all-commands t)")
            for (cl-symbol el-symbol) = (breeze-translate-command-symbol symbol)
-           for (symbols interactives) = (breeze-translate-command-lambda-list lambda-list)
-           do (eval `(cl-defun ,el-symbol ,symbols
+           for el-lambda-list = (breeze-translate-command-lambda-list cl-lambda-list)
+           do (eval `(cl-defun ,el-symbol (&optional ,@el-lambda-list)
                        ,docstring
-                       (interactive ,(apply 'concat interactives) 'breeze-minor-mode 'breeze-major-mode)
-                       (breeze-run-command ,(symbol-name cl-symbol) ,@symbols)))))
+                       (interactive "" 'breeze-minor-mode 'breeze-major-mode)
+                       (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list)))))
 
 
 

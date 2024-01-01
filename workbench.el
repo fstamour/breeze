@@ -5,8 +5,14 @@
 ;; Useful for debugging whether slime or sly is running
 (process-list)
 
+
+;;; Reloading
+
+(breeze-eval "(asdf:load-system '#:breeze :force t)")
+(load breeze-breeze.el)
 
 
+;;; Listener
 
 (breeze-list-loaded-listeners)
 
@@ -18,7 +24,7 @@
                  '(sly slime) nil t)
 
 
-
+;;; Eval
 
 (breeze-eval "1")
 (breeze-eval "'(a b c)")
@@ -27,6 +33,7 @@
 
 
 
+;;; Initialization
 
 (breeze-validate-if-package-exists "cl")
 
@@ -35,16 +42,7 @@
 (breeze-validate-if-breeze-package-exists)
 
 
-
-;; I don't remember why I needed this? maybe I had redefined the
-;; defcommand macro.
-(defun breeze-reload ()
-  (breeze-eval "(asdf:load-system '#:breeze :force t)"))
-
-(load breeze-breeze.el)
-
-
-;;;
+;;; "Dynamic" emacs commands
 
 (breeze-translate-command-lambda-list '(a b c))
 
