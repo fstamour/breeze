@@ -276,14 +276,22 @@ inferior lisp."
 (defvar breeze-breeze.el load-file-name
   "Path to \"breeze.el\".")
 
+(defun breeze-relative-path (&rest components)
+  (expand-file-name
+   (apply 'file-name-concat
+          (file-name-directory breeze-breeze.el)
+          ".."
+          components)))
+
 (cl-defun breeze-load (&optional cont)
   "Load breeze into the inferior system."
   (breeze-%eval-async
-   `(cl:load ,(expand-file-name
-               (concat
-                (file-name-directory
-                 breeze-breeze.el)
-                "/ensure-breeze.lisp")))
+   `(cl:load ,(breeze-relative-path "src/ensure-breeze.lisp")
+             (expand-file-name
+              (concat
+               (file-name-directory
+                breeze-breeze.el)
+               "src//ensure-breeze.lisp")))
    cont))
 
 (cl-defun breeze-ensure ()

@@ -1,0 +1,23 @@
+
+Point-Char: |
+
+Name: insert-in-package-cl-user
+Code: breeze-insert-in-package-cl-user
+
+=-=
+|
+=-=
+(cl:in-package #:cl-user)
+=-=-=
+
+
+;; WIP
+;; Name: insert-defun
+;; Code: breeze-insert-defun
+
+;; =-=
+;; |
+;; =-=
+;; (defun a (b c)
+;;   )
+;; =-=-=
