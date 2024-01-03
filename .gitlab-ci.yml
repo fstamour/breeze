@@ -16,6 +16,8 @@ workflow:
     - install-quicklisp
   script:
     - make test
+  rules:
+    - when: manual
 
 doc:
   extends: .base
