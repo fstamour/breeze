@@ -29,7 +29,7 @@ parse" begins.
 
 
 (uiop:define-package #:breeze.lossless-reader
-  (:documentation "A fast, lossless, robust and superficial reader for a superset of
+    (:documentation "A fast, lossless, robust and superficial reader for a superset of
 common lisp.")
   (:use #:cl)
   (:import-from #:breeze.utils
@@ -38,7 +38,83 @@ common lisp.")
                 #:whitespacep)
   (:import-from #:alexandria
                 #:when-let
-                #:when-let*))
+                #:when-let*)
+  (:export #:state
+           #:source
+           #:pos
+           #:tree
+           #:make-state
+           ;; nodes
+           #:+end+
+           #:node
+           #:node-type
+           #:node-children
+           #:valid-node-p
+           ;; node constructors
+           #:block-comment
+           #:parens
+           #:sharpsign
+           #:punctuation
+           #:token
+           #:whitespace
+           #:line-comment
+           #:string
+           ;; Symbols used in the returns
+           #:quote                 ; this ones from cl actually
+           #:quasiquote
+           #:dot
+           #:comma
+           #:sharp
+           #:sharp-char
+           #:sharp-function
+           #:sharp-vector
+           #:sharp-bitvector
+           #:sharp-uninterned
+           #:sharp-eval
+           #:sharp-binary
+           #:sharp-octal
+           #:sharp-hexa
+           #:sharp-complex
+           #:sharp-structure
+           #:sharp-pathname
+           #:sharp-feature
+           #:sharp-feature-not
+           #:sharp-radix
+           #:sharp-array
+           #:sharp-label
+           #:sharp-reference
+           #:sharp-unknown
+           ;; state utilities
+           #:at
+           #:at=
+           #:current-char
+           #:current-char=
+           #:next-char
+           #:next-char=
+           #:donep
+           #:valid-position-p
+           #:*state-control-string*
+           #:state-context
+           ;; parsing utilities
+           #:read-char*
+           #:find-all
+           #:not-terminatingp
+           #:read-string*
+           #:read-while
+           ;; sub parser
+           #:read-line-comment
+           #:read-parens
+           #:read-sharpsign-dispatching-reader-macro
+           #:read-punctuation
+           #:read-quoted-string
+           #:read-string
+           #:read-token
+           #:read-whitespaces
+           #:read-block-comment
+           ;; top-level parsing/unparsing
+           #:parse
+           #:parse*
+           #:unparse))
 
 (in-package #:breeze.lossless-reader)
 

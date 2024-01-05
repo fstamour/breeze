@@ -1,17 +1,6 @@
 (defpackage #:breeze.report
   (:documentation "Using breeze's code to generate report to improve breeze.")
-  (:use #:cl)
-  (:import-from #:breeze.lossless-reader
-                #:parse
-                #:tree
-                #:node-content
-                #:node-start
-                #:node-end
-                #:node-type
-                #:source-substring
-                #:comment-node-p
-                #:whitespace-node-p
-                #:line-comment-node-p))
+  (:use #:cl #:breeze.lossless-reader))
 
 (in-package #:breeze.report)
 
@@ -194,6 +183,58 @@ the run."
   (format out "~{<p>~a</p>~%~}"
           (paragraphs (escape-html comment))))
 
+#++
+(defun render-node (out state node)
+  (format out "~a"
+          (escape-html
+           (node-content state node))))
+
+
+;; This assumes the packages are loaded in the current image!
+(defun cl-token-p (string)
+  (multiple-value-bind
+        (value error)
+      (ignore-errors (read-from-string string))
+    (and (not (typep error 'error))
+         (eq #.(find-package "CL")
+             (symbol-package value)))))
+
+(defun token-style (state node)
+  (let ((content (node-content state node)))
+    (cond
+      ((char= #\: (char content 0)) 'keyword)
+      ((numberp (ignore-errors (read-from-string content))) 'number)
+      ((alexandria:starts-with-subseq "check-" content) 'special)
+      ((position #\: content) 'symbol)
+      ((cl-token-p content) 'symbol))))
+
+(defun render-escaped (out string)
+  (write-string (escape-html string) out))
+
+(defun escaped-node-content (state node)
+  (escape-html (node-content state node)))
+
+(defun render-node (out state node &optional (depth 0))
+  (case (node-type node)
+    (string
+     (format out "<span class=\"string\">~a</span>"
+             (escaped-node-content state node)))
+    (token
+     (alexandria:if-let ((style (token-style state node)))
+       (format out "<span class=\"~(~a~)\">~a</span>"
+               (token-type state node)
+               (node-content state node))
+       (render-escaped out (node-content state node))))
+    (parens
+     (format out "<span class=\"paren~d\">(<span class=\"progn\">" (1+ depth))
+     (map nil (lambda (node)
+                (render-node out state node (1+ depth)))
+          (node-children node))
+     (format out "</span>)</span>"))
+    (t (format out "<span class=\"~a\">~a</span>"
+               (string-downcase (node-type node))
+               (escaped-node-content state node)))))
+
 (defun render-page (out state page)
   "Render 1 page as html, where PAGE is a list of nodes."
   (loop
@@ -211,10 +252,9 @@ the run."
          (;; don't print whitespace nodes
           (or (whitespace-node-p node) (page-node-p node)))
          (t
-          ;; TODO I should escape STRING
-          (format out "~%<pre><code>~a</code></pre>"
-                  (escape-html
-                   (node-content state node)))))))
+          (format out "~%<pre><code>")
+          (render-node out state node)
+          (format out "~%</code></pre>")))))
 
 (defmacro with-html-file ((stream-var filename) &body body)
   `(alexandria:with-output-to-file (,stream-var
@@ -222,6 +262,7 @@ the run."
                                     :if-exists :supersede)
      (labels ((fmt (&rest rest)
                 (apply #'format out rest)))
+       (fmt "<!DOCTYPE html>")
        (fmt "<html>")
        ;; https://github.com/emareg/classlesscss
        (fmt "<link rel=\"stylesheet\" href=\"style.css\" title=\"classless\" >")
