@@ -1,6 +1,6 @@
 ;;; -*- mode: erts; -*-
 
-Point-Char: ¦
+Point-Char: $
 
 ;; with paredit, you can't use paredit-splice-sexp-killing-backward
 ;; (M-up) without losing the comment
@@ -12,10 +12,10 @@ Skip: t
 =-=
 (progn
   ;; some comment
-  ¦(+ 2 2))
+  $(+ 2 2))
 =-=
 ;; some comment
-¦(+ 2 2)
+$(+ 2 2)
 =-=-=
 
 
@@ -25,7 +25,7 @@ Command: breeze:split-sexp
 =-=
 (:export
  #:a
- #:b¦
+ #:b$
  #:c
  #:d)
 =-=
@@ -78,18 +78,18 @@ Name: delete-char should let you delete a character to fix syntax errors
 Command: breeze:delete-char
 
 =-=
-(if ¦; test)
+(if $; test)
 =-=
-(if ¦ test)
+(if $ test)
 =-=-=
 
 Name: delete-forward-char should let you delete a character to fix syntax errors
 Command: breeze:delete-forward-char
 
 =-=
-(if ;¦ test)
+(if ;$ test)
 =-=
-(if ¦ test)
+(if $ test)
 =-=-=
 
 
@@ -97,23 +97,23 @@ Name: forward-slurp-sexp should not ignore comments
 Command: breeze:forward-slurp-sexp
 
 =-=
-(¦) ;; asdf
+($) ;; asdf
 =-=
-(¦ ;; asdf
+($ ;; asdf
  )
 =-=-=
 
 =-=
-(¦) #| asdf |#
+($) #| asdf |#
 =-=
-(¦ #| asdf |#)
+($ #| asdf |#)
 =-=-=
 
 =-=
-(¦)
+($)
 #| asdf |#
 =-=
-(¦
+($
  #| asdf |#)
 =-=-=
 
@@ -158,7 +158,7 @@ Name: forward-barf-sexp and comments
 
 =-=
 (;; 1
- a¦
+ a$
  ;; 2
  b)
 =-=
@@ -166,4 +166,62 @@ Name: forward-barf-sexp and comments
  a)
 ;; 2
 b
+=-=-=
+
+
+;; With emacs, you can't use kill-sexp (C-M-k) to kill a comment
+Name: kill-sexp-comments
+
+=-=
+($;; 1
+ a)
+=-=
+($a)
+=-=-=
+
+=-=
+($;; 1
+ ;; 2
+ ;; 3
+ a)
+=-=
+($a)
+=-=-=
+
+=-=
+($
+#|
+some block comment
+|#
+ a)
+=-=
+($a)
+=-=-=
+
+;; Like paredit-kill, which is like kill-line, but keeping the
+;; structure valid
+Name: kill
+
+=-=
+(a b)$ ; some comment
+=-=
+(a b)$
+=-=-=
+
+=-=
+($a b) ; some comment
+=-=
+($) ; some comment
+=-=-=
+
+=-=
+$(a b) ; some comment
+=-=
+$
+=-=-=
+
+=-=
+(a "b $c d")
+=-=
+(a "b $")
 =-=-=
