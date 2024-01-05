@@ -4,6 +4,25 @@
 (defpackage #:breeze.test.lossless-reader
   (:documentation "Test package for #:breeze.lossless-reader")
   (:use #:cl #:breeze.lossless-reader)
+  (:import-from #:breeze.lossless-reader
+                #:read-sharpsign-backslash
+                #:read-sharpsign-quote
+                #:read-sharpsign-left-parens
+                #:read-sharpsign-asterisk
+                #:read-sharpsign-colon
+                #:read-sharpsign-dot
+                #:read-sharpsign-b
+                #:read-sharpsign-o
+                #:read-sharpsign-x
+                #:read-sharpsign-r
+                #:read-sharpsign-c
+                #:read-sharpsign-a
+                #:read-sharpsign-s
+                #:read-sharpsign-p
+                #:read-sharpsign-equal
+                #:read-sharpsign-sharpsign
+                #:read-sharpsign-plus
+                #:read-sharpsign-minus)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -256,6 +275,149 @@ newline or +end+)
   (test-read-line-comment ";" +end+)
   (test-read-line-comment "; asdf~%" 7))
 
+
+
+(defun test-read-sharpsign-backslash (input expected-end
+                                      &optional (expected-pos expected-end))
+  (with-state (input)
+    (incf (pos state))
+    (let ((got (is-equalp input
+                          (read-sharpsign-backslash state 0 nil)
+                          (node 'sharp-char 0 expected-end
+                                (token 1 expected-end)))))
+      (when got
+        (is-equalp input
+                   expected-pos
+                   (pos state))))))
+
+(define-test+run read-sharpsign-backslash
+  (test-read-sharpsign-backslash "#\\ " 2)
+  (test-read-sharpsign-backslash "#\\  " 2)
+  (test-read-sharpsign-backslash "#\\Space" 7)
+  (test-read-sharpsign-backslash "#\\Space  " 7)
+  (test-read-sharpsign-backslash "#\\ Space" 2)
+  (test-read-sharpsign-backslash "#\\bell" 6))
+
+
+
+(defun test-read-sharpsign-quote (input child expected-end
+                                  &optional (expected-pos expected-end))
+  (with-state (input)
+    (incf (pos state))
+    (let ((got (is-equalp input
+                          (read-sharpsign-quote state 0 nil)
+                          (node 'sharp-function 0 expected-end
+                                child))))
+      (when (and got (plusp expected-end))
+        (is-equalp input
+                   expected-pos
+                   (pos state))))))
+
+
+(define-test+run read-sharpsign-quote
+  (test-read-sharpsign-quote "#'" nil +end+)
+  (test-read-sharpsign-quote "#' " (list (whitespace 2 3)) +end+)
+  (test-read-sharpsign-quote "#'a" (list (token 2 3)) 3)
+  (test-read-sharpsign-quote "#' a" (list (whitespace 2 3)
+                                          (token 3 4))
+                             4)
+  (test-read-sharpsign-quote "#'(lambda...)" (list (parens 2 13
+                                                           (list (token 3 12))))
+                             13))
+
+
+
+(defun test-read-sharpsign-left-parens (input child expected-end
+                                        &optional (expected-pos expected-end))
+  (with-state (input)
+    (incf (pos state))
+    (let ((got (is-equalp input
+                          (read-sharpsign-left-parens state 0 nil)
+                          (node 'sharp-vector 0 expected-end
+                                child))))
+      (when (and got (plusp expected-end))
+        (is-equalp input
+                   expected-pos
+                   (pos state))))))
+
+
+(define-test+run read-sharpsign-left-parens
+  (test-read-sharpsign-left-parens "#()" (parens 1 3) 3)
+  (test-read-sharpsign-left-parens "#( )" (parens 1 4 (whitespace 2 3)) 4))
+
+
+
+;; TODO
+
+#++
+(defun test-read-sharpsign-asterisk (input child expected-end
+                                     &optional (expected-pos expected-end))
+  (with-state (input)
+    (incf (pos state))
+    (let ((got (is-equalp input
+                          (read-sharpsign-asterisk state 0 nil)
+                          (node 'sharp-bitvector 0 expected-end
+                                child))))
+      (when (and got (plusp expected-end))
+        (is-equalp input
+                   expected-pos
+                   (pos state))))))
+
+#++
+(define-test+run read-sharpsign-asterisk
+  (test-read-sharpsign-asterisk "#()" (parens 1 3) 3)
+  (test-read-sharpsign-asterisk "#( )" (parens 1 4 (whitespace 2 3)) 4))
+
+
+
+
+
+(defun test-read-sharpsign-colon (input child expected-end
+                                  &optional (expected-pos expected-end))
+  (with-state (input)
+    (incf (pos state))
+    (let ((got (is-equalp input
+                          (read-sharpsign-colon state 0 nil)
+                          (node 'sharp-uninterned 0 expected-end
+                                child))))
+      (when (and got (plusp expected-end))
+        (is-equalp input
+                   expected-pos
+                   (pos state))))))
+
+
+(define-test+run read-sharpsign-colon
+  (test-read-sharpsign-colon "#:" nil +end+)
+  (test-read-sharpsign-colon "#: a" (token 2 2) 2)
+  (test-read-sharpsign-colon "#:||" (token 2 4) 4))
+
+;; (read-from-string "#: a") => #:||
+
+
+
+(defun test-read-sharpsign-dot (input child expected-end
+                                &optional (expected-pos expected-end))
+  (with-state (input)
+    (incf (pos state))
+    (let ((got (is-equalp input
+                          (read-sharpsign-dot state 0 nil)
+                          (node 'sharp-eval 0 expected-end
+                                child))))
+      (when (and got (plusp expected-end))
+        (is-equalp input
+                   expected-pos
+                   (pos state))))))
+
+
+(define-test+run read-sharpsign-dot
+  (test-read-sharpsign-dot "#." nil +end+)
+  (test-read-sharpsign-dot "#.a" (list (token 2 3)) 3)
+  (test-read-sharpsign-dot "#. a" (list (whitespace 2 3)
+                                        (token 3 4))
+                           4))
+
+
+
 (defun test-read-sharpsign (input expected-type expected-end
                             &optional (expected-pos expected-end))
   (with-state (input)
@@ -268,10 +430,6 @@ newline or +end+)
                    (pos state))))))
 
 (define-test+run read-sharpsign-dispatching-reader-macro
-  (test-read-sharpsign "#\\" 'sharp-char 2)
-  (test-read-sharpsign "#\\Space" 'sharp-char 2)
-  (test-read-sharpsign "#'" 'sharp-function 2)
-  (test-read-sharpsign "#'car" 'sharp-function 2)
   (test-read-sharpsign "#(" 'sharp-vector 1 1)
   (test-read-sharpsign "#(asdf)" 'sharp-vector 1 1)
   (test-read-sharpsign "#42(asdf)" 'sharp-vector 3 3)
@@ -324,6 +482,10 @@ newline or +end+)
   (test-read-sharpsign "#- (or)" 'sharp-feature-not 2)
   ;; #| ... |# is handled elsewhere
   )
+
+;; (read-from-string "#\\ ") == (read-from-string "#\\Space")
+;; This is an error (there must be no space between "#s" and "("): (read-from-string "#s ()")
+
 
 (defun test-read-punctuation (input expected-type)
   (with-state (input)
@@ -405,7 +567,8 @@ newline or +end+)
   (test-read-token "arg| asdf |more|" +end+)
   (test-read-token "arg| asdf |more|mmoooore|done" 29)
   (test-read-token "arg| asdf |no  |mmoooore|done" 13)
-  (test-read-token "look|another\\| case\\| didn't think of| " 38))
+  (test-read-token "look|another\\| case\\| didn't think of| " 38)
+  (test-read-token "this.is.normal..." 17))
 
 
 ;; TODO read-extraneous-closing-parens

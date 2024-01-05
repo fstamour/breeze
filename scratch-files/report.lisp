@@ -226,7 +226,8 @@ the run."
                (node-content state node))
        (render-escaped out (node-content state node))))
     (parens
-     (format out "<span class=\"paren~d\">(<span class=\"progn\">" (1+ depth))
+     (format out "<span class=\"paren~d\">(<span class=\"progn\">"
+             (min (1+ depth) 6))
      (map nil (lambda (node)
                 (render-node out state node (1+ depth)))
           (node-children node))

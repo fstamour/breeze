@@ -274,38 +274,48 @@ Returns nil if POSITION is invalid."
   (when (valid-position-p state position)
     (char (source state) position)))
 
-(defun at= (state position char)
+;; TODO add tests with case-sensitive-p = nil
+(defun at= (state position char &optional (case-insensitive-p t))
   "Compare the character at POSITION in the STATE's source with the parameter CHAR and returns the CHAR if they're char=.
 Returns nil if POSITION is invalid."
-  (when-let ((c (at state position))) (and (char= c char) c)))
+  (when-let ((c (at state position))) (and
+                                       (if case-insensitive-p
+                                           (char= c char)
+                                           (char-equal c char))
+                                       c)))
 
 (defun current-char (state)
   "Get the character at the current STATE's position, without changing
 the position."
   (at state (pos state)))
 
-(defun current-char= (state char)
+;; TODO add tests with case-sensitive-p = nil
+(defun current-char= (state char &optional (case-sensitive-p t))
   "Get the character at the current STATE's position, without changing
 the position."
-  (at= state (pos state) char))
+  (at= state (pos state) char case-sensitive-p))
 
 (defun next-char (state &optional (n 1))
   "Peek at the next character to be read, without changing the
 position."
   (at state (+ n (pos state))))
 
-(defun next-char= (state char &optional (n 1))
+;; TODO add tests with case-sensitive-p = nil
+(defun next-char= (state char &optional (n 1) (case-sensitive-p t))
   "Peek at the next character to be read, without changing the
 position."
-  (at= state (+ n (pos state)) char))
+  (at= state (+ n (pos state)) char case-sensitive-p))
 
 
 ;;; Low-level parsing helpers
 
-(defun read-char* (state &optional char)
+;; TODO add tests with case-sensitive-p = nil
+(defun read-char* (state &optional char (case-sensitive-p t))
   (when-let ((c (current-char state)))
     (when (or (null char)
-              (char= c char))
+              (if case-sensitive-p
+                  (char= c char)
+                  (char-equal c char)))
       (incf (pos state))
       c)))
 
@@ -324,18 +334,18 @@ the occurence of STRING."
 
 ;; 2023-05-20 only used in read-token
 ;; 2024-01-03 and read- dispatch reader macro
-(defun read-while (state predicate &key (advancep t) (start (pos state)))
+(defun read-while (state predicate &key (advance-position-p t) (start (pos state)))
   "Returns nil or (list start end)"
   (loop
     ;; :for guard :from 0
     :for pos :from start
     :for c = (at state pos)
     ;; :when (< 9000 guard) :do (error "read-while might be looping indefinitely...")
-      :do (when (or (null c) (not (funcall predicate c)))
-            (when (/= start pos)
-              (when advancep (setf (pos state) pos))
-              (return (list start pos)))
-            (return nil))))
+    :do (when (or (null c) (not (funcall predicate c)))
+          (when (/= start pos)
+            (when advance-position-p (setf (pos state) pos))
+            (return (list start pos)))
+          (return nil))))
 
 ;; Will be useful for finding some synchronization points
 ;; 2023-05-20 not used anymore, since I refactored read-block-comment
@@ -350,7 +360,12 @@ the occurence of STRING."
 
 ;;; Actual reader
 
-(defun read-whitespaces (state &aux (start (pos state)))
+(defmacro defreader (name lambda-list &body body)
+  `(defun ,(alexandria:symbolicate 'read- name) (state ,@lambda-list &aux (start (pos state)))
+     (declare (ignorable start))
+     ,@body))
+
+(defreader whitespaces ()
   (loop
     :for pos :from start
     :for c = (at state pos)
@@ -359,7 +374,7 @@ the occurence of STRING."
                (setf (pos state) pos)
                (return (whitespace start pos)))))
 
-(defun read-block-comment (state &aux (start (pos state)))
+(defreader block-comment ()
   "Read #||#"
   (when (read-string* state "#|" nil)
     (loop
@@ -392,7 +407,7 @@ the occurence of STRING."
                     (t
                      (setf situation 'other))))))))
 
-(defun read-line-comment (state &aux (start (pos state)))
+(defreader line-comment ()
   "Read ;"
   (when (read-char* state #\;)
     (let ((newline (search #.(format nil "~%")
@@ -407,78 +422,183 @@ the occurence of STRING."
             (setf (pos state) (length (source state)))
             (line-comment start +end+))))))
 
-;; TODO this badly needs a refactor or two
+;; char symbol next-reader-function &optional numeric-arg-p
+#++
+(defparameter *standard-sharpsign-reader-macro-dispatch*
+  (#\( sharp-vector read-parens t) ;; *
+  (#\* sharp-bitvector (read-number 2) t)
+  (#\: sharp-uninterned read-token)
+  (#\. sharp-eval read-any)
+  (#\b sharp-binary (read-number 2))
+  (#\B sharp-binary (read-number 2))
+  (#\o sharp-octal (read-number 8))
+  (#\O sharp-octal (read-number 8))
+  (#\x sharp-hexa (read-number 16))
+  (#\X sharp-hexa (read-number 16))
+  (#\c sharp-complex read-parens)
+  (#\C sharp-complex read-parens)
+  (#\s sharp-structure read-parens)
+  (#\S sharp-structure read-parens)
+  (#\p sharp-pathname read-string)
+  (#\P sharp-pathname read-string)
+  (#\+ sharp-feature read-any)
+  (#\- sharp-feature-not read-any)
+
+  (#\* sharp-bitvector (read-number 2))
+  (#\r sharp-radix (read-number *))
+  (#\R sharp-radix (read-number *))
+  (#\a sharp-array read-parens)
+  (#\A sharp-array read-parens)
+  (#\= sharp-label read-any t)
+  (#\# sharp-reference nil t))
+
+(defun read-number (state &optional (radix 10) convertp)
+  (let ((range (read-while state #'(lambda (char) (digit-char-p char radix)))))
+    (when range
+      (if convertp
+          (read-from-string (apply #'source-substring state range))
+          range))))
+
+(defun read-sharpsign-backslash (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\\)
+    (decf (pos state))
+    (let ((token (read-token state)))
+      (node 'sharp-char start (pos state) token))))
+
+(defun %read-sharpsign-any (state start type)
+  (multiple-value-bind (whitespaces form)
+      (read-any state t)
+    (node type start (if form (pos state) +end+)
+          (remove-if #'null (list whitespaces form))))  )
+
+(defun read-sharpsign-quote (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\')
+    (%read-sharpsign-any state start 'sharp-function)))
+
+(defun read-sharpsign-left-parens (state start number)
+  (declare (ignore number))
+  (when (current-char= state #\()
+    (let ((form (read-parens state)))
+      (node 'sharp-vector start (if form (pos state) +end+) form))))
+
+(defun read-sharpsign-asterisk (state start number)
+  (declare (ignore number))
+  (when (read-char* state #\*)
+    (let ((bits (read-number state 2)))
+      (node 'sharp-bitvector start (if bits (pos state) +end+) nil))))
+
+(defun read-sharpsign-colon (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\:)
+    (if (donep state)
+        (node 'sharp-uninterned start +end+)
+        (let* ((token-start (pos state))
+               (token (read-token state))
+               (end (pos state)))
+          (node 'sharp-uninterned start end
+                (or token
+                    (token token-start end)))))))
+
+(defun read-sharpsign-dot (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\.)
+    (%read-sharpsign-any state start 'sharp-eval)))
+
+(defun %read-sharpsign-number (state start type radix)
+  (let ((n (read-number state radix)))
+    (node type start (if n (pos state) +end+))))
+
+(defun read-sharpsign-b (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\b nil)
+    (%read-sharpsign-number state start 'sharp-binary 2)))
+
+(defun read-sharpsign-o (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\b nil)
+    (%read-sharpsign-number state start 'sharp-octal 8)))
+
+(defun read-sharpsign-x (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\x nil)
+    (%read-sharpsign-number state start 'sharp-hexa 16))  )
+
+(defun read-sharpsign-r (state start radix)
+  (when (read-char* state #\r nil)
+    (let ((n (read-number state radix)))
+      (node 'sharp-radix start (if n (pos state) +end+)))))
+
+(defun read-sharpsign-c (state start number))
+
+(defun read-sharpsign-a (state start number))
+(defun read-sharpsign-s (state start number))
+
+(defun read-sharpsign-p (state start number))
+
+(defun read-sharpsign-equal (state start number)
+  (when (current-char= state #\=)
+    (node 'sharp-label start (pos state) number)))
+
+(defun read-sharpsign-sharpsign (state start number)
+  (when (current-char= state #\=)
+    (node 'sharp-reference start (pos state) number)))
+
+(defun read-sharpsign-plus (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\+)
+    (%read-sharpsign-any state start 'sharp-feature)))
+
+(defun read-sharpsign-minus (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\-)
+    (%read-sharpsign-any state start 'sharp-feature-not)))
+
 ;; TODO #) and #<any whitespace> are **invalid**
-;; TODO read the complete form, not just the dispatch characters
 ;; See https://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
-(defun read-sharpsign-dispatching-reader-macro
-    (state &aux (start (pos state)))
-  "Read reader macros #."
-  (when-let* ((dispatch-char (and
-                              (current-char= state #\#)
-                              (next-char state))))
-    ;; Simple cases
-    (alexandria:if-let ((foundp (member dispatch-char
-                                        '((#\\ . sharp-char)
-                                          (#\' . sharp-function)
-                                          (#\( . sharp-vector)
-                                          (#\* . sharp-bitvector)
-                                          (#\: . sharp-uninterned)
-                                          (#\. . sharp-eval)
-                                          (#\b . sharp-binary)
-                                          (#\B . sharp-binary)
-                                          (#\o . sharp-octal)
-                                          (#\O . sharp-octal)
-                                          (#\x . sharp-hexa)
-                                          (#\X . sharp-hexa)
-                                          (#\c . sharp-complex)
-                                          (#\C . sharp-complex)
-                                          (#\s . sharp-structure)
-                                          (#\S . sharp-structure)
-                                          (#\p . sharp-pathname)
-                                          (#\P . sharp-pathname)
-                                          (#\+ . sharp-feature)
-                                          (#\- . sharp-feature-not))
-                                        :key #'car)))
-      (cond
-        ((char= #\( dispatch-char)
-         (incf (pos state))
-         (sharpsign (cdar foundp) start (+ 1 start)))
-        (t
-         (incf (pos state) 2)
-         (sharpsign (cdar foundp) start (+ 2 start))))
-      ;; For the other cases, we expect a number (which might be
-      ;; alphanumeric depending on *read-base*).
-      (let* ((range (read-while state #'digit-char-p :start (1+ start)
-                                                     :advancep nil))
-             (end (second range))
-             (sub-char (and range (at state end)))
-             (foundp (progn
-                       ;; (format t "~&sub-char: ~s ~%~%" sub-char)
-                       (and sub-char
-                            (member sub-char
-                                    '((#\( . sharp-vector)
-                                      (#\* . sharp-bitvector)
-                                      (#\r . sharp-radix)
-                                      (#\R . sharp-radix)
-                                      (#\a . sharp-array)
-                                      (#\A . sharp-array)
-                                      (#\= . sharp-label)
-                                      (#\# . sharp-reference))
-                                    :key #'car)))))
-        ;; (break "Range: ~s; end: ~s; sub-char: ~s" range end sub-char)
-        (cond
-          ((and foundp (char= #\( sub-char))
-           (setf (pos state) end)
-           (sharpsign (cdar foundp) start end))
-          (foundp
-           (setf (pos state) (1+ end))
-           (sharpsign (cdar foundp) start (1+ end)))
-          (t
-           (sharpsign 'sharp-unknown start +end+)))))))
+(defreader sharpsign-dispatching-reader-macro ()
+  "Read reader macros #..."
+  (when (read-char* state #\#)
+    (let ((number (read-number state 10 t)))
+      ;; TODO detect if number is supposed to be valid...  e.g. #32p
+      ;; should not be ok... maybe it's fine at this stage of the
+      ;; parsing...?
+      (some
+       (lambda (fn)
+         (funcall fn state start number))
+       '(read-sharpsign-backslash
+         read-sharpsign-quote
+         read-sharpsign-left-parens
+         read-sharpsign-asterisk
+         read-sharpsign-colon
+         read-sharpsign-dot
+         read-sharpsign-b
+         read-sharpsign-o
+         read-sharpsign-x
+         read-sharpsign-r
+         read-sharpsign-c
+         read-sharpsign-a
+         read-sharpsign-s
+         read-sharpsign-p
+         read-sharpsign-equal
+         read-sharpsign-sharpsign
+         read-sharpsign-plus
+         read-sharpsign-minus))
+      ;; Invalid syntax OR custom reader macro
+      (sharpsign 'sharp-unknown start +end+))))
 
 
-(defun read-punctuation (state)
+(defreader punctuation ()
   "Read ' or `"
   (when-let* ((current-char (current-char state))
               (foundp (member current-char
@@ -490,7 +610,7 @@ the occurence of STRING."
                                 (#\# . sharp)
                                 (#\page . page))
                               :key #'car)))
-    (prog1 (punctuation (cdar foundp) (pos state))
+    (prog1 (punctuation (cdar foundp) start)
       (incf (pos state)))))
 
 (defun read-quoted-string (state delimiter escape &optional validp)
@@ -518,7 +638,7 @@ provided."
               (setf (pos state) pos)
               (return (list start 'invalid))))))))
 
-(defun read-string (state)
+(defreader string ()
   "Read \"\""
   (when-let ((string (read-quoted-string state #\" #\\)))
     (apply #'node 'string string)))
@@ -542,7 +662,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                          +whitespaces+)
                       :test #'char=))))
 
-(defun read-token (state &aux (start (pos state)))
+(defreader token ()
   "Read one token."
   (loop
     :for char = (current-char state)
@@ -560,7 +680,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 
 ;; TODO Do something with this, to help error recovery, or at least
 ;; tell the user something.
-(defun read-extraneous-closing-parens (state &aux (start (pos state)))
+(defreader extraneous-closing-parens ()
   (when (read-char* state #\))
     (make-node :type :extraneous-closing-parens
                :start start
@@ -583,7 +703,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       ,(breeze.utils:around string pos))))
 
 ;; don't forget to handle dotted lists
-(defun read-parens (state &aux (start (pos state)))
+(defreader parens ()
   (when (read-char* state #\()
     ;; Read while read-any != nil && char != )
     (loop
@@ -600,23 +720,28 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                (state-context state))))
       :finally (return (parens start (pos state) content)))))
 
-(defun read-any (state)
-  (or
-   (some #'(lambda (fn)
-             (funcall fn state))
-         '(read-whitespaces
-           read-block-comment
-           read-sharpsign-dispatching-reader-macro
-           read-punctuation
-           read-string
-           read-line-comment
-           read-token
-           read-parens                ; recursion
-           read-extraneous-closing-parens))
-   (unless (donep state)
-     (error "This is a bug: read-any read nothing and would return nil, but we're not done reading the file...~%~?"
-            *state-control-string*
-            (state-context state)))))
+;; TODO add tests with skip-whitespaces-p set
+(defun read-any (state &optional skip-whitespaces-p)
+  (if skip-whitespaces-p
+      (let ((whitespaces (read-whitespaces state))
+            (form (read-any state nil)))
+        (values whitespaces form))
+      (or
+       (some #'(lambda (fn)
+                 (funcall fn state))
+             '(read-whitespaces
+               read-block-comment
+               read-sharpsign-dispatching-reader-macro
+               read-punctuation
+               read-string
+               read-line-comment
+               read-token
+               read-parens                ; recursion
+               read-extraneous-closing-parens))
+       (unless (donep state)
+         (error "This is a bug: read-any read nothing and would return nil, but we're not done reading the file...~%~?"
+                *state-control-string*
+                (state-context state))))))
 
 
 ;;; Putting it all toghether
