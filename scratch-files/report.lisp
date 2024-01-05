@@ -15,6 +15,9 @@
 
 (in-package #:breeze.report)
 
+#++
+(ql:quickload "cl-ppcre")
+
 #++ ;; this is annoying af...
 (setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
 
@@ -105,7 +108,9 @@ breeze project (system)."
                         :key #'namestring)
     :for filename = (enough-breeze file)
     :for content-str = (alexandria:read-file-into-string file)
-    :for state = (parse content-str)
+    :for state = (progn
+                   (format *debug-io* "~&Parsing file ~s..." file)
+                   (parse content-str))
     :collect (list filename state (pages state))))
 
 #++
@@ -115,8 +120,8 @@ breeze project (system)."
 
 ;; TODO move to utils; add tests...
 (defun nrun (list predicate)
-  "If the first element of LIST satisfies PREDICATE, destructively
-extract the first run of elements that satisfies PREDICATE. Returns
+  "Destructively extract the first run of elements that satisfies
+PREDICATE, if the first element of LIST satisfies PREDICATE, . Returns
 the run and update LIST's first cons to point to the last element of
 the run."
   (when (and list
@@ -265,6 +270,7 @@ the run."
 
 
 (defun render (system &aux (pathname (system-listing-pathname system)))
+  (format *debug-io* "~&Rendering listing for system ~s" system)
   (with-system-listing (system out pathname)
     ;; Table of content
     (fmt "<ol>")

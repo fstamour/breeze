@@ -24,6 +24,7 @@
                 ;; node constructors
                 #:block-comment
                 #:parens
+                #:sharpsign
                 #:punctuation
                 #:token
                 #:whitespace
@@ -34,6 +35,25 @@
                 #:dot
                 #:comma
                 #:sharp
+                #:sharp-char
+                #:sharp-function
+                #:sharp-vector
+                #:sharp-bitvector
+                #:sharp-uninterned
+                #:sharp-eval
+                #:sharp-binary
+                #:sharp-octal
+                #:sharp-hexa
+                #:sharp-complex
+                #:sharp-structure
+                #:sharp-pathname
+                #:sharp-feature
+                #:sharp-feature-not
+                #:sharp-radix
+                #:sharp-array
+                #:sharp-label
+                #:sharp-reference
+                #:sharp-unknown
                 ;; state utilities
                 #:at
                 #:donep
@@ -49,6 +69,7 @@
                 ;; sub parser
                 #:read-line-comment
                 #:read-parens
+                #:read-sharpsign-dispatching-reader-macro
                 #:read-punctuation
                 #:read-quoted-string
                 #:read-string
@@ -306,10 +327,79 @@ newline or +end+)
            (when expected-end
              (line-comment 0 expected-end)))))
 
-(define-test+run read-line-comment
+(define-test read-line-comment
   (test-read-line-comment "" nil)
   (test-read-line-comment ";" +end+)
   (test-read-line-comment "; asdf~%" 7))
+
+(defun test-read-sharpsign (input expected-type expected-end
+                            &optional (expected-pos expected-end))
+  (with-state (input)
+    (let ((got (is-equalp input
+                          (read-sharpsign-dispatching-reader-macro state)
+                          (sharpsign expected-type 0 expected-end))))
+      (when got
+        (is-equalp input
+                   expected-pos
+                   (pos state))))))
+
+(define-test+run read-sharpsign-dispatching-reader-macro
+  (test-read-sharpsign "#\\" 'sharp-char 2)
+  (test-read-sharpsign "#\\Space" 'sharp-char 2)
+  (test-read-sharpsign "#'" 'sharp-function 2)
+  (test-read-sharpsign "#'car" 'sharp-function 2)
+  (test-read-sharpsign "#(" 'sharp-vector 1 1)
+  (test-read-sharpsign "#(asdf)" 'sharp-vector 1 1)
+  (test-read-sharpsign "#42(asdf)" 'sharp-vector 3 3)
+  (test-read-sharpsign "#*" 'sharp-bitvector 2)
+  (test-read-sharpsign "#*110" 'sharp-bitvector 2)
+  (test-read-sharpsign "#4*" 'sharp-bitvector 3)
+  (test-read-sharpsign "#4*10" 'sharp-bitvector 3)
+  (test-read-sharpsign "#:" 'sharp-uninterned 2)
+  (test-read-sharpsign "#:asdf" 'sharp-uninterned 2)
+  (test-read-sharpsign "#." 'sharp-eval 2)
+  (test-read-sharpsign "#.(+ 1 1)" 'sharp-eval 2)
+  (test-read-sharpsign "#b" 'sharp-binary 2)
+  (test-read-sharpsign "#b101" 'sharp-binary 2)
+  (test-read-sharpsign "#B" 'sharp-binary 2)
+  (test-read-sharpsign "#B101" 'sharp-binary 2)
+  (test-read-sharpsign "#o" 'sharp-octal 2)
+  (test-read-sharpsign "#o666" 'sharp-octal 2)
+  (test-read-sharpsign "#O" 'sharp-octal 2)
+  (test-read-sharpsign "#O666" 'sharp-octal 2)
+  (test-read-sharpsign "#x" 'sharp-hexa 2)
+  (test-read-sharpsign "#xbeef" 'sharp-hexa 2)
+  (test-read-sharpsign "#X" 'sharp-hexa 2)
+  (test-read-sharpsign "#Xbeef" 'sharp-hexa 2)
+  (test-read-sharpsign "#5r" 'sharp-radix 3)
+  (test-read-sharpsign "#5r32" 'sharp-radix 3)
+  (test-read-sharpsign "#3R" 'sharp-radix 3)
+  (test-read-sharpsign "#3R32" 'sharp-radix 3)
+  (test-read-sharpsign "#c" 'sharp-complex 2)
+  (test-read-sharpsign "#c(1 2)" 'sharp-complex 2)
+  (test-read-sharpsign "#C" 'sharp-complex 2)
+  (test-read-sharpsign "#C(1 2)" 'sharp-complex 2)
+  (test-read-sharpsign "#42a" 'sharp-array 4)
+  (test-read-sharpsign "#42a()" 'sharp-array 4)
+  (test-read-sharpsign "#41A" 'sharp-array 4)
+  (test-read-sharpsign "#41A()" 'sharp-array 4)
+  (test-read-sharpsign "#s" 'sharp-structure 2)
+  (test-read-sharpsign "#s(node)" 'sharp-structure 2)
+  (test-read-sharpsign "#S" 'sharp-structure 2)
+  (test-read-sharpsign "#S(node)" 'sharp-structure 2)
+  (test-read-sharpsign "#p" 'sharp-pathname 2)
+  (test-read-sharpsign "#p\"./\"" 'sharp-pathname 2)
+  (test-read-sharpsign "#P" 'sharp-pathname 2)
+  (test-read-sharpsign "#P\"./\"" 'sharp-pathname 2)
+  (test-read-sharpsign "#0=x" 'sharp-label 3)
+  (test-read-sharpsign "#0=" 'sharp-label 3)
+  (test-read-sharpsign "#0#" 'sharp-reference 3)
+  (test-read-sharpsign "#+" 'sharp-feature 2)
+  (test-read-sharpsign "#+ (and)" 'sharp-feature 2)
+  (test-read-sharpsign "#-" 'sharp-feature-not 2)
+  (test-read-sharpsign "#- (or)" 'sharp-feature-not 2)
+  ;; #| ... |# is handled elsewhere
+  )
 
 (defun test-read-punctuation (input expected-type)
   (with-state (input)
@@ -458,7 +548,15 @@ newline or +end+)
   (test-parse "arg| asdf " (token 0 +end+))
   (test-parse ";" (line-comment 0 +end+))
   (test-parse "(12" (parens 0 +end+ (token 1 3)))
-  (test-parse "\"" (node 'string 0 +end+)))
+  (test-parse "\"" (node 'string 0 +end+))
+  (test-parse "#:asdf"
+              (node 'sharp-uninterned 0 2)
+              (node 'token 2 6))
+  (test-parse "#2()"
+              (node 'sharp-vector 0 2)
+              (node 'parens 2 4))
+  (test-parse "#<>" (node 'sharp-unknown 0 +end+))
+  (test-parse "#+" (node 'sharp-feature 0 2)))
 
 (defun test-parse* (input &rest expected)
   (register-test-string input)
@@ -466,64 +564,9 @@ newline or +end+)
       (is-equalp input (parse* input) expected)
       (is-equalp input (parse* input))))
 
-#++
-(define-test+run "parse*"
-  :depends-on (read-parens)
-  (eq (parse "") nil)
-  (test-parse* "  " (whitespace 0 2))
-  (test-parse* "#|" (block-comment 0 +end+))
-  (test-parse* " #| "
-               (whitespace 0 1)
-               (block-comment 1 +end+)
-               #++
-               (whitespace 3 4))
-  (test-parse* "#||#" (block-comment 0 4))
-  (test-parse* "#|#||#" (block-comment 0 +end+))
-  (test-parse* "#| #||# |#" (block-comment 0 10))
-  (test-parse* "'" (punctuation 'quote 0))
-  (test-parse* "`" (punctuation 'quasiquote 0))
-  (test-parse* "#" (punctuation 'sharp 0))
-  (test-parse* "," (punctuation 'comma 0))
-  (test-parse* "+-*/" (token 0 4))
-  (test-parse* "123" (token 0 3))
-  (test-parse* "asdf#" (token 0 5))
-  (test-parse* "| asdf |" (token 0 8))
-  (test-parse* "arg| asdf | " (token 0 11) (whitespace 11 12))
-  (test-parse* "arg| asdf |more" (token 0 15))
-  (test-parse* "arg| asdf |more|" (token 0 +end+))
-  (test-parse* ";" (line-comment 0 +end+))
-  (test-parse* "(12" (parens 0 +end+ (token 1 3)))
-  (test-parse* "\"" (node 'string 0 +end+)))
-
-
-#|
-
-
-(list
- (parse "#<>")
- (parse "#+"))
-
-http://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
-
-(list of reader macros
- "\\'(*:boxrcasp=+-<")
-
-
-#) and #<any whitespace> are **invalid**
-
-|#
-
-#++
-(multiple-value-bind (tree state)
-    (parse "(foo)")
-  (format nil "(~a ~a)"
-          "ignore-errors"
-          (node-content state (car tree))))
-
-
 ;; Slightly cursed syntax:
 ;; "#+#."
-
+;; e.g. "#+ #.(cl:quote x) 2" == "#+ x 2"
 
 
 ;;; Unparse
@@ -548,15 +591,11 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
                      (state-context state))))))
     success))
 
-(progn
-  (define-test unparse
-    (test-round-trip "#' () () ()")
-    (test-round-trip " (")
-    (loop :for string :being :the :hash-key :of *test-strings*
-          :do (test-round-trip string)))
-  #++
-  (parachute:test 'unparse))
-
+(define-test+run unparse
+  (test-round-trip "#' () () ()")
+  (test-round-trip " (")
+  (loop :for string :being :the :hash-key :of *test-strings*
+        :do (test-round-trip string)))
 
 (define-test+run round-trip-breeze
   (loop :for file :in (breeze.asdf:system-files 'breeze)

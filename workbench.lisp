@@ -163,16 +163,26 @@
 
 ;;; lossless-reader.lisp
 
-(trace
- read-string*
- read-char*)
+(in-package #:breeze.lossless-reader)
 
 (trace
- %read-whitespaces
- %read-block-comment
- %read-token
+ read-string*
+ read-char*
+ read-while)
+
+(trace
+ read-whitespaces
+ read-block-comment
+ read-line-comment
+ read-sharpsign-dispatching-reader-macro
+ read-punctuation
+ ;; read-quoted-string
+ read-string
+ read-token
  read-parens
- read-extraneous-closing-parens)
+ read-extraneous-closing-parens
+ read-any
+ parse)
 
 (untrace)
 

@@ -108,6 +108,9 @@ common lisp.")
 (defun punctuation (type position)
   (node type position (1+ position)))
 
+(defun sharpsign (type start end)
+  (node type start end))
+
 (defun token (start end)
   (node 'token start end))
 
@@ -244,16 +247,19 @@ the occurence of STRING."
         (list start end)))))
 
 ;; 2023-05-20 only used in read-token
-(defun read-while (state predicate &aux (start (pos state)))
+;; 2024-01-03 and read- dispatch reader macro
+(defun read-while (state predicate &key (advancep t) (start (pos state)))
+  "Returns nil or (list start end)"
   (loop
-    ;; :for guard :upto 10
+    ;; :for guard :from 0
     :for pos :from start
     :for c = (at state pos)
-    :do (when (or (null c) (not (funcall predicate c)))
-          (when (/= start pos)
-            (setf (pos state) pos)
-            (return (list start pos)))
-          (return nil))))
+    ;; :when (< 9000 guard) :do (error "read-while might be looping indefinitely...")
+      :do (when (or (null c) (not (funcall predicate c)))
+            (when (/= start pos)
+              (when advancep (setf (pos state) pos))
+              (return (list start pos)))
+            (return nil))))
 
 ;; Will be useful for finding some synchronization points
 ;; 2023-05-20 not used anymore, since I refactored read-block-comment
@@ -324,6 +330,77 @@ the occurence of STRING."
           (progn
             (setf (pos state) (length (source state)))
             (line-comment start +end+))))))
+
+;; TODO this badly needs a refactor or two
+;; TODO #) and #<any whitespace> are **invalid**
+;; TODO read the complete form, not just the dispatch characters
+;; See https://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
+(defun read-sharpsign-dispatching-reader-macro
+    (state &aux (start (pos state)))
+  "Read reader macros #."
+  (when-let* ((dispatch-char (and
+                              (current-char= state #\#)
+                              (next-char state))))
+    ;; Simple cases
+    (alexandria:if-let ((foundp (member dispatch-char
+                                        '((#\\ . sharp-char)
+                                          (#\' . sharp-function)
+                                          (#\( . sharp-vector)
+                                          (#\* . sharp-bitvector)
+                                          (#\: . sharp-uninterned)
+                                          (#\. . sharp-eval)
+                                          (#\b . sharp-binary)
+                                          (#\B . sharp-binary)
+                                          (#\o . sharp-octal)
+                                          (#\O . sharp-octal)
+                                          (#\x . sharp-hexa)
+                                          (#\X . sharp-hexa)
+                                          (#\c . sharp-complex)
+                                          (#\C . sharp-complex)
+                                          (#\s . sharp-structure)
+                                          (#\S . sharp-structure)
+                                          (#\p . sharp-pathname)
+                                          (#\P . sharp-pathname)
+                                          (#\+ . sharp-feature)
+                                          (#\- . sharp-feature-not))
+                                        :key #'car)))
+      (cond
+        ((char= #\( dispatch-char)
+         (incf (pos state))
+         (sharpsign (cdar foundp) start (+ 1 start)))
+        (t
+         (incf (pos state) 2)
+         (sharpsign (cdar foundp) start (+ 2 start))))
+      ;; For the other cases, we expect a number (which might be
+      ;; alphanumeric depending on *read-base*).
+      (let* ((range (read-while state #'digit-char-p :start (1+ start)
+                                                     :advancep nil))
+             (end (second range))
+             (sub-char (and range (at state end)))
+             (foundp (progn
+                       ;; (format t "~&sub-char: ~s ~%~%" sub-char)
+                       (and sub-char
+                            (member sub-char
+                                    '((#\( . sharp-vector)
+                                      (#\* . sharp-bitvector)
+                                      (#\r . sharp-radix)
+                                      (#\R . sharp-radix)
+                                      (#\a . sharp-array)
+                                      (#\A . sharp-array)
+                                      (#\= . sharp-label)
+                                      (#\# . sharp-reference))
+                                    :key #'car)))))
+        ;; (break "Range: ~s; end: ~s; sub-char: ~s" range end sub-char)
+        (cond
+          ((and foundp (char= #\( sub-char))
+           (setf (pos state) end)
+           (sharpsign (cdar foundp) start end))
+          (foundp
+           (setf (pos state) (1+ end))
+           (sharpsign (cdar foundp) start (1+ end)))
+          (t
+           (sharpsign 'sharp-unknown start +end+)))))))
+
 
 (defun read-punctuation (state)
   "Read ' or `"
@@ -453,6 +530,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
              (funcall fn state))
          '(read-whitespaces
            read-block-comment
+           read-sharpsign-dispatching-reader-macro
            read-punctuation
            read-string
            read-line-comment
@@ -471,8 +549,10 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   "Parse a string, stop at the end, or when there's a parse error."
   (setf (tree state)
         (loop
+          ;; :for i :from 0
           :for node-start = (pos state)
           :for node = (read-any state)
+          ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
           :when node
             :collect node
           :while (and (valid-node-p node)
