@@ -148,6 +148,18 @@ common lisp.")
 (defun make-state (string)
   (make-instance 'state :source string))
 
+(defmethod print-object ((state state) stream)
+  (print-unreadable-object
+      (state stream :type t :identity nil)
+    (let ((excerpt (breeze.utils:around (source state)
+                                        (pos state))))
+      (format stream "~s ~d/~d"
+              excerpt
+              (length excerpt)
+              (length (source state))))))
+
+
+
 (alexandria:define-constant +end+ -1)
 
 (defstruct (range
@@ -452,20 +464,21 @@ the occurence of STRING."
   (#\= sharp-label read-any t)
   (#\# sharp-reference nil t))
 
-(defun read-number (state &optional (radix 10) convertp)
+;; TODO rename read-integer
+(defun read-number (state &optional (radix 10))
   (let ((range (read-while state #'(lambda (char) (digit-char-p char radix)))))
     (when range
-      (if convertp
-          (read-from-string (apply #'source-substring state range))
-          range))))
+      (let ((*read-base* radix))
+        (values (read-from-string (apply #'source-substring state range)) range)))))
 
 (defun read-sharpsign-backslash (state start number)
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\\)
     (decf (pos state))
-    (let ((token (read-token state)))
-      (node 'sharp-char start (pos state) token))))
+    (let ((token (when (valid-position-p state (1+ (pos state)))
+                   (read-token state))))
+      (node 'sharp-char start (if token (pos state) +end+) token))))
 
 (defun %read-sharpsign-any (state start type)
   (multiple-value-bind (whitespaces form)
@@ -485,24 +498,24 @@ the occurence of STRING."
     (let ((form (read-parens state)))
       (node 'sharp-vector start (if form (pos state) +end+) form))))
 
-(defun read-sharpsign-asterisk (state start number)
-  (declare (ignore number))
+(defun read-sharpsign-asterisk (state start length)
+  (declare (ignore length))
   (when (read-char* state #\*)
-    (let ((bits (read-number state 2)))
-      (node 'sharp-bitvector start (if bits (pos state) +end+) nil))))
+    (multiple-value-bind (bits range)
+        (read-number state 2)
+      ;; TODO check (- (cdr range) (car range)) <= length
+      (node 'sharp-bitvector start (pos state) bits))))
 
 (defun read-sharpsign-colon (state start number)
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\:)
-    (if (donep state)
-        (node 'sharp-uninterned start +end+)
-        (let* ((token-start (pos state))
-               (token (read-token state))
-               (end (pos state)))
-          (node 'sharp-uninterned start end
-                (or token
-                    (token token-start end)))))))
+    (let* ((token-start (pos state))
+           (token (read-token state))
+           (end (pos state)))
+      (node 'sharp-uninterned start end
+            (or token
+                (token token-start end))))))
 
 (defun read-sharpsign-dot (state start number)
   (declare (ignore number))
@@ -569,33 +582,31 @@ the occurence of STRING."
 (defreader sharpsign-dispatching-reader-macro ()
   "Read reader macros #..."
   (when (read-char* state #\#)
-    (let ((number (read-number state 10 t)))
-      ;; TODO detect if number is supposed to be valid...  e.g. #32p
-      ;; should not be ok... maybe it's fine at this stage of the
-      ;; parsing...?
-      (some
-       (lambda (fn)
-         (funcall fn state start number))
-       '(read-sharpsign-backslash
-         read-sharpsign-quote
-         read-sharpsign-left-parens
-         read-sharpsign-asterisk
-         read-sharpsign-colon
-         read-sharpsign-dot
-         read-sharpsign-b
-         read-sharpsign-o
-         read-sharpsign-x
-         read-sharpsign-r
-         read-sharpsign-c
-         read-sharpsign-a
-         read-sharpsign-s
-         read-sharpsign-p
-         read-sharpsign-equal
-         read-sharpsign-sharpsign
-         read-sharpsign-plus
-         read-sharpsign-minus))
-      ;; Invalid syntax OR custom reader macro
-      (sharpsign 'sharp-unknown start +end+))))
+    (let ((number (read-number state)))
+      (or
+       (some
+        (lambda (fn)
+          (funcall fn state start number))
+        '(read-sharpsign-backslash
+          read-sharpsign-quote
+          read-sharpsign-left-parens
+          read-sharpsign-asterisk
+          read-sharpsign-colon
+          read-sharpsign-dot
+          read-sharpsign-b
+          read-sharpsign-o
+          read-sharpsign-x
+          read-sharpsign-r
+          read-sharpsign-c
+          read-sharpsign-a
+          read-sharpsign-s
+          read-sharpsign-p
+          read-sharpsign-equal
+          read-sharpsign-sharpsign
+          read-sharpsign-plus
+          read-sharpsign-minus))
+       ;; Invalid syntax OR custom reader macro
+       (sharpsign 'sharp-unknown start +end+)))))
 
 
 (defreader punctuation ()
@@ -693,7 +704,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 
 
 (defparameter *state-control-string*
-  "~{position: ~D char: ~s context: «~a»~}")
+  "position: ~D char: ~s context: «~a»")
 
 (defun state-context (state)
   (let* ((pos (pos state))
@@ -701,6 +712,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
     `(,pos
       ,(at state pos)
       ,(breeze.utils:around string pos))))
+
 
 ;; don't forget to handle dotted lists
 (defreader parens ()

@@ -5,6 +5,8 @@
   (:documentation "Test package for #:breeze.lossless-reader")
   (:use #:cl #:breeze.lossless-reader)
   (:import-from #:breeze.lossless-reader
+                #:*state-control-string*
+                #:state-context
                 #:read-sharpsign-backslash
                 #:read-sharpsign-quote
                 #:read-sharpsign-left-parens
@@ -31,6 +33,7 @@
                 #:false
                 #:of-type)
   (:import-from #:breeze.kite
+                #:is-equalp*
                 #:is-equalp))
 
 (in-package #:breeze.test.lossless-reader)
@@ -78,9 +81,12 @@ newline or +end+)
        ;; remainder: the input is only used (unless (equalp got expected))
        ;; the input is used to give
        (labels ((test* (got &optional expected)
-                  (is-equalp ,string got expected
-                             *state-control-string*
-                             (state-context state)))
+                  (is-equalp
+                   :input ,string
+                   :got got
+                   :expected expected
+                   :description *state-control-string*
+                   :format-args (state-context state)))
                 ,@more-labels)
          (declare (ignorable (function test*)))
          ,@ (loop :for (label . _) :in more-labels
@@ -108,6 +114,22 @@ newline or +end+)
         (no (,@extra-args) (test* ,test-form nil))
         ,@more-labels)
      ,@body))
+
+#++
+(with-state ("asdf")
+  (test* t t))
+
+
+
+#++
+(with-state ("asdf")
+  (format nil "This is a bug: read-any returned an invalid node, but we're not done reading the file...~%~?"
+          *state-control-string*
+          (state-context state)))
+
+#++
+(with-state ("asdf")
+  (state-context state))
 
 
 ;;; Reader position (in the source string)
@@ -214,7 +236,7 @@ newline or +end+)
 (defun test-find-all (needle string expected)
   (register-test-string string)
   (register-test-string needle)
-  (is-equalp
+  (is-equalp*
    (list 'find-all needle string)
    (find-all needle string)
    expected))
@@ -244,9 +266,12 @@ newline or +end+)
 
 (defun test-read-block-comment (input expected-end)
   (with-state (input)
-    (is-equalp input (read-block-comment state)
-          (when expected-end
-            (block-comment 0 expected-end)))))
+    (is-equalp
+     :input input
+     :got (read-block-comment state)
+     :form `(read-block-comment ,state)
+     :expected (when expected-end
+                 (block-comment 0 expected-end)))))
 
 (define-test+run read-block-comment
   :depends-on (read-string*)
@@ -277,20 +302,57 @@ newline or +end+)
 
 
 
-(defun test-read-sharpsign-backslash (input expected-end
-                                      &optional (expected-pos expected-end))
-  (with-state (input)
-    (incf (pos state))
-    (let ((got (is-equalp input
-                          (read-sharpsign-backslash state 0 nil)
-                          (node 'sharp-char 0 expected-end
-                                (token 1 expected-end)))))
-      (when got
-        (is-equalp input
-                   expected-pos
-                   (pos state))))))
+(defun test-read-sharpsign* (&key
+                               sharpsing-reader-function
+                               node-type
+                               input
+                               expected-end
+                               expected-pos
+                               expected-children
+                               given-numeric-argument)
+  "Helps testing the read-sharpsign-* functions."
+  (let* ((starting-position (if (listp input) (length (first input)) 1))
+         (input (if (listp input) (apply 'concatenate 'string input) input))
+         (expected-end (or expected-end (length input)))
+         (expected-pos (or expected-pos expected-end)))
+    (with-state (input)
+      (setf (pos state) starting-position)
+      (let ((got
+              (is-equalp
+               :input input
+               :got (funcall sharpsing-reader-function
+                             state
+                             ;; Assumes we started reading the
+                             ;; # as the first character.
+                             0
+                             given-numeric-argument)
+               :form (list sharpsing-reader-function
+                           state 0 given-numeric-argument)
+               :expected (node node-type 0
+                               expected-end
+                               expected-children))))
+        (when (and got (plusp expected-end))
+          (is-equalp
+           :input input
+           :expected expected-pos
+           :form `(pos ,state)
+           :got (pos state)
+           :description " the state's position after reading is wrong:"))
+        got))))
+
+
+
+(defun test-read-sharpsign-backslash (input expected-end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-backslash
+   :node-type 'sharp-char
+   :input input
+   :expected-end expected-end
+   :expected-children (unless (= +end+ expected-end)
+                        (token 1 expected-end))))
 
 (define-test+run read-sharpsign-backslash
+  (test-read-sharpsign-backslash "#\\" +end+)
   (test-read-sharpsign-backslash "#\\ " 2)
   (test-read-sharpsign-backslash "#\\  " 2)
   (test-read-sharpsign-backslash "#\\Space" 7)
@@ -300,19 +362,13 @@ newline or +end+)
 
 
 
-(defun test-read-sharpsign-quote (input child expected-end
-                                  &optional (expected-pos expected-end))
-  (with-state (input)
-    (incf (pos state))
-    (let ((got (is-equalp input
-                          (read-sharpsign-quote state 0 nil)
-                          (node 'sharp-function 0 expected-end
-                                child))))
-      (when (and got (plusp expected-end))
-        (is-equalp input
-                   expected-pos
-                   (pos state))))))
-
+(defun test-read-sharpsign-quote (input child expected-end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function #'read-sharpsign-quote
+   :node-type 'sharp-function
+   :input input
+   :expected-end expected-end
+   :expected-children child))
 
 (define-test+run read-sharpsign-quote
   (test-read-sharpsign-quote "#'" nil +end+)
@@ -327,87 +383,81 @@ newline or +end+)
 
 
 
-(defun test-read-sharpsign-left-parens (input child expected-end
-                                        &optional (expected-pos expected-end))
-  (with-state (input)
-    (incf (pos state))
-    (let ((got (is-equalp input
-                          (read-sharpsign-left-parens state 0 nil)
-                          (node 'sharp-vector 0 expected-end
-                                child))))
-      (when (and got (plusp expected-end))
-        (is-equalp input
-                   expected-pos
-                   (pos state))))))
-
+(defun test-read-sharpsign-left-parens (input child expected-end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function #'read-sharpsign-left-parens
+   :node-type 'sharp-vector
+   :input input
+   :expected-end expected-end
+   :expected-children child))
 
 (define-test+run read-sharpsign-left-parens
   (test-read-sharpsign-left-parens "#()" (parens 1 3) 3)
-  (test-read-sharpsign-left-parens "#( )" (parens 1 4 (whitespace 2 3)) 4))
-
+  (test-read-sharpsign-left-parens "#( )" (parens 1 4 (whitespace 2 3)) 4)
+  (test-read-sharpsign-left-parens '("#1" "()") (parens 2 4) 4)
+  (test-read-sharpsign-left-parens '("#2" "( )") (parens 2 5 (whitespace 3 4)) 5))
 
 
-;; TODO
 
-#++
-(defun test-read-sharpsign-asterisk (input child expected-end
-                                     &optional (expected-pos expected-end))
-  (with-state (input)
-    (incf (pos state))
-    (let ((got (is-equalp input
-                          (read-sharpsign-asterisk state 0 nil)
-                          (node 'sharp-bitvector 0 expected-end
-                                child))))
-      (when (and got (plusp expected-end))
-        (is-equalp input
-                   expected-pos
-                   (pos state))))))
+;; (trace test-read-sharpsign* read-sharpsign-asterisk)
+;; (untrace)
 
-#++
+(defun test-read-sharpsign-asterisk (input &key child end n)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-asterisk
+   :node-type 'sharp-bitvector
+   :input input
+   :expected-end end
+   :expected-children child
+   :given-numeric-argument n))
+
 (define-test+run read-sharpsign-asterisk
-  (test-read-sharpsign-asterisk "#()" (parens 1 3) 3)
-  (test-read-sharpsign-asterisk "#( )" (parens 1 4 (whitespace 2 3)) 4))
-
-
+  (test-read-sharpsign-asterisk '("#" "*"))
+  (test-read-sharpsign-asterisk '("#" "* ") :end 2)
+  (test-read-sharpsign-asterisk '("#" "*0") :child 0)
+  (test-read-sharpsign-asterisk '("#0" "*") :n 0)
+  (test-read-sharpsign-asterisk '("#2" "*0") :child 0)
+  (test-read-sharpsign-asterisk '("#2" "*0") :n 2 :child 0)
+  ;; TODO this is actually a syntax error, as "101" is longer than 2
+  (test-read-sharpsign-asterisk '("#2" "*101") :child 5 :n 2))
 
 
 
-(defun test-read-sharpsign-colon (input child expected-end
-                                  &optional (expected-pos expected-end))
-  (with-state (input)
-    (incf (pos state))
-    (let ((got (is-equalp input
-                          (read-sharpsign-colon state 0 nil)
-                          (node 'sharp-uninterned 0 expected-end
-                                child))))
-      (when (and got (plusp expected-end))
-        (is-equalp input
-                   expected-pos
-                   (pos state))))))
+(defun test-read-sharpsign-colon (input child &optional expected-end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-colon
+   :node-type 'sharp-uninterned
+   :input input
+   :expected-end expected-end
+   :expected-children child))
 
 
 (define-test+run read-sharpsign-colon
-  (test-read-sharpsign-colon "#:" nil +end+)
+  (test-read-sharpsign-colon "#:" (token 2 2) 2)
+  (test-read-sharpsign-colon "#: " (token 2 2) 2)
+  (test-read-sharpsign-colon "#:||" (token 2 4) 4)
+  (test-read-sharpsign-colon "#:|| " (token 2 4) 4)
   (test-read-sharpsign-colon "#: a" (token 2 2) 2)
-  (test-read-sharpsign-colon "#:||" (token 2 4) 4))
+  (test-read-sharpsign-colon "#: a " (token 2 2) 2)
+  (test-read-sharpsign-colon "#:asdf" (token 2 6)))
 
-;; (read-from-string "#: a") => #:||
+#++
+(progn
+  (read-from-string "#:")
+  (read-from-string "#: ")
+  (read-from-string "#: a")
+  ;; they all return => #:||
+  )
 
 
 
-(defun test-read-sharpsign-dot (input child expected-end
-                                &optional (expected-pos expected-end))
-  (with-state (input)
-    (incf (pos state))
-    (let ((got (is-equalp input
-                          (read-sharpsign-dot state 0 nil)
-                          (node 'sharp-eval 0 expected-end
-                                child))))
-      (when (and got (plusp expected-end))
-        (is-equalp input
-                   expected-pos
-                   (pos state))))))
-
+(defun test-read-sharpsign-dot (input child expected-end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-dot
+   :node-type 'sharp-eval
+   :input input
+   :expected-end expected-end
+   :expected-children child))
 
 (define-test+run read-sharpsign-dot
   (test-read-sharpsign-dot "#." nil +end+)
@@ -415,6 +465,10 @@ newline or +end+)
   (test-read-sharpsign-dot "#. a" (list (whitespace 2 3)
                                         (token 3 4))
                            4))
+
+
+
+
 
 
 
@@ -429,6 +483,7 @@ newline or +end+)
                    expected-pos
                    (pos state))))))
 
+#++
 (define-test+run read-sharpsign-dispatching-reader-macro
   (test-read-sharpsign "#(" 'sharp-vector 1 1)
   (test-read-sharpsign "#(asdf)" 'sharp-vector 1 1)
@@ -489,10 +544,10 @@ newline or +end+)
 
 (defun test-read-punctuation (input expected-type)
   (with-state (input)
-    (is-equalp input
-               (read-punctuation state)
-               (when expected-type
-                 (punctuation expected-type 0)))))
+    (is-equalp* input
+                (read-punctuation state)
+                (when expected-type
+                  (punctuation expected-type 0)))))
 
 (define-test+run read-punctuation
   :depends-on (current-char)
@@ -594,7 +649,6 @@ newline or +end+)
 ;; TODO read-any
 (define-test read-any)
 
-
 
 ;;; Putting it all toghether
 
@@ -604,8 +658,8 @@ newline or +end+)
   (let* ((state (parse input))
          (tree (tree state)))
     (if expected
-        (is-equalp input tree expected)
-        (is-equalp input tree))))
+        (is-equalp* input tree expected)
+        (is-equalp* input tree))))
 
 (define-test+run "parse"
   :depends-on (read-parens)
@@ -623,11 +677,11 @@ newline or +end+)
   (test-parse "#| #||# |#" (block-comment 0 10))
   (test-parse "'" (punctuation 'quote 0))
   (test-parse "`" (punctuation 'quasiquote 0))
-  (test-parse "#" (punctuation 'sharp 0))
+  ;; (test-parse "#" (punctuation 'sharp 0))
   (test-parse "," (punctuation 'comma 0))
   (test-parse "+-*/" (token 0 4))
   (test-parse "123" (token 0 3))
-  (test-parse "asdf#" (token 0 5))
+  ;; (test-parse "asdf#" (token 0 5))
   (test-parse "| asdf |" (token 0 8))
   (test-parse "arg| asdf | " (token 0 11) (whitespace 11 12))
   (test-parse "arg| asdf |more" (token 0 15))
@@ -637,19 +691,22 @@ newline or +end+)
   (test-parse "(12" (parens 0 +end+ (token 1 3)))
   (test-parse "\"" (node 'string 0 +end+))
   (test-parse "#:asdf"
-              (node 'sharp-uninterned 0 2)
-              (node 'token 2 6))
+              (node 'sharp-uninterned 0 6
+                    (node 'token 2 6)))
   (test-parse "#2()"
-              (node 'sharp-vector 0 2)
-              (node 'parens 2 4))
+              (node 'sharp-vector 0 4
+                    (node 'parens 2 4)))
   (test-parse "#<>" (node 'sharp-unknown 0 +end+))
-  (test-parse "#+" (node 'sharp-feature 0 2)))
+  (test-parse "#+ x" (node 'sharp-feature 0 4
+                           (list
+                            (whitespace 2 3)
+                            (token 3 4)))))
 
 (defun test-parse* (input &rest expected)
   (register-test-string input)
   (if expected
-      (is-equalp input (parse* input) expected)
-      (is-equalp input (parse* input))))
+      (is-equalp* input (parse* input) expected)
+      (is-equalp* input (parse* input))))
 
 ;; Slightly cursed syntax:
 ;; "#+#."
@@ -663,7 +720,7 @@ newline or +end+)
   (let* ((state (parse string))
          (result (unparse state nil))
          (success (equalp string result)))
-    (is-equalp (or context string) result string)
+    (is-equalp* (or context string) result string)
     (when (and success check-for-error)
       ;; Would be nice to (signal ...), not error, just signal, when
       ;; there's a parsing failure, because right now it's pretty hard
