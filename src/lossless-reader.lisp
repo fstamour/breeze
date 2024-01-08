@@ -187,23 +187,36 @@ common lisp.")
 
 ;;; Constructors
 
-(defun whitespace (start end)
-  (node 'whitespace start end))
+(macrolet ((simple-constructor (name)
+             `(defun ,name (start end)
+                (node ',name start end))))
+  (simple-constructor whitespace)
+  (simple-constructor block-comment)
+  (simple-constructor line-comment)
+  (simple-constructor token)
+  (simple-constructor sharp-char)
+  (simple-constructor sharp-function)
+  (simple-constructor sharp-vector)
+  (simple-constructor sharp-bitvector)
+  (simple-constructor sharp-uninterned)
+  (simple-constructor sharp-eval)
+  (simple-constructor sharp-binary)
+  (simple-constructor sharp-octal)
+  (simple-constructor sharp-hexa)
+  (simple-constructor sharp-complex)
+  (simple-constructor sharp-structure)
+  (simple-constructor sharp-pathname)
+  (simple-constructor sharp-feature)
+  (simple-constructor sharp-feature-not)
+  (simple-constructor sharp-radix)
+  (simple-constructor sharp-array)
+  (simple-constructor sharp-label)
+  (simple-constructor sharp-reference)
+  (simple-constructor sharp-unknown))
 
-(defun block-comment (start end)
-  (node 'block-comment start end))
-
-(defun line-comment (start end)
-  (node 'line-comment start end))
 
 (defun punctuation (type position)
   (node type position (1+ position)))
-
-(defun sharpsign (type start end)
-  (node type start end))
-
-(defun token (start end)
-  (node 'token start end))
 
 (defun parens (start end &optional children)
   (node 'parens start end
@@ -212,8 +225,34 @@ common lisp.")
             children)))
 
 (defmethod print-object ((node node) stream)
-  (let ((children (node-children node)))
-    (format stream "(node '~s ~d ~d~:[ ~s~;~@[ (list ~{~s~^ ~})~]~])"
+  (let ((*print-case* :downcase)
+        (children (node-children node)))
+    (format stream "(~:[node '~;~]~s ~d ~d~:[ ~s~;~@[ (list ~{~s~^ ~})~]~])"
+            (member (node-type node)
+                    '(parens
+                      token
+                      whitespace
+                      block-comment
+                      line-comment
+                      sharp-char
+                      sharp-function
+                      sharp-vector
+                      sharp-bitvector
+                      sharp-uninterned
+                      sharp-eval
+                      sharp-binary
+                      sharp-octal
+                      sharp-hexa
+                      sharp-complex
+                      sharp-structure
+                      sharp-pathname
+                      sharp-feature
+                      sharp-feature-not
+                      sharp-radix
+                      sharp-array
+                      sharp-label
+                      sharp-reference
+                      sharp-unknown))
             (node-type node)
             (node-start node)
             (node-end node)
@@ -222,10 +261,14 @@ common lisp.")
 
 ;; TODO make a test out of this
 #++
-(format nil "~s~%~s"
-        (node 'asdf 1 3 (node 'qwer 3 5))
-        (node 'asdf 1 3 (list (node 'qwer 3 5)
-                              (node 'uiop 6 8))))
+(mapcar
+ #'princ-to-string
+ (list
+  (node 'asdf 1 3)
+  (node 'asdf 1 3 (node 'qwer 3 5))
+  (node 'asdf 1 3 (list (node 'qwer 3 5)
+                        (node 'uiop 6 8)))
+  (parens 3 5)))
 
 
 ;;; Predicates
@@ -566,11 +609,15 @@ the occurence of STRING."
 (defun read-sharpsign-c (state start number)
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
-  (when (read-char* state #\c)
+  (when (read-char* state #\c nil)
     (let ((form (read-parens state)))
       (node 'sharp-complex start (if form (pos state) +end+) form))))
 
-(defun read-sharpsign-a (state start number))
+(defun read-sharpsign-a (state start length)
+  (declare (ignore length))
+  (when (read-char* state #\a nil)
+    (let ((form (read-parens state)))
+      (node 'sharp-array start (if form (pos state) +end+) form))))
 
 (defun read-sharpsign-s (state start number))
 
@@ -625,7 +672,7 @@ the occurence of STRING."
           read-sharpsign-plus
           read-sharpsign-minus))
        ;; Invalid syntax OR custom reader macro
-       (sharpsign 'sharp-unknown start +end+)))))
+       (sharp-unknown start +end+)))))
 
 
 (defreader punctuation ()
