@@ -468,6 +468,27 @@ newline or +end+)
 
 
 
+(defun test-read-sharpsign-c (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-c
+   :node-type 'sharp-complex
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-c
+  (test-read-sharpsign-c "#c" :end +end+)
+  (test-read-sharpsign-c "#cx" :end +end+)
+  (test-read-sharpsign-c "#c1" :end +end+)
+  ;; N.B. #c(1) is actually invalid
+  (test-read-sharpsign-c "#c(1)"
+                         :child (node 'parens 2 5 (list (node 'token 3 4))))
+  (test-read-sharpsign-c "#c(1 2) a"
+                         :child (node 'parens 2 7
+                                      (list (node 'token 3 4)
+                                            (node 'whitespace 4 5)
+                                            (node 'token 5 6)))
+                         :end 7))
 
 
 

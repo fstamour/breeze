@@ -184,6 +184,9 @@ common lisp.")
   (children '()
    :read-only t))
 
+
+;;; Constructors
+
 (defun whitespace (start end)
   (node 'whitespace start end))
 
@@ -208,6 +211,25 @@ common lisp.")
             (list children)
             children)))
 
+(defmethod print-object ((node node) stream)
+  (let ((children (node-children node)))
+    (format stream "(node '~s ~d ~d~:[ ~s~;~@[ (list ~{~s~^ ~})~]~])"
+            (node-type node)
+            (node-start node)
+            (node-end node)
+            (listp children)
+            children)))
+
+;; TODO make a test out of this
+#++
+(format nil "~s~%~s"
+        (node 'asdf 1 3 (node 'qwer 3 5))
+        (node 'asdf 1 3 (list (node 'qwer 3 5)
+                              (node 'uiop 6 8))))
+
+
+;;; Predicates
+
 (macrolet ((p (type)
              `(export
                (defun
@@ -220,12 +242,17 @@ common lisp.")
   (p block-comment)
   (p line-comment)
   (p token)
-  (p parens))
+  (p parens)
+  ;; TODO add sharp-*
+  )
 
 (defun comment-node-p (node)
   "Is this node a block or line comment?"
   (or (line-comment-node-p node)
       (block-comment-node-p node)))
+
+
+;;; Content and range
 
 (defun source-substring (state start end)
   "Get a (displaced) substring of the state's source string."
@@ -287,6 +314,7 @@ Returns nil if POSITION is invalid."
     (char (source state) position)))
 
 ;; TODO add tests with case-sensitive-p = nil
+;; TODO split into at= and at-equal
 (defun at= (state position char &optional (case-insensitive-p t))
   "Compare the character at POSITION in the STATE's source with the parameter CHAR and returns the CHAR if they're char=.
 Returns nil if POSITION is invalid."
@@ -302,6 +330,7 @@ the position."
   (at state (pos state)))
 
 ;; TODO add tests with case-sensitive-p = nil
+;; TODO split into current-char= and current-char-equal
 (defun current-char= (state char &optional (case-sensitive-p t))
   "Get the character at the current STATE's position, without changing
 the position."
@@ -313,6 +342,7 @@ position."
   (at state (+ n (pos state))))
 
 ;; TODO add tests with case-sensitive-p = nil
+;; TODO split into next-char= and next-char-equal
 (defun next-char= (state char &optional (n 1) (case-sensitive-p t))
   "Peek at the next character to be read, without changing the
 position."
@@ -322,6 +352,8 @@ position."
 ;;; Low-level parsing helpers
 
 ;; TODO add tests with case-sensitive-p = nil
+;; TODO split into read-char and read-char=
+;; TODO implement using current-char=
 (defun read-char* (state &optional char (case-sensitive-p t))
   (when-let ((c (current-char state)))
     (when (or (null char)
@@ -346,6 +378,7 @@ the occurence of STRING."
 
 ;; 2023-05-20 only used in read-token
 ;; 2024-01-03 and read- dispatch reader macro
+;; TODO return a range instead of a list
 (defun read-while (state predicate &key (advance-position-p t) (start (pos state)))
   "Returns nil or (list start end)"
   (loop
@@ -360,7 +393,12 @@ the occurence of STRING."
           (return nil))))
 
 ;; Will be useful for finding some synchronization points
+;;
 ;; 2023-05-20 not used anymore, since I refactored read-block-comment
+;;
+;; TODO maybe add a callback instead of building up a list... (not
+;; sure if it's worth it (performance-wise), it'll heavily depends on
+;; how and _if_ I use this).
 (defun find-all (needle string)
   (when (and (plusp (length needle))
              (plusp (length string)))
@@ -434,42 +472,15 @@ the occurence of STRING."
             (setf (pos state) (length (source state)))
             (line-comment start +end+))))))
 
-;; char symbol next-reader-function &optional numeric-arg-p
-#++
-(defparameter *standard-sharpsign-reader-macro-dispatch*
-  (#\( sharp-vector read-parens t) ;; *
-  (#\* sharp-bitvector (read-number 2) t)
-  (#\: sharp-uninterned read-token)
-  (#\. sharp-eval read-any)
-  (#\b sharp-binary (read-number 2))
-  (#\B sharp-binary (read-number 2))
-  (#\o sharp-octal (read-number 8))
-  (#\O sharp-octal (read-number 8))
-  (#\x sharp-hexa (read-number 16))
-  (#\X sharp-hexa (read-number 16))
-  (#\c sharp-complex read-parens)
-  (#\C sharp-complex read-parens)
-  (#\s sharp-structure read-parens)
-  (#\S sharp-structure read-parens)
-  (#\p sharp-pathname read-string)
-  (#\P sharp-pathname read-string)
-  (#\+ sharp-feature read-any)
-  (#\- sharp-feature-not read-any)
-
-  (#\* sharp-bitvector (read-number 2))
-  (#\r sharp-radix (read-number *))
-  (#\R sharp-radix (read-number *))
-  (#\a sharp-array read-parens)
-  (#\A sharp-array read-parens)
-  (#\= sharp-label read-any t)
-  (#\# sharp-reference nil t))
-
 ;; TODO rename read-integer
 (defun read-number (state &optional (radix 10))
   (let ((range (read-while state #'(lambda (char) (digit-char-p char radix)))))
     (when range
       (let ((*read-base* radix))
         (values (read-from-string (apply #'source-substring state range)) range)))))
+
+;;; TODO in the following read-sharpsign-* functions, number should be
+;;; renamed "prefix"
 
 (defun read-sharpsign-backslash (state start number)
   (declare (ignore number))
@@ -494,6 +505,8 @@ the occurence of STRING."
 
 (defun read-sharpsign-left-parens (state start number)
   (declare (ignore number))
+  ;; N.B. we use current-char instead of read-char, because we don't
+  ;; want to consume the left-parens right away.
   (when (current-char= state #\()
     (let ((form (read-parens state)))
       (node 'sharp-vector start (if form (pos state) +end+) form))))
@@ -550,9 +563,15 @@ the occurence of STRING."
     (let ((n (read-number state radix)))
       (node 'sharp-radix start (if n (pos state) +end+)))))
 
-(defun read-sharpsign-c (state start number))
+(defun read-sharpsign-c (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\c)
+    (let ((form (read-parens state)))
+      (node 'sharp-complex start (if form (pos state) +end+) form))))
 
 (defun read-sharpsign-a (state start number))
+
 (defun read-sharpsign-s (state start number))
 
 (defun read-sharpsign-p (state start number))
