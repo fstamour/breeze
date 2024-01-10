@@ -39,28 +39,30 @@ common lisp.")
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
+  ;; Parsing state
   (:export #:state
            #:source
            #:pos
            #:tree
-           #:make-state
-           ;; nodes
-           #:+end+
+           #:make-state)
+  ;; Nodes
+  (:export #:+end+
            #:node
+           #:node-start
+           #:node-end
            #:node-type
            #:node-children
-           #:valid-node-p
-           ;; node constructors
-           #:block-comment
+           #:copy-node
+           #:valid-node-p)
+  ;; Node constructors
+  (:export #:block-comment
            #:parens
-           #:sharpsign
            #:punctuation
            #:token
            #:whitespace
            #:line-comment
            #:string
-           ;; Symbols used in the returns
-           #:quote                 ; this ones from cl actually
+           #:quote
            #:quasiquote
            #:dot
            #:comma
@@ -83,9 +85,74 @@ common lisp.")
            #:sharp-array
            #:sharp-label
            #:sharp-reference
-           #:sharp-unknown
-           ;; state utilities
-           #:at
+           #:sharp-unknown)
+  ;; Node copiers
+  (:export #:copy-block-comment
+           #:copy-parens
+           #:copy-sharpsign
+           #:copy-punctuation
+           #:copy-token
+           #:copy-whitespace
+           #:copy-line-comment
+           #:copy-string
+           #:copy-quote
+           #:copy-quasiquote
+           #:copy-dot
+           #:copy-comma
+           #:copy-sharp
+           #:copy-sharp-char
+           #:copy-sharp-function
+           #:copy-sharp-vector
+           #:copy-sharp-bitvector
+           #:copy-sharp-uninterned
+           #:copy-sharp-eval
+           #:copy-sharp-binary
+           #:copy-sharp-octal
+           #:copy-sharp-hexa
+           #:copy-sharp-complex
+           #:copy-sharp-structure
+           #:copy-sharp-pathname
+           #:copy-sharp-feature
+           #:copy-sharp-feature-not
+           #:copy-sharp-radix
+           #:copy-sharp-array
+           #:copy-sharp-label
+           #:copy-sharp-reference
+           #:copy-sharp-unknown)
+  ;; Node predicates
+  (:export #:block-comment-node-p
+           #:parens-node-p
+           #:punctuation-node-p
+           #:token-node-p
+           #:whitespace-node-p
+           #:line-comment-node-p
+           #:string-node-p
+           #:quote-node-p
+           #:quasiquote-node-p
+           #:dot-node-p
+           #:comma-node-p
+           #:sharp-node-p
+           #:sharp-char-node-p
+           #:sharp-function-node-p
+           #:sharp-vector-node-p
+           #:sharp-bitvector-node-p
+           #:sharp-uninterned-node-p
+           #:sharp-eval-node-p
+           #:sharp-binary-node-p
+           #:sharp-octal-node-p
+           #:sharp-hexa-node-p
+           #:sharp-complex-node-p
+           #:sharp-structure-node-p
+           #:sharp-pathname-node-p
+           #:sharp-feature-node-p
+           #:sharp-feature-not-node-p
+           #:sharp-radix-node-p
+           #:sharp-array-node-p
+           #:sharp-label-node-p
+           #:sharp-reference-node-p
+           #:sharp-unknown-node-p)
+  ;; State utilities
+  (:export #:at
            #:at=
            #:current-char
            #:current-char=
@@ -110,11 +177,11 @@ common lisp.")
            #:read-string
            #:read-token
            #:read-whitespaces
-           #:read-block-comment
-           ;; top-level parsing/unparsing
-           #:parse
-           #:parse*
-           #:unparse))
+           #:read-block-comment)
+  (:export
+   ;; top-level parsing/unparsing
+   #:parse
+   #:unparse))
 
 (in-package #:breeze.lossless-reader)
 
@@ -187,35 +254,64 @@ common lisp.")
 
 ;;; Constructors
 
-(macrolet ((simple-constructor (name &key children)
-             `(defun ,name (start end ,@(case children
-                                          (&optional (list '&optional 'children))
-                                          ((t) (list 'children))))
-                (node ',name start end ,@(when children (list 'children))))))
-  (simple-constructor whitespace)
-  (simple-constructor block-comment)
-  (simple-constructor line-comment)
-  (simple-constructor token)
+(macrolet ((aux (type &key children (name type))
+             `(progn
+                ;; predicate
+                (defun
+                    ,(alexandria:symbolicate type '-node-p)
+                    (node)
+                  ,(format nil "Is this a node of type ~s" type)
+                  (and (nodep node)
+                       (eq (node-type node) ',type)))
+                ;; constructor
+                (defun ,name (start end
+                              ,@(case children
+                                  (&optional (list '&optional 'children))
+                                  ((t) (list 'children))))
+                  (node ',type start end ,@(when children (list 'children))))
+                ;; copier
+                (defun ,(alexandria:symbolicate 'copy- name)
+                    (node &key (start nil startp)
+                            (end nil endp)
+                            ,@(when children
+                                (list `(children nil childrenp))))
+                  (node ',type
+                        (if startp start (node-start node))
+                        (if endp end (node-end node))
+                        ,@(when children
+                            `((if childrenp children (node-children node)))))))))
   ;; TODO more of then needs children...
-  (simple-constructor sharp-char)
-  (simple-constructor sharp-function)
-  (simple-constructor sharp-vector)
-  (simple-constructor sharp-bitvector)
-  (simple-constructor sharp-uninterned)
-  (simple-constructor sharp-eval)
-  (simple-constructor sharp-binary)
-  (simple-constructor sharp-octal)
-  (simple-constructor sharp-hexa)
-  (simple-constructor sharp-complex)
-  (simple-constructor sharp-structure)
-  (simple-constructor sharp-pathname :children t)
-  (simple-constructor sharp-feature :children t)
-  (simple-constructor sharp-feature-not :children t)
-  (simple-constructor sharp-radix)
-  (simple-constructor sharp-array)
-  (simple-constructor sharp-label)
-  (simple-constructor sharp-reference)
-  (simple-constructor sharp-unknown))
+  (aux whitespace)
+  (aux block-comment)
+  (aux line-comment)
+  (aux token)
+  (aux parens :children &optional)
+  (aux punctuation)
+  (aux string :name string-node)
+  (aux quote :name quote-node)
+  (aux quasiquote)
+  (aux dot)
+  (aux comma)
+  (aux sharp)
+  (aux sharp-char)
+  (aux sharp-function)
+  (aux sharp-vector)
+  (aux sharp-bitvector)
+  (aux sharp-uninterned)
+  (aux sharp-eval)
+  (aux sharp-binary)
+  (aux sharp-octal)
+  (aux sharp-hexa)
+  (aux sharp-complex)
+  (aux sharp-structure)
+  (aux sharp-pathname :children t)
+  (aux sharp-feature :children t)
+  (aux sharp-feature-not :children t)
+  (aux sharp-radix)
+  (aux sharp-array)
+  (aux sharp-label)
+  (aux sharp-reference)
+  (aux sharp-unknown))
 
 
 (defun punctuation (type position)
@@ -275,22 +371,6 @@ common lisp.")
 
 
 ;;; Predicates
-
-(macrolet ((p (type)
-             `(export
-               (defun
-                   ,(alexandria:symbolicate type '-node-p)
-                   (node)
-                 ,(format nil "Is this a node of type ~s" type)
-                 (and (nodep node)
-                      (eq (node-type node) ',type))))))
-  (p whitespace)
-  (p block-comment)
-  (p line-comment)
-  (p token)
-  (p parens)
-  ;; TODO add sharp-*
-  )
 
 (defun comment-node-p (node)
   "Is this node a block or line comment?"
@@ -936,26 +1016,44 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 ;;;
 
 ;; Should I pass the depth here too?
-(defun write-node (node state stream)
-  (write-string (source state) stream
-                :start (start node)
-                :end (if (no-end-p node)
-                         (length (source state))
-                         (end node))))
+(defun write-node (node state stream )
+  (when node
+    (write-string (source state) stream
+                  :start (start node)
+                  :end (if (no-end-p node)
+                           (length (source state))
+                           (end node)))))
 
 ;; (trace write-node)
 ;; (untrace)
 
-(defun %unparse (tree state stream depth)
-  (if (listp tree)
-      (mapcar (lambda (node) (%unparse node state stream (1+ depth))) tree)
-      (write-node tree state stream)))
+(defun %get-node (node changes)
+  (if changes
+      (gethash node changes node)
+      node))
 
-(defun unparse (state &optional (stream t))
+(defun %unparse (tree state stream depth changes)
+  (when tree
+    (if (listp tree)
+        (mapcar (lambda (node) (%unparse (%get-node node changes)
+                                         state stream (1+ depth)
+                                         changes))
+                tree)
+        (case (node-type tree)
+          (parens
+           (write-char #\( stream)
+           (%unparse (node-children tree) state stream depth changes)
+           (unless (no-end-p tree)
+             (write-char #\) stream)))
+          (t
+           (write-node (%get-node tree changes) state stream))))))
+
+(defun unparse (state &optional (stream t) changes)
   (if stream
       (%unparse (tree state) state
                 (if (eq t stream) *standard-output* stream)
-                0)
+                0
+                changes)
       ;; if stream is nil
       (with-output-to-string (out)
-        (%unparse (tree state) state out 0))))
+        (%unparse (tree state) state out 0 changes))))

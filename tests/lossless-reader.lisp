@@ -899,6 +899,8 @@ newline or +end+)
   (loop :for string :being :the :hash-key :of *test-strings*
         :do (test-round-trip string)))
 
+;; TODO make it easier to pin-point errors here...
+#++
 (define-test+run round-trip-breeze
   (loop :for file :in (breeze.asdf:system-files 'breeze)
         :for content = (alexandria:read-file-into-string file)
@@ -906,3 +908,37 @@ newline or +end+)
                              :context file
                              ;; :check-for-error t
                              )))
+
+
+
+;;; Fixing formatting issues...
+
+;;;;;;;;;;;;;;; WIP ;;;;;;;;;;;;;;;
+(defun parens-has-trailing-whitespaces-p (node)
+  (and (parens-node-p node)
+       (whitespace-node-p (alexandria:lastcar (node-children node)))))
+
+(defun fix-trailing-whitespaces-inside-parens (node changes)
+  (when (parens-has-trailing-whitespaces-p node)
+    (setf (gethash node changes)
+          (copy-parens node :children (butlast (node-children node))))))
+
+(defun test-remove-whitespaces (input output)
+  (let* ((input (format nil input))
+         (output (format nil output))
+         (state (parse input))
+         (node (first (tree state)))
+         (changes (make-hash-table)))
+    (fix-trailing-whitespaces-inside-parens node changes)
+    (breeze.kite:is
+     :comparator 'string=
+     :form `(unparse ,state nil ,changes)
+     :got (unparse state nil changes)
+     :expected output)))
+
+(define-test+run remove-whitespaces
+  (test-remove-whitespaces "( )" "()")
+  (test-remove-whitespaces "(~%~%~%)" "()")
+  (test-remove-whitespaces "(   ) " "() ")
+  (test-remove-whitespaces " ( ) " " ( ) ")
+  (test-remove-whitespaces "(;;~%  )" "(;;~%)"))
