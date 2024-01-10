@@ -187,13 +187,16 @@ common lisp.")
 
 ;;; Constructors
 
-(macrolet ((simple-constructor (name)
-             `(defun ,name (start end)
-                (node ',name start end))))
+(macrolet ((simple-constructor (name &key children)
+             `(defun ,name (start end ,@(case children
+                                          (&optional (list '&optional 'children))
+                                          ((t) (list 'children))))
+                (node ',name start end ,@(when children (list 'children))))))
   (simple-constructor whitespace)
   (simple-constructor block-comment)
   (simple-constructor line-comment)
   (simple-constructor token)
+  ;; TODO more of then needs children...
   (simple-constructor sharp-char)
   (simple-constructor sharp-function)
   (simple-constructor sharp-vector)
@@ -205,9 +208,9 @@ common lisp.")
   (simple-constructor sharp-hexa)
   (simple-constructor sharp-complex)
   (simple-constructor sharp-structure)
-  (simple-constructor sharp-pathname)
-  (simple-constructor sharp-feature)
-  (simple-constructor sharp-feature-not)
+  (simple-constructor sharp-pathname :children t)
+  (simple-constructor sharp-feature :children t)
+  (simple-constructor sharp-feature-not :children t)
   (simple-constructor sharp-radix)
   (simple-constructor sharp-array)
   (simple-constructor sharp-label)
@@ -534,11 +537,20 @@ the occurence of STRING."
                    (read-token state))))
       (node 'sharp-char start (if token (pos state) +end+) token))))
 
-(defun %read-sharpsign-any (state start type)
+(defun read-any* (state)
   (multiple-value-bind (whitespaces form)
       (read-any state t)
-    (node type start (if form (pos state) +end+)
-          (remove-if #'null (list whitespaces form))))  )
+    (let ((children (remove-if #'null (list whitespaces form)))
+          (end (if (and form
+                        (valid-node-p form))
+                   (pos state)
+                   +end+)))
+      (values end children))))
+
+(defun %read-sharpsign-any (state start type)
+  (multiple-value-bind (end children)
+      (read-any* state)
+    (node type start end children)))
 
 (defun read-sharpsign-quote (state start number)
   (declare (ignore number))
@@ -619,17 +631,39 @@ the occurence of STRING."
     (let ((form (read-parens state)))
       (node 'sharp-array start (if form (pos state) +end+) form))))
 
-(defun read-sharpsign-s (state start number))
+(defun read-sharpsign-s (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\s nil)
+    (%read-sharpsign-any state start 'sharp-structure)))
 
-(defun read-sharpsign-p (state start number))
+(defun read-sharpsign-p (state start number)
+  (declare (ignore number))
+  ;; TODO (if number) => invalid syntax
+  (when (read-char* state #\p nil)
+    (%read-sharpsign-any state start 'sharp-pathname)))
 
 (defun read-sharpsign-equal (state start number)
-  (when (current-char= state #\=)
-    (node 'sharp-label start (pos state) number)))
+  (when (read-char* state #\=)
+    (multiple-value-bind (end children)
+        (read-any* state)
+      ;; TODO sharp-label would benefit from having it own data
+      ;; structure, this is abusing the children
+      (node 'sharp-label start end
+            (append
+             (when (and (integerp number)
+                        (<= 0 number))
+               (list :label number))
+             (when children
+               (list :form children)))))))
 
 (defun read-sharpsign-sharpsign (state start number)
-  (when (current-char= state #\=)
-    (node 'sharp-reference start (pos state) number)))
+  (when (read-char* state #\#)
+    (node 'sharp-reference start (if (and (integerp number)
+                                          (<= 0 number))
+                                     (pos state)
+                                     +end+)
+          number)))
 
 (defun read-sharpsign-plus (state start number)
   (declare (ignore number))

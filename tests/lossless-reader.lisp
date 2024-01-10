@@ -302,6 +302,8 @@ newline or +end+)
 
 
 
+(defparameter *sharpsign-reader-test-cases* (make-hash-table :test 'equal))
+
 (defun test-read-sharpsign* (&key
                                sharpsing-reader-function
                                node-type
@@ -317,20 +319,22 @@ newline or +end+)
          (expected-pos (or expected-pos expected-end)))
     (with-state (input)
       (setf (pos state) starting-position)
-      (let ((got
-              (is-equalp
-               :input input
-               :got (funcall sharpsing-reader-function
-                             state
-                             ;; Assumes we started reading the
-                             ;; # as the first character.
-                             0
-                             given-numeric-argument)
-               :form (list sharpsing-reader-function
-                           state 0 given-numeric-argument)
-               :expected (node node-type 0
-                               expected-end
-                               expected-children))))
+      (let* ((expected (node node-type 0
+                             expected-end
+                             expected-children))
+             (got
+               (is-equalp
+                :input input
+                :got (funcall sharpsing-reader-function
+                              state
+                              ;; Assumes we started reading the
+                              ;; # as the first character.
+                              0
+                              given-numeric-argument)
+                :form (list sharpsing-reader-function
+                            state 0 given-numeric-argument)
+                :expected expected)))
+        (setf (gethash input *sharpsign-reader-test-cases*) expected)
         (when (and got (plusp expected-end))
           (is-equalp
            :input input
@@ -341,6 +345,7 @@ newline or +end+)
         got))))
 
 
+;;; #\
 
 (defun test-read-sharpsign-backslash (input expected-end)
   (test-read-sharpsign*
@@ -361,6 +366,7 @@ newline or +end+)
   (test-read-sharpsign-backslash "#\\bell" 6))
 
 
+;;; #'
 
 (defun test-read-sharpsign-quote (input child expected-end)
   (test-read-sharpsign*
@@ -382,6 +388,7 @@ newline or +end+)
                              13))
 
 
+;;; #(
 
 (defun test-read-sharpsign-left-parens (input child expected-end)
   (test-read-sharpsign*
@@ -398,6 +405,7 @@ newline or +end+)
   (test-read-sharpsign-left-parens '("#2" "( )") (parens 2 5 (whitespace 3 4)) 5))
 
 
+;;; #*
 
 (defun test-read-sharpsign-asterisk (input &key child end n)
   (test-read-sharpsign*
@@ -419,6 +427,7 @@ newline or +end+)
   (test-read-sharpsign-asterisk '("#2" "*101") :child 5 :n 2))
 
 
+;;; #:
 
 (defun test-read-sharpsign-colon (input child &optional expected-end)
   (test-read-sharpsign*
@@ -447,6 +456,7 @@ newline or +end+)
   )
 
 
+;;; #.
 
 (defun test-read-sharpsign-dot (input child expected-end)
   (test-read-sharpsign*
@@ -464,6 +474,7 @@ newline or +end+)
                            4))
 
 
+;;; #c
 
 (defun test-read-sharpsign-c (input &key child end)
   (test-read-sharpsign*
@@ -499,7 +510,7 @@ newline or +end+)
                          :end 7))
 
 
-
+;;; #a
 
 (defun test-read-sharpsign-a (input &key child end n)
   (test-read-sharpsign*
@@ -527,22 +538,133 @@ newline or +end+)
   (test-read-sharpsign-a '("#2" "A()") :child (parens 3 5)))
 
 
-;;; TODO #s
+;;; #s
+
+(defun test-read-sharpsign-s (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-s
+   :node-type 'sharp-structure
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-s
+  (test-read-sharpsign-s "#s" :end +end+)
+  (test-read-sharpsign-s "#S" :end +end+)
+  (test-read-sharpsign-s "#S(node)"
+                         :child (list (parens 2 8 (list (token 3 7)))))
+  (test-read-sharpsign-s "#S(node) foo"
+                         :child (list (parens 2 8 (list (token 3 7))))
+                         :end 8))
 
 
-;;; TODO #p
+;;; #p
+
+(defun test-read-sharpsign-p (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-p
+   :node-type 'sharp-pathname
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-p
+  (test-read-sharpsign-p "#p" :end +end+)
+  (test-read-sharpsign-p "#P" :end +end+)
+  (test-read-sharpsign-p "#p\"/root/\""
+                         :child (list (node 'string 2 10))
+                         :end 10)
+  (test-read-sharpsign-p "#p\"/root/\"  foo"
+                         :child (list (node 'string 2 10))
+                         :end 10))
 
 
-;;; TODO #n#
+;;; #=n
+
+(defun test-read-sharpsign-equal (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-equal
+   :node-type 'sharp-label
+   :input input
+   :expected-end end
+   :expected-children child
+   :given-numeric-argument (getf child :label)))
+
+(define-test+run read-sharpsign-equal
+  (test-read-sharpsign-equal "#=" :end +end+)
+  (test-read-sharpsign-equal
+   '("#1" "=")
+   :child (list :label 1)
+   :end +end+)
+  (test-read-sharpsign-equal
+   '("#2" "= ")
+   :child (list :label 2
+                :form (list (whitespace 3 4)))
+   :end +end+)
+  (test-read-sharpsign-equal
+   '("#3" "=(foo)")
+   :child (list :label 3
+                :form (list (parens 3 8 (token 4 7))))))
+
 
 
-;;; TODO #=n
+;;; #n#
+
+(defun test-read-sharpsign-sharpsign (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-sharpsign
+   :node-type 'sharp-reference
+   :input input
+   :expected-end end
+   :expected-children child
+   :given-numeric-argument child))
+
+(define-test+run read-sharpsign-sharpsign
+  (test-read-sharpsign-sharpsign "##" :end +end+)
+  (test-read-sharpsign-sharpsign '("#1" "#") :child 1)
+  (test-read-sharpsign-sharpsign '("#2" "# ") :child 2 :end 3))
 
 
-;;; TODO #+
+;;; #+
+
+(defun test-read-sharpsign-plus (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-plus
+   :node-type 'sharp-feature
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-plus
+  (test-read-sharpsign-plus "#+" :end +end+)
+  (test-read-sharpsign-plus "#++" :child (list (token 2 3)))
+  (test-read-sharpsign-plus
+   "#+ #+ x"
+   :child (list (whitespace 2 3)
+                (sharp-feature 3 7
+                               (list (whitespace 5 6)
+                                     (token 6 7))))))
 
 
-;;; TODO #-
+;;; #-
+
+(defun test-read-sharpsign-minus (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-minus
+   :node-type 'sharp-feature-not
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-minus
+  (test-read-sharpsign-minus "#-" :end +end+)
+  (test-read-sharpsign-minus "#--" :child (list (token 2 3)))
+  (test-read-sharpsign-minus
+   "#- #- x"
+   :child (list (whitespace 2 3)
+                (sharp-feature-not 3 7
+                                   (list (whitespace 5 6)
+                                         (token 6 7))))))
 
 
 
@@ -553,68 +675,30 @@ newline or +end+)
                            (read-sharpsign-dispatching-reader-macro state)
                            (node expected-type 0 expected-end))))
       (when got
-        (is-equalp input
-                   expected-pos
-                   (pos state))))))
+        (is-equalp* input
+                    expected-pos
+                    (pos state))))))
 
-#++
 (define-test+run read-sharpsign-dispatching-reader-macro
-  (test-read-sharpsign "#(" 'sharp-vector 1 1)
-  (test-read-sharpsign "#(asdf)" 'sharp-vector 1 1)
-  (test-read-sharpsign "#42(asdf)" 'sharp-vector 3 3)
-  (test-read-sharpsign "#*" 'sharp-bitvector 2)
-  (test-read-sharpsign "#*110" 'sharp-bitvector 2)
-  (test-read-sharpsign "#4*" 'sharp-bitvector 3)
-  (test-read-sharpsign "#4*10" 'sharp-bitvector 3)
-  (test-read-sharpsign "#:" 'sharp-uninterned 2)
-  (test-read-sharpsign "#:asdf" 'sharp-uninterned 2)
-  (test-read-sharpsign "#." 'sharp-eval 2)
-  (test-read-sharpsign "#.(+ 1 1)" 'sharp-eval 2)
-  (test-read-sharpsign "#b" 'sharp-binary 2)
-  (test-read-sharpsign "#b101" 'sharp-binary 2)
-  (test-read-sharpsign "#B" 'sharp-binary 2)
-  (test-read-sharpsign "#B101" 'sharp-binary 2)
-  (test-read-sharpsign "#o" 'sharp-octal 2)
-  (test-read-sharpsign "#o666" 'sharp-octal 2)
-  (test-read-sharpsign "#O" 'sharp-octal 2)
-  (test-read-sharpsign "#O666" 'sharp-octal 2)
-  (test-read-sharpsign "#x" 'sharp-hexa 2)
-  (test-read-sharpsign "#xbeef" 'sharp-hexa 2)
-  (test-read-sharpsign "#X" 'sharp-hexa 2)
-  (test-read-sharpsign "#Xbeef" 'sharp-hexa 2)
-  (test-read-sharpsign "#5r" 'sharp-radix 3)
-  (test-read-sharpsign "#5r32" 'sharp-radix 3)
-  (test-read-sharpsign "#3R" 'sharp-radix 3)
-  (test-read-sharpsign "#3R32" 'sharp-radix 3)
-  (test-read-sharpsign "#c" 'sharp-complex 2)
-  (test-read-sharpsign "#c(1 2)" 'sharp-complex 2)
-  (test-read-sharpsign "#C" 'sharp-complex 2)
-  (test-read-sharpsign "#C(1 2)" 'sharp-complex 2)
-  (test-read-sharpsign "#42a" 'sharp-array 4)
-  (test-read-sharpsign "#42a()" 'sharp-array 4)
-  (test-read-sharpsign "#41A" 'sharp-array 4)
-  (test-read-sharpsign "#41A()" 'sharp-array 4)
-  (test-read-sharpsign "#s" 'sharp-structure 2)
-  (test-read-sharpsign "#s(node)" 'sharp-structure 2)
-  (test-read-sharpsign "#S" 'sharp-structure 2)
-  (test-read-sharpsign "#S(node)" 'sharp-structure 2)
-  (test-read-sharpsign "#p" 'sharp-pathname 2)
-  (test-read-sharpsign "#p\"./\"" 'sharp-pathname 2)
-  (test-read-sharpsign "#P" 'sharp-pathname 2)
-  (test-read-sharpsign "#P\"./\"" 'sharp-pathname 2)
-  (test-read-sharpsign "#0=x" 'sharp-label 3)
-  (test-read-sharpsign "#0=" 'sharp-label 3)
-  (test-read-sharpsign "#0#" 'sharp-reference 3)
-  (test-read-sharpsign "#+" 'sharp-feature 2)
-  (test-read-sharpsign "#+ (and)" 'sharp-feature 2)
-  (test-read-sharpsign "#-" 'sharp-feature-not 2)
-  (test-read-sharpsign "#- (or)" 'sharp-feature-not 2)
-  ;; #| ... |# is handled elsewhere
-  )
+  (loop :for input :being
+          :the :hash-key :of *sharpsign-reader-test-cases*
+            :using (hash-value expected)
+        :do (with-state (input)
+              (is-equalp
+               :input input
+               :got (read-sharpsign-dispatching-reader-macro state)
+               :expected expected
+               :form `(read-sharpsign-dispatching-reader-macro ,state)
+               ;; :description description
+               ;; :format-args format-args
+               ))))
+
 
 ;; (read-from-string "#\\ ") == (read-from-string "#\\Space")
 ;; This is an error (there must be no space between "#s" and "("): (read-from-string "#s ()")
 
+
+
 
 (defun test-read-punctuation (input expected-type)
   (with-state (input)
@@ -815,9 +899,6 @@ newline or +end+)
   (loop :for string :being :the :hash-key :of *test-strings*
         :do (test-round-trip string)))
 
-;; TODO Currently broken because of the WIP changes to reading
-;; sharpsign reader macros
-#++
 (define-test+run round-trip-breeze
   (loop :for file :in (breeze.asdf:system-files 'breeze)
         :for content = (alexandria:read-file-into-string file)
