@@ -592,27 +592,3 @@ a message and stop the current command."
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
-
-
-
-(defun command-to-emacs-lisp (command &optional stream)
-  "Take the symbol COMMAND generates the emacs lisp code to create an
-emacs command,"
-  (let ((docstring (command-docstring command)))
-    (format stream
-            "(defun breeze-~(~a~) ()~
-           ~%  ~s~
-           ~%  (interactive)~
-           ~%  (breeze-run-command ~(\"~a\"~)))"
-            command
-            docstring
-            (symbol-package-qualified-name command))))
-
-#++
-(alexandria:with-output-to-file (output
-                                 (breeze.utils:breeze-relative-pathname "src/breeze-commands.el")
-                                 :if-exists :supersede)
-  (loop :for command :in (all-commands)
-        :do (command-to-emacs-lisp command output)
-            (terpri output)
-            (terpri output)))
