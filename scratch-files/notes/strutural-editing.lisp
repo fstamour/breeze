@@ -225,3 +225,53 @@ $
 =-=
 (a "b $")
 =-=-=
+
+
+;; paredit-backslash is annoying
+Name: backslash
+
+;; It should _not_ read a character if just inserting the backslash
+;; would resuld in valid code.
+=-=
+"$n"
+=-=
+"\n"
+=-=-=
+
+;; When deleting an escaped character, it should not delete the
+;; backslash along with it, it should intead try to read a new
+;; character to escape... probably
+
+Code: breeze-backward-delete
+
+=-=
+\n$
+=-=
+\$
+=-=-=
+
+;; It would be nice if "backslash" would insert the char-name of the
+;; character when it make sense
+
+Code: \ SPC
+
+=-=
+$
+=-=
+\Space
+=-=-=
+
+
+Name: doublequote
+
+;; I don't like that paredit does "forward-char" when I try to enter a
+;; double quote at the end of a string. Which happens all the time
+;; when I write docstrings.
+
+Code: breeze-doublequote
+
+=-=
+"$"
+=-=
+"\""
+=-=-=
