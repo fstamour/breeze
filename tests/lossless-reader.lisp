@@ -913,7 +913,6 @@ newline or +end+)
 
 ;;; Fixing formatting issues...
 
-;;;;;;;;;;;;;;; WIP ;;;;;;;;;;;;;;;
 (defun parens-has-leading-whitespaces-p (node)
   (and (parens-node-p node)
        (whitespace-node-p (first (node-children node)))))
@@ -922,30 +921,39 @@ newline or +end+)
   (and (parens-node-p node)
        (whitespace-node-p (alexandria:lastcar (node-children node)))))
 
-(defun fix-trailing-whitespaces-inside-parens (node changes)
-  (alexandria:when-let ((first-child (parens-has-leading-whitespaces-p node)))
-    (setf (gethash first-child changes) nil))
-  (alexandria:when-let ((last-child (parens-has-trailing-whitespaces-p node)))
-    (setf (gethash last-child changes) nil)))
+(defun cdr-if (condition list)
+  (if condition (cdr list) list))
+
+(defun butlast-if (condition list)
+  (if condition (butlast list) list))
+
+(defun fix-trailing-whitespaces-inside-parens (node)
+  (let ((first-child (parens-has-leading-whitespaces-p node))
+        (last-child (parens-has-trailing-whitespaces-p node)))
+    (if (or first-child last-child)
+        (copy-parens
+         node
+         :children (butlast-if
+                    last-child
+                    (cdr-if first-child (node-children node))))
+        node)))
+
 
 (defun test-remove-whitespaces (input output)
   (let* ((input (format nil input))
          (output (format nil output))
-         (state (parse input))
-         (node (first (tree state)))
-         (changes (make-hash-table)))
-    (fix-trailing-whitespaces-inside-parens node changes)
+         (state (parse input)))
     (breeze.kite:is
      :comparator 'string=
-     :form `(unparse ,state nil ,changes)
-     :got (unparse state nil changes)
+     :form `(unparse ,state nil 'fix-trailing-whitespaces-inside-parens)
+     :got (unparse state nil 'fix-trailing-whitespaces-inside-parens)
      :expected output)))
 
 (define-test+run remove-whitespaces
   (test-remove-whitespaces "( )" "()")
   (test-remove-whitespaces "(~%~%~%)" "()")
   (test-remove-whitespaces "(   ) " "() ")
-  (test-remove-whitespaces " ( ) " " ( ) ")
+  (test-remove-whitespaces " ( ) " " () ")
   (test-remove-whitespaces "(;;~%  )" "(;;~%)")
   (test-remove-whitespaces "( x)" "(x)")
   (test-remove-whitespaces "( x )" "(x)"))

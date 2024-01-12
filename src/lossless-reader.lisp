@@ -1004,23 +1004,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
               (return result))))
 
 
-;;; TODO Unparse
-;;;
-;;; N.B. an "unparse" that doesn't change anything is useless except
-;;; for testing. because we could just use the source string,
-;;; unchanged.
-;;;
-;;; How to make changes to the nodes, without actually modifying them?
-;;;
-;;; I thought about keeping track of "before" "after" and "instead" changes.
-;;; keyed by the node itself...
-;;;
-;;; A better way would be to put all changes in one hash-table, keyed
-;;; by the nodes being modified.  A node is replaced by putting
-;;; another node as the value. A new new can be added by putting a
-;;; list containing the new and a (perhaps shallow) copy of the old
-;;; node (to avoid infinite recursions). Finally, a node can be
-;;; removed by using nil as the value.
+;;; Unparse
 
 ;; Should I pass the depth here too?
 (defun write-node (node state stream )
@@ -1031,36 +1015,29 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                            (length (source state))
                            (end node)))))
 
-;; (trace write-node)
-;; (untrace)
-
-(defun %get-node (node changes)
-  (if changes
-      (gethash node changes node)
-      node))
-
-(defun %unparse (tree state stream depth changes)
+(defun %unparse (tree state stream depth transform)
   (when tree
     (if (listp tree)
-        (mapcar (lambda (node) (%unparse (%get-node node changes)
-                                         state stream (1+ depth)
-                                         changes))
+        (mapcar (lambda (node)
+                  (%unparse (funcall transform node)
+                            state stream (1+ depth)
+                            transform))
                 tree)
         (case (node-type tree)
           (parens
            (write-char #\( stream)
-           (%unparse (node-children tree) state stream depth changes)
+           (%unparse (node-children tree) state stream depth transform)
            (unless (no-end-p tree)
              (write-char #\) stream)))
           (t
-           (write-node (%get-node tree changes) state stream))))))
+           (write-node (funcall transform tree) state stream))))))
 
-(defun unparse (state &optional (stream t) changes)
+(defun unparse (state &optional (stream t) (transform #'identity))
   (if stream
       (%unparse (tree state) state
                 (if (eq t stream) *standard-output* stream)
                 0
-                changes)
+                transform)
       ;; if stream is nil
       (with-output-to-string (out)
-        (%unparse (tree state) state out 0 changes))))
+        (%unparse (tree state) state out 0 transform))))
