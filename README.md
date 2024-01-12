@@ -139,7 +139,7 @@ Or from the command line:
 
     ./scripts/doc.sh
 
-With either method, the documentation is generated into to `docs/`
+With either method, the documentation is generated into the `docs/`
 folder.
 
 ### Contributing

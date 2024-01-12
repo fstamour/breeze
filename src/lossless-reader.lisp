@@ -262,7 +262,8 @@ common lisp.")
                     (node)
                   ,(format nil "Is this a node of type ~s" type)
                   (and (nodep node)
-                       (eq (node-type node) ',type)))
+                       (eq (node-type node) ',type)
+                       node))
                 ;; constructor
                 (defun ,name (start end
                               ,@(case children
@@ -1014,6 +1015,12 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 ;;; I thought about keeping track of "before" "after" and "instead" changes.
 ;;; keyed by the node itself...
 ;;;
+;;; A better way would be to put all changes in one hash-table, keyed
+;;; by the nodes being modified.  A node is replaced by putting
+;;; another node as the value. A new new can be added by putting a
+;;; list containing the new and a (perhaps shallow) copy of the old
+;;; node (to avoid infinite recursions). Finally, a node can be
+;;; removed by using nil as the value.
 
 ;; Should I pass the depth here too?
 (defun write-node (node state stream )

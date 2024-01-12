@@ -914,14 +914,19 @@ newline or +end+)
 ;;; Fixing formatting issues...
 
 ;;;;;;;;;;;;;;; WIP ;;;;;;;;;;;;;;;
+(defun parens-has-leading-whitespaces-p (node)
+  (and (parens-node-p node)
+       (whitespace-node-p (first (node-children node)))))
+
 (defun parens-has-trailing-whitespaces-p (node)
   (and (parens-node-p node)
        (whitespace-node-p (alexandria:lastcar (node-children node)))))
 
 (defun fix-trailing-whitespaces-inside-parens (node changes)
-  (when (parens-has-trailing-whitespaces-p node)
-    (setf (gethash node changes)
-          (copy-parens node :children (butlast (node-children node))))))
+  (alexandria:when-let ((first-child (parens-has-leading-whitespaces-p node)))
+    (setf (gethash first-child changes) nil))
+  (alexandria:when-let ((last-child (parens-has-trailing-whitespaces-p node)))
+    (setf (gethash last-child changes) nil)))
 
 (defun test-remove-whitespaces (input output)
   (let* ((input (format nil input))
@@ -941,4 +946,6 @@ newline or +end+)
   (test-remove-whitespaces "(~%~%~%)" "()")
   (test-remove-whitespaces "(   ) " "() ")
   (test-remove-whitespaces " ( ) " " ( ) ")
-  (test-remove-whitespaces "(;;~%  )" "(;;~%)"))
+  (test-remove-whitespaces "(;;~%  )" "(;;~%)")
+  (test-remove-whitespaces "( x)" "(x)")
+  (test-remove-whitespaces "( x )" "(x)"))
