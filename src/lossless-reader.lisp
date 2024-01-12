@@ -1041,3 +1041,63 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       ;; if stream is nil
       (with-output-to-string (out)
         (%unparse (tree state) state out 0 transform))))
+
+
+
+;;; Trying to figure out how to run the "formatting rules" without
+;;; applying them...
+
+(defun %walk (state callback tree depth)
+  (when tree
+    (flet ((cb (node &rest args)
+             (apply callback node :depth depth args)))
+      (if (listp tree)
+          (loop
+            :for i :from 0
+            :for rest :on tree
+            :for node = (car rest)
+            :collect (%walk state
+                            callback
+                            (cb node
+                                :aroundp t
+                                :nth i
+                                :firstp (eq tree rest)
+                                :lastp (null (cdr rest)))
+                            (1+ depth)))
+          (case (node-type tree)
+            (parens
+             (cb tree :beforep t)
+             (%walk state
+                    callback
+                    (node-children tree)
+                    (1+ depth))
+             (cb tree :afterp t))
+            (t
+             (cb tree)))))))
+
+(defun walk (state callback)
+  (%walk state callback (tree state) 0))
+
+;; This is equivalent to unparse with the leading and trailing
+;; whitespace fixes. It is _much_ more succint!
+#++
+(let ((state (parse " (+ 2) ")))
+  (with-output-to-string (out)
+    (walk state (lambda (node &rest args &key depth aroundp beforep afterp
+                                           firstp lastp nth)
+                  ;; Debug info
+                  (format t "~&~s ~{~s~^ ~}" node args)
+                  ;; Printing stuff
+                  (cond
+                    (beforep
+                     (write-char #\( out))
+                    (afterp
+                     (write-char #\) out))
+                    ((not (or aroundp beforep afterp))
+                     (write-node node state out)))
+                  ;; Removing useless whitespaces
+                  (unless (and (plusp depth)
+                               aroundp
+                               (whitespace-node-p node)
+                               (or firstp lastp))
+                    node)))))
