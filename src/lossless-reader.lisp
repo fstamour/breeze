@@ -709,7 +709,7 @@ the occurence of STRING."
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\x nil)
-    (%read-sharpsign-number state start 'sharp-hexa 16))  )
+    (%read-sharpsign-number state start 'sharp-hexa 16)))
 
 (defun read-sharpsign-r (state start radix)
   (when (read-char* state #\r nil)
@@ -1053,7 +1053,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 ;;; Unparse
 
 ;; Should I pass the depth here too?
-(defun write-node (node state stream )
+(defun write-node (node state stream)
   (when node
     (write-string (source state) stream
                   :start (start node)
@@ -1101,6 +1101,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
         (list
          (loop
            :for i :from 0
+           :for previous = nil :then (first rest)
            :for rest :on tree
            :for node = (car rest)
            :collect (%walk state
@@ -1109,7 +1110,8 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                :aroundp t
                                :nth i
                                :firstp (eq tree rest)
-                               :lastp (null (cdr rest)))
+                               :lastp (null (cdr rest))
+                               :previous previous)
                            (1+ depth))))
         (node
          (case (node-type tree)
@@ -1149,3 +1151,35 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                (whitespace-node-p node)
                                (or firstp lastp))
                     node)))))
+
+
+(defun lint (&key buffer-string &allow-other-keys)
+  (let ((state (parse buffer-string))
+        (diagnostics '()))
+    (walk state
+          (lambda (node &rest args &key depth aroundp beforep afterp
+                                     firstp lastp nth
+                                     previous)
+            (declare (ignorable beforep afterp nth args))
+            ;; Debug info
+            ;; (format t "~&~s ~{~s~^ ~}" node args)
+            ;; Removing useless whitespaces
+            (when (and (plusp depth)
+                       aroundp
+                       (whitespace-node-p node))
+              ;; (break)
+              (cond
+                (firstp
+                 (push (list (node-start node)
+                             (node-end node)
+                             :warning
+                             (format nil "Extraneous leading whitespaces. ~s" args))
+                       diagnostics))
+                ((and lastp (not (line-comment-node-p previous)))
+                 (push (list (node-start node)
+                             (node-end node)
+                             :warning
+                             (format nil "Extraneous trailing whitespaces. ~s" args))
+                       diagnostics))))
+            node))
+    diagnostics))

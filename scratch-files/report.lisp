@@ -1,3 +1,18 @@
+#|
+
+FIXME I originally named this "report" because I wanted
+something "holistic", but now I started calling this "listing", which
+is not holistic.
+
+TODO I _could_ generate objects instead of directly generating
+html... that way it _could_ be possible to generate something else
+than html.
+
+TODO Nice to haves: line numbers
+
+|#
+
+
 (defpackage #:breeze.report
   (:documentation "Using breeze's code to generate report to improve breeze.")
   (:use #:cl #:breeze.lossless-reader))
@@ -200,13 +215,15 @@ the run."
              (symbol-package value)))))
 
 (defun token-style (state node)
-  (let ((content (node-content state node)))
-    (cond
-      ((char= #\: (char content 0)) 'keyword)
-      ((numberp (ignore-errors (read-from-string content))) 'number)
-      ((alexandria:starts-with-subseq "check-" content) 'special)
-      ((position #\: content) 'symbol)
-      ((cl-token-p content) 'symbol))))
+  (if (valid-node-p node)
+      (let ((content (node-content state node)))
+        (cond
+          ((char= #\: (char content 0)) 'keyword)
+          ((numberp (ignore-errors (read-from-string content))) 'number)
+          ((alexandria:starts-with-subseq "check-" content) 'special)
+          ((position #\: content) 'symbol)
+          ((cl-token-p content) 'symbol)))
+      'syntaxerror))
 
 (defun render-escaped (out string)
   (write-string (escape-html string) out))
@@ -222,11 +239,12 @@ the run."
     (token
      (alexandria:if-let ((style (token-style state node)))
        (format out "<span class=\"~(~a~)\">~a</span>"
-               (token-type state node)
+               (token-style state node)
                (node-content state node))
        (render-escaped out (node-content state node))))
     (parens
-     (format out "<span class=\"paren~d\">(<span class=\"progn\">"
+     (format out "<span class=\"~:[syntaxerror ~;~]paren~d\">(<span class=\"progn\">"
+             (valid-node-p node)
              (min (1+ depth) 6))
      (map nil (lambda (node)
                 (render-node out state node (1+ depth)))
@@ -352,17 +370,3 @@ the run."
 
 #++
 (render 'breeze)
-
-#|
-
-FIXME I originally named this "report" because I wanted
-something "holistic", but now I started calling this "listing", which
-is not holistic.
-
-TODO I _could_ generate objects instead of directly generating
-html... that way it _could_ be possible to generate something else
-than html.
-
-TODO Nice to haves: line numbers
-
-|#

@@ -130,7 +130,6 @@
 (loop :for test :in *structural-editing-tests*
       :do (format t "~&~a: ~a parts"
                   (getf test :name)
-                  (length (getf test :parts))
-                  )
+                  (length (getf test :parts)))
           ;; :do (print )
       )

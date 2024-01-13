@@ -93,7 +93,11 @@
     (breeze-debug "Breeze: got the value: %S" value)
     value))
 
-;; TODO async eval!
+(defun breeze-eval-async (string &optional cont package)
+  (breeze-%eval-async
+   `(breeze.listener:rpc-eval ,string)
+   cont
+   package))
 
 
 ;;; Common lisp driven interactive commands
@@ -238,9 +242,9 @@
 ;; TODO this handles only very simplistic cases and it's aleady complex...
 ;; maybe I should do this translation on the CL side and return something easier to handle???
 (defun breeze-translate-command-lambda-list (lambda-list)
-  (loop for symbol in lambda-list
-        for sanitized-symbol = (intern (car (last (split-string (symbol-name symbol) ":"))))
-        collect sanitized-symbol))
+  (cl-loop for symbol in lambda-list
+           for sanitized-symbol = (intern (car (last (split-string (symbol-name symbol) ":"))))
+           collect sanitized-symbol))
 
 (defun breeze-refresh-commands ()
   "Ask the inferior lisp which commands it has and define
@@ -309,7 +313,7 @@ inferior lisp."
   (breeze-debug "Breeze initialized (might still be loading in the inferior lisp."))
 
 
-;;; Hooks
+;;; Listener Hooks
 
 ;; TODO This is experimental! I mean... more than the rest xD
 (defun breeze-%%%setup-hooks (listener)
@@ -333,6 +337,47 @@ inferior lisp."
 (defun breeze-remove-hooks (listener)
   (remove-hook 'slime-connected-hook 'breeze-connected-hook-function))
 
+
+;;; Hooks for flymake
+
+(defun breeze-lint (callback)
+  (breeze-eval-async
+   (format "(breeze.lossless-reader::lint %s)"
+           (breeze-compute-buffer-args))
+   callback)
+  nil)
+
+(defun breeze-flymake (report-fn &rest args)
+  (breeze-debug "flymake: %S" args)
+  (let ((buffer (current-buffer)))
+    (breeze-lint (lambda (cl-diagnostics)
+                   (funcall report-fn
+                            (cl-loop for (beg end type text) in cl-diagnostics
+                                     collect (flymake-make-diagnostic
+                                              ;; Locus
+                                              buffer
+                                              (1+ beg) (1+ end)
+                                              type
+                                              text)))))))
+
+(defun breeze-setup-flymake-backend ()
+  (add-hook 'flymake-diagnostic-functions 'breeze-flymake nil t))
+
+;; TODO assumes slime
+(defun breeze-next-note ()
+  (interactive)
+  (let ((slime-note (slime-find-next-note)))
+    (if slime-note
+        (slime-next-note)
+      (flymake-goto-next-error))))
+
+;; TODO assumes slime
+(defun breeze-previous-note ()
+  (interactive)
+  (let ((slime-note (slime-find-next-note)))
+    (if slime-note
+        (slime-next-note)
+      (flymake-goto-next-error))))
 
 
 ;;; WIP Alternate files (this is currently very brittle, but it should
@@ -423,10 +468,16 @@ inferior lisp."
 ;; (define-key breeze-minor-mode-map (kbd "C-c C-,") 'breeze-insert)
 
 ;; Analogous to org-goto
-(define-key breeze-minor-mode-map (kbd "C-c C-j") #'imenu)
+(keymap-set breeze-minor-mode-map "C-c C-j" #'imenu)
 
 ;; Analogous to Visual Studio Code's "quickfix"
-(define-key breeze-minor-mode-map (kbd "C-.") #'breeze-quickfix)
+(keymap-set breeze-minor-mode-map "C-." #'breeze-quickfix)
+
+;; TODO M-n M-p https://www.gnu.org/software/emacs/manual/html_node/flymake/Finding-diagnostics.html
+
+(keymap-set breeze-minor-mode-map "M-p" #'breeze-previous-note)
+(keymap-set breeze-minor-mode-map "M-n" #'breeze-next-note)
+
 
 ;; Disabled for now
 ;; eval keymap - because we might want to keep an history
@@ -446,10 +497,12 @@ inferior lisp."
   (interactive)
   (breeze-minor-mode -1))
 
-;; (add-hook 'breeze-minor-mode-hook 'breeze-init)
+(add-hook 'breeze-minor-mode-hook 'breeze)
+(add-hook 'breeze-minor-mode-hook #'(lambda () (flymake-mode 1)))
+(add-hook 'breeze-minor-mode-hook 'breeze-setup-flymake-backend)
+
 ;; TODO This should be in the users' config
-;; (add-hook 'slime-lisp-minor-mode-hook 'breeze-init)
-;; TODO This should be in the users' config
+(add-hook 'slime-lisp-minor-mode-hook 'breeze)
 
 
 ;;; major mode
@@ -457,9 +510,9 @@ inferior lisp."
 (define-derived-mode breeze-major-mode prog-mode
   "BRZ")
 
-(define-key breeze-major-mode-map (kbd "C-.") #'breeze-quickfix)
 
-(define-key breeze-major-mode-map (kbd "C-c C-c") #'breeze-eval-defun)
+(keymap-set breeze-major-mode-map "C-." #'breeze-quickfix)
+(keymap-set breeze-major-mode-map "C-c C-c" #'breeze-eval-defun)
 
 
 
