@@ -44,7 +44,8 @@ common lisp.")
            #:source
            #:pos
            #:tree
-           #:make-state)
+           #:make-state
+           #:source-substring)
   ;; Nodes
   (:export #:+end+
            #:node
@@ -53,7 +54,8 @@ common lisp.")
            #:node-type
            #:node-children
            #:copy-node
-           #:valid-node-p)
+           #:valid-node-p
+           #:node-content)
   ;; Node constructors
   (:export #:block-comment
            #:parens
@@ -181,7 +183,8 @@ common lisp.")
   (:export
    ;; top-level parsing/unparsing
    #:parse
-   #:unparse))
+   #:unparse ;; maybe deprecate?
+   #:walk))
 
 (in-package #:breeze.lossless-reader)
 
@@ -241,7 +244,7 @@ common lisp.")
    :read-only t))
 
 (defstruct (node
-            (:constructor node (type start end &optional children))
+            ;; (:constructor node (type start end &optional children))
             :constructor
             (:predicate nodep)
             (:include range))
@@ -251,10 +254,23 @@ common lisp.")
   (children '()
    :read-only t))
 
+(defun node (type start end &optional children)
+  #++ (when (= +end+ end)
+        (break))
+  (make-node
+   :type type
+   :start start
+   :end end
+   :children children))
+
 
 ;;; Constructors
 
-(macrolet ((aux (type &key children (name type))
+(macrolet ((aux (type
+                 &key
+                   children
+                   (name type)
+                   no-constructor-p)
              `(progn
                 ;; predicate
                 (defun
@@ -265,11 +281,12 @@ common lisp.")
                        (eq (node-type node) ',type)
                        node))
                 ;; constructor
-                (defun ,name (start end
-                              ,@(case children
-                                  (&optional (list '&optional 'children))
-                                  ((t) (list 'children))))
-                  (node ',type start end ,@(when children (list 'children))))
+                ,(unless no-constructor-p
+                   `(defun ,name (start end
+                                  ,@(case children
+                                      (&optional (list '&optional 'children))
+                                      ((t) (list 'children))))
+                      (node ',type start end ,@(when children (list 'children)))))
                 ;; copier
                 (defun ,(alexandria:symbolicate 'copy- name)
                     (node &key (start nil startp)
@@ -286,15 +303,15 @@ common lisp.")
   (aux block-comment)
   (aux line-comment)
   (aux token)
-  (aux parens :children &optional)
-  (aux punctuation)
+  (aux parens :children &optional :no-constructor-p t)
+  (aux punctuation :no-constructor-p t)
   (aux string :name string-node)
   (aux quote :name quote-node)
   (aux quasiquote)
   (aux dot)
   (aux comma)
   (aux sharp)
-  (aux sharp-char)
+  (aux sharp-char :children t)
   (aux sharp-function)
   (aux sharp-vector)
   (aux sharp-bitvector)
@@ -313,7 +330,6 @@ common lisp.")
   (aux sharp-label)
   (aux sharp-reference)
   (aux sharp-unknown))
-
 
 (defun punctuation (type position)
   (node type position (1+ position)))
@@ -538,11 +554,11 @@ the occurence of STRING."
 ;;; Actual reader
 
 (defmacro defreader (name lambda-list &body body)
-  `(defun ,(alexandria:symbolicate 'read- name) (state ,@lambda-list &aux (start (pos state)))
+  `(defun ,name (state ,@lambda-list &aux (start (pos state)))
      (declare (ignorable start))
      ,@body))
 
-(defreader whitespaces ()
+(defreader read-whitespaces ()
   (loop
     :for pos :from start
     :for c = (at state pos)
@@ -551,7 +567,7 @@ the occurence of STRING."
                (setf (pos state) pos)
                (return (whitespace start pos)))))
 
-(defreader block-comment ()
+(defreader read-block-comment ()
   "Read #||#"
   (when (read-string* state "#|" nil)
     (loop
@@ -584,7 +600,7 @@ the occurence of STRING."
                     (t
                      (setf situation 'other))))))))
 
-(defreader line-comment ()
+(defreader read-line-comment ()
   "Read ;"
   (when (read-char* state #\;)
     (let ((newline (search #.(format nil "~%")
@@ -652,6 +668,7 @@ the occurence of STRING."
   (when (read-char* state #\*)
     (multiple-value-bind (bits range)
         (read-number state 2)
+      (declare (ignore range))
       ;; TODO check (- (cdr range) (car range)) <= length
       (node 'sharp-bitvector start (pos state) bits))))
 
@@ -760,7 +777,7 @@ the occurence of STRING."
 
 ;; TODO #) and #<any whitespace> are **invalid**
 ;; See https://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
-(defreader sharpsign-dispatching-reader-macro ()
+(defreader read-sharpsign-dispatching-reader-macro ()
   "Read reader macros #..."
   (when (read-char* state #\#)
     (let ((number (read-number state)))
@@ -790,7 +807,7 @@ the occurence of STRING."
        (sharp-unknown start +end+)))))
 
 
-(defreader punctuation ()
+(defreader read-punctuation ()
   "Read ' or `"
   (when-let* ((current-char (current-char state))
               (foundp (member current-char
@@ -830,7 +847,7 @@ provided."
               (setf (pos state) pos)
               (return (list start 'invalid))))))))
 
-(defreader string ()
+(defreader read-string ()
   "Read \"\""
   (when-let ((string (read-quoted-string state #\" #\\)))
     (apply #'node 'string string)))
@@ -844,35 +861,64 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                          +whitespaces+)
                       :test #'char=))))
 
-(defun not-terminatingp-nor-pipe (c)
-  "Test whether a character is terminating or #\|. See
+(defun not-terminatingp-nor-escape (c)
+  "Test whether a character is terminating or #\| or #\\. See
 http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (and c
        (not (position c '#. (concatenate 'string
                                          ";\"'(),`"
-                                         "|"
+                                         "|\\"
                                          +whitespaces+)
                       :test #'char=))))
 
-(defreader token ()
+(defreader read-backslash ()
+  (when (read-char* state #\\)
+    (when (read-char* state)
+      (list start (pos state)))))
+
+(defreader read-pipe ()
+  (when (current-char= state #\|)
+    (read-quoted-string state #\| #\\)))
+
+#++
+(progn
+  (trace
+   not-terminatingp
+   not-terminatingp-nor-pipe
+   read-token
+   read-backslash
+   read-pipe
+   read-while
+   donep)
+  (untrace))
+
+(defreader read-token ()
   "Read one token."
   (loop
+    :with escape-once
     :for char = (current-char state)
     :while (not-terminatingp char)
-    :for part = (if (char= char #\|)
-                    (read-quoted-string state #\| #\\)
-                    (read-while state #'not-terminatingp-nor-pipe))
+    :for part = (or
+                 (read-backslash state)
+                 (read-pipe state)
+                 (read-while state #'not-terminatingp-nor-escape))
     :while (and part
                 (not-terminatingp (current-char state))
                 (not (donep state)))
     :finally (return (unless (= start (pos state))
-                       (token start (if part (second part) +end+))))))
+                       (let ((end (if part (second part) +end+)))
+                         (token start end)
+                         ;; for debugging
+                         #++
+                         (node 'token start end
+                               ;; Only for debugging
+                               (source-substring state start end)))))))
 
 
 
 ;; TODO Do something with this, to help error recovery, or at least
 ;; tell the user something.
-(defreader extraneous-closing-parens ()
+(defreader read-extraneous-closing-parens ()
   (when (read-char* state #\))
     (make-node :type :extraneous-closing-parens
                :start start
@@ -896,7 +942,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 
 
 ;; don't forget to handle dotted lists
-(defreader parens ()
+(defreader read-parens ()
   (when (read-char* state #\()
     ;; Read while read-any != nil && char != )
     (loop
@@ -925,9 +971,9 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
              '(read-whitespaces
                read-block-comment
                read-sharpsign-dispatching-reader-macro
-               read-punctuation
                read-string
                read-line-comment
+               read-punctuation
                read-token
                read-parens                ; recursion
                read-extraneous-closing-parens))
@@ -1051,29 +1097,31 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (when tree
     (flet ((cb (node &rest args)
              (apply callback node :depth depth args)))
-      (if (listp tree)
-          (loop
-            :for i :from 0
-            :for rest :on tree
-            :for node = (car rest)
-            :collect (%walk state
-                            callback
-                            (cb node
-                                :aroundp t
-                                :nth i
-                                :firstp (eq tree rest)
-                                :lastp (null (cdr rest)))
-                            (1+ depth)))
-          (case (node-type tree)
-            (parens
-             (cb tree :beforep t)
-             (%walk state
-                    callback
-                    (node-children tree)
-                    (1+ depth))
-             (cb tree :afterp t))
-            (t
-             (cb tree)))))))
+      (etypecase tree
+        (list
+         (loop
+           :for i :from 0
+           :for rest :on tree
+           :for node = (car rest)
+           :collect (%walk state
+                           callback
+                           (cb node
+                               :aroundp t
+                               :nth i
+                               :firstp (eq tree rest)
+                               :lastp (null (cdr rest)))
+                           (1+ depth))))
+        (node
+         (case (node-type tree)
+           (parens
+            (cb tree :beforep t)
+            (%walk state
+                   callback
+                   (node-children tree)
+                   (1+ depth))
+            (cb tree :afterp t))
+           (t
+            (cb tree))))))))
 
 (defun walk (state callback)
   (%walk state callback (tree state) 0))

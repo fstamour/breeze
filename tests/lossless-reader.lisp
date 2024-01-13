@@ -358,12 +358,14 @@ newline or +end+)
 
 (define-test+run read-sharpsign-backslash
   (test-read-sharpsign-backslash "#\\" +end+)
-  (test-read-sharpsign-backslash "#\\ " 2)
-  (test-read-sharpsign-backslash "#\\  " 2)
+  (test-read-sharpsign-backslash "#\\ " 3)
+  (test-read-sharpsign-backslash "#\\  " 3)
   (test-read-sharpsign-backslash "#\\Space" 7)
   (test-read-sharpsign-backslash "#\\Space  " 7)
-  (test-read-sharpsign-backslash "#\\ Space" 2)
-  (test-read-sharpsign-backslash "#\\bell" 6))
+  (test-read-sharpsign-backslash "#\\ Space" 8)
+  (test-read-sharpsign-backslash "#\\bell" 6)
+  (test-read-sharpsign-backslash "#\\;" 3))
+
 
 
 ;;; #'
@@ -748,7 +750,8 @@ newline or +end+)
   (test-read-string "" nil)
   (test-read-string "\"" +end+)
   (test-read-string "\"\"" 2)
-  (test-read-string "\" \"" 3))
+  (test-read-string "\" \"" 3)
+  (test-read-string "\"~s\"" 4))
 
 (define-test+run not-terminatingp
   (mapcar #'(lambda (char)
@@ -762,7 +765,6 @@ newline or +end+)
            (when expected-end
              (token 0 expected-end)))))
 
-;; TODO Fix read-token
 (define-test+run read-token
   :depends-on (current-char
                not-terminatingp
@@ -781,7 +783,10 @@ newline or +end+)
   (test-read-token "arg| asdf |more|mmoooore|done" 29)
   (test-read-token "arg| asdf |no  |mmoooore|done" 13)
   (test-read-token "look|another\\| case\\| didn't think of| " 38)
-  (test-read-token "this.is.normal..." 17))
+  (test-read-token "this.is.normal..." 17)
+  (test-read-token "\\asdf" 5)
+  (test-read-token "\\;" 2)
+  (test-read-token "a\\;" 3))
 
 
 ;; TODO read-extraneous-closing-parens
@@ -858,7 +863,25 @@ newline or +end+)
   (test-parse "#+ x" (node 'sharp-feature 0 4
                            (list
                             (whitespace 2 3)
-                            (token 3 4)))))
+                            (token 3 4))))
+  (test-parse "(char= #\\; c)"
+              (parens 0 13
+                      (list (token 1 6)
+                            (whitespace 6 7)
+                            (sharp-char 7 10 (token 8 10))
+                            (whitespace 10 11)
+                            (token 11 12))))
+  (test-parse "(#\\;)" (parens 0 5
+                               (list (sharp-char 1 4 (token 2 4)))))
+  (test-parse "#\\; " (sharp-char 0 3 (token 1 3)) (whitespace 3 4))
+  (test-parse "`( asdf)" (node 'quasiquote 0 1)
+              (parens 1 8
+                      (list
+                       (whitespace 2 3)
+                       (token 3 7))))
+  (test-parse "#\\Linefeed" (sharp-char 0 10 (token 1 10)))
+  (test-parse "#\\: asd" (sharp-char 0 3 (token 1 3)) (whitespace 3 4) (token 4 7))
+  (test-parse "(((  )))" (parens 0 8 (list (parens 1 7 (list (parens 2 6 (list (whitespace 3 5)))))))))
 
 (defun test-parse* (input &rest expected)
   (register-test-string input)
@@ -900,14 +923,40 @@ newline or +end+)
         :do (test-round-trip string)))
 
 ;; TODO make it easier to pin-point errors here...
-#++
 (define-test+run round-trip-breeze
   (loop :for file :in (breeze.asdf:system-files 'breeze)
         :for content = (alexandria:read-file-into-string file)
-        :do (test-round-trip content
-                             :context file
-                             ;; :check-for-error t
-                             )))
+        :do (let* ((state (parse content))
+                   (last-node (alexandria:lastcar (tree state)))
+                   (result (unparse state nil)))
+              (walk state (lambda (node &rest args
+                                   &key depth
+                                     aroundp beforep afterp
+                                     firstp lastp nth)
+                            (declare (ignorable
+                                      args
+                                      depth
+                                      aroundp beforep afterp
+                                      firstp lastp nth))
+                            (unless (valid-node-p node)
+                              ;; There's just too many nodes, this
+                              ;; makes parachute completely choke if I
+                              ;; don't filter the results...
+                              (true (valid-node-p node)
+                                    "file: ~s node: ~s" file node))
+                            #++ (when (parens-node-p node) (char= #\())
+                            node))
+              (is = (length content) (node-end last-node)
+                  "Failed to parse correctly the file ~s. The last node is: ~s"
+                  file
+                  last-node)
+              #++
+              (is = (length content) (length result)
+                  "Round-tripping the file ~s didn't give the same length.")
+              (let ((mismatch (mismatch content result)))
+                (false mismatch "Failed to round-trip the file ~s. The first mismatch is at position: "
+                       file
+                       mismatch)))))
 
 
 
