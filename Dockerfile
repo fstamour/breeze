@@ -1,7 +1,7 @@
 ARG LISP=sbcl
 ARG LISP_VERSION=2.2.4
 
-FROM clfoundation/${LISP}:${LISP_VERSION} as base
+FROM docker.io/clfoundation/${LISP}:${LISP_VERSION} as base
 
 RUN mkdir /breeze
 WORKDIR /breeze

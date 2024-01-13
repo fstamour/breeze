@@ -19,7 +19,7 @@ Trying to document the words/concepts used in the project.
   future actual REPL.
 - You could describe that as a "client-server REPL".
 
-** REPl
+** REPL
 :PROPERTIES:
 :ID:       824a7d5d-d11f-40b0-ae0e-b83ea7dbf812
 :END:

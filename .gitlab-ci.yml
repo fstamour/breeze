@@ -19,10 +19,51 @@ workflow:
   rules:
     - when: manual
 
-doc:
+test:
   extends: .base
+  variables:
+    LISP: sbcl
+  parallel:
+    matrix:
+      - STACK:
+          - sbcl
+          # TODO
+          # - abcl
+          # - ccl
+          # - ecl
+  # There's a test that generates some documentation
+  artifacts:
+    paths:
+      - public
+
+# Build public/ folder using org-publish on docs/
+org-mode-publish:
+  image: docker:24.0.7
+  services:
+    - docker:24.0.5-dind
   script:
-    - make doc
+    - apk add --no-cache make
+    - make public
+    - mv public org-mode-publish
+  artifacts:
+    paths:
+      - org-mode-publish
+  rules:
+    - when: manual
+
+# Merge "test" and "org-mode-publish"'s outputs
+doc:
+  needs:
+    - job: test
+      parallel:
+        matrix:
+          - STACK:
+            - sbcl
+      artifacts: true
+    - job: org-mode-publish
+      artifacts: true
+  script:
+    - cp org-mode-publish/* public/
   artifacts:
     paths:
       - public
@@ -36,26 +77,3 @@ pages:
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
     - when: manual
-
-test:
-  extends: .base
-  variables:
-    LISP: sbcl
-  parallel:
-    matrix:
-      - STACK:
-          - sbcl
-          # TODO
-          # - abcl
-          # - ccl
-          # - ecl
-
-# TODO "make demo" is currently broken
-# demo:
-#   # https://hub.docker.com/_/docker/tags
-#   image: docker:24.0.7
-#   script:
-#     - make demo
-#   artifacts:
-#     paths:
-#       - demo.tgz

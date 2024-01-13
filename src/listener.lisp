@@ -2,7 +2,7 @@
 
 (defpackage #:breeze.listener
   (:use :cl #:alexandria #:breeze.command)
-  (:documentation "Swank/Slynk wrapper")
+  (:documentation "RPC, REPL and more.")
   (:import-from #:breeze.xref
                 #:classp
                 #:function-designator-p)

@@ -13,10 +13,8 @@
 (require 'org-id)
 (require 'htmlize)
 
-
-
 ;; See (describe-variable 'org-publish-project-alist)
-
+;; See https://orgmode.org/manual/Publishing-options.html for more options
 (let* ((forcep t)               ; "forcep" is for interactive sessions.
        (org-id-link-to-org-use-id t)
        (default-directory
@@ -33,6 +31,8 @@
 
           :author "Francis St-Amour"
           :creator "Francis St-Amour"
+          :with-author nil
+          :html-validation-link nil
 
           :auto-sitemap t
           ;; :makeindex t
