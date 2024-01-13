@@ -293,19 +293,21 @@ inferior lisp."
    `(cl:load ,(breeze-relative-path "src/ensure-breeze.lisp"))
    cont))
 
-(cl-defun breeze-ensure ()
+(cl-defun breeze-ensure (&optional callback)
   "Make sure that breeze is loaded in the inferior lisp."
-  (unless (breeze-validate-if-breeze-package-exists)
+  (if (breeze-validate-if-breeze-package-exists)
+      (when callback (funcall callback))
     (breeze-message "Loading breeze's system asynchronously...")
     (breeze-load
      (lambda (&rest _)
        (breeze-message "Breeze loaded in inferior-lisp.")
-       (breeze-refresh-commands)))))
+       (breeze-refresh-commands)
+       (when callback (funcall callback))))))
 
 
 ;; See slime--setup-contribs, I named this breeze-init so it _could_
 ;; be added to slime-contrib,
-(cl-defun breeze ()
+(cl-defun breeze-init ()
   "Initialize breeze."
   (interactive)
   (breeze-ensure-listener)
@@ -341,10 +343,12 @@ inferior lisp."
 ;;; Hooks for flymake
 
 (defun breeze-lint (callback)
-  (breeze-eval-async
-   (format "(breeze.lossless-reader::lint %s)"
-           (breeze-compute-buffer-args))
-   callback)
+  (breeze-ensure
+   (lambda ()
+     (breeze-eval-async
+      (format "(breeze.lossless-reader::lint %s)"
+              (breeze-compute-buffer-args))
+      callback)))
   nil)
 
 (defun breeze-flymake (report-fn &rest args)
@@ -497,12 +501,13 @@ inferior lisp."
   (interactive)
   (breeze-minor-mode -1))
 
-(add-hook 'breeze-minor-mode-hook 'breeze)
+;; (add-hook 'lisp-mode-hook #'breeze-minor-mode)
+(add-hook 'breeze-minor-mode-hook 'breeze-init)
 (add-hook 'breeze-minor-mode-hook #'(lambda () (flymake-mode 1)))
 (add-hook 'breeze-minor-mode-hook 'breeze-setup-flymake-backend)
 
 ;; TODO This should be in the users' config
-(add-hook 'slime-lisp-minor-mode-hook 'breeze)
+(add-hook 'slime-lisp-minor-mode-hook 'breeze-init)
 
 
 ;;; major mode
