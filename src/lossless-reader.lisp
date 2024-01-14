@@ -1173,13 +1173,13 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                  (push (list (node-start node)
                              (node-end node)
                              :warning
-                             (format nil "Extraneous leading whitespaces. ~s" args))
+                             "Extraneous leading whitespaces.")
                        diagnostics))
                 ((and lastp (not (line-comment-node-p previous)))
                  (push (list (node-start node)
                              (node-end node)
                              :warning
-                             (format nil "Extraneous trailing whitespaces. ~s" args))
+                             "Extraneous trailing whitespaces.")
                        diagnostics))))
             node))
     diagnostics))
