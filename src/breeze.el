@@ -353,16 +353,19 @@ inferior lisp."
 
 (defun breeze-flymake (report-fn &rest args)
   (breeze-debug "flymake: %S" args)
-  (let ((buffer (current-buffer)))
-    (breeze-lint (lambda (cl-diagnostics)
-                   (funcall report-fn
-                            (cl-loop for (beg end type text) in cl-diagnostics
-                                     collect (flymake-make-diagnostic
-                                              ;; Locus
-                                              buffer
-                                              (1+ beg) (1+ end)
-                                              type
-                                              text)))))))
+  (if (breeze-listener-connected-p)
+      (let ((buffer (current-buffer)))
+        (breeze-lint (lambda (cl-diagnostics)
+                       (funcall report-fn
+                                (cl-loop for (beg end type text) in cl-diagnostics
+                                         collect (flymake-make-diagnostic
+                                                  ;; Locus
+                                                  buffer
+                                                  (1+ beg) (1+ end)
+                                                  type
+                                                  text))))))
+    ;; Not connected, so we can't call breeze's linter.
+    (funcall report-fn nil)))
 
 (defun breeze-setup-flymake-backend ()
   (add-hook 'flymake-diagnostic-functions 'breeze-flymake nil t))
@@ -378,10 +381,10 @@ inferior lisp."
 ;; TODO assumes slime
 (defun breeze-previous-note ()
   (interactive)
-  (let ((slime-note (slime-find-next-note)))
+  (let ((slime-note (slime-find-previous-note)))
     (if slime-note
-        (slime-next-note)
-      (flymake-goto-next-error))))
+        (slime-previous-note)
+      (flymake-goto-prev-error))))
 
 
 ;;; WIP Alternate files (this is currently very brittle, but it should
@@ -482,7 +485,6 @@ inferior lisp."
 (keymap-set breeze-minor-mode-map "M-p" #'breeze-previous-note)
 (keymap-set breeze-minor-mode-map "M-n" #'breeze-next-note)
 
-
 ;; Disabled for now
 ;; eval keymap - because we might want to keep an history
 ;; (defvar breeze-eval-map (make-sparse-keymap))
@@ -501,13 +503,8 @@ inferior lisp."
   (interactive)
   (breeze-minor-mode -1))
 
-;; (add-hook 'lisp-mode-hook #'breeze-minor-mode)
-(add-hook 'breeze-minor-mode-hook 'breeze-init)
-(add-hook 'breeze-minor-mode-hook #'(lambda () (flymake-mode 1)))
+(add-hook 'breeze-minor-mode-hook 'flymake-mode)
 (add-hook 'breeze-minor-mode-hook 'breeze-setup-flymake-backend)
-
-;; TODO This should be in the users' config
-(add-hook 'slime-lisp-minor-mode-hook 'breeze-init)
 
 
 ;;; major mode
@@ -515,14 +512,10 @@ inferior lisp."
 (define-derived-mode breeze-major-mode prog-mode
   "BRZ")
 
-
 (keymap-set breeze-major-mode-map "C-." #'breeze-quickfix)
 (keymap-set breeze-major-mode-map "C-c C-c" #'breeze-eval-defun)
 
 
-
-;; TODO define-key: This is a legacy function; see ‘keymap-set’ for
-;; the recommended function to use instead.
 
 (provide 'breeze)
 ;;; breeze.el ends here
