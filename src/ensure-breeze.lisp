@@ -15,5 +15,5 @@ It is used, for example, by emacs in breeze.el.
   #+quicklisp
   (ql:quickload "breeze")
   #-quicklisp
-  (require '#:breeze)
+  (asdf:load-system '#:breeze)
   (format t "~&Breeze loaded!~%"))
