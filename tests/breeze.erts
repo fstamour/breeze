@@ -21,3 +21,11 @@ Code: breeze-insert-in-package-cl-user
 ;; (defun a (b c)
 ;;   )
 ;; =-=-=
+
+
+;; Corrections of typos
+;; =-=
+;; |(lost 1 2 3)
+;; =-=
+;; |(list 1 2 3)
+;; =-=-=
