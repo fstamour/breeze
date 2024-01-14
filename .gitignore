@@ -11,3 +11,4 @@ githooks/*.sample
 *.png
 *.log
 *~
+/docs/sitemap.org

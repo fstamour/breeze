@@ -1,0 +1,44 @@
+:PROPERTIES:
+:ID:       306350c9-0fb5-478b-958b-b35cae726280
+:END:
+#+title: Getting Started
+
+* Clone
+
+Clone this repository in quicklisp's local-projects folder.
+
+#+begin_src shell
+git clone git@gitlab.com:fstamour/breeze.git ~/quicklisp/local-projects/breeze
+#+end_src
+
+* Load in emacs
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "~/quicklisp/local-projects/breeze/src/")
+(require 'breeze)
+#+end_src
+
+* Configure emacs to use breeze-minor-mode
+
+Add a hook to enable breeze's minor mode in =lisp-mode= automatically:
+
+The mode will add some bindings (most notably =C-.=, which is bound to
+the command =breeze-quickfix=).
+
+#+begin_src emacs-lisp
+(add-hook 'lisp-mode-hook #'breeze-minor-mode)
+#+end_src
+
+Additionally, breeze can be use as a "on-the-fly" linter for common
+lisp source files by enabling flymake and configuring flymake to use
+breeze.
+
+#+begin_src emacs-lisp
+;; Enable flymake whenever breeze-minor-mode is enabled
+(add-hook 'breeze-minor-mode-hook 'flymake-mode)
+;; Configure flymake whenever breeze-minor-mode is enabled
+(add-hook 'breeze-minor-mode-hook 'breeze-setup-flymake-backend)
+;; Configure eldoc to show both documentation and flymake's messages
+;; See https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc for a fancier solution
+(setf eldoc-documentation-strategy 'eldoc-documentation-compose)
+#+end_src
