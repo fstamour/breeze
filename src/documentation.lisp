@@ -242,13 +242,7 @@
          (:head
           (:title "Reference")
           (:link :rel "stylesheet" :href "style.css"))
-         (:body
-          #++ (:ol
-               (:li (:a :href "#readme" "Breeze"))
-               (:li (:a :href "#emacs" "Emacs integration"))
-               (:li (:a :href "#reference" "Reference")))
-          #++ (render-markdown "README.md")
-          ;; (render-markdown "docs/emacs.md")
+         (:bodyg
           (render-reference)))))))
 
 (defun generate-documentation ()
