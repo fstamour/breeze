@@ -66,13 +66,14 @@
   :licence "BSD 2-Clause License"
   :depends-on (breeze
                ;; For documentation generation
-               ;; 3bmd 3bmd-ext-code-blocks 3bmd-ext-tables
                spinneret
-               closer-mop)
+               closer-mop
+               cl-ppcre)
   :pathname "src"
-  :serial t
+  :serial nil ; <-
   :components
-  ((:file "documentation")))
+  ((:file "documentation")
+   (:file "report")))
 
 
 ;;; breeze/kite system

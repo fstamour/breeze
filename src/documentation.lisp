@@ -114,6 +114,7 @@
                     (list wrapper loop)
                     loop))))))))
 
+;; TODO turn this into a test
 #+nil
 (map-external-symbol (sym (find-package :br))
                      (boundp sym)
@@ -121,6 +122,7 @@
                      print
   :collect (print sym))
 
+;; TODO turn this into a test
 #+nil
 (map-external-symbol
  (symbol (find-package :br))
@@ -130,15 +132,6 @@
  :do
  (:dt (symbol-name symbol))
  (:dd (documentation symbol 'variable)))
-
-
-#++
-(defun render-markdown (pathname)
-  "Read a markdown file and render it in spinneret's *html* stream."
-  (let ((3bmd-tables:*tables* t))
-    (3bmd:parse-and-print-to-stream
-     (breeze-relative-pathname pathname)
-     spinneret:*html*)))
 
 
 ;; TODO
@@ -178,20 +171,6 @@
              (find-breeze-packages)
              #'string<
              :key #'package-name)))
-      #+nil
-      (progn
-        (:h1 "Packages' documentation")
-        (loop
-          :for package :in packages
-          :for package-name = (string-downcase (package-name package))
-          :for docfile = (breeze-relative-pathname
-                          (format nil "docs/~a.md" package-name))
-          :do
-             (if (probe-file docfile)
-                 (progn
-                   (:h2 (:a :id package-name package-name))
-                   #++(render-markdown docfile))
-                 (warn "Could not find \"~a\"." docfile))))
       (:h1 (:a :id "reference" "Reference"))
       ;; Package index
       (:dl
@@ -206,8 +185,6 @@
       (loop
         :for package :in packages
         :for package-name = (string-downcase (package-name package))
-        :for docfile = (breeze-relative-pathname
-                        (format nil "docs/~a.md" package-name))
         :do
            (macrolet ((gen (title
                             predicate-body
@@ -242,11 +219,11 @@
          (:head
           (:title "Reference")
           (:link :rel "stylesheet" :href "style.css"))
-         (:bodyg
+         (:body
           (render-reference)))))))
 
 (defun generate-documentation ()
-  (let* ((root (breeze-relative-pathname "public/"))
+  (let* ((root (breeze-relative-pathname "docs/"))
          (index (merge-pathnames "reference.html" root)))
     (ensure-directories-exist root)
     (with-output-to-file

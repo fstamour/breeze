@@ -51,4 +51,5 @@
 
 
 (define-test generate-documentation
-  (breeze.documentation::generate-documentation))
+  (breeze.documentation::generate-documentation)
+  (breeze.report::render 'breeze))

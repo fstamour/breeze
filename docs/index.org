@@ -9,13 +9,14 @@
 - [[id:d08ab932-1204-4e7c-9869-40fc53500071][Introduction]]
 - [[id:e5d64314-8b13-4a6b-997f-1aae94910d63][Goals and non-goals]]
 - [[id:11dd9906-75ff-4abc-82a5-b7dda0936f06][Roadmap]]
-- [[id:97764444-b28d-4bf8-bf31-68dc39e9e3f7][Getting Started]]
+- [[id:306350c9-0fb5-478b-958b-b35cae726280][Getting Started]]
 - [[id:5d211d9a-0749-4adb-abe0-e66133d09b5b][Editor integrations]]
 - [[id:14d42b3a-0a2f-4a3b-8937-7175e621c6ec][Design Decisions]]
 - [[id:279c4ea6-2004-4a7a-a2c9-905f27fae42c][Contributing]]
 - [[id:e712f3d1-0734-43f0-886a-3008ca5f722d][Testing Breeze]]
 - [[id:bb5c6ad4-0f89-48aa-9295-13e5e248a897][Glossary]]
-# TODO WIP - [[file://reference.html][Reference]]
+- [[file:reference.html][Reference]]
+- [[file:listing-breeze.html][Source listings]]
 
 * Internal notes
 
