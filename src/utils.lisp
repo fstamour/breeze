@@ -148,7 +148,7 @@
 
 (defun breeze-relative-pathname (pathname)
   "Returns a pathname relative to breeze's location."
-  (if (cl-fad:pathname-relative-p pathname)
+  (if (uiop:relative-pathname-p pathname)
       (asdf:system-relative-pathname :breeze pathname)
       pathname))
 
