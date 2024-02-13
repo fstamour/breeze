@@ -58,14 +58,30 @@
       (and errorp
            (error "Please load either slime or sly."))))
 
+(cl-defun breeze-%symbolicate2 (listener &optional suffix)
+  "Build up a symbol... TODO better docstring."
+  (cond
+   (suffix (intern (format "%s-%s" listener suffix)))
+   ((symbolp listener) listener)
+   (t (intern listener))))
+
 (cl-defun breeze-choose-listener (&optional (errorp t))
   (let ((listeners (breeze-list-loaded-listeners errorp)))
     (when listeners
       (if (= (length listeners) 1)
           (first listeners)
-        (intern
+        (breeze-%listener
          (completing-read "Choose a lisp listener to start: "
                           listeners nil t))))))
+
+(cl-defun breeze-%listener-symbolicate (&optional suffix)
+  (breeze-%symbolicate2 (breeze-choose-listener) suffix))
+
+(cl-defun breeze-%listener-apply (suffix args)
+  (apply (breeze-%listener-symbolicate suffix) args))
+
+(cl-defun breeze-%listener-funcall (suffix &rest args)
+  (breeze-%listener-apply suffix args))
 
 (defun breeze-start-listener ()
   "Start a listener (e.g. calls \"(sly)\" or \"(slime)\")."
@@ -81,12 +97,10 @@
 ;;; Evaluation
 
 (defun breeze-%eval (form)
-  (funcall (intern (format "%s-eval" (breeze-choose-listener)))
-           form))
+  (breeze-%listener-funcall "eval" form))
 
 (defun breeze-%eval-async (form &optional cont package)
-  (funcall (intern (format "%s-eval-async" (breeze-choose-listener)))
-           form cont package))
+  (breeze-%listener-funcall "eval-async" form cont package))
 
 (defun breeze-eval (string)
   (let ((value (breeze-%eval `(breeze.listener:rpc-eval ,string))))
@@ -331,13 +345,15 @@ inferior lisp."
 (defun breeze-connected-hook-function ()
   (breeze-ensure))
 
-;; TODO this assumes slime
-(defun breeze-add-hooks (listener)
-  (add-hook 'slime-connected-hook 'breeze-connected-hook-function))
+(defun breeze-enable-connected-hook ()
+  (interactive)
+  (add-hook (breeze-%listener-symbolicate "connected-hook")
+            'breeze-connected-hook-function))
 
-;; TODO this assumes slime
-(defun breeze-remove-hooks (listener)
-  (remove-hook 'slime-connected-hook 'breeze-connected-hook-function))
+(defun breeze-disable-connected-hook ()
+  (interactive)
+  (remove-hook (breeze-%listener-symbolicate "connected-hook")
+               'breeze-connected-hook-function))
 
 
 ;;; Hooks for flymake
@@ -367,8 +383,13 @@ inferior lisp."
     ;; Not connected, so we can't call breeze's linter.
     (funcall report-fn nil)))
 
-(defun breeze-setup-flymake-backend ()
+(defun breeze-enable-flymake-backend ()
+  (interactive)
   (add-hook 'flymake-diagnostic-functions 'breeze-flymake nil t))
+
+(defun breeze-disable-flymake-backend ()
+  (interactive)
+  (remove-hook 'flymake-diagnostic-functions 'breeze-flymake nil))
 
 ;; TODO assumes slime
 (defun breeze-next-note ()
@@ -503,8 +524,10 @@ inferior lisp."
   (interactive)
   (breeze-minor-mode -1))
 
+;; TODO these two hooks should probably be a user-preference, maybe
+;; TODO perhaps provide a function that does all this
 (add-hook 'breeze-minor-mode-hook 'flymake-mode)
-(add-hook 'breeze-minor-mode-hook 'breeze-setup-flymake-backend)
+(add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend)
 
 
 ;;; major mode

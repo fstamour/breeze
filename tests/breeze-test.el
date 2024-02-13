@@ -16,6 +16,18 @@
 
 
 
+(ert-deftest test/breeze-%symbolicate ()
+  (should (eq 'sly (breeze-%symbolicate2 "sly")))
+  (should (eq 'sly (breeze-%symbolicate2 'sly)))
+  (should (eq 'slime (breeze-%symbolicate2 "slime")))
+  (should (eq 'slime (breeze-%symbolicate2 'slime)))
+  (should (eq 'sly-eval (breeze-%symbolicate2 'sly "eval")))
+  (should (eq 'slime-eval (breeze-%symbolicate2 'slime "eval")))
+  (should (eq 'slime-connected-hook
+              (breeze-%symbolicate2 'slime "connected-hook"))))
+
+
+
 ;; TODO true only if connected!
 (ert-deftest test/breeze-connection ()
   (should (breeze--xor

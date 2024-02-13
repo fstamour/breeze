@@ -48,6 +48,8 @@
 
 (breeze-translate-command-lambda-list '(a::1 b:2 c::3))
 
+(breeze-refresh-commands)
+
 (symbol-function 'breeze-scaffold-project)
 
 
