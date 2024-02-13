@@ -25,6 +25,8 @@
 - [[id:e2ff6189-1fd8-4d3c-9b7d-3d3ddbf2b0aa][Ideas]]
 - [[id:b9f7e1f4-dc86-46e0-860b-f845f180110e][Breeze on the internets]]
 - [[id:31236780-159e-4a58-9019-37f57f5b4997][FAQ from newbies about common lisp]]
+- [[id:62112623-6002-4cb9-87de-cb530ce0a36e][Silimar projects]]
+- [[id:13ea055e-4715-4583-811b-bff78ca300ee][Candidate Features]]
 
 ** More specific notes
 

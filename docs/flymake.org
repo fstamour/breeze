@@ -1,0 +1,9 @@
+:PROPERTIES:
+:ID:       5b8f3aee-0ea4-4688-8de7-e0b3ac140405
+:END:
+#+title: Flymake
+
+flymake-show-buffer-diagnostics
+flymake-show-project-diagnostics
+
+next-error-function

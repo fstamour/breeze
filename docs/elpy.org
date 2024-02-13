@@ -1,0 +1,13 @@
+:PROPERTIES:
+:ID:       5265bce5-c6d0-4cda-8d3e-699ceafcab42
+:END:
+#+title: Elpy
+
+#+begin_quote
+Elpy is an extension for the Emacs text editor to work with Python
+projects.
+#+end_quote
+
+https://elpy.readthedocs.io/en/latest/
+
+- Uses [[id:5eb1faac-b7b5-4c99-abe9-b91e77bea4ae][Jedi]]
