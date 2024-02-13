@@ -128,6 +128,37 @@ system definition file."
 (asdf:component-loaded-p
  (asdf:find-system "breeze"))
 
+#|
+
+TODO fix loadedp
+
+Here's a complex but that I never noticed:
+
+1. The function loadedp calls infer-systems
+2. loadedp will crash if it gets a path to a system file that doesn't
+contain any loaded system
+3. infer-systems returns only system definition files that contains a
+system that has not been loaded
+
+Which means that loadedp crashes when it's called on a file that is
+part of a system that no systems from the same system defintion file
+was loaded.
+
+It's subtle...
+
+The fix is (and/or):
+1. Test if I can get away with `(asdf:load-asd ...`
+2. add an ignore-error or something similar, because loadedp should
+never ever crash... But I would like some warning if an issues arise.
+Perhaps add an &optional errorp
+3. Maybe find an alternative to asdf/component:sub-component
+4. List the systems in the system file and check if any of them are
+loaded, if the file is not part of any of these, then the file is
+likely not loaded
+
+|#
+
+
 (defun infer-systems (pathname &aux systems)
   "Given a path (e.g. to a file), infer which systems it might be part of."
   (let* ((directory (uiop:pathname-directory-pathname pathname))
@@ -154,6 +185,9 @@ system definition file."
 This will return false if the file was loaded outside of asdf."
   (when pathname
     (loop :for system :in (infer-systems pathname)
+          ;; BUG if system is a path to an .asd file that has not been
+          ;; loaded, then sub-components will error (on
+          ;; asdf/component:component-if-feature).
           :for components = (asdf/component:sub-components system)
           :when (typep system 'asdf:system)
             :do (when-let* ((component-found (member

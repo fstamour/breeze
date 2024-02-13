@@ -67,10 +67,7 @@
 ;; TODO only after (breeze-ensure)
 ;; (should (eq t (breeze-validate-if-breeze-package-exists)))
 
-
 ;; (should (eq t (breeze-ensure)))
-
-;; (breeze-init)
 
 
 

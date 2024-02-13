@@ -205,6 +205,7 @@ defun."
     (if nil ; TODO
         (insert "(uiop:define-package ")
         (insert "(defpackage "))
+    ;; TODO don't insert the (in-package ...) if it already exists
     (insert
      "#:~a~
     ~%  (:documentation \"\")~
@@ -571,7 +572,7 @@ a message and stop the current command."
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
-  (maybe-ask-to-load-system)
+  (ignore-errors (maybe-ask-to-load-system))
   (augment-context-by-parsing-the-buffer (context*))
   (check-in-package)
   (let* (;; Compute the applicable commands
