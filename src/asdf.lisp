@@ -214,6 +214,8 @@ This will return false if the file was loaded outside of asdf."
   (let ((system (asdf/system:find-system system-designator nil)))
     (remove-if-not #'stringp (asdf:system-depends-on system))))
 
+;; TODO use https://github.com/gpcz/cl-uniquifier/ to generate the labels?
+
 (defun write-dependecy-graph (root-system &optional (stream t)
                               &aux
                                 (system-ids (make-hash-table :test 'equal))

@@ -12,6 +12,7 @@ This contains the notes that needs to be categorized/cleaned up.
 ** TODO This is just a dump of links, I need at least a small description and reason why it might be useful
 
 ** Tinker (1980)
+
 http://web.media.mit.edu/%7Elieber/Lieberary/Tinker/Tinker/Tinker.html
 
 ** Image Based development
@@ -65,6 +66,7 @@ preserve the formatting. There's a bunch of tools to format the code.
 - https://github.com/Zulu-Inuoe/clution
 - https://github.com/Zulu-Inuoe/clution.lib
 - https://github.com/Zulu-Inuoe/lob
+
 * Protocols
 
 - [[https://chromedevtools.github.io/devtools-protocol/][Chrome DevTools Protocol]]
@@ -111,6 +113,7 @@ Emacs supports ~(declare (pure t) (side-effect-free t))~
 
 
 https://github.com/mmontone/duologue - High level user interaction library for Common Lis
+
 * Discord
 
 Discussion about =#:=
@@ -134,6 +137,7 @@ Maybe I should have a section about "code snippets that could be useful"?
 [[https://github.com/StephenWakely/froute/blob/3d9ea3114537e1451cccec91f7cbe2321a49a1e0/src/froute-class.lisp][froute-class.lisp]]
 
 * See
+
 ** DONE uses locative: http://quickdocs.org/mgl-pax/                 :editor:
 
 2022-03-17 - I read most of the readme, this system looks awesome

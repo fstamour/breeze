@@ -198,6 +198,17 @@ some block comment
 ($a)
 =-=-=
 
+;; With emacs, kill-sexp (C-M-k) doesn't parse some things correctly
+Name: kill-sexp-multiple-tokens-without-spaces
+
+=-=
+$abc,def
+=-=
+$,def
+=-=-=
+;; emacs would delete the whole abc,def
+
+
 ;; Like paredit-kill, which is like kill-line, but keeping the
 ;; structure valid
 Name: kill

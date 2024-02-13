@@ -2,7 +2,6 @@
 :ID:       bb5c6ad4-0f89-48aa-9295-13e5e248a897
 :END:
 #+title: Glossary
-
 * Glossary
 
 #+begin_comment
