@@ -95,6 +95,26 @@
 (context *a*)
 
 
+;;; Prototyping the request thingy...
+
+(request 'x)
+;; => nil
+
+(handler-bind
+    ((request #'(lambda (request)
+                  ;; (format t "~%request: ~s" request)
+                  (if (eq (what request) 'x)
+                      (answer 42)
+                      (signal request)))))
+  (mapcar (lambda (what)
+            (multiple-value-list (request what)))
+          '(x y)))
+;; => ((42 T) (NIL))
+
+(with-answers
+    ())
+
+
 
 ;; refactor.lisp
 
@@ -200,3 +220,53 @@
 (trace match)
 
 (untrace)
+
+
+
+
+(in-package #:breeze.listener)
+
+(trace suggest-symbol
+       suggest-package
+       suggest-class)
+
+
+
+(progn
+  ;; List the slot of a condition
+  (sb-kernel::condition-assigned-slots *condition*)
+
+  ;; Get the first element of a condition's format arguments
+  (car
+   (slot-value *condition*
+               'sb-kernel::format-arguments)) )
+
+
+
+(defparameter *condition* *last-condition*
+  "Just a quick way to save the last-condition.")
+
+
+
+#+ (or)
+(type-of *condition*)
+;; => SB-PCL::MISSING-SLOT
+
+
+
+(prin t)
+(commmon-lisp:print :oups)
+(cl:prin :oups)
+(call-with-correction-suggestion (lambda () (eval '(prin))))
+(make-instance 'typos)
+
+
+
+
+#|
+
+TODO Would be nice to have a "Shadow-import all" restart.
+
+|#
+
+

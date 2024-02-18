@@ -233,8 +233,6 @@
   (send-out *command* `(,request ,@data)))
 
 
-;; TODO rename cancel -> stop
-
 (defun stop-actor (actor)
   (when-let* ((thread (thread actor)))
     (handler-case
@@ -257,6 +255,7 @@
       (sb-thread:interrupt-thread-error (condition)
         (declare (ignore condition))))))
 
+;; TODO rename cancel -> stop
 (defun cancel-command (id &optional reason)
   "Cancel a command."
   (let ((actor (find-actor id :errorp t)))
@@ -443,14 +442,31 @@
       (context *command*)
       (error "*command* is nil")))
 
-(defun context-get (context key)
-  "Get the value of KEY CONTEXT."
-  (gethash key context))
+(define-condition request ()
+  ((what :initarg :what :reader what)))
+
+(defun request (what)
+  (catch 'answer
+    (signal 'request :what what)))
+
+(defun answer (value)
+  (throw 'answer (values value t)))
 
 (defun context-set (context key value)
   "Set KEY to VALUE in CONTEXT."
   (setf (gethash key context) value))
 
+(defun context-get (context key)
+  "Get the value of KEY CONTEXT."
+  (multiple-value-bind (value presentp)
+      (gethash key context)
+    (if presentp
+        value
+        (multiple-value-bind (value answeredp)
+            (request key)
+          (when answeredp
+            (context-set context key value))
+          value))))
 
 (defun buffer-string (context)
   "Get the \"buffer-string\" from the CONTEXT.
@@ -671,6 +687,7 @@ Example:
 
 ;;; Utilities to get more context
 
+;; TODO It should be easier to test with the request/answer stuff?
 (defun parse-buffer (context)
   (breeze.lossless-reader:parse (buffer-string context)))
 
