@@ -217,8 +217,6 @@
 (defmethod send-out ((command command-handler) value)
   (%send (channel-out command) value))
 
-;; No, I won't support multiple client/command at the same time, for
-;; now™.
 (defvar *command* nil
   "The command that is currently being executed.")
 
