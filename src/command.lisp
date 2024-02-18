@@ -20,18 +20,18 @@
    #:context*
    #:context-get
    #:context-set
-   #:context-buffer-string
-   #:context-buffer-string*
-   #:context-buffer-name
-   #:context-buffer-name*
-   #:context-buffer-file-name
-   #:context-buffer-file-name*
-   #:context-point
-   #:context-point*
-   #:context-point-min
-   #:context-point-min*
-   #:context-point-max
-   #:context-point-max*
+   #:buffer-string
+   #:buffer-string*
+   #:buffer-name
+   #:buffer-name*
+   #:buffer-file-name
+   #:buffer-file-name*
+   #:point
+   #:point*
+   #:point-min
+   #:point-min*
+   #:point-max
+   #:point-max*
    ;; Basic composables commands
    #:insert
    #:read-string
@@ -40,7 +40,6 @@
    #:insert-at
    #:insert-at-saving-excursion
    #:replace-region
-   #:backward-char
    #:message
    #:find-file
    #:ask-y-or-n-p
@@ -454,80 +453,79 @@
   "Set KEY to VALUE in CONTEXT."
   (setf (gethash key context) value))
 
-;; TODO remove useless prefix "context-"
 
-(defun context-buffer-string (context)
+(defun buffer-string (context)
   "Get the \"buffer-string\" from the CONTEXT.
 The buffer-string is the content of the buffer.
 It can be null."
   (context-get context 'buffer-string))
 
-(defun context-buffer-string* ()
+(defun buffer-string* ()
   "Get the \"buffer-string\" from the *command*'s context.
 The buffer-string is the content of the buffer.
 It can be null."
   (context-get (context*) 'buffer-string))
 
-(defun context-buffer-name (context)
+(defun buffer-name (context)
   "Get the \"buffer-name\" from the CONTEXT.
 The buffer-name is the name of the buffer.
 It can be null."
   (context-get context 'buffer-name))
 
-(defun context-buffer-name* ()
+(defun buffer-name* ()
   "Get the \"buffer-name\" from the *command*'s context.
 The buffer-name is the name of the buffer.
 It can be null."
   (context-get (context*) 'buffer-name))
 
-(defun context-buffer-file-name (context)
+(defun buffer-file-name (context)
   "Get the \"buffer-file-name\" the CONTEXT.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
   (context-get context 'buffer-file-name))
 
-(defun context-buffer-file-name* ()
+(defun buffer-file-name* ()
   "Get the \"buffer-file-name\" from the *command*'s context.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
   (context-get (context*) 'buffer-file-name))
 
-(defun context-point (context)
+(defun point (context)
   "Get the \"point\" from the CONTEXT.
 The point is the position of the cursor.
 It can be null."
   (context-get context 'point))
 
-(defun context-point* ()
+(defun point* ()
   "Get the \"point\" from the *command*'s context.
 The point is the position of the cursor.
 It can be null."
   (context-get (context*) 'point))
 
-(defun context-point-min (context)
+(defun point-min (context)
   "Get the \"point-min\" from the CONTEXT.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get context 'point-min))
 
-(defun context-point-min* ()
+(defun point-min* ()
   "Get the \"point-min\" from the *command*'s context.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get (context*) 'point-min))
 
-(defun context-point-max (context)
+(defun point-max (context)
   "Get the \"point-max\" from the CONTEXT.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get context 'point-max))
 
-(defun context-point-max* ()
+(defun point-max* ()
   "Get the \"point-max\" from the *command*'s context.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
@@ -601,10 +599,6 @@ to non-nil to keep the current position."
    position-from
    position-to
    replacement-string))
-
-(defun backward-char (&optional n)
-  "Send a message to the editor to move backward."
-  (send "backward-char" n))
 
 (defun message (control-string &rest format-arguments)
   "Send a message to the editor to ask it to show a message to the
@@ -680,27 +674,23 @@ Example:
 ;;; Utilities to get more context
 
 (defun parse-buffer (context)
-  #++
-  (let* ((buffer-string (context-buffer-string context))
-         (code (parse-string buffer-string)))
-    (breeze.reader:forms code)))
+  (breeze.lossless-reader:parse (buffer-string context)))
 
-;; TODO Add lots of error-handling...
 (defun augment-context-by-parsing-the-buffer (context)
-  (let ((nodes (parse-buffer context)))
-    (if nodes
-        (let* (;; Find the node "at point"
-               (path (find-path-to-node (context-point context) nodes))
-               ;; Find the top-level form "at point"
-               (outer-node (caar path))
-               ;; Find the innermost form "at point"
-               (inner-node (car (lastcar path)))
-               (inner-node-index (cdr (lastcar path)))
-               ;; Find the innermost form's parent
-               (parent-node (car (before-last path))))
-          #. `(progn ,@(loop :for key in '(nodes path outer-node
-                                           inner-node inner-node-index parent-node)
-                             :collect
-                             `(context-set context ',key ,key)))
-          t)
-        nil)))
+  (let ((parse-result (parse-buffer context)))
+    ;; TODO re-implement those against the new parse tree
+    #++
+    (let* (;; Find the node "at point"
+           (path (find-path-to-node (point context) nodes))
+           ;; Find the top-level form "at point"
+           (outer-node (caar path))
+           ;; Find the innermost form "at point"
+           (inner-node (car (lastcar path)))
+           (inner-node-index (cdr (lastcar path)))
+           ;; Find the innermost form's parent
+           (parent-node (car (before-last path))))
+      #. `(progn ,@(loop :for key in '(nodes path outer-node
+                                       inner-node inner-node-index parent-node)
+                         :collect
+                         `(context-set context ',key ,key))))
+    parse-result))

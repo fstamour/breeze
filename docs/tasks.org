@@ -25,7 +25,7 @@ OR the "client" should be responsible to always execute the commands
 with on the "initial" buffer, unless stated otherwise (but that would
 add even more state on the protocol).
 
-** TODO Remove the command ~backward-char~                 :tech_debt:editor:
+** DONE Remove the command ~backward-char~                 :tech_debt:editor:
 
 I introduced the command ~backward-char~ as a hacky workaround: the
 integration with the editor edits the buffer incrementally, but then

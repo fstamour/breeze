@@ -264,7 +264,7 @@ newline in the expected result."
   (let* ((trace (drive-command #'insert-defun
                                :inputs '("real-fun" "a &optional b")
                                :context '())))
-    (common-trace-asserts 'insert-defun trace 7)
+    (common-trace-asserts 'insert-defun trace 6)
     (destructuring-bind (input request) (first trace)
       (is string= "insert" (first request))
       (is string= "(defun " (second request)))
@@ -286,10 +286,7 @@ newline in the expected result."
       (is equal
           '("a &optional b)"
             ")")
-          (split-by-newline (second request))))
-    (destructuring-bind (input request) (sixth trace)
-      (is string= "backward-char" (first request))
-      (is string= nil (second request)))))
+          (split-by-newline (second request))))))
 
 
 (define-test insert-defvar
@@ -353,7 +350,7 @@ newline in the expected result."
   (let* ((trace (drive-command #'insert-defmacro
                                :inputs '("mac" "(x) &body body")
                                :context '())))
-    (common-trace-asserts 'insert-defmacro trace 7)
+    (common-trace-asserts 'insert-defmacro trace 6)
     (destructuring-bind (input request) (first trace)
       (is string= "insert" (first request))
       (is string= "(defmacro " (second request)))
@@ -375,10 +372,7 @@ newline in the expected result."
       (is equal
           '("(x) &body body)"
             ")")
-          (split-by-newline (second request))))
-    (destructuring-bind (input request) (sixth trace)
-      (is string= "backward-char" (first request))
-      (is string= nil (second request)))))
+          (split-by-newline (second request))))))
 
 (define-test+run insert-defgeneric
   (let* ((trace (drive-command #'insert-defgeneric
@@ -747,6 +741,6 @@ strings get concatenated."
 
 
 #+ (or)
-(context-buffer-string
+(buffer-string
  (alexandria:plist-hash-table
   '(:buffer-string "asdf")))

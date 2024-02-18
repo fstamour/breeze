@@ -47,6 +47,8 @@
    (:file "listener"
     :depends-on ("xref"
                  "command"))
+   (:file "suggestion"
+    :depends-on ("listener"))
    (:file "refactor" :depends-on ("command" "utils" "cl"))
    (:file "project" :depends-on ("utils" "command" "configuration"))
    (:file "capture" :depends-on ("utils" "command" "configuration")))
