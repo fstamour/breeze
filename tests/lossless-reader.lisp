@@ -1,41 +1,6 @@
 
 (cl:in-package #:cl-user)
 
-(defpackage #:breeze.test.lossless-reader
-  (:documentation "Test package for #:breeze.lossless-reader")
-  (:use #:cl #:breeze.lossless-reader)
-  (:import-from #:breeze.lossless-reader
-                #:*state-control-string*
-                #:state-context
-                #:read-sharpsign-backslash
-                #:read-sharpsign-quote
-                #:read-sharpsign-left-parens
-                #:read-sharpsign-asterisk
-                #:read-sharpsign-colon
-                #:read-sharpsign-dot
-                #:read-sharpsign-b
-                #:read-sharpsign-o
-                #:read-sharpsign-x
-                #:read-sharpsign-r
-                #:read-sharpsign-c
-                #:read-sharpsign-a
-                #:read-sharpsign-s
-                #:read-sharpsign-p
-                #:read-sharpsign-equal
-                #:read-sharpsign-sharpsign
-                #:read-sharpsign-plus
-                #:read-sharpsign-minus)
-  (:import-from #:parachute
-                #:define-test
-                #:define-test+run
-                #:is
-                #:true
-                #:false
-                #:of-type)
-  (:import-from #:breeze.kite
-                #:is-equalp*
-                #:is-equalp))
-
 (in-package #:breeze.test.lossless-reader)
 
 #|
@@ -67,12 +32,6 @@ newline or +end+)
 
 
 ;;; testing helpers
-
-(defvar *test-strings* (make-hash-table :test 'equal))
-
-(defun register-test-string (string)
-  (setf (gethash string *test-strings*) t)
-  string)
 
 (defmacro with-state ((string &optional more-labels) &body body)
   (alexandria:once-only (string)
@@ -815,7 +774,6 @@ newline or +end+)
 
 ;;; Putting it all toghether
 
-;; TODO parse
 (defun test-parse (input &rest expected)
   (register-test-string input)
   (let* ((state (parse input))
@@ -853,6 +811,7 @@ newline or +end+)
   (test-parse ";" (line-comment 0 +end+))
   (test-parse "(12" (parens 0 +end+ (token 1 3)))
   (test-parse "\"" (node 'string 0 +end+))
+  (test-parse "\"\"" (node 'string 0 2))
   (test-parse "#:asdf"
               (node 'sharp-uninterned 0 6
                     (node 'token 2 6)))
@@ -881,17 +840,25 @@ newline or +end+)
                        (token 3 7))))
   (test-parse "#\\Linefeed" (sharp-char 0 10 (token 1 10)))
   (test-parse "#\\: asd" (sharp-char 0 3 (token 1 3)) (whitespace 3 4) (token 4 7))
-  (test-parse "(((  )))" (parens 0 8 (list (parens 1 7 (list (parens 2 6 (list (whitespace 3 5)))))))))
-
-(defun test-parse* (input &rest expected)
-  (register-test-string input)
-  (if expected
-      (is-equalp* input (parse* input) expected)
-      (is-equalp* input (parse* input))))
+  (test-parse "(((  )))" (parens 0 8 (list (parens 1 7 (list (parens 2 6 (list (whitespace 3 5))))))))
+  (test-parse "(#" (parens 0 +end+ (sharp-unknown 1 +end+)))
+  (test-parse "(#)" (parens 0 +end+ (sharp-unknown 1 +end+)))
+  (test-parse "(#) "
+              (parens 0 +end+ (sharp-unknown 1 +end+))
+              #++ (whitespace 3 4))
+  (test-parse "(#') "
+              (parens
+               0 +end+
+               (sharp-function
+                1 +end+
+                (list (node ':extraneous-closing-parens 3 +end+))))))
 
 ;; Slightly cursed syntax:
 ;; "#+#."
 ;; e.g. "#+ #.(cl:quote x) 2" == "#+ x 2"
+
+#++
+(read-from-string ":\|")
 
 
 ;;; Unparse

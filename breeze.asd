@@ -103,6 +103,7 @@
   :components
   ((:file "utils")
    (:file "logging")
+   (:file "lossless-reader.randmized")
    (:file "lossless-reader")
    (:file "pattern")
    (:file "command")

@@ -25,6 +25,11 @@
                                 t)))
                    (bt:all-threads))))
 
+(defun find-threads-by-prefix (prefix &key (exclude-self-p t))
+  (find-threads #'(lambda (thread)
+                    (alexandria:starts-with-subseq prefix (bt:thread-name thread)))
+                exclude-self-p))
+
 (defun find-threads-by-name (name &key (exclude-self-p t))
   (find-threads #'(lambda (thread)
                     (string= (bt:thread-name thread) name))

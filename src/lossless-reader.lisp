@@ -268,9 +268,9 @@ common lisp.")
 
 (macrolet ((aux (type
                  &key
-                   children
-                   (name type)
-                   no-constructor-p)
+                 children
+                 (name type)
+                 no-constructor-p)
              `(progn
                 ;; predicate
                 (defun
@@ -312,7 +312,7 @@ common lisp.")
   (aux comma)
   (aux sharp)
   (aux sharp-char :children t)
-  (aux sharp-function)
+  (aux sharp-function :children t)
   (aux sharp-vector)
   (aux sharp-bitvector)
   (aux sharp-uninterned)
@@ -949,14 +949,10 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       ;; :for guard :below 1000 ; infinite loop guard
       :while (not (read-char* state #\))) ; good ending
       :for el = (read-any state)          ; mutual recursion
-      :if (valid-node-p el)
+      :when el
         :collect el :into content
-      :else
-        :do (return (if (donep state)
-                        (parens start +end+ content)
-                        (error "This is a bug: read-any returned an invalid node, but we're not done reading the file...~%~?"
-                               *state-control-string*
-                               (state-context state))))
+      :unless (valid-node-p el)
+        :do (return (parens start +end+ content))
       :finally (return (parens start (pos state) content)))))
 
 ;; TODO add tests with skip-whitespaces-p set
@@ -1153,7 +1149,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                     node)))))
 
 
-(defun lint (&key buffer-string &allow-other-keys)
+(defun lint (&key buffer-string point-max &allow-other-keys)
   (let ((state (parse buffer-string))
         (diagnostics '()))
     (walk state
@@ -1164,6 +1160,12 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
             ;; Debug info
             ;; (format t "~&~s ~{~s~^ ~}" node args)
             ;; Removing useless whitespaces
+            (unless (valid-node-p node)
+              (push (list (node-start node)
+                          point-max
+                          :error
+                          "Syntax error")
+                    diagnostics))
             (when (and (plusp depth)
                        aroundp
                        (whitespace-node-p node))
