@@ -926,7 +926,6 @@ newline or +end+)
                        file
                        mismatch)))))
 
-
 
 ;;; Fixing formatting issues...
 
@@ -975,3 +974,66 @@ newline or +end+)
   ;; (test-remove-whitespaces "(;;~%  )" "(;;~% )")
   (test-remove-whitespaces "( x)" "(x)")
   (test-remove-whitespaces "( x )" "(x)"))
+
+
+;;; Basic tree inspection
+
+#++ ;; Sanity-check
+(mapcar #'read-from-string
+        '("in-package"
+          "common-lisp:in-package"
+          "cl:in-package"
+          "cl-user::in-package"
+          "common-lisp-user::in-package"))
+
+(defun parse-then-in-package-node-p (string)
+  (let* ((state (parse string))
+         (node (first (tree state))))
+    (in-package-node-p state node)))
+
+(define-test in-package-node-p
+  (true (every #'parse-then-in-package-node-p
+               '("in-package"
+                 "common-lisp:in-package"
+                 "cl:in-package"
+                 "cl-user::in-package"
+                 "common-lisp-user::in-package")))
+  (true (every #'(lambda (s)
+                   (parse-then-in-package-node-p (format nil "(~a)" s)))
+               '("in-package"
+                 "common-lisp:in-package"
+                 "cl:in-package"
+                 "cl-user::in-package"
+                 "common-lisp-user::in-package"))))
+
+(define-test find-node
+  (is equal
+      '((whitespace . 0) (parens . 1) (parens . 1) (parens . 1) (parens . 1)
+        (parens . 1) (parens . 1) (parens . 1) (parens . 1) (whitespace . 2))
+      (loop :with input = " ( loop ) "
+            :with state = (parse input)
+            :for i :from 0 :below (length input)
+            :for path = (find-node i (tree state))
+            :collect (cons (node-type (car path)) (cdr path)))))
+
+(define-test find-path-to-position
+  (is equalp
+      '((whitespace)
+        (parens whitespace)
+        (parens whitespace)
+        (parens token)
+        (parens token)
+        (parens token)
+        (parens token)
+        (parens whitespace)
+        (parens)
+        (whitespace))
+      (loop :with input = " ( loop ) "
+            :with state = (parse input)
+            :for i :from 0 :below (length input)
+            :for path = (find-path-to-position state i)
+            :collect
+            (mapcar (lambda (path)
+                      (node-type (car path)))
+                    path)
+            #++(list i (length path)))))
