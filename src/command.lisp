@@ -21,17 +21,11 @@
    #:context-get
    #:context-set
    #:buffer-string
-   #:buffer-string*
    #:buffer-name
-   #:buffer-name*
    #:buffer-file-name
-   #:buffer-file-name*
    #:point
-   #:point*
    #:point-min
-   #:point-min*
    #:point-max
-   #:point-max*
    ;; Basic composables commands
    #:insert
    #:read-string
@@ -106,7 +100,7 @@
     actor))
 
 ;; TODO gabage collect the *actors* that are done (when?)
-;; TODO How to dectect if something went wrong?
+;; TODO How to detect if something went wrong?
 
 (defun clear-actors ()
   "Forget all the actors"
@@ -250,7 +244,7 @@
             (bt:destroy-thread thread)))
       ;; This is signaled when interrupting a thread fails because the
       ;; thread is not alive. (p.s. on sbcl, both bt:interrupt-thread
-      ;; and bt:destroy-thread ends up interrupting th thread)
+      ;; and bt:destroy-thread ends up interrupting the thread)
       #+sbcl
       (sb-thread:interrupt-thread-error (condition)
         (declare (ignore condition))))))
@@ -468,83 +462,44 @@
             (context-set context key value))
           value))))
 
-(defun buffer-string (context)
+(defun buffer-string (&optional (context (context*)))
   "Get the \"buffer-string\" from the CONTEXT.
 The buffer-string is the content of the buffer.
 It can be null."
   (context-get context 'buffer-string))
 
-(defun buffer-string* ()
-  "Get the \"buffer-string\" from the *command*'s context.
-The buffer-string is the content of the buffer.
-It can be null."
-  (context-get (context*) 'buffer-string))
-
-(defun buffer-name (context)
+(defun buffer-name (&optional (context (context*)))
   "Get the \"buffer-name\" from the CONTEXT.
 The buffer-name is the name of the buffer.
 It can be null."
   (context-get context 'buffer-name))
 
-(defun buffer-name* ()
-  "Get the \"buffer-name\" from the *command*'s context.
-The buffer-name is the name of the buffer.
-It can be null."
-  (context-get (context*) 'buffer-name))
-
-(defun buffer-file-name (context)
+(defun buffer-file-name (&optional (context (context*)))
   "Get the \"buffer-file-name\" the CONTEXT.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
   (context-get context 'buffer-file-name))
 
-(defun buffer-file-name* ()
-  "Get the \"buffer-file-name\" from the *command*'s context.
-The buffer-file-name is the name of the file that the buffer is
-visiting.
-It can be null."
-  (context-get (context*) 'buffer-file-name))
-
-(defun point (context)
+(defun point (&optional (context (context*)))
   "Get the \"point\" from the CONTEXT.
 The point is the position of the cursor.
 It can be null."
   (context-get context 'point))
 
-(defun point* ()
-  "Get the \"point\" from the *command*'s context.
-The point is the position of the cursor.
-It can be null."
-  (context-get (context*) 'point))
-
-(defun point-min (context)
+(defun point-min (&optional (context (context*)))
   "Get the \"point-min\" from the CONTEXT.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get context 'point-min))
 
-(defun point-min* ()
-  "Get the \"point-min\" from the *command*'s context.
-The point-min is the position of the beginning of buffer-string.
-See \"narrowing\" in Emacs.
-It can be null."
-  (context-get (context*) 'point-min))
-
-(defun point-max (context)
+(defun point-max (&optional (context (context*)))
   "Get the \"point-max\" from the CONTEXT.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get context 'point-max))
-
-(defun point-max* ()
-  "Get the \"point-max\" from the *command*'s context.
-The point-max is the position of the end of buffer-string.
-See \"narrowing\" in Emacs.
-It can be null."
-  (context-get (context*) 'point-max))
 
 
 ;;; Basic commands, to be composed

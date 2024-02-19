@@ -91,7 +91,7 @@ differences between swank and slynk."
 
 (define-command interactive-eval-command ()
   "A command to interactively evaluate code."
-  (setf *last-parse* (breeze.lossless-reader:parse (buffer-string*)))
+  (setf *last-parse* (breeze.lossless-reader:parse (buffer-string)))
   (message "Parsed without signalling an error.")
   #++
   (let ((context (context*)))
