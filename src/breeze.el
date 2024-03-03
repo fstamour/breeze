@@ -69,7 +69,7 @@
   (let ((listeners (breeze-list-loaded-listeners errorp)))
     (when listeners
       (if (= (length listeners) 1)
-          (first listeners)
+          (cl-first listeners)
         (breeze-%listener
          (completing-read "Choose a lisp listener to start: "
                           listeners nil t))))))
@@ -238,8 +238,8 @@
 
 (defun breeze--remove-suffix (suffix string)
   (if (string-suffix-p suffix string)
-      (subseq string 0 (- (length string)
-                          (length suffix)))
+      (cl-subseq string 0 (- (length string)
+                             (length suffix)))
     string))
 
 (defun breeze-translate-command-symbol (symbol)
