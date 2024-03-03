@@ -1,32 +1,4 @@
-#|
-
-Ok, I'm tired of eclector... It is slow, it's brittle, it is hard to
-make it do what I want (i.e. everything I do with eclector feels like
-a huge kludge).
-
-I'm gonna try my hand at making a reader... Worst case scenario I end
-up with more test case for my eclector-based parser.
-
-http://www.lispworks.com/documentation/HyperSpec/Body/02_.htm
-
-|#
-
-#|
-
-Error recovery
-
-- basic: use "synchronization points", places where it looks like a
-good place to restart parsing after an invalid parse
-
-- it would be much easier to pin-point the source of the failure if we
-start from a previous good state (incremental parsing)
-
-- I noticed that for lisp, a lot of things would be "easy" to parse
-backward, this would help tremendously pin-pointing where a "bad
-parse" begins.
-
-|#
-
+(cl:in-package #:cl-user)
 
 (uiop:define-package #:breeze.lossless-reader
     (:documentation "A fast, lossless, robust and superficial reader for a superset of
@@ -153,11 +125,6 @@ common lisp.")
            #:sharp-label-node-p
            #:sharp-reference-node-p
            #:sharp-unknown-node-p)
-  ;; Tree/Form predicate
-  (:export
-   #:in-package-node-p
-   #:find-node
-   #:find-path-to-position)
   ;; State utilities
   (:export #:at
            #:at=
@@ -1088,72 +1055,3 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       ;; if stream is nil
       (with-output-to-string (out)
         (%unparse (tree state) state out 0 transform))))
-
-
-;;; Basic tree inspection
-
-(defun node-length (node)
-  "Returns the number of children of NODE, or nil if it doesn't have any
-children nodes."
-  (let ((children (node-children node)))
-    (when (listp children)
-      (length children))))
-
-;; TODO I want to check if a node is an "in-package" node...
-;; - case converting if necessary
-;; - skip whitespaces
-;; - check if there's a package designator
-;;
-;; Now, I have a chicken-and-egg issue because of
-;; package-local-nicknames...  I need to know what is the current
-;; package to look for PLNs to find the in-pacakge form, but I need
-;; the in-package to know the current package.
-
-
-
-#++ (defun node-string= (string node))
-#++ (defun node-string-equal (string node))
-
-;; TODO use the stuff I made in "patterns.lisp"
-(defun in-package-node-p (state node)
-  "Is NODE a cl:in-package node?"
-  (cond
-    ((token-node-p node)
-     (let ((string (node-content state node)))
-       (if (position #\: string)
-           (destructuring-bind (package-name symbol-name)
-               (remove-if #'alexandria:emptyp
-                          (uiop:split-string string :separator '(#\:)))
-             #++ ;; We don't depend on split-sequence...
-             (split-sequence:split-sequence
-              #\: string
-              :remove-empty-subseqs t)
-             (and (member package-name '("cl" "common-lisp" "cl-user" "common-lisp-user")
-                          :test #'string-equal)
-                  (string-equal "in-package" symbol-name)))
-           (string-equal "in-package" string))))
-    ((parens-node-p node)
-     (in-package-node-p state (first (node-children node))))))
-
-
-
-(defun find-node (position nodes)
-  "Given a list of NODES, return which node contains the POSITION."
-  (when (listp nodes)
-    (loop :for node :in nodes
-          :for start = (node-start node)
-          :for end = (node-end node)
-          :for i :from 0
-          :when (and (<= start end) (< position end))
-            :do (return (cons node i)))))
-
-(defun find-path-to-position (state position)
-  "Given a list of NODES, return a path (list of cons (node . index))"
-  (loop :for found = (find-node position (tree state))
-          :then (find-node position (node-children (car found)))
-        #++ (let ((node (car found)))
-              (and (listp (node-content state node))
-                   ;; (car (node-content state node))
-                   (find-node position (node-content state node))))
-        :while found
-        :collect found))
