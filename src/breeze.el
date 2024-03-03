@@ -346,12 +346,14 @@ inferior lisp."
   (breeze-ensure))
 
 (defun breeze-enable-connected-hook ()
+  "Configure a hook to initialize breeze when connecting to sly or slime."
   (interactive)
   (add-hook (breeze-%listener-symbolicate "connected-hook")
             'breeze-connected-hook-function))
 
 (defun breeze-disable-connected-hook ()
   (interactive)
+  "Remove the hook to initialize breeze when connecting to sly or slime."
   (remove-hook (breeze-%listener-symbolicate "connected-hook")
                'breeze-connected-hook-function))
 
@@ -392,6 +394,7 @@ inferior lisp."
   (remove-hook 'flymake-diagnostic-functions 'breeze-flymake nil))
 
 ;; TODO assumes slime
+;; TODO this doesn't work well at all
 (defun breeze-next-note ()
   (interactive)
   (let ((slime-note (slime-find-next-note)))
@@ -524,10 +527,14 @@ inferior lisp."
   (interactive)
   (breeze-minor-mode -1))
 
-;; TODO these two hooks should probably be a user-preference, maybe
-;; TODO perhaps provide a function that does all this
-(add-hook 'breeze-minor-mode-hook 'flymake-mode)
-(add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend)
+(defun breeze-minor-mode-enable-flymake-mode ()
+  "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
+  (add-hook 'breeze-minor-mode-hook 'flymake-mode)
+  (add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend))
+
+(defun breeze-enable-minor-mode-hook ()
+  "Configure a hook to enable breeze-minor-mode in lisp-mode."
+  (add-hook 'lisp-mode-hook #'breeze-minor-mode))
 
 
 ;;; major mode
