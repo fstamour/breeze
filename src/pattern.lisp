@@ -2,7 +2,12 @@
 
 (defpackage #:breeze.pattern
   (:documentation "TODO Pattern matching stuff")
-  (:use #:cl))
+  (:use #:cl)
+  (:export #:defpattern
+           #:match
+           #:ref
+           #:term
+           #:maybe))
 
 (in-package #:breeze.pattern)
 

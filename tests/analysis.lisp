@@ -11,6 +11,26 @@
 
 (in-package #:breeze.test.analysis)
 
+
+;;; Integrating pattern.lisp and lossless-parser.lisp
+
+#++
+(match `#(in-package ,(term :?package))
+  '(in-package #:cl-user))
+
+#++
+(let* ((string "(in-package #:cl-user)")
+       (state (parse string))
+       (node (first (tree state)))
+       (package-term (term :?package))
+       (bindings (match `#(in-package ,package-term)
+                   ;; '(in-package #:cl-user)
+                   node)))
+  bindings
+  node
+  ;; (getf bindings package-term)
+  )
+
 
 
 ;;; Basic tree inspection

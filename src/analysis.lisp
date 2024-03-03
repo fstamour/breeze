@@ -2,7 +2,7 @@
 (uiop:define-package #:breeze.analysis
     (:documentation "Linter, formatter, and maybe more.")
   (:use #:cl)
-  (:use-reexport #:breeze.lossless-reader)
+  (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
   ;; Tree/Form predicate
   (:export
    #:in-package-node-p
@@ -11,6 +11,15 @@
   (:export #:lint))
 
 (in-package #:breeze.analysis)
+
+
+;;; Integrating pattern.lisp and lossless-parser.lisp
+
+;; (defpattern in-package package-designator)
+
+#++
+(defmethod match ((pattern string) (input string))
+  (string= pattern input))
 
 
 ;;; Basic tree inspection
