@@ -364,7 +364,7 @@ inferior lisp."
   (breeze-ensure
    (lambda ()
      (breeze-eval-async
-      (format "(breeze.lossless-reader::lint %s)"
+      (format "(breeze.analysis:lint %s)"
               (breeze-compute-buffer-args))
       callback)))
   nil)

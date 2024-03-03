@@ -37,6 +37,7 @@
    (:file "configuration")
    (:file "lossless-reader" :depends-on ("utils"))
    (:file "pattern")
+   (:file "analysis" :depends-on ("lossless-reader" "pattern"))
    (:file "command"
     :depends-on ("utils"
                  "configuration"))
@@ -108,6 +109,7 @@
    (:file "lossless-reader.randmized")
    (:file "lossless-reader")
    (:file "pattern")
+   (:file "analysis")
    (:file "command")
    (:file "refactor")
    (:file "dummy-package")
