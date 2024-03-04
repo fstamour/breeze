@@ -20,6 +20,10 @@
                          #'whitespace-or-comment-node-p)))
     (values (match pattern state) state)))
 
+;; TODO On-hold: I think I don't want the behaviour of (match x "x"),
+;; I want the pattern to explicitly be a sequence; e.g. (match #(x)
+;; "x")
+#++
 (define-test+run "match basic patterns against parse trees"
   ;; pattern nil
   (progn
@@ -55,14 +59,28 @@
       (false (test-match-parse t ""))
       (false (test-match-parse t "  "))
       (false (test-match-parse t "; hi"))
-      (false (test-match-parse t "#| hi |#")))
-    (let ((*match-skip* #'whitespace-or-comment-node-p))
-      (false (test-match-parse t ""))
-      (false (test-match-parse t "  "))
-      (false (test-match-parse t "; hi"))
-      (false (test-match-parse t "#| hi |#"))))
+      (false (test-match-parse t "#| hi |#"))
+      (true (test-match-parse t "t"))
+      (true (test-match-parse t "T"))
+      (true (test-match-parse t "t"))
+      (true (test-match-parse t "cl:t"))
+      (true (test-match-parse t "cl::t"))
+      (true (test-match-parse t "common-lisp:t"))
+      (true (test-match-parse t "common-lisp::t"))
+      ;; TODO For now we don't check _all_ the package a symbol might be
+      ;; part of
 
-
+      (false (test-match-parse t "common-lisp-user::t"))
+      (false (test-match-parse t "common-lisp-user:t")))
+    (progn
+      (false (test-match-parse t "" t))
+      (true (test-match-parse t "  t" t))
+      (true (test-match-parse t "t  " t))
+      (true (test-match-parse t "t ; hi" t))
+      (false (test-match-parse t "; t " t))
+      (true (test-match-parse t "t #| hi |#" t))
+      (false (test-match-parse t "#| t |#" t))
+      (true (test-match-parse t "#| hi |# t" t))))
   ;; TODO test pattern 1
   ;; TODO test pattern 'x
   ;; TODO test pattern :x
@@ -83,6 +101,12 @@
       (test-match-parse (term :?x) " x" t))
   #++
   (true (test-match-parse `#(,(term :?x)) "(42)")))
+
+(define-test+run "match vector against parse trees"
+  (false (test-match-parse 'x "x"))
+  (true (test-match-parse #(x) "x"))
+  #++
+  (true (test-match-parse #((x)) "(x)")))
 
 #++
 (match `#(in-package ,(term :?package))

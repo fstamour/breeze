@@ -24,14 +24,23 @@
   (let ((*state* state))
     (match pattern node)))
 
+(defun first-of (seq)
+  (let ((iterator (iterate (coerce seq 'vector))))
+    (unless (iterator-done-p iterator)
+      (iterator-value iterator))))
+
 (defun match-parser-state (pattern state)
-  (let ((*state* state)
-        (tree (tree state)))
-    (if (atom pattern)
-        (let ((iterator (iterate (apply #'vector tree))))
-          (unless (iterator-done-p iterator)
-            (match pattern iterator)))
-        (match pattern tree))))
+  (let* ((*state* state)
+         (tree (tree state)))
+    (cond
+      ((vectorp pattern)
+       (match pattern (iterate (coerce tree 'vector))))
+      ((atom pattern)
+       (let ((iterator (iterate (coerce tree 'vector))))
+         (unless (iterator-done-p iterator)
+           (match pattern iterator))))
+      (t
+       (match pattern tree)))))
 
 (defmethod match (pattern (state state))
   (match-parser-state pattern state))

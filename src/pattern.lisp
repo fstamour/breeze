@@ -10,7 +10,8 @@
            #:maybe
            #:*match-skip*)
   (:export #:iterate
-           #:iterator-done-p))
+           #:iterator-done-p
+           #:iterator-value))
 
 (in-package #:breeze.pattern)
 
@@ -411,7 +412,16 @@ a new iterator."
    (match pattern (iterator-value input))))
 
 (defmethod match ((pattern vector) (input vector))
-  (match (iterate pattern) (iterate input)))
+  #++
+  (match (iterate pattern) (iterate input))
+  ;; TODO This breaks (test-match '(:zero-or-more a b) '(a b a b))
+  (multiple-value-bind (bindings all-input-consumed-p)
+      (match (iterate pattern) (iterate input))
+    (when all-input-consumed-p
+      bindings)))
+
+(defmethod match ((pattern vector) (input iterator))
+  (match (iterate pattern) input))
 
 (defmethod match ((pattern iterator) (input iterator))
   (loop
