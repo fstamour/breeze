@@ -20,6 +20,10 @@
 
 ;; (defpattern in-package package-designator)
 
+(defun match-node (pattern state node)
+  (let ((*state* state))
+    (match pattern node)))
+
 (defun match-parser-state (pattern state)
   (let ((*state* state)
         (tree (tree state)))
@@ -39,10 +43,23 @@
 (defun match-symbol-to-token (symbol token-node)
   (and (token-node-p token-node)
        (let* ((name (symbol-name symbol))
+              (package (symbol-package symbol))
               (string (node-content *state* token-node)))
          ;; TODO use case-sensitive comparison, but convert case if
          ;; necessary (i.e. depending on *read-case*)
-         (string-equal name string))))
+         (if (plusp* (position #\: string))
+             (destructuring-bind (package-name symbol-name)
+                 (remove-if #'alexandria:emptyp
+                            (uiop:split-string string :separator '(#\:)))
+               (and (member package-name
+                            `(,(package-name package)
+                              ,@(package-nicknames package))
+                            :test #'string-equal)
+                    (string-equal name symbol-name)))
+             (string-equal name string)))))
+
+
+
 
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.

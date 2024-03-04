@@ -30,7 +30,16 @@
       (false (test-match-parse nil "#| hi |#"))
       (true (test-match-parse nil "nil"))
       (true (test-match-parse nil "NIL"))
-      (true (test-match-parse nil "nIl")))
+      (true (test-match-parse nil "nIl"))
+      (true (test-match-parse nil "cl:nil"))
+      (true (test-match-parse nil "cl::nil"))
+      (true (test-match-parse nil "common-lisp:nil"))
+      (true (test-match-parse nil "common-lisp::nil"))
+      ;; TODO For now we don't check _all_ the package a symbol might be
+      ;; part of
+
+      (false (test-match-parse nil "common-lisp-user::nil"))
+      (false (test-match-parse nil "common-lisp-user:nil")))
     (progn
       (false (test-match-parse nil "" t))
       (true (test-match-parse nil "  nil" t))
