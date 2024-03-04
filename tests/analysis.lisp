@@ -14,6 +14,57 @@
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
+(defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
+  (let* ((state (parse string))
+         (*match-skip* (when skip-whitespaces-and-comments
+                         #'whitespace-or-comment-node-p)))
+    (values (match pattern state) state)))
+
+(define-test+run "match basic patterns"
+  ;; pattern nil
+  (progn
+    (progn
+      (false (test-match-parse nil ""))
+      (false (test-match-parse nil "  "))
+      (false (test-match-parse nil "; hi"))
+      (false (test-match-parse nil "#| hi |#"))
+      (true (test-match-parse nil "nil"))
+      (true (test-match-parse nil "NIL"))
+      (true (test-match-parse nil "nIl")))
+    (progn
+      (false (test-match-parse nil "" t))
+      (true (test-match-parse nil "  nil" t))
+      (true (test-match-parse nil "nil  " t))
+      (true (test-match-parse nil "nil ; hi" t))
+      (false (test-match-parse nil "; nil " t))
+      (true (test-match-parse nil "nil #| hi |#" t))
+      (false (test-match-parse nil "#| nil |#" t))
+      (true (test-match-parse nil "#| hi |# nil" t))))
+  ;; pattern T
+  (progn
+    (progn
+      (false (test-match-parse t ""))
+      (false (test-match-parse t "  "))
+      (false (test-match-parse t "; hi"))
+      (false (test-match-parse t "#| hi |#")))
+    (let ((*match-skip* #'whitespace-or-comment-node-p))
+      (false (test-match-parse t ""))
+      (false (test-match-parse t "  "))
+      (false (test-match-parse t "; hi"))
+      (false (test-match-parse t "#| hi |#"))))
+
+
+  ;; TODO test pattern 1
+  ;; TODO test pattern 'x
+  ;; TODO test pattern :x
+  ;; TODO test pattern "x"
+  ;; TODO test pattern #()
+  ;; TODO test pattern #(t)
+  ;; TODO test pattern "some-node" (I'll have to think about the syntax)
+  )
+
+
+
 #++
 (match `#(in-package ,(term :?package))
   '(in-package #:cl-user))
@@ -23,6 +74,7 @@
        (state (parse string))
        (node (first (tree state)))
        (package-term (term :?package))
+       (*match-skip* #'whitespace-or-comment-node-p)
        (bindings (match `#(in-package ,package-term)
                    ;; '(in-package #:cl-user)
                    node)))

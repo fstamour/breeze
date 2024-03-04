@@ -202,7 +202,7 @@
   (is eq vector (iterator-vector iterator)
       "The iterator was not intialized with the right vector.")
   (is = pos (iterator-position iterator)
-      "The iterator's position was not correctly initialized to 0.")
+      "The iterator's position was not correctly initialized to ~s." pos)
   (is = 1 (iterator-step iterator)
       "The iterator's step was not correctly initialized to 1.")
   (when donep

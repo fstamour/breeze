@@ -15,11 +15,84 @@
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
+(defparameter *state* nil
+  "The parser state associated with the node currently being matched.")
+
 ;; (defpattern in-package package-designator)
 
+(defun match-parser-state (pattern state)
+  (let ((*state* state)
+        (tree (tree state)))
+    (if (atom pattern)
+        (let ((iterator (iterate (apply #'vector tree))))
+          (unless (iterator-done-p iterator)
+            (match pattern iterator)))
+        (match pattern tree))))
+
+(defmethod match (pattern (state state))
+  (match-parser-state pattern state))
+
+(defmethod match ((pattern null) (state state))
+  (when (tree state)
+    (match-parser-state pattern state)))
+
+(defun match-symbol-to-token (symbol token-node)
+  (and (token-node-p token-node)
+       (let* ((name (symbol-name symbol))
+              (string (node-content *state* token-node)))
+         ;; TODO use case-sensitive comparison, but convert case if
+         ;; necessary (i.e. depending on *read-case*)
+         (string-equal name string))))
+
+;; TODO add a special pattern type to match symbols in packages that
+;; are not defined in the current image.
+(defmethod match ((pattern symbol) (node node))
+  (match-symbol-to-token pattern node))
+
+(defmethod match ((pattern null) (node node))
+  (match-symbol-to-token pattern node))
+
+;; TODO One method per type of node
 #++
-(defmethod match ((pattern string) (input string))
-  (string= pattern input))
+(defmethod match (pattern (node state))
+  (let ((*state* state))
+    (match pattern (tree state))))
+
+
+
+#++
+(progn
+  whitespace
+  block-comment
+  line-comment
+  token
+  parens
+  punctuation
+  string
+  quote
+  quasiquote
+  dot
+  comma
+  sharp
+  sharp-char
+  sharp-function
+  sharp-vector
+  sharp-bitvector
+  sharp-uninterned
+  sharp-eval
+  sharp-binary
+  sharp-octal
+  sharp-hexa
+  sharp-complex
+  sharp-structure
+  sharp-pathname
+  sharp-feature
+  sharp-feature-not
+  sharp-radix
+  sharp-array
+  sharp-label
+  sharp-reference
+  sharp-unknown)
 
 
 ;;; Basic tree inspection

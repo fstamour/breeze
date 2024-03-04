@@ -7,7 +7,10 @@
            #:match
            #:ref
            #:term
-           #:maybe))
+           #:maybe
+           #:*match-skip*)
+  (:export #:iterate
+           #:iterator-done-p))
 
 (in-package #:breeze.pattern)
 
@@ -255,17 +258,35 @@ a new iterator."
 (defun iterate (vector &key (step 1))
   "Create a new iterator."
   (check-type vector vector)
-  (iterator-maybe-push
-   (make-iterator :vector vector :step step)))
+  (let ((iterator
+          (iterator-maybe-push
+           (make-iterator :vector vector :step step))))
+    (if (iterator-skip-p iterator)
+        (iterator-next iterator)
+        iterator)))
 
-(defun iterator-next (iterator)
+(defvar *match-skip* nil
+  "Controls wheter to skip a value when iterating.")
+
+(defun iterator-skip-p (iterator &optional (match-skip *match-skip*))
+  (when (and match-skip (not (iterator-done-p iterator)))
+    (funcall match-skip (iterator-value iterator))))
+
+(defun %iterator-next (iterator)
   "Advance the iterator. Might return a whole new iterator."
   (check-type iterator iterator)
   ;; Advance the position
   (incf (iterator-position iterator)
         (iterator-step iterator))
-  ;; Maybe return a new iterator
   (iterator-maybe-push (iterator-maybe-pop iterator)))
+
+(defun iterator-next (iterator)
+  "Advance the iterator. Might return a whole new iterator."
+  (check-type iterator iterator)
+  (loop :for new-iterator = (%iterator-next iterator)
+          :then (%iterator-next new-iterator)
+        :while (iterator-skip-p new-iterator)
+        :finally (return new-iterator)))
 
 (defun iterator-value (iterator)
   "Get the value at the current ITERATOR's position."
@@ -361,6 +382,7 @@ a new iterator."
 (defmethod match ((pattern null) (input null))
   t)
 
+;; TODO I had to do some hackery to "disable" this rule in analysis.lisp
 ;; the pattern "nil" matches nothing else than "nil"
 (defmethod match ((pattern null) input)
   nil)
@@ -376,6 +398,9 @@ a new iterator."
 ;; Match over iterators
 (defmethod match ((pattern iterator) (input iterator))
   (match (iterator-value pattern) (iterator-value input)))
+
+(defmethod match ((pattern null) (input iterator))
+  (match pattern (iterator-value input)))
 
 (defmethod match ((pattern vector) (input vector))
   (or (loop

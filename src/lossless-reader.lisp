@@ -100,6 +100,7 @@ common lisp.")
            #:token-node-p
            #:whitespace-node-p
            #:line-comment-node-p
+           #:whitespace-or-comment-node-p
            #:string-node-p
            #:quote-node-p
            #:quasiquote-node-p
@@ -365,6 +366,11 @@ common lisp.")
   "Is this node a block or line comment?"
   (or (line-comment-node-p node)
       (block-comment-node-p node)))
+
+(defun whitespace-or-comment-node-p (node)
+  "Is this node a whitespace, a block comment or line comment?"
+  (or (whitespace-node-p node)
+      (comment-node-p node)))
 
 
 ;;; Content and range
