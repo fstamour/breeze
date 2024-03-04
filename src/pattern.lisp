@@ -402,6 +402,13 @@ a new iterator."
 (defmethod match ((pattern null) (input iterator))
   (match pattern (iterator-value input)))
 
+(defmethod match ((pattern term) (input iterator))
+  (and
+   ;; TODO Maybe make a function (iterator-last-p )
+   ;; Check if it is the last element
+   (iterator-done-p (iterator-next (copy-iterator input)))
+   (match pattern (iterator-value input))))
+
 (defmethod match ((pattern vector) (input vector))
   (or (loop
         ;; TODO  (make-empty-bindings)

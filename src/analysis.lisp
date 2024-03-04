@@ -69,6 +69,10 @@
 (defmethod match ((pattern null) (node node))
   (match-symbol-to-token pattern node))
 
+(defmethod match ((pattern term) (state state))
+  (match-parser-state pattern state))
+
+
 ;; TODO One method per type of node
 #++
 (defmethod match (pattern (node state))

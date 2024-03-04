@@ -20,7 +20,7 @@
                          #'whitespace-or-comment-node-p)))
     (values (match pattern state) state)))
 
-(define-test+run "match basic patterns"
+(define-test+run "match basic patterns against parse trees"
   ;; pattern nil
   (progn
     (progn
@@ -71,6 +71,18 @@
   ;; TODO test pattern #(t)
   ;; TODO test pattern "some-node" (I'll have to think about the syntax)
   )
+
+(define-test+run "match terms against parse trees"
+  (false (test-match-parse (term :?x) ""))
+  (is equalp
+      (list (term :?x) (token 0 1))
+      (test-match-parse (term :?x) "x"))
+  (false (test-match-parse (term :?x) " x"))
+  (is equalp
+      (list (term :?x) (token 1 2))
+      (test-match-parse (term :?x) " x" t))
+  #++
+  (true (test-match-parse `#(,(term :?x)) "(42)")))
 
 
 
