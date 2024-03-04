@@ -84,8 +84,6 @@
   #++
   (true (test-match-parse `#(,(term :?x)) "(42)")))
 
-
-
 #++
 (match `#(in-package ,(term :?package))
   '(in-package #:cl-user))

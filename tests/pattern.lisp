@@ -365,7 +365,7 @@
   (false (match (typed-term 'cons :?x) 'a)))
 
 
-;;; TODO test :maybe :zero-or-more and :alternation
+;;; test :maybe :zero-or-more and :alternation
 
 (define-test "match maybe"
   (is eq t (match (maybe 'a) 'a))

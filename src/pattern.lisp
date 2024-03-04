@@ -396,6 +396,7 @@ a new iterator."
   (match pattern (coerce input 'vector)))
 
 ;; Match over iterators
+#++
 (defmethod match ((pattern iterator) (input iterator))
   (match (iterator-value pattern) (iterator-value input)))
 
@@ -410,65 +411,36 @@ a new iterator."
    (match pattern (iterator-value input))))
 
 (defmethod match ((pattern vector) (input vector))
-  (or (loop
-        ;; TODO  (make-empty-bindings)
-        :with bindings = t
-        ;; Iterate over the pattern
-        :for pattern-iterator := (iterate pattern)
-          :then (iterator-next pattern-iterator)
-        :until (iterator-done-p pattern-iterator)
-        ;; Iterate over the input
-        :for input-iterator := (iterate input)
-          :then (iterator-next input-iterator)
-        :until (iterator-done-p input-iterator)
-        ;; recurse
-        :for new-bindings = (match pattern-iterator input-iterator)
-        :if new-bindings
-          ;; collect all the bindings
-          :do (setf bindings (merge-bindings bindings new-bindings))
-        :else
-          ;; failed to match, bail out of the whole function
-          :do (return-from match nil)
-        :finally (return-from match (if (iterator-done-p input-iterator)
-                                        nil
-                                        bindings)))
-      ;; if we get there, it means the pattern matched successfully,
-      ;; but there were no new bindings.
-      t))
+  (match (iterate pattern) (iterate input)))
 
-
-#++
-(defmethod skip-input-p (x)
-  (and (symbolp x)
-       (char= #\< (char (symbol-name x) 0))))
-
-#++
-(defmethod match ((pattern vector) (input vector)
-                  &aux (i 0) (j 0))
-  (labels
-      ((pattern () (aref pattern i))
-       (input () (aref input j))
-       (advance-pattern () (incf i))
-       (advance-input ()
-         (loop
-           :do (incf j)
-           :while (and (< j (length input))
-                       (skip-input-p (input))))))
-    (loop
-      :for guard :below 1000
-      :for (match . bindings) = (multiple-value-list
-                                 (match (pattern) (input)))
-      :unless match
-        :return nil
-      :append bindings
-      :do (advance-pattern)
-      :while (< i (length pattern))
-      :do (advance-input)
-      :while (< j (length input)))))
-
-#++
-(let ((pattern
-        (list-vector `(defun ?name ?ordinary-lambda-list ?body)))
-      (input
-        (list-vector `(defun <ws> foo <ws> (x <ws> y) <nl> <ws> (+ <ws> x <ws> y)))))
-  (match pattern input))
+(defmethod match ((pattern iterator) (input iterator))
+  (loop
+    ;; TODO  (make-empty-bindings)
+    :with bindings = t
+    ;; Iterate over the pattern
+    :for pattern-iterator := pattern
+      :then (iterator-next pattern-iterator)
+    ;; Iterate over the input
+    :for input-iterator := input
+      :then (iterator-next input-iterator)
+    :until (or (iterator-done-p pattern-iterator)
+               (iterator-done-p input-iterator))
+    :for new-bindings = (match
+                            (iterator-value pattern-iterator)
+                          (iterator-value input-iterator))
+    :if new-bindings
+      ;; collect all the bindings
+      :do (setf bindings (merge-bindings bindings new-bindings))
+    :else
+      ;; failed to match, bail out of the whole function
+      :do (return nil)
+    :finally (return
+               #++
+               (when (and
+                      (iterator-done-p pattern-iterator)
+                      (iterator-done-p input-iterator))
+                 (or bindings t))
+               ;; We want to match the whole pattern, but wheter we
+               ;; want to match the whole input is up to the caller.
+               (when (iterator-done-p pattern-iterator)
+                 (values (or bindings t) (iterator-done-p input-iterator))))))
