@@ -8,7 +8,9 @@
    #:in-package-node-p
    #:find-node
    #:find-path-to-position)
-  (:export #:lint))
+  (:export
+   #:in-package-node-p
+   #:lint))
 
 (in-package #:breeze.analysis)
 
@@ -35,6 +37,7 @@
     (cond
       ((vectorp pattern)
        (match pattern (iterate (coerce tree 'vector))))
+      ;; If the pattern would match 1 thing...
       ((atom pattern)
        (let ((iterator (iterate (coerce tree 'vector))))
          (unless (iterator-done-p iterator)
@@ -49,26 +52,29 @@
   (when (tree state)
     (match-parser-state pattern state)))
 
+(defun plusp* (x)
+  (and (numberp x) (plusp x)))
+
 (defun match-symbol-to-token (symbol token-node)
-  (and (token-node-p token-node)
-       (let* ((name (symbol-name symbol))
-              (package (symbol-package symbol))
-              (string (node-content *state* token-node)))
-         ;; TODO use case-sensitive comparison, but convert case if
-         ;; necessary (i.e. depending on *read-case*)
-         (if (plusp* (position #\: string))
-             (destructuring-bind (package-name symbol-name)
-                 (remove-if #'alexandria:emptyp
-                            (uiop:split-string string :separator '(#\:)))
-               (and (member package-name
-                            `(,(package-name package)
-                              ,@(package-nicknames package))
-                            :test #'string-equal)
-                    (string-equal name symbol-name)))
-             (string-equal name string)))))
-
-
-
+  (and
+   (symbolp symbol)
+   (not (null symbol))
+   (token-node-p token-node)
+   (let* ((name (symbol-name symbol))
+          (package (symbol-package symbol))
+          (string (node-content *state* token-node)))
+     ;; TODO use case-sensitive comparison, but convert case if
+     ;; necessary (i.e. depending on *read-case*)
+     (if (plusp* (position #\: string))
+         (destructuring-bind (package-name symbol-name)
+             (remove-if #'alexandria:emptyp
+                        (uiop:split-string string :separator '(#\:)))
+           (and (member package-name
+                        `(,(package-name package)
+                          ,@(package-nicknames package))
+                        :test #'string-equal)
+                (string-equal name symbol-name)))
+         (string-equal name string)))))
 
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.
@@ -81,14 +87,16 @@
 (defmethod match ((pattern term) (state state))
   (match-parser-state pattern state))
 
+;; TODO package-local-nicknames
+
 
 ;; TODO One method per type of node
-#++
-(defmethod match (pattern (node state))
-  (let ((*state* state))
-    (match pattern (tree state))))
 
-
+(defmethod match (pattern (node node))
+  (case (node-type node)
+    ;; Recurse into nodes of type "parens"
+    (parens (match pattern (node-children node)))
+    (t (call-next-method))))
 
 #++
 (progn
@@ -144,40 +152,15 @@ children nodes."
 ;; package to look for PLNs to find the in-pacakge form, but I need
 ;; the in-package to know the current package.
 
-
-
-#++ (defun node-string= (string node))
-#++ (defun node-string-equal (string node))
-
-(defun plusp* (x)
-  (and (numberp x)
-       (plusp x)))
-
-;; TODO use the stuff I made in "patterns.lisp"
 (defun in-package-node-p (state node)
   "Is NODE a cl:in-package node?"
-  (cond
-    ((token-node-p node)
-     (let ((string (node-content state node)))
-       (if (plusp* (position #\: string))
-           (destructuring-bind (package-name symbol-name)
-               (remove-if #'alexandria:emptyp
-                          (uiop:split-string string :separator '(#\:)))
-             #++ ;; We don't depend on split-sequence...
-             (split-sequence:split-sequence
-              #\: string
-              :remove-empty-subseqs t)
-             (and (member package-name '("cl" "common-lisp" "cl-user" "common-lisp-user")
-                          :test #'string-equal)
-                  (string-equal "in-package" symbol-name)))
-           (string-equal "in-package" string))))
-    ((parens-node-p node)
-     (in-package-node-p state (first (node-children node)))
-     #++
-     (and (in-package-node-p state (first (node-children node)))
-          ;; TODO make sure there _is_ a third children to return!
-          ;; N.B. the "second" children would be a whitespace
-          (third (node-children node))))))
+  (let* ((*state* state)
+         (*match-skip* #'whitespace-or-comment-node-p)
+         (bindings (match #.(compile-pattern `((in-package :?package))) node)))
+    (when bindings
+      (destructuring-bind (term package-designator-node) bindings
+        (declare (ignore term))
+        package-designator-node))))
 
 (defun find-node (position nodes)
   "Given a list of NODES, return which node contains the POSITION."
@@ -199,7 +182,6 @@ children nodes."
                    (find-node position (node-content state node))))
         :while found
         :collect found))
-
 
 
 ;;; Trying to figure out how to run the "formatting rules" without

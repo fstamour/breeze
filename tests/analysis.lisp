@@ -18,7 +18,7 @@
   (let* ((state (parse string))
          (*match-skip* (when skip-whitespaces-and-comments
                          #'whitespace-or-comment-node-p)))
-    (values (match pattern state) state)))
+    (values (match (compile-pattern pattern) state) state)))
 
 ;; TODO On-hold: I think I don't want the behaviour of (match x "x"),
 ;; I want the pattern to explicitly be a sequence; e.g. (match #(x)
@@ -138,25 +138,25 @@
           "cl-user::in-package"
           "common-lisp-user::in-package"))
 
-(defun parse-then-in-package-node-p (string)
+(defun test-in-package-node-p (string)
   (let* ((state (parse string))
-         (node (first (tree state))))
-    (in-package-node-p state node)))
+         (node (tree state)))
+    ;; The funky reader macro and quasiquote is to fuck with slime and
+    ;; sly's regex-based search for "(in-package". Whithout this the
+    ;; rest of the file is evaluated in cl-user by slime and sly.
+    (let ((package-designator-node
+            #.`(,'in-package-node-p state node)))
+      (when package-designator-node
+        (node-content state package-designator-node)))))
 
 (define-test+run in-package-node-p
-  (true (every #'parse-then-in-package-node-p
-               '("in-package"
-                 "common-lisp:in-package"
-                 "cl:in-package"
-                 "cl-user::in-package"
-                 "common-lisp-user::in-package")))
-  (true (every #'(lambda (s)
-                   (parse-then-in-package-node-p (format nil "(~a)" s)))
-               '("in-package"
-                 "common-lisp:in-package"
-                 "cl:in-package"
-                 "cl-user::in-package"
-                 "common-lisp-user::in-package"))))
+  (is equal "x" (test-in-package-node-p "(in-package x)"))
+  (is equal "x" (test-in-package-node-p " ( in-package x ) "))
+  (is equal "x" (test-in-package-node-p " ( in-package #| ∿ |# x ) "))
+  (is equal "x" (test-in-package-node-p "(cl:in-package x)"))
+  (is equal "x" (test-in-package-node-p "(cl::in-package x)")))
+
+
 
 (define-test find-node
   (is equal

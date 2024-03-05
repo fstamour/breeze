@@ -1,8 +1,9 @@
 ;;;; Trying to design a DSL for small refactors
 
 (defpackage #:breeze.pattern
-  (:documentation "TODO Pattern matching stuff")
+  (:documentation "Pattern matching")
   (:use #:cl)
+  (:export #:compile-pattern)
   (:export #:defpattern
            #:match
            #:ref
@@ -190,6 +191,7 @@
   (alternation (compile-pattern (rest patterns))))
 
 
+;;; Re-usable, named patterns
 
 (defmacro defpattern (name &body body)
   `(setf (gethash ',name *patterns*)
@@ -204,9 +206,13 @@
       (error "Failed to find the pattern ~S." (ref-name pattern))))
 
 
-;; Will I regret implemeting this?
+;;; Iterator:
+;;;  - takes care of "recursing" into referenced patterns
+;;;  - conditionally skips inputs
+;;;  - works on vectors only, for my sanity
+;;;  - I want to make it possible to iterate backward, hence the "step"
 
-;;; TODO the iterator should take care of skipping inputs
+;; Will I regret implemeting this?
 
 (defstruct iterator
   ;; The vector being iterated on
@@ -274,7 +280,7 @@ a new iterator."
     (funcall match-skip (iterator-value iterator))))
 
 (defun %iterator-next (iterator)
-  "Advance the iterator. Might return a whole new iterator."
+  "Advance the iterator exactly once. Might return a whole new iterator."
   (check-type iterator iterator)
   ;; Advance the position
   (incf (iterator-position iterator)
@@ -282,7 +288,8 @@ a new iterator."
   (iterator-maybe-push (iterator-maybe-pop iterator)))
 
 (defun iterator-next (iterator)
-  "Advance the iterator. Might return a whole new iterator."
+  "Advance the iterator, conditionally skipping some values. Might return
+a whole new iterator."
   (check-type iterator iterator)
   (loop :for new-iterator = (%iterator-next iterator)
           :then (%iterator-next new-iterator)
@@ -298,6 +305,9 @@ a new iterator."
         (iterator-position iterator)))
 
 
+;;; Bindings (e.g. the result of a successful match
+
+(defun make-empty-bindings () t)
 
 (defun make-binding (term input)
   (list term input))
@@ -308,6 +318,9 @@ a new iterator."
     ((eq t bindings2) bindings1)
     ((or (eq nil bindings1) (eq nil bindings2)) nil)
     (t (append bindings1 bindings2))))
+
+
+;;; Matching atoms
 
 ;; Basic "equal" matching
 (defmethod match (pattern input)
@@ -326,55 +339,6 @@ a new iterator."
 (defmethod match ((pattern ref) input)
   (match (ref-pattern pattern) input))
 
-(defmethod match ((pattern maybe) input)
-  (or (alexandria:when-let ((bindings (match (maybe-pattern pattern) input)))
-        (if (maybe-name pattern)
-            (merge-bindings bindings (make-binding pattern input))
-            bindings))
-      (not input)))
-
-(defmethod match ((pattern alternation) input)
-  (some (lambda (pat) (match pat input))
-        (alternation-pattern pattern)))
-
-(defmethod match ((pattern zero-or-more) (input null))
-  t)
-
-(defmethod match ((pattern zero-or-more) input)
-  (match (zero-or-more-pattern pattern) input))
-
-;; TODO This is a mess
-(defmethod match ((pattern zero-or-more) (input vector))
-  (or (loop
-        ;; TODO  (make-empty-bindings)
-        :with bindings = t
-        :with pat = (zero-or-more-pattern pattern)
-        :for guard :below 100 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                              ;; Iterate over the input
-        :for input-iterator := (iterate input)
-          :then (iterator-next input-iterator)
-        :until (iterator-done-p input-iterator)
-        ;; save the input iterator's position
-        ;; :for input-iterator-position = (iterator-position input-iterator)
-        ;; recurse+
-        :for new-bindings = (match pat input-iterator)
-        :if new-bindings
-          ;; collect all the bindings
-          :do (setf bindings (merge-bindings bindings new-bindings))
-        :else
-          ;; failed to match
-          :do
-             ;; rewind the input iterator
-             ;; (setf (iterator-position input-iterator) input-iterator-position)
-             ;; bail out of the whole function
-             (return-from match nil)
-        :finally (return-from match (if (iterator-done-p input-iterator)
-                                        nil
-                                        bindings)))
-      ;; if we get there, it means the pattern matched successfully,
-      ;; but there were no new bindings.
-      t))
-
 ;; Match a string literal
 (defmethod match ((pattern string) (input string))
   (string= pattern input))
@@ -383,50 +347,16 @@ a new iterator."
 (defmethod match ((pattern null) (input null))
   t)
 
-;; TODO I had to do some hackery to "disable" this rule in analysis.lisp
-;; the pattern "nil" matches nothing else than "nil"
-(defmethod match ((pattern null) input)
+;; "nil" must not match any other symbols
+(defmethod match ((pattern null) (input symbol))
   nil)
 
-#++
-(defmethod match ((pattern sequence) input)
-  (error "Only vector patterns are supported."))
-
-;; Coerce inputs into vectors
-(defmethod match ((pattern vector) (input sequence))
-  (match pattern (coerce input 'vector)))
-
-;; Match over iterators
-#++
-(defmethod match ((pattern iterator) (input iterator))
-  (match (iterator-value pattern) (iterator-value input)))
-
-(defmethod match ((pattern null) (input iterator))
-  (match pattern (iterator-value input)))
-
-(defmethod match ((pattern term) (input iterator))
-  (and
-   ;; TODO Maybe make a function (iterator-last-p )
-   ;; Check if it is the last element
-   (iterator-done-p (iterator-next (copy-iterator input)))
-   (match pattern (iterator-value input))))
-
-(defmethod match ((pattern vector) (input vector))
-  #++
-  (match (iterate pattern) (iterate input))
-  ;; TODO This breaks (test-match '(:zero-or-more a b) '(a b a b))
-  (multiple-value-bind (bindings all-input-consumed-p)
-      (match (iterate pattern) (iterate input))
-    (when all-input-consumed-p
-      bindings)))
-
-(defmethod match ((pattern vector) (input iterator))
-  (match (iterate pattern) input))
+
+;;; Matching sequences
 
 (defmethod match ((pattern iterator) (input iterator))
   (loop
-    ;; TODO  (make-empty-bindings)
-    :with bindings = t
+    :with bindings = (make-empty-bindings)
     ;; Iterate over the pattern
     :for pattern-iterator := pattern
       :then (iterator-next pattern-iterator)
@@ -445,12 +375,73 @@ a new iterator."
       ;; failed to match, bail out of the whole function
       :do (return nil)
     :finally (return
-               #++
-               (when (and
-                      (iterator-done-p pattern-iterator)
-                      (iterator-done-p input-iterator))
-                 (or bindings t))
                ;; We want to match the whole pattern, but wheter we
                ;; want to match the whole input is up to the caller.
                (when (iterator-done-p pattern-iterator)
-                 (values (or bindings t) (iterator-done-p input-iterator))))))
+                 (values (or bindings t)
+                         (if (iterator-done-p input-iterator)
+                             nil
+                             input-iterator))))))
+
+(defmethod match ((pattern term) (input iterator))
+  (multiple-value-bind (bindings input-remaining-p)
+      (match (iterate (vector pattern)) input)
+    (unless input-remaining-p
+      bindings)))
+
+(defmethod match ((pattern vector) (input vector))
+  (multiple-value-bind (bindings input-remaining-p)
+      (match (iterate pattern) (iterate input))
+    (unless input-remaining-p
+      bindings)))
+
+
+;;; Matching alternations
+
+(defmethod match ((pattern alternation) input)
+  (some (lambda (pat) (match pat input))
+        (alternation-pattern pattern)))
+
+
+;;; Matching repetitions
+
+(defmethod match ((pattern maybe) input)
+  (or (alexandria:when-let ((bindings (match (maybe-pattern pattern) input)))
+        (if (maybe-name pattern)
+            (merge-bindings bindings (make-binding pattern input))
+            bindings))
+      (not input)))
+
+(defmethod match ((pattern zero-or-more) (input null))
+  t)
+
+(defmethod match ((pattern zero-or-more) (input vector))
+  (loop
+    :with bindings = (make-empty-bindings)
+    :with pat = (zero-or-more-pattern pattern)
+    :with input-iterator := (iterate input)
+    :do (multiple-value-bind (new-bindings new-input-iterator)
+            (match (iterate pat) input-iterator)
+          ;; (break)
+          (if new-bindings
+              ;; collect all the bindings (setf bindings
+              ;; (merge-bindings bindings new-bindings))
+              (setf bindings (merge-bindings bindings new-bindings))
+              ;; No match
+              (return nil))
+          (if new-input-iterator
+              (setf input-iterator new-input-iterator)
+              ;; No more input left
+              (return bindings)))))
+
+
+;;; Convenience automatic coercions
+
+(defmethod match ((pattern vector) (input iterator))
+  (match (iterate pattern) input))
+
+(defmethod match ((pattern vector) (input sequence))
+  (match pattern (coerce input 'vector)))
+
+(defmethod match ((pattern zero-or-more) (input sequence))
+  (match pattern (coerce input 'vector)))

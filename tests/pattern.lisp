@@ -331,15 +331,7 @@
   (false (match 1 2))
   (true (match 'x 'x))
   (true (match "x" "x"))
-  (false (match 'x 'y))
-  (true (match #(a) '(a)))
-  ;; TODO add vectors (but not arrays)
-  (false (match #(a b) #(a)))
-  (true (match #(a b) #(a b)))
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; That's where I'm at
-  ;; TODO this test fails
-  ;; (false (match #(a b) #(a b a)))
-  )
+  (false (match 'x 'y)))
 
 ;;; TODO check the actual return values
 (define-test "match terms"
@@ -365,6 +357,15 @@
   (false (match (typed-term 'cons :?x) 'a)))
 
 
+;;; Sequences
+
+(define-test+run "match sequences"
+  (true (match #(a) '(a)))
+  (false (match #(a b) #(a)))
+  (true (match #(a b) #(a b)))
+  (false (match #(a b) #(a b a))))
+
+
 ;;; test :maybe :zero-or-more and :alternation
 
 (define-test "match maybe"
@@ -387,12 +388,11 @@
     (is eq t (test-match pat 'b))
     (false (test-match pat 'c))))
 
-;; TODO This is a mess
 (define-test+run "match zero-or-more"
   (true (test-match '(:zero-or-more a) nil))
   (false (test-match '(:zero-or-more a b) '(a)))
   (is eq t (test-match '(:zero-or-more a b) '(a b)))
-  ;; TODO (false (test-match '(:zero-or-more a b) '(a b a)))
+  (false (test-match '(:zero-or-more a b) '(a b a)))
   (is eq t (test-match '(:zero-or-more a b) '(a b a b)))
   (false (test-match '(:zero-or-more a b) 'a)))
 
