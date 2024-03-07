@@ -132,15 +132,19 @@ children nodes."
 ;; package to look for PLNs to find the in-pacakge form, but I need
 ;; the in-package to know the current package.
 
-(defun in-package-node-p (state node)
-  "Is NODE a cl:in-package node?"
-  (let* ((*state* state)
-         (*match-skip* #'whitespace-or-comment-node-p)
-         (bindings (match #.(compile-pattern `(in-package :?package)) node)))
-    (when bindings
-      (destructuring-bind (term package-designator-node) bindings
-        (declare (ignore term))
-        package-designator-node))))
+(defmacro define-node-matcher (name (pattern) &body body)
+  `(defun ,name (state node)
+     ,(format nil "Does NODE match ~s?" pattern)
+     (let* ((*state* state)
+            (*match-skip* #'whitespace-or-comment-node-p)
+            (bindings (match (compile-pattern ,pattern) node)))
+       ,@body)))
+
+(define-node-matcher in-package-node-p ('(in-package :?package))
+  (when bindings
+    (destructuring-bind (term package-designator-node) bindings
+      (declare (ignore term))
+      package-designator-node)))
 
 (defun find-node (position nodes)
   "Given a list of NODES, return which node contains the POSITION."
@@ -167,7 +171,9 @@ children nodes."
 ;;; Trying to figure out how to run the "formatting rules" without
 ;;; applying them...
 
-(defun %walk (state callback tree depth)
+
+;; TODO try to keep track wheter the current node is quoted or not
+(defun %walk (state callback tree depth quotedp)
   (when tree
     (flet ((cb (node &rest args)
              "Call callback with NODE, DEPTH and ARGS."
@@ -187,21 +193,24 @@ children nodes."
                                :nth i
                                :firstp (eq tree rest)
                                :lastp (null (cdr rest))
-                               :previous previous)
-                           (1+ depth))))
+                               :previous previous
+                               :quotedp quotedp)
+                           (1+ depth)
+                           quotedp)))
         (node
          (case (node-type tree)
            (parens
-            (cb tree :beforep t)
+            (cb tree :beforep t :quotedp quotedp)
             (%walk state
                    callback
                    (node-children tree)
-                   (1+ depth))
-            (cb tree :afterp t))
+                   (1+ depth)
+                   quotedp)
+            (cb tree :afterp t :quotedp quotedp))
            (t
             (cb tree))))))))
 
-(defun walk (state callback)
+(defun walk (state callback &optional quotedp)
   "Call CALLBACK over all nodes in the parse tree contained by STATE.
 CALLBACK will be called multiple times on the same node, with
 different parameters.
@@ -212,7 +221,7 @@ can also return a new node altogether, the walk will
 continue (recurse) in this new node instead.
 
 "
-  (%walk state callback (tree state) 0))
+  (%walk state callback (tree state) 0 quotedp))
 
 ;; This is equivalent to unparse with the leading and trailing
 ;; whitespace fixes. It is _much_ more succint!
@@ -308,8 +317,10 @@ continue (recurse) in this new node instead.
   (walk state
         (lambda (node &rest args &key depth aroundp beforep afterp
                                    firstp lastp nth
-                                   previous)
-          (declare (ignorable depth beforep afterp nth args))
+                                   previous
+                                   quotedp
+                 &allow-other-keys)
+          (declare (ignorable depth beforep afterp nth args quotedp))
           ;; Debug info
           ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
           (when aroundp
@@ -318,6 +329,8 @@ continue (recurse) in this new node instead.
             (when (and (plusp depth)
                        (whitespace-node-p node))
               (warn-extraneous-whitespaces node firstp lastp previous)))
-          ;; Always return the node, we don't want to modify it
+          ;; Always return the node, we don't want to modify it.
+          ;; Technically, we could return nil to avoid recursing into
+          ;; the node (when aroundp is true, that is).
           node))
   *diagnostics*)
