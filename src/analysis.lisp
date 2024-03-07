@@ -238,55 +238,86 @@ continue (recurse) in this new node instead.
                                (or firstp lastp))
                     node)))))
 
-(defun warn-about-undefined-in-package (state node)
-  ;; TODO WIP Checking if an in-package form references
-  ;; a package that exists
+
+;;; Utilities to collect "diagnostics"
+
+(defvar *diagnostics* nil)
+(defvar *point-max* nil)
+
+(defun make-diagnostic (start end severity format-string format-args)
+  "Create a \"diagnostic\" object."
+  (list start (if (= +end+ end) *point-max* end)
+        severity
+        (apply #'format nil format-string format-args)))
+
+(defun push-diagnostic* (start end severity format-string format-args)
+  "Create a diagnostic object and push it into the special variable
+*diagnostics*."
+  (push
+   (make-diagnostic start end
+                    severity
+                    format-string format-args)
+   *diagnostics*))
+
+;; Same as push-diagnostic*, but takes a &rest
+(defun push-diagnostic (start end severity format-string &rest format-args)
+  "Create a diagnostic object and push it into the special variable
+*diagnostics*."
+  (push-diagnostic* start end  severity format-string format-args))
+
+(defun diag-node (node severity format-string &rest format-args)
+  (push-diagnostic* (node-start node) (node-end node)
+                    severity format-string format-args))
+
+(defun diag-warn (node format-string &rest format-args)
+  (apply #'diag-node node :warning format-string format-args))
+
+(defun diag-error (node format-string &rest format-args)
+  (apply #'diag-node node :error format-string format-args))
+
+
+
+(defun warn-undefined-in-package (state node)
   (alexandria:when-let ((package-designator-node (in-package-node-p state node)))
 
     (let* ((package-designator (read-from-string (node-content state package-designator-node)))
            (package (find-package package-designator)))
       (unless package
-        (list (node-start node)
-              (node-end node)
-              :warning
-              (format nil "Package ~s is not currently defined." package-designator))))))
+        (diag-warn
+         node
+         "Package ~s is not currently defined." package-designator)))))
 
-(defun lint (&key buffer-string point-max &allow-other-keys)
-  (let ((state (parse buffer-string))
-        (diagnostics '()))
-    (flet ((push-diag (x) (when x (push x diagnostics))))
-      (walk state
-            (lambda (node &rest args &key depth aroundp beforep afterp
-                                       firstp lastp nth
-                                       previous)
-              (declare (ignorable beforep afterp nth args))
-              ;; Debug info
-              ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
-              ;; Removing useless whitespaces
-              (unless (valid-node-p node)
-                (push (list (node-start node)
-                            point-max
-                            :error
-                            "Syntax error")
-                      diagnostics))
-              (when aroundp
-                (push-diag
-                 (warn-about-undefined-in-package state node)))
-              (when (and (plusp depth)
-                         aroundp
-                         (whitespace-node-p node))
-                (cond
-                  (firstp
-                   (push (list (node-start node)
-                               (node-end node)
-                               :warning
-                               "Extraneous leading whitespaces.")
-                         diagnostics))
-                  ((and lastp (not (line-comment-node-p previous)))
-                   (push (list (node-start node)
-                               (node-end node)
-                               :warning
-                               "Extraneous trailing whitespaces.")
-                         diagnostics))))
-              node)))
-    diagnostics))
+(defun warn-extraneous-whitespaces (node firstp lastp previous)
+  (cond
+    ((and firstp lastp)
+     (diag-warn node "Extraneous whitespaces."))
+    (firstp
+     (diag-warn node "Extraneous leading whitespaces."))
+    ((and lastp (not (line-comment-node-p previous)))
+     (diag-warn node "Extraneous trailing whitespaces."))))
+
+(defun error-invalid-node (node)
+  (unless (valid-node-p node)
+    (diag-error node "Syntax error")))
+
+(defun lint (&key buffer-string point-max &allow-other-keys
+             &aux
+               (state (parse buffer-string))
+               (*diagnostics* '())
+               (*point-max* (or point-max (length buffer-string))))
+  (walk state
+        (lambda (node &rest args &key depth aroundp beforep afterp
+                                   firstp lastp nth
+                                   previous)
+          (declare (ignorable depth beforep afterp nth args))
+          ;; Debug info
+          ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
+          (when aroundp
+            (error-invalid-node node)
+            (warn-undefined-in-package state node)
+            (when (and (plusp depth)
+                       (whitespace-node-p node))
+              (warn-extraneous-whitespaces node firstp lastp previous)))
+          ;; Always return the node, we don't want to modify it
+          node))
+  *diagnostics*)

@@ -304,15 +304,17 @@
 (defun test-lint (buffer-string)
   (lint :buffer-string buffer-string))
 
+
 (define-test+run lint
   (false (test-lint ""))
   (false (test-lint ";; "))
+  (is equal '((0 2 :error "Syntax error")) (test-lint "#+"))
   (false (test-lint "(in-package :cl-user)"))
   (is equal '((0 56 :warning
                "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
       (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
   (is equalp
-      '((1 3 :warning "Extraneous leading whitespaces."))
+      '((1 3 :warning "Extraneous whitespaces."))
       (test-lint "(  )"))
   (is equalp
       '((3 4 :warning "Extraneous trailing whitespaces.")
