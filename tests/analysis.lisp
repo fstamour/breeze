@@ -7,7 +7,10 @@
                 #:is
                 #:true
                 #:false
-                #:of-type))
+                #:of-type)
+  ;; importing unexported symbols
+  (:import-from #:breeze.analysis
+                #:malformed-if-node-p))
 
 (in-package #:breeze.test.analysis)
 
@@ -213,6 +216,16 @@
   (is equal "x" (test-in-package-node-p "( in-package #| ∿ |# x )"))
   (is equal "x" (test-in-package-node-p "(cl:in-package x)"))
   (is equal "x" (test-in-package-node-p "(cl::in-package x)")))
+
+(defun test-malformed-if-node-p (string)
+  (let* ((state (parse string))
+         (node (first (tree state))))
+    (malformed-if-node-p state node)))
+
+#++ ;; WIP
+(define-test+run malformed-if-node-p
+  (false (test-malformed-if-node-p "(if a b c)"))
+  (true (test-malformed-if-node-p "(if a b c d)")))
 
 
 

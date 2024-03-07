@@ -396,6 +396,16 @@
   (is eq t (test-match '(:zero-or-more a b) '(a b a b)))
   (false (test-match '(:zero-or-more a b) 'a)))
 
+#++ ;; TODO
+(progn
+  ;; I want this to be true
+  (test-match '(a (:zero-or-more a b)) '(a a b))
+  ;; Not this
+  (test-match '(a (:zero-or-more a b)) '(a (a b)))
+  ;; That one should be used instead of ^^^
+  (test-match '(a ((:zero-or-more a b))) '(a (a b))))
+
+
 
 ;;; Testing patterns with references in them
 

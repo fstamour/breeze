@@ -140,11 +140,17 @@ children nodes."
             (bindings (match (compile-pattern ,pattern) node)))
        ,@body)))
 
-(define-node-matcher in-package-node-p ('(in-package :?package))
+(define-node-matcher in-package-node-p ('(in-package :?package-designator))
   (when bindings
-    (destructuring-bind (term package-designator-node) bindings
-      (declare (ignore term))
-      package-designator-node)))
+    (destructuring-bind (&key ?package-designator) bindings
+      ?package-designator)))
+
+#++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
+
+(define-node-matcher malformed-if-node-p ('(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
+  (when bindings
+    ;; (destructuring-bind (&key ?cond ?then ?else ?extra) bindings)
+    t))
 
 (defun find-node (position nodes)
   "Given a list of NODES, return which node contains the POSITION."

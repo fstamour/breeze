@@ -310,7 +310,7 @@ a whole new iterator."
 (defun make-empty-bindings () t)
 
 (defun make-binding (term input)
-  (list term input))
+  (list (if (termp term) (term-name term) term) input))
 
 (defun merge-bindings (bindings1 bindings2)
   (cond
