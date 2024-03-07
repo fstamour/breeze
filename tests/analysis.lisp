@@ -195,9 +195,9 @@
 
 (defun test-in-package-node-p (string)
   (let* ((state (parse string))
-         (node (tree state)))
+         (node (first (tree state))))
     ;; The funky reader macro and quasiquote is to fuck with slime and
-    ;; sly's regex-based search for "(in-package". Whithout this the
+    ;; sly's regex-based search for "(in-package". Without this the
     ;; rest of the file is evaluated in cl-user by slime and sly.
     (let ((package-designator-node
             #.`(,'in-package-node-p state node)))
@@ -209,8 +209,8 @@
   (is equal ":x" (test-in-package-node-p "(in-package :x)"))
   (is equal "#:x" (test-in-package-node-p "(in-package #:x)"))
   (is equal "\"x\"" (test-in-package-node-p "(in-package \"x\")"))
-  (is equal "x" (test-in-package-node-p " ( in-package x ) "))
-  (is equal "x" (test-in-package-node-p " ( in-package #| ∿ |# x ) "))
+  (is equal "x" (test-in-package-node-p "( in-package x )"))
+  (is equal "x" (test-in-package-node-p "( in-package #| ∿ |# x )"))
   (is equal "x" (test-in-package-node-p "(cl:in-package x)"))
   (is equal "x" (test-in-package-node-p "(cl::in-package x)")))
 
@@ -296,3 +296,25 @@
   ;; (test-remove-whitespaces "(;;~%  )" "(;;~% )")
   (test-remove-whitespaces "( x)" "(x)")
   (test-remove-whitespaces "( x )" "(x)"))
+
+
+
+;;; Testing the linter
+
+(defun test-lint (buffer-string)
+  (lint :buffer-string buffer-string))
+
+(define-test+run lint
+  (false (test-lint ""))
+  (false (test-lint ";; "))
+  (false (test-lint "(in-package :cl-user)"))
+  (is equal '((0 56 :warning
+               "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
+      (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
+  (is equalp
+      '((1 3 :warning "Extraneous leading whitespaces."))
+      (test-lint "(  )"))
+  (is equalp
+      '((3 4 :warning "Extraneous trailing whitespaces.")
+        (1 2 :warning "Extraneous leading whitespaces."))
+      (test-lint "( x )")))

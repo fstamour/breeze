@@ -252,10 +252,15 @@
 
 (trace compile-pattern)
 
+
+
 (in-package #:breeze.test.analysis)
 
 (trace in-package-node-p
        :wherein test-in-package-node-p)
+
+(trace :wherein test-lint
+       in-package-node-p)
 
 (trace match
        :wherein test-in-package-node-p)

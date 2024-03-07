@@ -136,7 +136,7 @@ children nodes."
   "Is NODE a cl:in-package node?"
   (let* ((*state* state)
          (*match-skip* #'whitespace-or-comment-node-p)
-         (bindings (match #.(compile-pattern `((in-package :?package))) node)))
+         (bindings (match #.(compile-pattern `(in-package :?package)) node)))
     (when bindings
       (destructuring-bind (term package-designator-node) bindings
         (declare (ignore term))
@@ -170,6 +170,7 @@ children nodes."
 (defun %walk (state callback tree depth)
   (when tree
     (flet ((cb (node &rest args)
+             "Call callback with NODE, DEPTH and ARGS."
              (apply callback node :depth depth args)))
       (etypecase tree
         (list
@@ -178,6 +179,7 @@ children nodes."
            :for previous = nil :then (first rest)
            :for rest :on tree
            :for node = (car rest)
+           ;; Recurse
            :collect (%walk state
                            callback
                            (cb node
@@ -200,6 +202,16 @@ children nodes."
             (cb tree))))))))
 
 (defun walk (state callback)
+  "Call CALLBACK over all nodes in the parse tree contained by STATE.
+CALLBACK will be called multiple times on the same node, with
+different parameters.
+
+When CALLBACK is called with :aroundp t, the CALLBACK can decide to
+stop the walk here(i.e. not recurse) by returning nil. The CALLBACK
+can also return a new node altogether, the walk will
+continue (recurse) in this new node instead.
+
+"
   (%walk state callback (tree state) 0))
 
 ;; This is equivalent to unparse with the leading and trailing
@@ -226,54 +238,55 @@ children nodes."
                                (or firstp lastp))
                     node)))))
 
+(defun warn-about-undefined-in-package (state node)
+  ;; TODO WIP Checking if an in-package form references
+  ;; a package that exists
+  (alexandria:when-let ((package-designator-node (in-package-node-p state node)))
+
+    (let* ((package-designator (read-from-string (node-content state package-designator-node)))
+           (package (find-package package-designator)))
+      (unless package
+        (list (node-start node)
+              (node-end node)
+              :warning
+              (format nil "Package ~s is not currently defined." package-designator))))))
+
 (defun lint (&key buffer-string point-max &allow-other-keys)
   (let ((state (parse buffer-string))
         (diagnostics '()))
-    (walk state
-          (lambda (node &rest args &key depth aroundp beforep afterp
-                                     firstp lastp nth
-                                     previous)
-            (declare (ignorable beforep afterp nth args))
-            ;; Debug info
-            ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
-            ;; Removing useless whitespaces
-            (unless (valid-node-p node)
-              (push (list (node-start node)
-                          point-max
-                          :error
-                          "Syntax error")
-                    diagnostics))
-            ;; TODO WIP Checking if an in-package form references
-            ;; a package that exists
-            (alexandria:when-let ((package-designator-node (in-package-node-p state node)))
-              (format *debug-io* "LINT: package-designator: ~s" (read-from-string (node-content state package-designator-node)))
-
-              #++
-              (let ((package (find-package package-designator)))
-                (unless package
-                  (push
-                   (list (node-start node)
-                         (node-end node)
-                         :warning
-                         (format nil "Package ~s is not currently defined." package-designator))
-                   diagnostics))))
-
-            (when (and (plusp depth)
-                       aroundp
-                       (whitespace-node-p node))
-              ;; (break)
-              (cond
-                (firstp
-                 (push (list (node-start node)
-                             (node-end node)
-                             :warning
-                             "Extraneous leading whitespaces.")
-                       diagnostics))
-                ((and lastp (not (line-comment-node-p previous)))
-                 (push (list (node-start node)
-                             (node-end node)
-                             :warning
-                             "Extraneous trailing whitespaces.")
-                       diagnostics))))
-            node))
+    (flet ((push-diag (x) (when x (push x diagnostics))))
+      (walk state
+            (lambda (node &rest args &key depth aroundp beforep afterp
+                                       firstp lastp nth
+                                       previous)
+              (declare (ignorable beforep afterp nth args))
+              ;; Debug info
+              ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
+              ;; Removing useless whitespaces
+              (unless (valid-node-p node)
+                (push (list (node-start node)
+                            point-max
+                            :error
+                            "Syntax error")
+                      diagnostics))
+              (when aroundp
+                (push-diag
+                 (warn-about-undefined-in-package state node)))
+              (when (and (plusp depth)
+                         aroundp
+                         (whitespace-node-p node))
+                (cond
+                  (firstp
+                   (push (list (node-start node)
+                               (node-end node)
+                               :warning
+                               "Extraneous leading whitespaces.")
+                         diagnostics))
+                  ((and lastp (not (line-comment-node-p previous)))
+                   (push (list (node-start node)
+                               (node-end node)
+                               :warning
+                               "Extraneous trailing whitespaces.")
+                         diagnostics))))
+              node)))
     diagnostics))
