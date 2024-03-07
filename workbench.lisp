@@ -25,6 +25,30 @@
 ;; Kill all currently running breeze-commands
 (kill-threads-by-name "breeze command handler")
 
+
+(defvar *default-trace-report-default* *trace-report-default*)
+
+;; tracing is very very useful for debugging, but the default way sbcl
+;; often prints "way too much" stuff
+(defun trace-report (depth function event stack-frame values)
+  ;; (pprint-logical-block stream values :prefix ... :suffix ...)
+  (let ((*print-pretty* nil)
+        (stream *standard-output*))
+    (terpri stream)
+    (pprint-logical-block (stream values
+                                  :per-line-prefix (format nil "~v@{~A~:*~}" depth "  |"))
+      ;; (loop :repeat depth :do (format stream "  |"))
+      (pprint-indent :current depth stream)
+      (case event
+        (:enter
+         (format stream "~3d (~a ~{~a~^ ~})" depth function values))
+        (:exit
+         (format stream "~3d => ~{~a~^, ~}" depth values))
+        (t
+         (format stream "~3d ~s (~a ~{~a~^ ~})" depth event function values))))))
+
+(setf *trace-report-default* 'trace-report)
+
 
 
 (setf *break-on-signals* 'error)
@@ -211,8 +235,6 @@
 
 (in-package #:breeze.pattern)
 
-
-
 (trace iterator-next
        iterator-maybe-push
        iterator-maybe-pop)
@@ -226,45 +248,29 @@
 
 (in-package #:breeze.test.pattern)
 
-;; tracing match is very very useful for debugging, but the default
-;; way sbcl prints stuff is "way too much"
-(defun my-trace-report (depth function event stack-frame values)
-  ;; (pprint-logical-block stream values :prefix ... :suffix ...)
-  (let ((*print-pretty* nil)
-        (stream *standard-output*))
-    (terpri stream)
-    (pprint-logical-block (stream values
-                                  :per-line-prefix (format nil "~v@{~A~:*~}" depth "  |"))
-      ;; (loop :repeat depth :do (format stream "  |"))
-      (pprint-indent :current depth stream)
-      (case event
-        (:enter
-         (format stream "~3d (~a ~{~a~^ ~})" depth function values))
-        (:exit
-         (format stream "~3d => ~{~a~^, ~}" depth values))
-        (t
-         (format stream "~3d ~s (~a ~{~a~^ ~})" depth event function values))))))
-
 (test-match '(:zero-or-more a b) '(a b a b))
 
-(trace match
-       :report my-trace-report)
-
-(trace compile-pattern
-       :report my-trace-report)
+(trace compile-pattern)
 
 (in-package #:breeze.test.analysis)
 
-
 (trace in-package-node-p
-       :report breeze.test.pattern::my-trace-report
        :wherein test-in-package-node-p)
 
 (trace match
-       :report breeze.test.pattern::my-trace-report
        :wherein test-in-package-node-p)
 
-(trace lint :report breeze.test.pattern::my-trace-report)
+(trace
+ :wherein test-match-parse
+ match
+ breeze.analysis::match-symbol-to-token
+ breeze.analysis::match-node)
+
+(untrace)
+
+
+
+(trace lint)
 
 
 

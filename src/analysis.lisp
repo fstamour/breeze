@@ -26,26 +26,12 @@
   (let ((*state* state))
     (match pattern node)))
 
-(defun first-of (seq)
-  (let ((iterator (iterate (coerce seq 'vector))))
-    (unless (iterator-done-p iterator)
-      (iterator-value iterator))))
-
 (defun match-parser-state (pattern state)
-  (let* ((*state* state)
-         (tree (tree state)))
-    (cond
-      ((vectorp pattern)
-       (match pattern (iterate (coerce tree 'vector))))
-      (t
-       (match pattern tree)))))
+  (let* ((*state* state))
+    (match pattern (tree state))))
 
 (defmethod match (pattern (state state))
   (match-parser-state pattern state))
-
-(defmethod match ((pattern null) (state state))
-  (when (tree state)
-    (match-parser-state pattern state)))
 
 (defun plusp* (x)
   (and (numberp x) (plusp x)))
@@ -53,7 +39,6 @@
 (defun match-symbol-to-token (symbol token-node)
   (and
    (symbolp symbol)
-   (not (null symbol))
    (token-node-p token-node)
    (let* ((name (symbol-name symbol))
           (package (symbol-package symbol))

@@ -374,14 +374,20 @@ a whole new iterator."
     :else
       ;; failed to match, bail out of the whole function
       :do (return nil)
-    :finally (return
-               ;; We want to match the whole pattern, but wheter we
-               ;; want to match the whole input is up to the caller.
-               (when (iterator-done-p pattern-iterator)
-                 (values (or bindings t)
-                         (if (iterator-done-p input-iterator)
-                             nil
-                             input-iterator))))))
+    :finally
+       ;; We advance the input iterator to see if there are still
+       ;; values left that would not be skipped.
+       (when (and (not (iterator-done-p input-iterator))
+                  (iterator-skip-p input-iterator))
+         (setf input-iterator (iterator-next input-iterator)))
+       (return
+         ;; We want to match the whole pattern, but wheter we
+         ;; want to match the whole input is up to the caller.
+         (when (iterator-done-p pattern-iterator)
+           (values (or bindings t)
+                   (if (iterator-done-p input-iterator)
+                       nil
+                       input-iterator))))))
 
 (defmethod match ((pattern term) (input iterator))
   (multiple-value-bind (bindings input-remaining-p)

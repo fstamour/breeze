@@ -20,8 +20,6 @@
                          #'whitespace-or-comment-node-p)))
     (values (match (compile-pattern pattern) state) state)))
 
-
-
 (define-test+run "match pattern nil and (nil) against parse trees"
   ;; pattern nil
   (loop
@@ -43,7 +41,6 @@
           (false (test-match-parse nil "common-lisp::nil" skip-p))
           (false (test-match-parse nil "common-lisp-user::nil" skip-p))
           (false (test-match-parse nil "common-lisp-user:nil" skip-p))))
-  #++ ;; TODO WIP
   (progn
     (false (test-match-parse '(nil) ""))
     (false (test-match-parse '(nil) "  "))
@@ -60,66 +57,95 @@
     ;; part of
     (false (test-match-parse '(nil) "common-lisp-user::nil"))
     (false (test-match-parse '(nil) "common-lisp-user:nil")))
-  #++ ;; TODO WIP
   (progn
     (false (test-match-parse '(nil) "" t))
     (false (test-match-parse '(nil) "  " t))
     (false (test-match-parse '(nil) "; hi" t))
     (false (test-match-parse '(nil) "#| hi |#" t))
 
-    (true (test-match-parse '(nil) "nil" t))
+    (true (test-match-parse '(nil) " nil " t))
 
-    (true (test-match-parse '(nil) "NIL" t))
-    (true (test-match-parse '(nil) "nIl" t))
-    (true (test-match-parse '(nil) "cl:nil" t))
-    (true (test-match-parse '(nil) "cl::nil" t))
-    (true (test-match-parse '(nil) "common-lisp:nil" t))
-    (true (test-match-parse '(nil) "common-lisp::nil" t))
+    (true (test-match-parse '(nil) " #| t |# NIL" t))
+    (true (test-match-parse '(nil) "    nIl" t))
+    (true (test-match-parse '(nil) " ;; look ma!
+                                    cl:nil" t))
+    (true (test-match-parse '(nil) " #||# cl::nil" t))
+    (true (test-match-parse '(nil) " #|;;|# common-lisp:nil " t))
+    (true (test-match-parse '(nil) " common-lisp::nil " t))
     ;; TODO For now we don't check _all_ the package a symbol might be
     ;; part of
     (false (test-match-parse '(nil) "common-lisp-user::nil" t))
     (false (test-match-parse '(nil) "common-lisp-user:nil" t))))
 
-
-
-
-(define-test+run "match basic patterns against parse trees"
-  ;; pattern T
+(define-test+run "match the patterns t and (t) against parse trees"
+  ;; These should return nil because we're trying to match 1 symbol
+  ;; against a list of nodes (even if that list is empty).
+  (loop
+    :for skip-p :in '(nil t)
+    :do (progn
+          (false (test-match-parse t "" skip-p))
+          (false (test-match-parse t "  " skip-p))
+          (false (test-match-parse t "; hi" skip-p))
+          (false (test-match-parse t "#| hi |#" skip-p))
+          (false (test-match-parse t "t" skip-p))
+          (false (test-match-parse t "T" skip-p))
+          (false (test-match-parse t "t" skip-p))
+          (false (test-match-parse t "cl:t" skip-p))
+          (false (test-match-parse t "cl::t" skip-p))
+          (false (test-match-parse t "common-lisp:t" skip-p))
+          (false (test-match-parse t "common-lisp::t" skip-p))
+          ;; TODO For now we don't check _all_ the package a symbol might be
+          ;; part of
+          (false (test-match-parse t "common-lisp-user::t" skip-p))
+          (false (test-match-parse t "common-lisp-user:t" skip-p))
+          (progn
+            (false (test-match-parse t "  t" skip-p))
+            (false (test-match-parse t "t  " skip-p))
+            (false (test-match-parse t "t ; hi" skip-p))
+            (false (test-match-parse t "; t " skip-p))
+            (false (test-match-parse t "t #| hi |#" skip-p))
+            (false (test-match-parse t "#| t |#" skip-p))
+            (false (test-match-parse t "#| hi |# t" skip-p)))))
   (progn
+    ;; These should return the same thing whether the match is
+    ;; skipping comments and whitespaces or not.
+    (loop
+      :for skip-p :in '(nil t)
+      :do (progn
+            (false (test-match-parse '(t) "" skip-p))
+            (false (test-match-parse '(t) "  " skip-p))
+            (false (test-match-parse '(t) "; hi" skip-p))
+            (false (test-match-parse '(t) "#| hi |#" skip-p))
+            (true (test-match-parse '(t) "t" skip-p))
+            (true (test-match-parse '(t) "T" skip-p))
+            (true (test-match-parse '(t) "t" skip-p))
+            (true (test-match-parse '(t) "cl:t" skip-p))
+            (true (test-match-parse '(t) "cl::t" skip-p))
+            (true (test-match-parse '(t) "common-lisp:t" skip-p))
+            (true (test-match-parse '(t) "common-lisp::t" skip-p))
+            ;; TODO For now we don't check _all_ the package a symbol might be
+            ;; part of
+            (false (test-match-parse '(t) "common-lisp-user::t" skip-p))
+            (false (test-match-parse '(t) "common-lisp-user:t" skip-p))))
     (progn
-      (false (test-match-parse t ""))
-      (false (test-match-parse t "  "))
-      (false (test-match-parse t "; hi"))
-      (false (test-match-parse t "#| hi |#"))
-      (true (test-match-parse t "t"))
-      (true (test-match-parse t "T"))
-      (true (test-match-parse t "t"))
-      (true (test-match-parse t "cl:t"))
-      (true (test-match-parse t "cl::t"))
-      (true (test-match-parse t "common-lisp:t"))
-      (true (test-match-parse t "common-lisp::t"))
-      ;; TODO For now we don't check _all_ the package a symbol might be
-      ;; part of
+      (false (test-match-parse '(t) "t ; hi"))
+      (false (test-match-parse '(t) "t  "))
+      (false (test-match-parse '(t) "t #| hi |#"))
+      (true (test-match-parse '(t) "t ; hi" t))
+      (true (test-match-parse '(t) "t  " t))
+      (true (test-match-parse '(t) "t #| hi |#" t))
+      (true (test-match-parse '(t) "  t" t))
+      (false (test-match-parse '(t) "; '(t) " t))
+      (false (test-match-parse '(t) "#| t |#" t))
+      (true (test-match-parse '(t) "#| hi |# t" t)))
+    (true (test-match-parse '((t)) " (t) " t))))
 
-      (false (test-match-parse t "common-lisp-user::t"))
-      (false (test-match-parse t "common-lisp-user:t")))
-    (progn
-      (false (test-match-parse t "" t))
-      (true (test-match-parse t "  t" t))
-      (true (test-match-parse t "t  " t))
-      (true (test-match-parse t "t ; hi" t))
-      (false (test-match-parse t "; t " t))
-      (true (test-match-parse t "t #| hi |#" t))
-      (false (test-match-parse t "#| t |#" t))
-      (true (test-match-parse t "#| hi |# t" t))))
-  ;; TODO test pattern 1
-  ;; TODO test pattern 'x
-  ;; TODO test pattern :x
-  ;; TODO test pattern "x"
-  ;; TODO test pattern #()
-  ;; TODO test pattern #(t)
-  ;; TODO test pattern "some-node" (I'll have to think about the syntax)
-  )
+;; TODO test pattern 1
+;; TODO test pattern 'x
+;; TODO test pattern :x
+;; TODO test pattern "x"
+;; TODO test pattern "some-node" (I'll have to think about the syntax)
+
 
 (define-test+run "match terms against parse trees"
   (progn
@@ -140,9 +166,7 @@
     (is equalp
         (list (term :?x) (token 0 1))
         (test-match-parse '(:?x) "x"))
-    (is equalp
-        (list (term :?x) (whitespace 0 1))
-        (test-match-parse '(:?x) " x"))
+    (false (test-match-parse '(:?x) " x"))
     (is equalp
         (list (term :?x) (token 1 2))
         (test-match-parse '(:?x) " x" t))
@@ -150,7 +174,7 @@
         (list (term :?x) (parens 0 4 (list (token 1 3))))
         (test-match-parse '(:?x) "(42)"))
     (is equalp
-        (list (term :?x) (parens 0 4 (list (token 1 3))))
+        (list (term :?x) (token 1 3))
         (test-match-parse '((:?x)) "(42)"))))
 
 (define-test+run "match vector against parse trees"
