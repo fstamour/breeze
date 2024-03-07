@@ -133,11 +133,11 @@
   )
 
 (let* ((*standard-output* *debug-io*)
-       (nodes )
-       (path )
-       (outer-node )
-       (parent-node )
-       (inner-node ))
+       (nodes)
+       (path)
+       (outer-node)
+       (parent-node)
+       (inner-node))
   (loop :for (node . index) :in path
         :for i :from 0
         :do (format t "~%=== Path part #~d, index ~d ===~%~s"
@@ -211,6 +211,8 @@
 
 (in-package #:breeze.pattern)
 
+
+
 (trace iterator-next
        iterator-maybe-push
        iterator-maybe-pop)
@@ -248,6 +250,22 @@
 (trace match
        :report my-trace-report)
 
+(trace compile-pattern
+       :report my-trace-report)
+
+(in-package #:breeze.test.analysis)
+
+
+(trace in-package-node-p
+       :report breeze.test.pattern::my-trace-report
+       :wherein test-in-package-node-p)
+
+(trace match
+       :report breeze.test.pattern::my-trace-report
+       :wherein test-in-package-node-p)
+
+(trace lint :report breeze.test.pattern::my-trace-report)
+
 
 
 (in-package #:breeze.listener)
@@ -265,7 +283,7 @@
   ;; Get the first element of a condition's format arguments
   (car
    (slot-value *condition*
-               'sb-kernel::format-arguments)) )
+               'sb-kernel::format-arguments)))
 
 
 

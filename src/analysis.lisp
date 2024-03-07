@@ -37,11 +37,6 @@
     (cond
       ((vectorp pattern)
        (match pattern (iterate (coerce tree 'vector))))
-      ;; If the pattern would match 1 thing...
-      ((atom pattern)
-       (let ((iterator (iterate (coerce tree 'vector))))
-         (unless (iterator-done-p iterator)
-           (match pattern iterator))))
       (t
        (match pattern tree)))))
 
@@ -263,15 +258,21 @@ children nodes."
                           :error
                           "Syntax error")
                     diagnostics))
-            #++ ;; TODO WIP Checking if an in-package form references
+            ;; TODO WIP Checking if an in-package form references
             ;; a package that exists
-            (alexandria:when-let ((package-designator (in-package-node-p state node)))
-              (push
-               (list (node-start node)
-                     (node-end node)
-                     :warning
-                     (format nil "This is indeed an in-package form. ~s" package-designator))
-               diagnostics))
+            (alexandria:when-let ((package-designator-node (in-package-node-p state node)))
+              (format *debug-io* "LINT: package-designator: ~s" (read-from-string (node-content state package-designator-node)))
+
+              #++
+              (let ((package (find-package package-designator)))
+                (unless package
+                  (push
+                   (list (node-start node)
+                         (node-end node)
+                         :warning
+                         (format nil "Package ~s is not currently defined." package-designator))
+                   diagnostics))))
+
             (when (and (plusp depth)
                        aroundp
                        (whitespace-node-p node))
