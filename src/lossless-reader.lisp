@@ -584,14 +584,10 @@ the occurence of STRING."
     (let ((newline (search #.(format nil "~%")
                            (source state)
                            :start2 (pos state))))
-      (if newline
-          (progn
-            (setf (pos state) (1+ newline))
-            (line-comment start (pos state)))
-          ;; TODO (defun (setf donep) ...)
-          (progn
-            (setf (pos state) (length (source state)))
-            (line-comment start +end+))))))
+      (setf (pos state) (if newline
+                            (1+ newline)
+                            (length (source state))))
+      (line-comment start (pos state)))))
 
 ;; TODO rename read-integer
 (defun read-number (state &optional (radix 10))
