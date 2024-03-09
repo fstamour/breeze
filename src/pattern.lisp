@@ -74,34 +74,36 @@
 
 ;; TODO Maybe generalize "maybe" and "zero-or-more" into "repetition"
 
-(defstruct (maybe
-            (:constructor maybe (pattern &optional name))
+(defstruct (repetition
+            (:constructor repetition (pattern min max &optional name))
             :constructor
-            (:predicate maybep)
+            (:predicate repetitionp)
             (:include term))
-  (pattern nil :read-only t))
+  (pattern nil :read-only t)
+  (min nil :read-only t)
+  (max nil :read-only t))
 
-(defun maybe= (a b)
-  (and (maybep a)
-       (maybep b)
-       (pattern= (maybe-pattern a)
-                 (maybe-pattern b))
-       (or (null (maybe-name a))
-           (null (maybe-name b))
-           (eq (maybe-name a)
-               (maybe-name b)))))
+(defun repetition= (a b)
+  (and (repetitionp a)
+       (repetitionp b)
+       (pattern= (repetition-pattern a) (repetition-pattern b))
+       (= (repetition-min a) (repetition-min b))
+       (let ((ma (repetition-max a))
+             (mb (repetition-max a)))
+         (or (eq ma mb) (and (numberp ma) (numberp mb)) (= ma mb)))
+       (or (null (repetition-name a))
+           (null (repetition-name b))
+           (eq (repetition-name a)
+               (repetition-name b)))))
 
-(defstruct (zero-or-more
-            (:constructor zero-or-more (pattern))
-            :constructor
-            :predicate)
-  (pattern nil :read-only t))
+(defun maybe (pattern &optional name)
+  (repetition pattern 0 1 name))
 
-(defun zero-or-more= (a b)
-  (and (zero-or-more-p a)
-       (zero-or-more-p b)
-       (pattern= (zero-or-more-pattern a)
-                 (zero-or-more-pattern b))))
+(defun zero-or-more (pattern &optional name)
+  (repetition pattern 0 nil name))
+
+
+;;; WIP Alternations
 
 (defstruct (alternation
             (:constructor alternation (pattern))
@@ -114,6 +116,8 @@
        (alternationp b)
        (pattern= (alternation-pattern a)
                  (alternation-pattern b))))
+
+
 
 (defmethod pattern= (a b)
   (equal a b))
@@ -134,8 +138,7 @@
   (def ref)
   (def term)
   (def typed-term)
-  (def maybe)
-  (def zero-or-more)
+  (def repetition)
   (def alternation))
 
 
@@ -423,6 +426,7 @@ a whole new iterator."
 
 ;;; Matching repetitions
 
+#++
 (defmethod match ((pattern maybe) input)
   (or (alexandria:when-let ((bindings (match (maybe-pattern pattern) input)))
         (if (maybe-name pattern)
@@ -430,14 +434,16 @@ a whole new iterator."
             bindings))
       (not input)))
 
+#++
 (defmethod match ((pattern zero-or-more) (input null))
   t)
 
-(defmethod match ((pattern zero-or-more) (input vector))
+(defmethod match ((pattern repetition) (input vector))
   (loop
     :with bindings = (make-empty-bindings)
-    :with pat = (zero-or-more-pattern pattern)
+    :with pat = (repetition-pattern pattern)
     :with input-iterator := (iterate input)
+    :for i :from 0
     :do (multiple-value-bind (new-bindings new-input-iterator)
             (match (iterate pat) input-iterator)
           ;; (break)
@@ -446,11 +452,15 @@ a whole new iterator."
               ;; (merge-bindings bindings new-bindings))
               (setf bindings (merge-bindings bindings new-bindings))
               ;; No match
-              (return nil))
+              (if (< (repetition-min pattern) i)
+                  (return bindings)
+                  (return nil)))
           (if new-input-iterator
               (setf input-iterator new-input-iterator)
               ;; No more input left
-              (return bindings)))))
+              (if (< (repetition-min pattern) i)
+                  (return bindings)
+                  (return nil))))))
 
 
 ;;; Convenience automatic coercions
@@ -461,5 +471,5 @@ a whole new iterator."
 (defmethod match ((pattern vector) (input sequence))
   (match pattern (coerce input 'vector)))
 
-(defmethod match ((pattern zero-or-more) (input sequence))
+(defmethod match ((pattern repetition) (input sequence))
   (match pattern (coerce input 'vector)))

@@ -25,14 +25,14 @@
                 #:typed-term-name
                 #:typed-term-type
                 #:typed-term=
+                #:repetition
+                #:repetitionp
+                #:repetition=
+                #:repetition-pattern
+                #:repetition-min
+                #:repetition-max
                 #:maybe
-                #:maybep
-                #:maybe-pattern
-                #:maybe=
                 #:zero-or-more
-                #:zero-or-more-p
-                #:zero-or-more-pattern
-                #:zero-or-more=
                 #:alternation
                 #:alternationp
                 #:alternation-pattern
@@ -103,26 +103,15 @@
 
 (define-test maybe
   (let ((maybe (maybe :x)))
-    (of-type maybe maybe)
-    (true (maybep maybe))
-    (is eq :x (maybe-pattern maybe))))
-
-(define-test+run maybe=
-  (is maybe= (maybe 'a) (maybe 'a))
-  (is maybe= (maybe 'a :?x) (maybe 'a))
-  (is maybe= (maybe 'a :?x) (maybe 'a :?x))
-  (isnt maybe= (maybe 'a) (maybe 'b))
-  (isnt maybe= (maybe 'a :?x) (maybe 'b))
-  (isnt maybe= (maybe 'a :?x) (maybe 'a :?y))
-  (isnt maybe= (maybe 'a :?x) (maybe 'b :?x)))
+    (of-type repetition maybe)
+    ;; TODO check repetition-{min,max}
+    (is eq :x (repetition-pattern maybe))))
 
 (define-test zero-or-more
   (let ((zero-or-more (zero-or-more :x)))
-    (of-type zero-or-more zero-or-more)
-    (true (zero-or-more-p zero-or-more))
-    (is eq :x (zero-or-more-pattern zero-or-more))))
-
-;; TODO zero-or-more=
+    (of-type repetition zero-or-more)
+    ;; TODO check repetition-{min,max}
+    (is eq :x (repetition-pattern zero-or-more))))
 
 (define-test alternation
   (let ((alternation (alternation :x)))
@@ -374,9 +363,9 @@
   (is eq t (match (maybe 'a :?x) nil))
   (false (match (maybe 'a :?x) 'b))
   (false (match (maybe 'a) 'b))
-  (is equalp '(#s(maybe :name :?x :pattern a) a) (match (maybe 'a :?x) 'a))
-  (is equalp '(#s(term :name ?x) a) (match (maybe (term '?x)) 'a))
-  (is equalp '(#s(term :name ?x) nil) (match (maybe (term '?x)) nil)))
+  (is equalp `(,(maybe :name :?x :pattern a) a) (match (maybe 'a :?x) 'a))
+  (is equalp '(#(term :name ?x) a) (match (maybe (term '?x)) 'a))
+  (is equalp `(,(term :name ?x) nil) (match (maybe (term '?x)) nil)))
 
 (define-test "match alternations"
   (is eq t (test-match '(:alternation a b) 'a))
@@ -384,7 +373,7 @@
   (false (test-match '(:alternation a b) 'c))
   (is equalp '(#s(term :name ?x) c) (test-match '(:alternation ?x b) 'c))
   (let ((pat (compile-pattern '(:alternation (:maybe a ?x) b))))
-    (is equalp '(#s(maybe :name ?x :pattern a) a) (test-match pat 'a))
+    (is equalp `(,(maybe :name ?x :pattern a) a) (test-match pat 'a))
     (is eq t (test-match pat 'b))
     (false (test-match pat 'c))))
 
