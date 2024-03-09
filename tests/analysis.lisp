@@ -20,8 +20,12 @@
 (defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
   (let* ((state (parse string))
          (*match-skip* (when skip-whitespaces-and-comments
-                         #'whitespace-or-comment-node-p)))
-    (values (match (compile-pattern pattern) state) state)))
+                         #'whitespace-or-comment-node-p))
+         (bindings (match (compile-pattern pattern) state))
+         (bindings (normalize-bindings bindings)))
+    (values bindings state)))
+
+
 
 (define-test+run "match pattern nil and (nil) against parse trees"
   ;; pattern nil
@@ -152,32 +156,32 @@
 
 (define-test+run "match terms against parse trees"
   (progn
-    (is equalp (list (term :?x) nil) (test-match-parse :?x ""))
-    (is equalp (list (term :?x) nil) (test-match-parse :?x "" t))
+    (is equalp (list :?x nil) (test-match-parse :?x ""))
+    (is equalp (list :?x nil) (test-match-parse :?x "" t))
     (is equalp
-        (list (term :?x) (list (token 0 1)))
+        (list :?x (list (token 0 1)))
         (test-match-parse :?x "x"))
     (is equalp
-        (list (term :?x) (list (whitespace 0 1) (token 1 2)))
+        (list :?x (list (whitespace 0 1) (token 1 2)))
         (test-match-parse :?x " x"))
     (is equalp
-        (list (term :?x) (list (whitespace 0 1) (token 1 2)))
+        (list :?x (list (whitespace 0 1) (token 1 2)))
         (test-match-parse :?x " x" t)))
   (progn
     (false (test-match-parse '(:?x) ""))
     (false (test-match-parse '(:?x) "" t))
     (is equalp
-        (list (term :?x) (token 0 1))
+        (list :?x (token 0 1))
         (test-match-parse '(:?x) "x"))
     (false (test-match-parse '(:?x) " x"))
     (is equalp
-        (list (term :?x) (token 1 2))
+        (list :?x (token 1 2))
         (test-match-parse '(:?x) " x" t))
     (is equalp
-        (list (term :?x) (parens 0 4 (list (token 1 3))))
+        (list :?x (parens 0 4 (list (token 1 3))))
         (test-match-parse '(:?x) "(42)"))
     (is equalp
-        (list (term :?x) (token 1 3))
+        (list :?x (token 1 3))
         (test-match-parse '((:?x)) "(42)"))))
 
 (define-test+run "match vector against parse trees"
@@ -329,6 +333,9 @@
   (is equalp
       '((1 3 :warning "Extraneous whitespaces."))
       (test-lint "(  )"))
+  (is equalp
+      '((2 4 :warning "Extraneous internal whitespaces."))
+      (test-lint "(x  y)"))
   (is equalp
       '((3 4 :warning "Extraneous trailing whitespaces.")
         (1 2 :warning "Extraneous leading whitespaces."))

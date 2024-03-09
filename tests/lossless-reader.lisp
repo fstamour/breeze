@@ -257,7 +257,7 @@ newline or +end+)
 (define-test read-line-comment
   (test-read-line-comment "" nil)
   (test-read-line-comment ";" 1)
-  (test-read-line-comment "; asdf~%" 7))
+  (test-read-line-comment "; asdf~%" 6))
 
 
 
@@ -810,8 +810,8 @@ newline or +end+)
   (test-parse "arg| asdf " (token 0 +end+))
   (test-parse ";" (line-comment 0 1))
   (test-parse "; " (line-comment 0 2))
-  (test-parse (format nil ";~%") (line-comment 0 2))
-  (test-parse (format nil ";~%;") (line-comment 0 2) (line-comment 2 3))
+  (test-parse (format nil ";~%") (line-comment 0 1) (whitespace 1 2))
+  (test-parse (format nil ";~%;") (line-comment 0 1) (whitespace 1 2) (line-comment 2 3))
   (test-parse "(12" (parens 0 +end+ (token 1 3)))
   (test-parse "\"" (node 'string 0 +end+))
   (test-parse "\"\"" (node 'string 0 2))

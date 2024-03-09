@@ -142,6 +142,8 @@ children nodes."
 
 (define-node-matcher in-package-node-p ('(in-package :?package-designator))
   (when bindings
+    (second bindings)
+    #++
     (destructuring-bind (&key ?package-designator) bindings
       ?package-designator)))
 
@@ -302,14 +304,23 @@ continue (recurse) in this new node instead.
          node
          "Package ~s is not currently defined." package-designator)))))
 
-(defun warn-extraneous-whitespaces (node firstp lastp previous)
+(defun warn-extraneous-whitespaces (state node firstp lastp previous)
   (cond
     ((and firstp lastp)
      (diag-warn node "Extraneous whitespaces."))
     (firstp
      (diag-warn node "Extraneous leading whitespaces."))
     ((and lastp (not (line-comment-node-p previous)))
-     (diag-warn node "Extraneous trailing whitespaces."))))
+     (diag-warn node "Extraneous trailing whitespaces."))
+    ((and (not (or firstp lastp))
+          ;; Longer than 1
+          (< 1 (- (node-end node) (node-start node)))
+          ;; "contains no newline"
+          (not (position #\Newline
+                         (source state)
+                         :start (node-start node)
+                         :end (node-end node))))
+     (diag-warn node "Extraneous internal whitespaces."))))
 
 (defun error-invalid-node (node)
   (unless (valid-node-p node)
@@ -334,7 +345,7 @@ continue (recurse) in this new node instead.
             (warn-undefined-in-package state node)
             (when (and (plusp depth)
                        (whitespace-node-p node))
-              (warn-extraneous-whitespaces node firstp lastp previous)))
+              (warn-extraneous-whitespaces state node firstp lastp previous)))
           ;; Always return the node, we don't want to modify it.
           ;; Technically, we could return nil to avoid recursing into
           ;; the node (when aroundp is true, that is).

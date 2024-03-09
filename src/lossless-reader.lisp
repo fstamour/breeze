@@ -585,7 +585,7 @@ the occurence of STRING."
                            (source state)
                            :start2 (pos state))))
       (setf (pos state) (if newline
-                            (1+ newline)
+                            newline
                             (length (source state))))
       (line-comment start (pos state)))))
 

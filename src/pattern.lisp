@@ -12,7 +12,8 @@
            #:*match-skip*)
   (:export #:iterate
            #:iterator-done-p
-           #:iterator-value))
+           #:iterator-value)
+  (:export #:normalize-bindings))
 
 (in-package #:breeze.pattern)
 
@@ -310,7 +311,7 @@ a whole new iterator."
 (defun make-empty-bindings () t)
 
 (defun make-binding (term input)
-  (list (if (termp term) (term-name term) term) input))
+  (list term input))
 
 (defun merge-bindings (bindings1 bindings2)
   (cond
@@ -318,6 +319,17 @@ a whole new iterator."
     ((eq t bindings2) bindings1)
     ((or (eq nil bindings1) (eq nil bindings2)) nil)
     (t (append bindings1 bindings2))))
+
+(defun normalize-bindings (bindings)
+  (or (eq t bindings)
+      (alexandria:alist-plist
+       (sort (loop :for (key value) :on bindings :by #'cddr
+                   :collect (cons (if (termp key)
+                                      (term-name key)
+                                      key)
+                                  value))
+             #'string<
+             :key #'car))))
 
 
 ;;; Matching atoms
