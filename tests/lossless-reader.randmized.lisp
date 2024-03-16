@@ -24,7 +24,8 @@
                 #:read-sharpsign-equal
                 #:read-sharpsign-sharpsign
                 #:read-sharpsign-plus
-                #:read-sharpsign-minus)
+                #:read-sharpsign-minus
+                #:%token-symbol-node)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run

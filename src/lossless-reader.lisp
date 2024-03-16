@@ -59,7 +59,12 @@ common lisp.")
            #:sharp-array
            #:sharp-label
            #:sharp-reference
-           #:sharp-unknown)
+           #:sharp-unknown
+           #:current-package-symbol
+           #:keyword
+           #:uninterned-symbol
+           #:qualified-symbol
+           #:possibly-internal-symbol)
   ;; Node copiers
   (:export #:copy-block-comment
            #:copy-parens
@@ -98,6 +103,7 @@ common lisp.")
            #:parens-node-p
            #:punctuation-node-p
            #:token-node-p
+           #:symbol-node-p
            #:whitespace-node-p
            #:line-comment-node-p
            #:whitespace-or-comment-node-p
@@ -154,6 +160,8 @@ common lisp.")
            #:read-whitespaces
            #:read-block-comment)
   (:export
+   #:token-symbol-node)
+  (:export
    ;; top-level parsing/unparsing
    #:parse
    #:unparse ;; maybe deprecate?
@@ -186,6 +194,8 @@ common lisp.")
   ;; - current input base (base of numbers)
   ;; - current depth?
   ;; - is inside quasiquotation?
+  ;; - is inside quotes?
+  ;; - cache
   (:documentation "The reader's state"))
 
 (defun make-state (string)
@@ -241,9 +251,9 @@ common lisp.")
 
 (macrolet ((aux (type
                  &key
-                 children
-                 (name type)
-                 no-constructor-p)
+                   children
+                   (name type)
+                   no-constructor-p)
              `(progn
                 ;; predicate
                 (defun
@@ -371,6 +381,15 @@ common lisp.")
   "Is this node a whitespace, a block comment or line comment?"
   (or (whitespace-node-p node)
       (comment-node-p node)))
+
+(defun symbol-node-p (node)
+  (and
+   (nodep node)
+   (member (node-type node) '(current-package-symbol
+                              keyword
+                              uninterned-symbol
+                              qualified-symbol
+                              possibly-internal-symbol))))
 
 
 ;;; Content and range
@@ -865,6 +884,57 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
    read-while
    donep)
   (untrace))
+
+(defun %token-symbol-node (string &optional (start 0) (end (length string)))
+  (when (and string start end
+             (< -1 start end)
+             (plusp (length string)))
+    (case (count #\: string :start start :end end)
+      (0
+       ;; "x"
+       (node 'current-package-symbol start end))
+      (1
+       (or
+        ;; ":x"
+        (when (char= #\: (char string start))
+          (node 'keyword (1+ start) end))
+        ;; "#:x"
+        (when (and (< 2 (- end start))
+                   (char= #\# (char string start))
+                   (char= #\: (char string (1+ start))))
+          (node 'uninterned-symbol (+ 2 start) end))
+        ;; p:x
+        (let ((position (position #\: string :start start :end end)))
+          (and (not (= position (1- end)))
+               (node 'qualified-symbol
+                     start end
+                     (list
+                      (node 'package-name start position)
+                      (node 'symbol-name (1+ position) end)))))))
+      ;; p::x
+      (2 (let* ((first (position #\: string :start start :end end)))
+           (and
+            (/= start first)
+            (< (1+ first) (1- end))
+            (char= #\: (char string (1+ first)))
+            (node 'possibly-internal-symbol
+                  start end
+                  (list
+                   (node 'package-name start first)
+                   (node 'symbol-name (+ 2 first) end)))))))))
+
+(defun token-symbol-node (state token-node)
+  "Extract information about the package-name and symbol-name of a token, if it can.
+Returns a new node with one of these types:
+
+ - current-package-symbol
+ - keyword
+ - uninterned-symbol
+ - qualified-symbol
+ - possibly-internal-symbol"
+  (%token-symbol-node (source state)
+                      (node-start token-node)
+                      (node-end token-node)))
 
 (defreader read-token ()
   "Read one token."

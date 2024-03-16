@@ -219,7 +219,8 @@
   (is equal "x" (test-in-package-node-p "( in-package x )"))
   (is equal "x" (test-in-package-node-p "( in-package #| ∿ |# x )"))
   (is equal "x" (test-in-package-node-p "(cl:in-package x)"))
-  (is equal "x" (test-in-package-node-p "(cl::in-package x)")))
+  (is equal "x" (test-in-package-node-p "(cl::in-package x)"))
+  (null (test-in-package-node-p "(cl:)")))
 
 (defun test-malformed-if-node-p (string)
   (let* ((state (parse string))

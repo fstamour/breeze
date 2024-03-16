@@ -15,6 +15,26 @@
 (in-package #:breeze.analysis)
 
 
+;;; Basic utilities for nodes
+
+(defun node-length (node)
+  "Returns the number of children of NODE, or nil if it doesn't have any
+children nodes."
+  (let ((children (node-children node)))
+    (when (listp children)
+      (length children))))
+
+(defun node-string= (state node string)
+  (string= (source state) string
+           :start1 (node-start node)
+           :end1 (node-end node)))
+
+(defun node-string-equal (state node string)
+  (string-equal (source state) string
+                :start1 (node-start node)
+                :end1 (node-end node)))
+
+
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
 (defparameter *state* nil
@@ -36,25 +56,37 @@
 (defun plusp* (x)
   (and (numberp x) (plusp x)))
 
-(defun match-symbol-to-token (symbol token-node)
+(defun match-symbol-to-token (symbol token-node &aux (state *state*))
   (and
    (symbolp symbol)
    (token-node-p token-node)
    (let* ((name (symbol-name symbol))
           (package (symbol-package symbol))
-          (string (node-content *state* token-node)))
+          ;; TODO would be nice to cache this
+          (symbol-node (token-symbol-node state token-node)))
      ;; TODO use case-sensitive comparison, but convert case if
      ;; necessary (i.e. depending on *read-case*)
-     (if (plusp* (position #\: string))
-         (destructuring-bind (package-name symbol-name)
-             (remove-if #'alexandria:emptyp
-                        (uiop:split-string string :separator '(#\:)))
-           (and (member package-name
-                        `(,(package-name package)
-                          ,@(package-nicknames package))
-                        :test #'string-equal)
-                (string-equal name symbol-name)))
-         (string-equal name string)))))
+     (when symbol-node
+       (and
+        (ecase (node-type symbol-node)
+          (current-package-symbol (node-string-equal state token-node name))
+          (keyword
+           (and (string-equal "KEYWORD" (package-name package))
+                (node-string-equal state symbol-node name)))
+          (uninterned-symbol
+           (and (null package)
+                (node-string-equal state symbol-node name)))
+          ((qualified-symbol possibly-internal-symbol)
+           (destructuring-bind (package-name-node symbol-name-node)
+               (node-children symbol-node)
+             (and
+              (node-string-equal state symbol-name-node name)
+              (some (lambda (package-name)
+                      (node-string-equal state package-name-node package-name))
+                    `(,(package-name package)
+                      ,@(package-nicknames package)))))))
+        ;; symbol-node
+        t)))))
 
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.
@@ -114,13 +146,6 @@
 
 
 ;;; Basic tree inspection
-
-(defun node-length (node)
-  "Returns the number of children of NODE, or nil if it doesn't have any
-children nodes."
-  (let ((children (node-children node)))
-    (when (listp children)
-      (length children))))
 
 ;; TODO I want to check if a node is an "in-package" node...
 ;; - case converting if necessary

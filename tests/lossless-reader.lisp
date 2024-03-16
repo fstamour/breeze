@@ -718,6 +718,62 @@ newline or +end+)
                      "~c is supposed to be a terminating character." char))
           '(#\; #\" #\' #\( #\) #\, #\`)))
 
+
+(defun tsn (string &optional (start 0) (end (length string)))
+  (%token-symbol-node string start end))
+
+(defun tsn-padded (string)
+  (let* ((prefix ":  ")
+         (suffix "   ")
+         (l (length string))
+         (p (length prefix)))
+    (tsn (concatenate 'string prefix string suffix)
+         p (+ p l))))
+
+(define-test token-symbol-node
+  (progn
+    (is equalp (node 'current-package-symbol 0 1) (tsn "x"))
+    (is equalp (node 'keyword 1 2) (tsn ":x"))
+    (is equalp (node 'uninterned-symbol 2 3) (tsn "#:x"))
+    (is equalp
+        (node 'qualified-symbol 0 3
+              (list (node 'package-name 0 1)
+                    (node 'symbol-name 2 3)))
+        (tsn "p:x"))
+    (is equalp
+        (node 'possibly-internal-symbol 0 4
+              (list
+               (node 'package-name 0 1)
+               (node 'symbol-name 3 4)))
+        (tsn "p::x"))
+    (false (tsn ""))
+    (false (tsn "#:"))
+    (false (tsn "::"))
+    (false (tsn "p:::x"))
+    (false (tsn "p::"))
+    (false (tsn "::x"))
+    (false (tsn "a:a:x")))
+  (progn
+    (is equalp (node 'current-package-symbol 3 4) (tsn-padded "x"))
+    (is equalp (node 'keyword 4 5) (tsn-padded ":x"))
+    (is equalp (node 'uninterned-symbol 5 6) (tsn-padded "#:x"))
+    (is equalp (node 'qualified-symbol 3 6
+                     (list (node 'package-name 3 4)
+                           (node 'symbol-name 5 6)))
+        (tsn-padded "p:x"))
+    (is equalp (node 'possibly-internal-symbol 3 7
+                     (list (node 'package-name 3 4)
+                           (node 'symbol-name 6 7)))
+        (tsn-padded "p::x"))
+    (false (tsn-padded ""))
+    (false (tsn-padded "#:"))
+    (false (tsn-padded "::"))
+    (false (tsn-padded "p:::x"))
+    (false (tsn-padded "p::"))
+    (false (tsn-padded "::x"))
+    (false (tsn-padded "a:a:x"))))
+
+
 (defun test-read-token (input expected-end)
   (with-state (input)
     (test* (read-token state)
