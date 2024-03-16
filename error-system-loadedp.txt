@@ -1,0 +1,23 @@
+There is no applicable method for the generic function
+  #<STANDARD-GENERIC-FUNCTION ASDF/COMPONENT:COMPONENT-IF-FEATURE (1)>
+when called with arguments
+  (#P"/home/fstamour/quicklisp/local-projects/sb-unix-socket/sb-unix-socket.asd").
+   [Condition of type SB-PCL::NO-APPLICABLE-METHOD-ERROR]
+See also:
+  Common Lisp Hyperspec, 7.6.6 [:section]
+
+Restarts:
+ 0: [RETRY] Retry calling the generic function.
+ 1: [ABORT] abort thread (#<THREAD tid=1985 "breeze command handler" RUNNING {100C3CE723}>)
+
+Backtrace:
+  0: ((:METHOD NO-APPLICABLE-METHOD (T)) #<STANDARD-GENERIC-FUNCTION ASDF/COMPONENT:COMPONENT-IF-FEATURE (1)> #P"/home/fstamour/quicklisp/local-projects/sb-unix-socket/sb-unix-socket.asd") [fast-method]
+  1: (SB-PCL::CALL-NO-APPLICABLE-METHOD #<STANDARD-GENERIC-FUNCTION ASDF/COMPONENT:COMPONENT-IF-FEATURE (1)> (#P"/home/fstamour/quicklisp/local-projects/sb-unix-socket/sb-unix-socket.asd"))
+  2: ((LABELS ASDF/COMPONENT::RECURSE :IN ASDF/COMPONENT:SUB-COMPONENTS) #P"/home/fstamour/quicklisp/local-projects/sb-unix-socket/sb-unix-socket.asd")
+  3: (ASDF/COMPONENT:SUB-COMPONENTS #P"/home/fstamour/quicklisp/local-projects/sb-unix-socket/sb-unix-socket.asd" :TYPE T)
+  4: (BREEZE.ASDF:LOADEDP "/home/fstamour/quicklisp/local-projects/sb-unix-socket/sb-unix-socket.lisp")
+  5: (BREEZE.REFACTOR::MAYBE-ASK-TO-LOAD-SYSTEM)
+  6: ((LAMBDA NIL :IN BREEZE.REFACTOR:QUICKFIX))
+  7: (BREEZE.COMMAND::CALL-WITH-COMMAND-SIGNAL-HANDLER #<FUNCTION (LAMBDA NIL :IN BREEZE.REFACTOR:QUICKFIX) {5375A6DB}>)
+  8: (BREEZE.COMMAND::CANCEL-COMMAND-ON-ERROR 2 #<FUNCTION (LAMBDA NIL :IN BREEZE.COMMAND:START-COMMAND) {100C3D820B}>)
+  9: ((LABELS BORDEAUX-THREADS::%BINDING-DEFAULT-SPECIALS-WRAPPER :IN BORDEAUX-THREADS::BINDING-DEFAULT-SPECIALS))

@@ -143,8 +143,7 @@ defun."
   (read-string-then-insert "Name: " "~a (")
   (read-string-then-insert
    ;; Who needs to loop...?
-   "Enter the arguments: " "~a)~%)")
-  (backward-char))
+   "Enter the arguments: " "~a)~%)"))
 
 (define-command insert-defun ()
   "Insert a defun form."
@@ -198,13 +197,14 @@ defun."
   (let ((package-name
           (read-string
            "Name of the package: "
-           (infer-package-name-from-file (context-buffer-file-name*)))))
+           (infer-package-name-from-file (buffer-file-name)))))
     (when *insert-defpackage/cl-user-prefix*
       (insert
        "(cl:in-package #:cl-user)~%~%~"))
     (if nil ; TODO
         (insert "(uiop:define-package ")
         (insert "(defpackage "))
+    ;; TODO don't insert the (in-package ...) if it already exists
     (insert
      "#:~a~
     ~%  (:documentation \"\")~
@@ -384,7 +384,7 @@ defun."
 found."
   (let* ((previous-in-package-form
            (find-nearest-sibling-in-package-form nodes (or outer-node
-                                                           (context-point*)))))
+                                                           (point)))))
     (when previous-in-package-form
       (let* ((package-designator (in-package-node-package
                                   previous-in-package-form))
@@ -455,7 +455,7 @@ For debugging purposes ONLY.")
 
 (defun suggest-system-definition ()
   "When in an .asd file"
-  (when (ends-with-subseq ".asd" (context-buffer-name*)
+  (when (ends-with-subseq ".asd" (buffer-name)
                           :test #'string-equal)
     'insert-asdf))
 
@@ -557,9 +557,9 @@ a message and stop the current command."
 
 
 (defun maybe-ask-to-load-system ()
-  (if-let ((file-name (context-buffer-file-name*)))
+  (if-let ((file-name (buffer-file-name)))
     (multiple-value-bind (status system)
-        (breeze.asdf:loadedp (context-buffer-file-name*))
+        (breeze.asdf:loadedp (buffer-file-name))
       (when (eq :not-loaded status)
         (when (ask-y-or-n-p "The current file is part of the system \"~a\", but has not been loaded yet. Do you want to load it now? (y/n) "
                             (asdf:component-name system))
@@ -571,7 +571,7 @@ a message and stop the current command."
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
-  (maybe-ask-to-load-system)
+  (ignore-errors (maybe-ask-to-load-system))
   (augment-context-by-parsing-the-buffer (context*))
   (check-in-package)
   (let* (;; Compute the applicable commands
@@ -592,27 +592,3 @@ a message and stop the current command."
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
-
-
-
-(defun command-to-emacs-lisp (command &optional stream)
-  "Take the symbol COMMAND generates the emacs lisp code to create an
-emacs command,"
-  (let ((docstring (command-docstring command)))
-    (format stream
-            "(defun breeze-~(~a~) ()~
-           ~%  ~s~
-           ~%  (interactive)~
-           ~%  (breeze-run-command ~(\"~a\"~)))"
-            command
-            docstring
-            (symbol-package-qualified-name command))))
-
-#++
-(alexandria:with-output-to-file (output
-                                 (breeze.utils:breeze-relative-pathname "src/breeze-commands.el")
-                                 :if-exists :supersede)
-  (loop :for command :in (all-commands)
-        :do (command-to-emacs-lisp command output)
-            (terpri output)
-            (terpri output)))

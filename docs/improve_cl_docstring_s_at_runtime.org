@@ -1,0 +1,10 @@
+:PROPERTIES:
+:ID:       9dbbf418-de72-4d31-8347-19e3dc7d8df1
+:END:
+#+title: Improve CL docstring's at runtime
+
+I noticed that, on sbcl, you can =(setf (documentation 'x 'function)
+...= on symbols that are part of the =cl= package (which I didn't
+expect because of the package lock). It _could_ be nice to load a
+package during development that adds examples to the docstrings, and
+perhaps even "links" between the defintions?

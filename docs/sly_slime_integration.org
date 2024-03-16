@@ -1,0 +1,44 @@
+:PROPERTIES:
+:ID:       54e6cd55-803b-4e15-82bc-a332130d020e
+:END:
+#+title: Sly/Slime integration
+
+* Other projects with slime/sly integration
+
+** log4cl
+
+- https://github.com/sharplispers/log4cl/blob/master/log4cl.log4slime.asd
+- https://github.com/sharplispers/log4cl/blob/master/log4cl.log4sly.asd
+- https://github.com/sharplispers/log4cl/tree/master/elisp
+
+** cepl
+
+- https://github.com/cbaggers/cepl/blob/master/docs/single-thread-swank.md
+- https://github.com/cbaggers/livesupport
+- https://github.com/cbaggers/swank.live
+
+** cl-routes
+
+https://github.com/archimag/cl-routes/blob/master/src/routes-swank.lisp
+
+* TODO My old elisp snippet to eval with slime and kill the result
+
+https://gist.github.com/fstamour/2d7569beaf42c0a0883dc0ae559c6638
+
+#+begin_src emacs-lisp
+(defun slime-eval-save-output (string)
+  "Evaluate STRING in Lisp and save the result in the kill ring."
+  (slime-eval-async `(swank:eval-and-grab-output ,string)
+    (lambda (result)
+      (cl-destructuring-bind (output value) result
+          (kill-new output)
+          (message "Evaluation finished; pushed output to kill ring.")))))
+
+
+(defun lisp-eval-defun-in-kill-ring ()
+  (interactive)
+  (slime-eval-save-output (slime-defun-at-point)))
+
+(global-set-key (kbd "C-M-z") 'lisp-eval-defun-in-kill-ring)
+#+end_src
+* TODO https://github.com/melisgl/mgl-pax for more emacs/slime integration :editor:

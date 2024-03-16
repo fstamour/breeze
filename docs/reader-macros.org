@@ -1,0 +1,148 @@
+:PROPERTIES:
+:ID:       9cb1f9d0-572f-4b8c-bbc8-4c1bb9a54eb4
+:END:
+#+title: Reader macros
+
+https://quickdocs.org/-/search?q=reader
+
+* Example of a custom reader macro
+:PROPERTIES:
+:ID:       68e2f3b0-264e-4844-b38f-92be13cca6ea
+:END:
+
+#+begin_src
+(with-input-from-string (input "{ hey }")
+  (let ((*readtable* (copy-readtable)))
+    (set-macro-character #\{ (lambda (stream char)
+                               (read-delimited-list #\} stream)))
+    (read input)))
+;; => (HEY)
+#+end_src
+
+* cl-annot
+:PROPERTIES:
+:ID:       11702123-9dc1-4ca4-9325-53d4ac4188cc
+:END:
+
+=@asfd=
+
+* Eclector's =syntax-extensions= module
+:PROPERTIES:
+:ID:       3c68d188-b4c9-4ab1-aeb8-cee25aaa8273
+:END:
+
+From eclector 0.10 release's notes:
+
+#+begin_src
+p::(a b)
+===
+(p::a p::b)
+#+end_src
+
+#+begin_src
+#; (this form is commented out)
+#2; (these 2 forms) (are commented out)
+#+end_src
+
+* Named readtables
+:PROPERTIES:
+:ID:       f5fa06ac-75a3-4dbf-8ed3-17c320ff2927
+:END:
+
+#+begin_src
+(in-readtable )
+(named-readtables:in-readtable ...)
+#+end_src
+
+* CommonQt/Qtools
+:PROPERTIES:
+:ID:       16bbdda7-ce07-456b-be44-fd787c712c5f
+:END:
+
+#+begin_src
+#_
+q+
+#> #<
+#'
+#+end_src
+
+P.S. These are not maintained anymore
+
+* Library "Reader"
+:PROPERTIES:
+:ID:       0cddf3d0-b37a-4a66-83dd-05d1e63dea33
+:END:
+
+- https://quickdocs.org/reader
+
+#+begin_src
+(reader:enable-reader-syntax ...)
+
+#[
+{eq
+{eql
+{equal
+#{
+#!
+
+! (not )
+$ "ensure-string"
+#+end_src
+
+* Shebang
+:PROPERTIES:
+:ID:       bc2db964-8402-42e6-8992-dc754941f8c4
+:END:
+
+at least sbcl and roswell
+
+#+begin_src
+#!
+#+end_src
+
+* cl-interpol
+:PROPERTIES:
+:ID:       1188ce38-45c1-426d-aab1-b4d209baef62
+:END:
+
+#+begin_src
+(named-readtables:in-readtable :interpol-syntax)
+or
+(cl-interpol:enable-interpol-syntax)
+(cl-interpol:disable-interpol-syntax)
+#+end_src
+
+#+begin_quote
+The question mark may optionally be followed by an R and an X (case
+doesn't matter) - see the section about regular expression syntax
+below. If both of them are present, the R must precede the X.
+#+end_quote
+
+#+begin_quote
+The next character is the opening outer delimiter which may be one of
+ - ="= (double quote),
+ - ='= (apostrophe),
+ - =|= (vertical bar),
+ - =#= (sharpsign),
+ - =/= (slash),
+ - =(= (left parenthesis),
+ - =<= (less than),
+ - =[= (left square bracket), or
+ - ={= (left curly bracket).
+(But see =*OUTER-DELIMITERS*=.)
+#+end_quote
+
+* curry-compose-reader-macros
+:PROPERTIES:
+:ID:       eff9b0b6-ceb3-4882-bdec-1ab212fb20fc
+:END:
+
+https://quickdocs.org/curry-compose-reader-macros
+
+#+begin_src
+(in-readtable :curry-compose-reader-macros)
+{+ 1}
+[#'list {* 2}]
+«list {* 2} {* 3}»
+‹if #'evenp #'1+ #'1-›
+#+end_src

@@ -1,0 +1,28 @@
+:PROPERTIES:
+:ID:       b9f7e1f4-dc86-46e0-860b-f845f180110e
+:END:
+#+title: Breeze on the internets
+
+Keeping track of public discussions about breeze.
+* Breeze on the internets
+
+** Lisp project of the day
+
+https://40ants.com/lisp-project-of-the-day/2020/08/0166-breeze.html
+
+** Reddit
+
+https://old.reddit.com/r/Common_Lisp/comments/pgtfm3/looking_for_feedbackhelp_on_a_project/
+
+*** [[https://old.reddit.com/user/dzecniv][u/dzecniv]]
+
+> testing features along with workers and a file watcher? Shouldn't
+they be different projects?
+
+    What annoys you when developing in lisp?
+
+I find that setting up a test framework is more difficult than it
+should be, so any effort on this area is appreciated. I mean: starting
+with 5am is ok (but could be easier with an editor command), running
+it from the CLI/a CI is less OK, getting the correct return code of
+the tests needs more work, etc.

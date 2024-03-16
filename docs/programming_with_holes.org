@@ -1,0 +1,39 @@
+:PROPERTIES:
+:ID:       69ab6084-2e41-4893-82b8-85ac04b1b1ca
+:END:
+#+title: Programming with holes
+
+* Programming with holes
+
+=Holes=, in programming, are something used to tell the language that
+a part of the program is incomplete. Some languages like Idris and
+Agda natively support =typed holes=. The way I see it, holes are used
+to falicitate the conversation between the programmer and the
+compiler.
+
+But, for languages like common lisp that doesn't support holes
+out-of-the box, how could we do that? In general, there are no symbol
+name that will never clash with other symbols, because symbols in
+common lisp can be any string. One idea is to use inline comments,
+like ~#| hole-name |#~. Breeze's parser would be able to recognize
+them and manipulate them.
+
+But what for?
+
+** Snippets
+
+Holes can be used to both tell the user what he is expected to enter
+in a snippet and tell the editor where the user is expected to enter
+stuff.
+
+** Typing
+
+A user could use a hole to tell the editor to infer the type of an
+expression or function and replace the hole by the appropriate
+declaration.
+
+** Program synthesis
+
+A user could use a hole to tell the editor to find the right
+expression where the hole is. This probably requires that the user
+specify some more constraints, by giving types, writing tests, etc.

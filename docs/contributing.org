@@ -1,0 +1,25 @@
+:PROPERTIES:
+:ID:       279c4ea6-2004-4a7a-a2c9-905f27fae42c
+:END:
+#+title: Contributing
+
+* Contributing
+
+Start by forking and cloning this repository into quicklisp's
+local-projects directory.
+
+Setup the pre-commit hook
+
+#+begin_src shell
+git config core.hooksPath githooks
+#+end_src
+
+Look for TODOs in the code
+
+#+begin_src shell
+grep -ir --include='*.lisp' todo
+# or
+rg -i todo
+#+end_src
+
+Explore the documentation.

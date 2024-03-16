@@ -3,6 +3,8 @@
 # This script is used to run the tests
 #
 
+set -e
+
 cd "$(git rev-parse --show-toplevel)"
 
 exec sbcl --noinform --non-interactive \

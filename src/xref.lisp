@@ -6,7 +6,6 @@
    #:calls-who
    ;; Utilities
    #:find-packages-by-prefix
-   #:find-packages-by-regex
    ;; Symbol inspection
    #:generic-method-p
    #:specialp
@@ -26,17 +25,6 @@
     :when (starts-with-subseq prefix
                               (string-downcase
                                (package-name package)))
-      :collect package))
-
-(defun find-packages-by-regex (regex &optional (case-insensitive-p t))
-  "Find all packages whose name match the regex (case insensitive by default)."
-  (loop
-    :with scanner = (cl-ppcre:create-scanner regex :case-insensitive-mode
-                                             case-insensitive-p)
-    :for package :in (list-all-packages)
-    :when (cl-ppcre:scan scanner
-                         (string-downcase
-                          (package-name package)))
       :collect package))
 
 (defun generic-method-p (symbol)

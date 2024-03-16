@@ -1,0 +1,9 @@
+:PROPERTIES:
+:ID:       62112623-6002-4cb9-87de-cb530ce0a36e
+:END:
+#+title: Silimar projects
+
+* Python
+
+- [[id:5eb1faac-b7b5-4c99-abe9-b91e77bea4ae][Jedi]]
+- [[id:5265bce5-c6d0-4cda-8d3e-699ceafcab42][Elpy]]

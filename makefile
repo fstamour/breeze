@@ -4,8 +4,17 @@ test:
 	scripts/test.sh
 
 # Generate the documentation
+.PHONY: doc
 doc:
 	scripts/doc.sh
+
+# Generate the documentation. in a docker
+dependencies.core: Dockerfile breeze.asd scripts/load-dependencies.lisp
+	DOCKER_BUILDKIT=1 docker build --progress=plain --target=$@ --output type=local,dest=. .
+
+.PHONY: public
+public: dependencies.core
+	DOCKER_BUILDKIT=1 docker build --progress=plain --target=$@ --output type=local,dest=public .
 
 # Run some "integration tests" that generates some screenshots
 # This is work-in-progress
@@ -25,7 +34,6 @@ watch:
 
 .PHONY: \
 	test \
-	doc \
 	demo \
 	spell \
 	watch

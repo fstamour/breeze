@@ -1,0 +1,23 @@
+:PROPERTIES:
+:ID:       e712f3d1-0734-43f0-886a-3008ca5f722d
+:END:
+#+title: Testing Breeze
+
+* How to run the tests
+
+#+begin_src lisp
+(ql:quickload "breeze/test")
+(asdf:test-system "breeze")
+#+end_src
+
+Or from the command line:
+
+#+begin_src shell
+./scripts/test.sh
+#+end_src
+
+OR
+
+#+begin_src shell
+make test
+#+end_src

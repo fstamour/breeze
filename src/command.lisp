@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.command
-  (:documentation "Interactive commands' core")
+    (:documentation "Interactive commands' core")
   (:use :cl :breeze.logging)
   (:import-from #:alexandria
                 #:symbolicate
@@ -9,12 +9,6 @@
                 #:if-let
                 #:lastcar
                 #:when-let*)
-  #++
-  (:import-from #:breeze.reader
-                #:parse-string)
-  #++
-  (:import-from #:breeze.syntax-tree
-                #:find-path-to-node)
   (:import-from #:breeze.utils
                 #:before-last)
   (:export
@@ -26,18 +20,12 @@
    #:context*
    #:context-get
    #:context-set
-   #:context-buffer-string
-   #:context-buffer-string*
-   #:context-buffer-name
-   #:context-buffer-name*
-   #:context-buffer-file-name
-   #:context-buffer-file-name*
-   #:context-point
-   #:context-point*
-   #:context-point-min
-   #:context-point-min*
-   #:context-point-max
-   #:context-point-max*
+   #:buffer-string
+   #:buffer-name
+   #:buffer-file-name
+   #:point
+   #:point-min
+   #:point-max
    ;; Basic composables commands
    #:insert
    #:read-string
@@ -46,7 +34,6 @@
    #:insert-at
    #:insert-at-saving-excursion
    #:replace-region
-   #:backward-char
    #:message
    #:find-file
    #:ask-y-or-n-p
@@ -54,6 +41,7 @@
    #:return-from-command
    #:define-command
    #:commandp
+   #:list-all-commands
    ;; Utilities to add very useful information into the context
    #:augment-context-by-parsing-the-buffer
    ;; Keys in the *context* hash-table
@@ -112,7 +100,7 @@
     actor))
 
 ;; TODO gabage collect the *actors* that are done (when?)
-;; TODO How to dectect if something went wrong?
+;; TODO How to detect if something went wrong?
 
 (defun clear-actors ()
   "Forget all the actors"
@@ -223,8 +211,6 @@
 (defmethod send-out ((command command-handler) value)
   (%send (channel-out command) value))
 
-;; No, I won't support multiple client/command at the same time, for
-;; now™.
 (defvar *command* nil
   "The command that is currently being executed.")
 
@@ -241,8 +227,6 @@
   (send-out *command* `(,request ,@data)))
 
 
-;; TODO rename cancel -> stop
-
 (defun stop-actor (actor)
   (when-let* ((thread (thread actor)))
     (handler-case
@@ -260,11 +244,12 @@
             (bt:destroy-thread thread)))
       ;; This is signaled when interrupting a thread fails because the
       ;; thread is not alive. (p.s. on sbcl, both bt:interrupt-thread
-      ;; and bt:destroy-thread ends up interrupting th thread)
+      ;; and bt:destroy-thread ends up interrupting the thread)
       #+sbcl
       (sb-thread:interrupt-thread-error (condition)
         (declare (ignore condition))))))
 
+;; TODO rename cancel -> stop
 (defun cancel-command (id &optional reason)
   "Cancel a command."
   (let ((actor (find-actor id :errorp t)))
@@ -423,9 +408,6 @@
     (id command)))
 
 
-;; (run-command command nil)
-
-
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
 (defun continue-command (id &rest response)
   "Continue procressing *command*."
@@ -454,93 +436,70 @@
       (context *command*)
       (error "*command* is nil")))
 
-(defun context-get (context key)
-  "Get the value of KEY CONTEXT."
-  (gethash key context))
+(define-condition request ()
+  ((what :initarg :what :reader what)))
+
+(defun request (what)
+  (catch 'answer
+    (signal 'request :what what)))
+
+(defun answer (value)
+  (throw 'answer (values value t)))
 
 (defun context-set (context key value)
   "Set KEY to VALUE in CONTEXT."
   (setf (gethash key context) value))
 
-;; TODO remove useless prefix "context-"
+(defun context-get (context key)
+  "Get the value of KEY CONTEXT."
+  (multiple-value-bind (value presentp)
+      (gethash key context)
+    (if presentp
+        value
+        (multiple-value-bind (value answeredp)
+            (request key)
+          (when answeredp
+            (context-set context key value))
+          value))))
 
-(defun context-buffer-string (context)
+(defun buffer-string (&optional (context (context*)))
   "Get the \"buffer-string\" from the CONTEXT.
 The buffer-string is the content of the buffer.
 It can be null."
   (context-get context 'buffer-string))
 
-(defun context-buffer-string* ()
-  "Get the \"buffer-string\" from the *command*'s context.
-The buffer-string is the content of the buffer.
-It can be null."
-  (context-get (context*) 'buffer-string))
-
-(defun context-buffer-name (context)
+(defun buffer-name (&optional (context (context*)))
   "Get the \"buffer-name\" from the CONTEXT.
 The buffer-name is the name of the buffer.
 It can be null."
   (context-get context 'buffer-name))
 
-(defun context-buffer-name* ()
-  "Get the \"buffer-name\" from the *command*'s context.
-The buffer-name is the name of the buffer.
-It can be null."
-  (context-get (context*) 'buffer-name))
-
-(defun context-buffer-file-name (context)
+(defun buffer-file-name (&optional (context (context*)))
   "Get the \"buffer-file-name\" the CONTEXT.
 The buffer-file-name is the name of the file that the buffer is
 visiting.
 It can be null."
   (context-get context 'buffer-file-name))
 
-(defun context-buffer-file-name* ()
-  "Get the \"buffer-file-name\" from the *command*'s context.
-The buffer-file-name is the name of the file that the buffer is
-visiting.
-It can be null."
-  (context-get (context*) 'buffer-file-name))
-
-(defun context-point (context)
+(defun point (&optional (context (context*)))
   "Get the \"point\" from the CONTEXT.
 The point is the position of the cursor.
 It can be null."
   (context-get context 'point))
 
-(defun context-point* ()
-  "Get the \"point\" from the *command*'s context.
-The point is the position of the cursor.
-It can be null."
-  (context-get (context*) 'point))
-
-(defun context-point-min (context)
+(defun point-min (&optional (context (context*)))
   "Get the \"point-min\" from the CONTEXT.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get context 'point-min))
 
-(defun context-point-min* ()
-  "Get the \"point-min\" from the *command*'s context.
-The point-min is the position of the beginning of buffer-string.
-See \"narrowing\" in Emacs.
-It can be null."
-  (context-get (context*) 'point-min))
-
-(defun context-point-max (context)
+(defun point-max (&optional (context (context*)))
   "Get the \"point-max\" from the CONTEXT.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
   (context-get context 'point-max))
-
-(defun context-point-max* ()
-  "Get the \"point-max\" from the *command*'s context.
-The point-max is the position of the end of buffer-string.
-See \"narrowing\" in Emacs.
-It can be null."
-  (context-get (context*) 'point-max))
 
 
 ;;; Basic commands, to be composed
@@ -610,10 +569,6 @@ to non-nil to keep the current position."
    position-to
    replacement-string))
 
-(defun backward-char (&optional n)
-  "Send a message to the editor to move backward."
-  (send "backward-char" n))
-
 (defun message (control-string &rest format-arguments)
   "Send a message to the editor to ask it to show a message to the
 user. This function pass its arguments to cl:format and sends the
@@ -640,6 +595,23 @@ resulting string to the editor."
 (defun commandp (symbol)
   (get symbol 'breeze.command::commandp))
 
+
+(defun list-all-commands (&optional with-details-p)
+  (loop
+    :for package :in (list-all-packages)
+    #++ (breeze.xref:find-packages-by-prefix "breeze.")
+    :append (loop
+              :for symbol :being :each :external-symbol :of package
+              :for lambda-list-or-t = (commandp symbol)
+              :when lambda-list-or-t
+                :collect (if with-details-p
+                             (list symbol (if (eq t lambda-list-or-t)
+                                              nil
+                                              lambda-list-or-t)
+                                   (documentation symbol 'function))
+                             symbol))))
+
+
 (defmacro define-command (name lambda-list
                           &body body)
   "Macro to define command with the basic context.
@@ -665,33 +637,30 @@ Example:
             (progn ,@remaining-forms)
             (send "done"))))
        ;; Add a flag into the symbol's plist
-       (setf (get ',name 'commandp) t))))
+       (setf (get ',name 'commandp) ',(or lambda-list t)))))
 
 
 ;;; Utilities to get more context
 
+;; TODO It should be easier to test with the request/answer stuff?
 (defun parse-buffer (context)
-  #++
-  (let* ((buffer-string (context-buffer-string context))
-         (code (parse-string buffer-string)))
-    (breeze.reader:forms code)))
+  (breeze.lossless-reader:parse (buffer-string context)))
 
-;; TODO Add lots of error-handling...
 (defun augment-context-by-parsing-the-buffer (context)
-  (let ((nodes (parse-buffer context)))
-    (if nodes
-        (let* (;; Find the node "at point"
-               (path (find-path-to-node (context-point context) nodes))
-               ;; Find the top-level form "at point"
-               (outer-node (caar path))
-               ;; Find the innermost form "at point"
-               (inner-node (car (lastcar path)))
-               (inner-node-index (cdr (lastcar path)))
-               ;; Find the innermost form's parent
-               (parent-node (car (before-last path))))
-          #. `(progn ,@(loop :for key in '(nodes path outer-node
-                                           inner-node inner-node-index parent-node)
-                             :collect
-                             `(context-set context ',key ,key)))
-          t)
-        nil)))
+  (let ((parse-result (parse-buffer context)))
+    ;; TODO re-implement those against the new parse tree
+    #++
+    (let* (;; Find the node "at point"
+           (path (find-path-to-node (point context) nodes))
+           ;; Find the top-level form "at point"
+           (outer-node (caar path))
+           ;; Find the innermost form "at point"
+           (inner-node (car (lastcar path)))
+           (inner-node-index (cdr (lastcar path)))
+           ;; Find the innermost form's parent
+           (parent-node (car (before-last path))))
+      #. `(progn ,@(loop :for key in '(nodes path outer-node
+                                       inner-node inner-node-index parent-node)
+                         :collect
+                         `(context-set context ',key ,key))))
+    parse-result))

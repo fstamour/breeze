@@ -1,0 +1,8 @@
+
+
+
+#+begin_src lisp
+(eclector.parse-result:read
+                  (make-instance 'skipped-input-recording-client)
+                  stream nil :eof)
+#+end_src

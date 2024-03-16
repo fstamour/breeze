@@ -1,0 +1,27 @@
+:PROPERTIES:
+:ID:       6bd2b06d-0a3c-4d32-9a1e-4f6f36e1003d
+:END:
+#+title: Emacs integration
+
+* Features
+
+- Snippets
+- Capture ideas easily (`breeze-capture`)
+- Create project interactively
+- Refactor
+- Provides a minor-mode `breeze-mode`
+
+* Setup
+
+#+begin_src emacs-lisp
+(load `quicklisp/local-projects/breeze/src/breeze.el`)
+(add-hook 'lisp-mode-hook #'breeze-mode)
+#+end_src
+
+* Commands and default keymap
+
+| Command                 | Description                                                                                   | Default Key |
+|-------------------------+-----------------------------------------------------------------------------------------------+-------------|
+| breeze-quickfix         | Choose from a list of commands applicable to the current context.                             | `C-.`       |
+| breeze-capture          | Quickly create a lisp file in a pre-determined directory.                                     |             |
+| breeze-scaffold-project | Interactively create a project in `quicklisp`'s `local-projects` folder using `quickproject`. |             |

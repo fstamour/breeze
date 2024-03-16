@@ -1,0 +1,7 @@
+:PROPERTIES:
+:ID:       13ea055e-4715-4583-811b-bff78ca300ee
+:END:
+#+title: Candidate Features
+
+- [[id:5d211d9a-0749-4adb-abe0-e66133d09b5b][Editor integrations]]
+- [[id:54e6cd55-803b-4e15-82bc-a332130d020e][Sly/Slime integration]]

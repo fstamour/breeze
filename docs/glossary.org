@@ -1,0 +1,37 @@
+:PROPERTIES:
+:ID:       bb5c6ad4-0f89-48aa-9295-13e5e248a897
+:END:
+#+title: Glossary
+* Glossary
+
+#+begin_comment
+Trying to document the words/concepts used in the project.
+#+end_comment
+
+** lisp listener
+:PROPERTIES:
+:ID:       93da5b9d-9593-45b1-9f71-f49d01c3e95d
+:END:
+
+- More often called "lisp repl".
+- I use this term to try to avoid confusion with an hypothetical
+  future actual REPL.
+- You could describe that as a "client-server REPL".
+
+** REPL
+:PROPERTIES:
+:ID:       824a7d5d-d11f-40b0-ae0e-b83ea7dbf812
+:END:
+
+- Stands for "Read-Eval-Print-Loop"
+- Most people think about "command line" when they hear REPL, but in
+  the case of lisp, it usually means a "listener".
+
+** e-graph
+
+"e-graph" stands for "equivalence graph", it is a data structure.
+
+See [[id:32155195-1bc4-4f2d-8f6a-12fb0bd68ecc][E-graphs]].
+
+
+** TODO Package-local nicknames (PLN)

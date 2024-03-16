@@ -1,7 +1,7 @@
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.test.refactor
-  (:use :cl #:breeze.refactor)
+    (:use :cl #:breeze.refactor)
   ;; Importing non-exported symbols of the "package under test"
   (:import-from #:breeze.refactor)
   ;; Things needed to "drive" a command
@@ -20,29 +20,9 @@
                 #:outer-node)
   (:import-from #:breeze.test.command
                 #:drive-command)
-  #++
-  (:import-from #:breeze.reader
-                #:node-content
-                #:parse-string
-                #:unparse-to-string
-
-                ;; Types of node
-                #:skipped-node
-                #:symbol-node
-                #:read-eval-node
-                #:character-node
-                #:list-node
-                #:function-node
-
-                ;; Type predicates
-                #:skipped-node-p
-                #:symbol-node-p
-                #:read-eval-node-p
-                #:character-node-p
-                #:list-node-p
-                #:function-node-p)
   (:import-from #:breeze.utils
-                #:remove-indentation)
+                #:remove-indentation
+                #:split-by-newline)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -84,6 +64,7 @@
            commands)))
 
 
+
 ;;; Oh yiisss! In this "page", I create a command that can generate
 ;;; tests _interactively_ for a command.
 ;;;
@@ -98,19 +79,20 @@ newline in the expected result."
           (progn
             (insert "~%        (is equal")
             (insert "~%            '(")
-            (loop :for line :in (str:split #\Newline expected)
+            (loop :for line :in (split-by-newline expected)
                   :for i :from 0
                   :unless (zerop i)
                     :do (insert "~%             ")
                   :do (insert "~s" line))
             (insert ")")
-            (insert "~%            (str:split #\\Newline (~:R request)))" i))
+            (insert "~%            (split-by-newline (~:R request)))" i))
           (insert "~%        (is string= ~s (~:R request))" expected i))
       (insert "~%        (false (~:R request))" i)))
 
 ;; TODO I sorely need something more declarative for those kinds of
 ;; snippets... Which is why I'm working so much on having good tests
 ;; for the snippets in the first place!
+#++
 (define-command insert-test ()
   "Insert a missing test!"
   (augment-context-by-parsing-the-buffer (breeze.command:context*))
@@ -177,7 +159,7 @@ newline in the expected result."
 
 ;; This is emacs lisps to add a binding to the command "insert-test"
 ;; defined just above:
-#++
+#+elisp
 (progn
   (defun breeze--insert-test ()
     (interactive)
@@ -225,7 +207,7 @@ newline in the expected result."
           '("(cl:in-package #:cl)"
             ""
             "")
-          (str:split #\Newline (second request))))
+          (split-by-newline (second request))))
     (destructuring-bind (input request) (fifth trace)
       (false input)
       (is string= "insert" (first request))
@@ -234,7 +216,7 @@ newline in the expected result."
             " (:use :cl :asdf))"
             ""
             "")
-          (str:split #\Newline (second request))))
+          (split-by-newline (second request))))
     (destructuring-bind (input request) (sixth trace)
       (false input)
       (is string= "insert" (first request))
@@ -242,7 +224,7 @@ newline in the expected result."
           '("(in-package #:a.asd)"
             ""
             "")
-          (str:split #\Newline (second request))))
+          (split-by-newline (second request))))
     (destructuring-bind (input request) (seventh trace)
       (false input)
       (is string= "insert" (first request))
@@ -258,7 +240,7 @@ newline in the expected result."
             "  :components"
             "    (#+(or) (:file \"todo\")))"
             "")
-          (str:split #\Newline (second request))))))
+          (split-by-newline (second request))))))
 
 (define-test+run insert-breeze-define-command
     (let* ((trace (drive-command #'insert-breeze-define-command
@@ -276,38 +258,35 @@ newline in the expected result."
             '("(define-command rmrf ()"
               "  \"Rmrf.\""
               "  )")
-            (str:split #\Newline (second request))))))
+            (split-by-newline (second request))))))
 
 (define-test+run insert-defun
-    (let* ((trace (drive-command #'insert-defun
-                                 :inputs '("real-fun" "a &optional b")
-                                 :context '())))
-      (common-trace-asserts 'insert-defun trace 7)
-      (destructuring-bind (input request) (first trace)
-        (is string= "insert" (first request))
-        (is string= "(defun " (second request)))
-      (destructuring-bind (input request) (second trace)
-        (is string= "read-string" (first request))
-        (is string= "Name: " (second request))
-        (is string= nil (third request)))
-      (destructuring-bind (input request) (third trace)
-        (is equal '"real-fun" input)
-        (is string= "insert" (first request))
-        (is string= "real-fun (" (second request)))
-      (destructuring-bind (input request) (fourth trace)
-        (is string= "read-string" (first request))
-        (is string= "Enter the arguments: " (second request))
-        (is string= nil (third request)))
-      (destructuring-bind (input request) (fifth trace)
-        (is equal '"a &optional b" input)
-        (is string= "insert" (first request))
-        (is equal
-            '("a &optional b)"
-              ")")
-            (str:split #\Newline (second request))))
-      (destructuring-bind (input request) (sixth trace)
-        (is string= "backward-char" (first request))
-        (is string= nil (second request)))))
+  (let* ((trace (drive-command #'insert-defun
+                               :inputs '("real-fun" "a &optional b")
+                               :context '())))
+    (common-trace-asserts 'insert-defun trace 6)
+    (destructuring-bind (input request) (first trace)
+      (is string= "insert" (first request))
+      (is string= "(defun " (second request)))
+    (destructuring-bind (input request) (second trace)
+      (is string= "read-string" (first request))
+      (is string= "Name: " (second request))
+      (is string= nil (third request)))
+    (destructuring-bind (input request) (third trace)
+      (is equal '"real-fun" input)
+      (is string= "insert" (first request))
+      (is string= "real-fun (" (second request)))
+    (destructuring-bind (input request) (fourth trace)
+      (is string= "read-string" (first request))
+      (is string= "Enter the arguments: " (second request))
+      (is string= nil (third request)))
+    (destructuring-bind (input request) (fifth trace)
+      (is equal '"a &optional b" input)
+      (is string= "insert" (first request))
+      (is equal
+          '("a &optional b)"
+            ")")
+          (split-by-newline (second request))))))
 
 
 (define-test insert-defvar
@@ -336,7 +315,7 @@ newline in the expected result."
       (is equal
           '("42"
             "")
-          (str:split #\Newline (second request))))
+          (split-by-newline (second request))))
     (destructuring-bind (input request) (sixth trace)
       (is string= "read-string" (first request))
       (is string= "Documentation string " (second request))
@@ -365,13 +344,13 @@ newline in the expected result."
             "    :initarg :slot"
             "    :accessor klass-slot))"
             "  (:documentation \"\"))")
-          (str:split #\Newline (second request))))))
+          (split-by-newline (second request))))))
 
 (define-test insert-defmacro
   (let* ((trace (drive-command #'insert-defmacro
                                :inputs '("mac" "(x) &body body")
                                :context '())))
-    (common-trace-asserts 'insert-defmacro trace 7)
+    (common-trace-asserts 'insert-defmacro trace 6)
     (destructuring-bind (input request) (first trace)
       (is string= "insert" (first request))
       (is string= "(defmacro " (second request)))
@@ -393,29 +372,26 @@ newline in the expected result."
       (is equal
           '("(x) &body body)"
             ")")
-          (str:split #\Newline (second request))))
-    (destructuring-bind (input request) (sixth trace)
-      (is string= "backward-char" (first request))
-      (is string= nil (second request)))))
+          (split-by-newline (second request))))))
 
 (define-test+run insert-defgeneric
-    (let* ((trace (drive-command #'insert-defgeneric
-                                 :inputs '("gen")
-                                 :context '())))
-      (common-trace-asserts 'insert-defgeneric trace 3)
-      (destructuring-bind (input request) (first trace)
-        (is string= "read-string" (first request))
-        (is string= "Name of the generic function: " (second request))
-        (is string= nil (third request)))
-      (destructuring-bind (input request) (second trace)
-        (is equal '"gen" input)
-        (is string= "insert" (first request))
-        (is equal
-            '("(defgeneric gen ()"
-              "  (:documentation \"\")"
-              "  #++(:method-combination + #++ :most-specific-last)"
-              "  (:method () ()))")
-            (str:split #\Newline (second request))))))
+  (let* ((trace (drive-command #'insert-defgeneric
+                               :inputs '("gen")
+                               :context '())))
+    (common-trace-asserts 'insert-defgeneric trace 3)
+    (destructuring-bind (input request) (first trace)
+      (is string= "read-string" (first request))
+      (is string= "Name of the generic function: " (second request))
+      (is string= nil (third request)))
+    (destructuring-bind (input request) (second trace)
+      (is equal '"gen" input)
+      (is string= "insert" (first request))
+      (is equal
+          '("(defgeneric gen ()"
+            "  (:documentation \"\")"
+            "  #++(:method-combination + #++ :most-specific-last)"
+            "  (:method () ()))")
+          (split-by-newline (second request))))))
 
 (define-test insert-defmethod
   (let* ((trace (drive-command #'insert-defmethod
@@ -432,7 +408,7 @@ newline in the expected result."
       (is equal
           '("(defmethod frob ()"
             "  )")
-          (str:split #\Newline (second request))))))
+          (split-by-newline (second request))))))
 
 ;; TODO Variants: *insert-defpackage/cl-user-prefix*
 ;; TODO infer-project-name
@@ -462,49 +438,49 @@ newline in the expected result."
             "  (:use #:cl))"
             ""
             "(in-package #:pkg)")
-          (str:split #\Newline (second request))))))
+          (split-by-newline (second request))))))
 
 
 (define-test+run insert-defparameter
-    (let* ((trace (drive-command #'insert-defparameter
-                                 :inputs '("param" "\"meh\""
-                                           "This is a meh variable")
-                                 :context '())))
-      (common-trace-asserts 'insert-defparameter trace 8)
-      (destructuring-bind (input request) (first trace)
-        (false input)
-        (is string= "insert" (first request))
-        (is string= "(defparameter " (second request)))
-      (destructuring-bind (input request) (second trace)
-        (false input)
-        (is string= "read-string" (first request))
-        (is string= "Name: " (second request))
-        (false (third request)))
-      (destructuring-bind (input request) (third trace)
-        (is string= "param" input)
-        (is string= "insert" (first request))
-        (is string= "*param* " (second request)))
-      (destructuring-bind (input request) (fourth trace)
-        (false input)
-        (is string= "read-string" (first request))
-        (is string= "Initial value: " (second request))
-        (false (third request)))
-      (destructuring-bind (input request) (fifth trace)
-        (is string= "\"meh\"" input)
-        (is string= "insert" (first request))
-        (is equal
-            '("\"meh\""
-              "")
-            (str:split #\Newline (second request))))
-      (destructuring-bind (input request) (sixth trace)
-        (false input)
-        (is string= "read-string" (first request))
-        (is string= "Documentation string " (second request))
-        (false (third request)))
-      (destructuring-bind (input request) (seventh trace)
-        (is string= "This is a meh variable" input)
-        (is string= "insert" (first request))
-        (is string= "\"This is a meh variable\")" (second request)))))
+  (let* ((trace (drive-command #'insert-defparameter
+                               :inputs '("param" "\"meh\""
+                                         "This is a meh variable")
+                               :context '())))
+    (common-trace-asserts 'insert-defparameter trace 8)
+    (destructuring-bind (input request) (first trace)
+      (false input)
+      (is string= "insert" (first request))
+      (is string= "(defparameter " (second request)))
+    (destructuring-bind (input request) (second trace)
+      (false input)
+      (is string= "read-string" (first request))
+      (is string= "Name: " (second request))
+      (false (third request)))
+    (destructuring-bind (input request) (third trace)
+      (is string= "param" input)
+      (is string= "insert" (first request))
+      (is string= "*param* " (second request)))
+    (destructuring-bind (input request) (fourth trace)
+      (false input)
+      (is string= "read-string" (first request))
+      (is string= "Initial value: " (second request))
+      (false (third request)))
+    (destructuring-bind (input request) (fifth trace)
+      (is string= "\"meh\"" input)
+      (is string= "insert" (first request))
+      (is equal
+          '("\"meh\""
+            "")
+          (split-by-newline (second request))))
+    (destructuring-bind (input request) (sixth trace)
+      (false input)
+      (is string= "read-string" (first request))
+      (is string= "Documentation string " (second request))
+      (false (third request)))
+    (destructuring-bind (input request) (seventh trace)
+      (is string= "This is a meh variable" input)
+      (is string= "insert" (first request))
+      (is string= "\"This is a meh variable\")" (second request)))))
 
 (define-test insert-handler-bind-form
   (let* ((trace (drive-command #'insert-handler-bind-form
@@ -519,7 +495,7 @@ newline in the expected result."
             "  ((error #'(lambda (condition)"
             "    (describe condition *debug-io*))))"
             "  (frobnicate))")
-          (str:split #\Newline (second request))))))
+          (split-by-newline (second request))))))
 
 (define-test insert-handler-case-form
   (let* ((trace (drive-command #'insert-handler-case-form
@@ -534,7 +510,7 @@ newline in the expected result."
             "  (frobnicate)"
             "  (error (condition)"
             "    (describe condition *debug-io*)))")
-          (str:split #\Newline (second request))))))
+          (split-by-newline (second request))))))
 
 (define-test insert-in-package-cl-user
   (let* ((trace (drive-command #'insert-in-package-cl-user
@@ -672,7 +648,7 @@ newline in the expected result."
             "  (print-unreadable-object"
             "      (node stream :type t :identity nil)"
             "    (format stream \"~s\" (node-something node))))")
-          (str:split #\Newline (second request))))))
+          (split-by-newline (second request))))))
 
 ;; TODO
 (define-test+run insert-parachute-define-test)
@@ -765,6 +741,6 @@ strings get concatenated."
 
 
 #+ (or)
-(context-buffer-string
+(buffer-string
  (alexandria:plist-hash-table
   '(:buffer-string "asdf")))

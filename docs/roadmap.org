@@ -1,0 +1,21 @@
+:PROPERTIES:
+:ID:       11dd9906-75ff-4abc-82a5-b7dda0936f06
+:END:
+#+title: Roadmap
+
+* Roadmap
+
+This roadmap serves as a rule of thumb for priorisation.
+
+1. Improve the reader, add tests
+2. Make commands more declarative (see [[file:src/pattern.lisp][pattern.lisp]])
+3. Improve the documentation
+4. Implement better refactor commands
+5. Improve breeze-eval function, add tests
+6. Reduce breeze's dependencies
+7. Add support for other editors
+
+** Status of the roadmap
+
+As of 2023-11-24, all the points from 1 through 5 are being worked on
+concurrently.

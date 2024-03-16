@@ -1,0 +1,11 @@
+:PROPERTIES:
+:ID:       5eb1faac-b7b5-4c99-abe9-b91e77bea4ae
+:END:
+#+title: Jedi
+
+#+begin_quote
+Jedi - an awesome autocompletion, static analysis and refactoring
+library for Python
+#+end_quote
+
+https://jedi.readthedocs.io/en/latest/

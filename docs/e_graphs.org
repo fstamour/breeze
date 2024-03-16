@@ -1,0 +1,26 @@
+:PROPERTIES:
+:ID:       32155195-1bc4-4f2d-8f6a-12fb0bd68ecc
+:END:
+#+title: E-graphs
+
+* Introduction
+
+An e-graph is a data structure that can represent an exponential (or
+even infinite, because of loops) number of forms in a polynomial
+amount of space.
+
+They are a specific case of finite tree automata and are closely
+related to version-state algebras (VSAs).
+
+* In common lisp
+
+I have a proof of concept implementation in common lisp here:
+https://gitlab.com/fstamour/catchall/-/tree/master/egraph
+
+* References
+
+- https://egraphs-good.github.io/
+- https://colab.research.google.com/drive/1tNOQijJqe5tw-Pk9iqd6HHb2abC5aRid?usp=sharing
+- https://arxiv.org/pdf/2004.03082.pdf
+
+** TODO Find the paper relating FTA, VSAs and e-graphs

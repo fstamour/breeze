@@ -1,0 +1,52 @@
+:PROPERTIES:
+:ID:       a9a98f8e-b097-4e8c-a2d1-92d8b8a26707
+:END:
+#+title: Support for tests
+
+* PROtocol and TESTcase manager                         :test:3rd_parties:
+
+[[https://github.com/phoe/protest][phoe/protest]]
+
+PROTEST is a tool for defining protocols and test cases written in and
+for Common Lisp.
+* trying to find discrepancies between the packages and test packages  :test:
+
+or betweew test system and the system under test
+
+I consider this task "DONE" because I did _try_ to find discrepancies
+between the package ~breeze.refactor~ and ~breeze.test.refactor~. I
+used the convention that each "command" defined in ~breeze.refator~
+should have a test with the same name (i.e. the same symbol-name). I
+have a test that fails if this "invariant" is not held.
+
+In the future, I would like to
+
+** TODO Figure out how to generalize "finding missing tests by discrepancies" :test:ux:config:
+
+Not everyone is going to have the same conventions.
+
+** TODO Improve the current test by looking for prefix instead
+
+E.g package ~a~ has an exported symbol ~s~, it's corresponding test
+package is ~a.test~.
+
+The current implementation would try to find a test named ~s~ in
+~a.test~ (for example ~a.test::s~, or ~"s"~ (test names can be string
+in parachute), it would be nice to have it also considers tests that
+have the _prefix_ ~s~.
+
+Why? Because I have some automatically generated test (a bit like
+snapshot tests), it's very convenient that they have the same name as
+the thing they are testing. Using a prefix would let me have multiple
+kind of tests for each (automatically generated or not).
+
+Do I want to check if each "types" of tests are implemented?
+
+Can parachute's `deftest`'s be easily augmented with some metadata?
+That might help too.
+
+* TODO Integrate with multiple test framework                          :test:
+
+See @phoe's [[https://github.com/phoe/protest][phoe/protest]].
+
+* TODO It's too easy to kill the test-runner                   :tech_debt:ux:
