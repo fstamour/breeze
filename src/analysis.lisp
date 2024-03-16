@@ -165,12 +165,23 @@ children nodes."
             (bindings (match (compile-pattern ,pattern) node)))
        ,@body)))
 
+#++
 (define-node-matcher in-package-node-p ('(in-package :?package-designator))
   (when bindings
     (second bindings)
     #++
     (destructuring-bind (&key ?package-designator) bindings
       ?package-designator)))
+
+(defun in-package-node-p (state node)
+  "Is NODE a cl:in-package node?"
+  (let* ((*state* state)
+         (*match-skip* #'whitespace-or-comment-node-p)
+         (bindings (match #.(compile-pattern `(in-package :?package)) node)))
+    (when bindings
+      (destructuring-bind (term package-designator-node) bindings
+        (declare (ignore term))
+        package-designator-node))))
 
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
