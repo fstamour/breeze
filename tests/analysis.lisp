@@ -220,6 +220,8 @@
   (is equal "x" (test-in-package-node-p "( in-package #| ∿ |# x )"))
   (is equal "x" (test-in-package-node-p "(cl:in-package x)"))
   (is equal "x" (test-in-package-node-p "(cl::in-package x)"))
+  ;; TODO ? Not sure it's worth it lol...
+  ;; (is equal "x" (test-in-package-node-p "('|CL|::|IN-PACKAGE| x)"))
   (null (test-in-package-node-p "(cl:)")))
 
 (defun test-malformed-if-node-p (string)
@@ -341,3 +343,52 @@
       '((3 4 :warning "Extraneous trailing whitespaces.")
         (1 2 :warning "Extraneous leading whitespaces."))
       (test-lint "( x )")))
+
+#++ ;; Syntax errors
+(progn
+  (test-lint "(")
+  (test-lint "')")
+  (test-lint "'1")
+  (test-lint "..")
+  (test-lint "( . )")
+  (test-lint "( a . )")
+  (test-lint "( a . b . c )")
+  (test-lint "( a . b c )")
+  (test-lint "#1=")
+  (test-lint "#1=#1#")
+  (test-lint "(;;)")
+  (test-lint "::")
+  (test-lint "x::")
+  (test-lint "::x")
+  (test-lint "a:b:c")
+  (test-lint "a:::b")
+  (test-lint "b:")
+  (test-lint "b::")
+  (test-lint "\\")
+  (test-lint "\\\\") ;; Should be OK
+  (test-lint "|")
+  (test-lint "'")
+  (test-lint "(#++;;)")
+  (test-lint "(#+;;)")
+  (test-lint "(#)")
+  (test-lint ",")
+  (test-lint ",@")
+  (test-lint "`,@x")
+  (test-lint "`(a b . ,@x)") ; "has undefined consequences"
+  ;; TODO "unknown character name"
+  (test-lint "1/0")
+  ;; TODO check for invalid radix
+  (test-lint "#|")
+  (test-lint "#c(a b c d)"))
+
+;; Formatting Style
+#++
+(progn
+  (test-lint "#+ ()")
+  (test-lint "     ; this is ok")
+  (test-lint ";I don't like this")
+  (test-lint ";    not that"))
+
+#++ ;; Style warnings
+(progn
+  (test-lint "like::%really"))

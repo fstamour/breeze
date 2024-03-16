@@ -79,6 +79,32 @@ inline-function
 ;; should be
 (member x '(1 2 3) :test #'=)
 
+(eql nil x)
+;; same with equal or equalp, but not eq
+
+(typep 'x nil)
+;; you probably want
+(typep 'x 'null)
+;; same with check-type, declarations, types in struct and classes, etc.
+
+keywordp
+
+(typep x some-type-that-has-an-existing-predictate)
+;; use the predicate instead
+symbol keyword integer number string cons atom list
+
+(typep 0 '(integer 1))
+(plusp 0)
+
+
+;; No need to nest variadic functions or macros
+(and (and a b) c) => (and a b c)
+(or (or a b) c) => (or a b c)
+(+ (+ a b) c) => (+ a b c)
+(* (* a b) c) => (* a b c)
+(min (min a b) c) => (min a b c)
+(max (max a b) c) => (max a b c)
+
 
 
 ;; nested car and cdr can be replaced by c[ad]+r functions
@@ -326,3 +352,30 @@ char\=
 
 Good:
 char/=
+
+
+(assoc "some string" alist)
+=>
+(assoc "some string" alist :test 'equal)
+
+
+(return-from 'x)
+=>
+(return-from x)
+
+
+(cons x nil) === (list x)
+
+
+(not (= ...))
+=>
+(/= ...)
+
+
+;; check for unused import-from and import
+
+;; nested defun
+;; defvar, defparameterm, defconstant inside defun
+;; warn about non-toplevel defparameter, defvar, defconstant, defmacro ?
+;; defparameter or defvar without earmuffs
+;; defconstant without +...+

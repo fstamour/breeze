@@ -196,6 +196,7 @@ common lisp.")
   ;; - is inside quasiquotation?
   ;; - is inside quotes?
   ;; - cache
+  ;; - labels and references (#n= and #n#)
   (:documentation "The reader's state"))
 
 (defun make-state (string)
@@ -266,10 +267,15 @@ common lisp.")
                 ;; constructor
                 ,(unless no-constructor-p
                    `(defun ,name (start end
-                                  ,@(case children
-                                      (&optional (list '&optional 'children))
-                                      ((t) (list 'children))))
-                      (node ',type start end ,@(when children (list 'children)))))
+                                  ,@(when children
+                                      (case children
+                                        (&optional (list '&optional 'children))
+                                        ((t) (list 'children))
+                                        (t (alexandria:ensure-list children)))))
+                      (node ',type start end ,@(when children
+                                                 (if (eq t children)
+                                                     (list 'children)
+                                                     (alexandria:ensure-list children))))))
                 ;; copier
                 (defun ,(alexandria:symbolicate 'copy- name)
                     (node &key (start nil startp)
@@ -310,8 +316,8 @@ common lisp.")
   (aux sharp-feature-not :children t)
   (aux sharp-radix)
   (aux sharp-array)
-  (aux sharp-label)
-  (aux sharp-reference)
+  (aux sharp-label :children t)
+  (aux sharp-reference :children label)
   (aux sharp-unknown))
 
 (defun punctuation (type position)

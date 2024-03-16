@@ -272,6 +272,11 @@ $
 \Space
 =-=-=
 
+;; paredit seems to have a silly bug, if you type \, it will ask for a
+;; character to escape and if you type \, it will ask for a character
+;; to escape and if you type \, it will ask for a character to escape
+;; and if you type \, it will ask for a character to escape and if you
+;; type \, it will ask for a character to escape and if you type \,
 
 Name: doublequote
 

@@ -910,7 +910,32 @@ newline or +end+)
                0 +end+
                (sharp-function
                 1 +end+
-                (list (node ':extraneous-closing-parens 3 +end+))))))
+                (list (node ':extraneous-closing-parens 3 +end+)))))
+  (test-parse "#1=#1#"
+              (sharp-label 0 6
+                           (list :label 1 :form
+                                 (list (sharp-reference 3 6 1)))))
+  (test-parse "(;)" (parens 0 -1 (list (line-comment 1 3))))
+  ;; TODO This is wrong
+  (test-parse "#+;;" (sharp-feature 0 4 (list (line-comment 2 4))))
+  ;; TODO Is that what I want?
+  (test-parse "#++;;" (sharp-feature 0 3 (list (token 2 3))) (line-comment 3 5))
+  ;; TODO This is wrong... but _OMG_
+  (test-parse "cl-user::; wtf
+reaally?"
+              (token 0 9) (line-comment 9 14) (whitespace 14 15) (token 15 23))
+  ;; TODO This is silly
+  (test-parse ",@" (node 'comma 0 1) (node 'at 1 2))
+  ;; TODO This is silly
+  (test-parse ",." (node 'comma 0 1) (node 'dot 1 2)))
+
+#++ ;; this is cursed
+(read-from-string "cl-user::; wtf
+reaally?")
+
+#++ ;; this is an error
+(read-from-string "cl-user:; wtf
+:reaally?")
 
 ;; Slightly cursed syntax:
 ;; "#+#."
