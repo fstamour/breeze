@@ -209,8 +209,7 @@
 
 (defun generate-documentation-to-stream (stream)
   (let ((spinneret:*html* stream))
-    (let (
-          (spinneret:*suppress-inserted-spaces* t)
+    (let ((spinneret:*suppress-inserted-spaces* t)
           (spinneret:*html-style* :tree)
           (*print-pretty* nil))
       (spinneret:with-html
@@ -232,4 +231,4 @@
          :if-exists :supersede
          :if-does-not-exist :create)
       (generate-documentation-to-stream output)
-      (format t "~%breeze.documentation: ~s written.~%" index))))
+      (format *trace-output* "~%breeze.documentation: ~s written.~%" index))))

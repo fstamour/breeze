@@ -113,7 +113,7 @@ breeze project (system)."
     :for filename = (enough-breeze file)
     :for content-str = (alexandria:read-file-into-string file)
     :for state = (progn
-                   (format *debug-io* "~&Parsing file ~s..." file)
+                   (format *trace-output* "~&Parsing file ~s..." file)
                    (parse content-str))
     :collect (list filename state (pages state))))
 
