@@ -37,6 +37,7 @@
    (:file "configuration")
    (:file "lossless-reader" :depends-on ("utils"))
    (:file "pattern")
+   (:file "egraph")
    (:file "analysis" :depends-on ("lossless-reader" "pattern"))
    (:file "command"
     :depends-on ("utils"
