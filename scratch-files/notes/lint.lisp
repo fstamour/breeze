@@ -379,3 +379,21 @@ char/=
 ;; warn about non-toplevel defparameter, defvar, defconstant, defmacro ?
 ;; defparameter or defvar without earmuffs
 ;; defconstant without +...+
+
+
+
+(let ((b (f1 a)))
+  (and b (let ((c (f2 b)))
+           (and c (f3 c)))))
+
+=>
+
+(let ((b (f1 a))
+      (c (and b (f2 b))))
+  (and c (f3 c)))
+
+=>
+
+(when-let* ((b (f1 a))
+            (c (and b (f2 b))))
+  (f3 c))
