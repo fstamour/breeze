@@ -397,3 +397,9 @@ char/=
 (when-let* ((b (f1 a))
             (c (and b (f2 b))))
   (f3 c))
+
+
+
+;; Warn that the body is empty
+(let ((x 32)))
+;; Same with flet, macrolet, symbol-macrolet, etc

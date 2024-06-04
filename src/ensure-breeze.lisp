@@ -8,6 +8,11 @@ It is used, for example, by emacs in breeze.el.
 
 (cl:in-package #:cl-user)
 
+
+;; TODO "Checkpoints"
+;; TODO Unload (e.g. delete-package) if it fails to load!
+;; TODO _maybe_ add a variable *breeze-loaded-correctly-p*
+
 (asdf:load-asd
  (merge-pathnames "../breeze.asd" *load-truename*))
 

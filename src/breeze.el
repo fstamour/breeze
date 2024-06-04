@@ -272,7 +272,22 @@ corresponding commands in emacs."
                        (interactive "" 'breeze-minor-mode 'breeze-major-mode)
                        (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list)))))
 
+
+;;; "Autoload"
 
+;; TODO breeze-not-initialized-hook
+
+(defun breeze--stub (name)
+  (warn "Breeze is not loaded")
+  (and
+   (breeze-list-loaded-listeners)
+   (breeze-listener-connected-p)
+   (breeze-validate-if-breeze-package-exists)
+   (breeze-refresh-commands)))
+
+(defun breeze-quickfix ()
+  (interactive)
+  (breeze--stub "quickfix"))
 
 
 ;;; Initializations
@@ -301,6 +316,7 @@ inferior lisp."
           ".."
           components)))
 
+;; TODO this doesn't work on "remote systems"
 (cl-defun breeze-load (&optional cont)
   "Load breeze into the inferior system."
   (breeze-%eval-async
@@ -371,7 +387,9 @@ inferior lisp."
 
 (defun breeze-flymake (report-fn &rest args)
   (breeze-debug "flymake: %S" args)
-  (if (breeze-listener-connected-p)
+  (if (and (breeze-listener-connected-p)
+           ;; TODO breeze-ready-p
+           )
       (let ((buffer (current-buffer)))
         (breeze-lint (lambda (cl-diagnostics)
                        (funcall report-fn
@@ -529,12 +547,25 @@ inferior lisp."
 
 (defun breeze-minor-mode-enable-flymake-mode ()
   "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
+  (interactive)
   (add-hook 'breeze-minor-mode-hook 'flymake-mode)
   (add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend))
 
+(defun breeze-minor-mode-disable-flymake-mode ()
+  "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
+  (interactive)
+  (remove-hook 'breeze-minor-mode-hook 'flymake-mode)
+  (remove-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend))
+
 (defun breeze-enable-minor-mode-hook ()
   "Configure a hook to enable breeze-minor-mode in lisp-mode."
+  (interactive)
   (add-hook 'lisp-mode-hook #'breeze-minor-mode))
+
+(defun breeze-disable-minor-mode-hook ()
+  "Configure a hook to enable breeze-minor-mode in lisp-mode."
+  (interactive)
+  (remove-hook 'lisp-mode-hook #'breeze-minor-mode))
 
 
 ;;; major mode

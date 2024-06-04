@@ -452,15 +452,18 @@ a whole new iterator."
               ;; (merge-bindings bindings new-bindings))
               (setf bindings (merge-bindings bindings new-bindings))
               ;; No match
-              (if (< (repetition-min pattern) i)
+              (if (<= (repetition-min pattern) i)
                   (return bindings)
                   (return nil)))
           (if new-input-iterator
               (setf input-iterator new-input-iterator)
               ;; No more input left
-              (if (< (repetition-min pattern) i)
+              (if (<= (repetition-min pattern) i)
                   (return bindings)
                   (return nil))))))
+
+;; TODO
+;; (defmethod match ((pattern repetition) (input iterator)))
 
 
 ;;; Convenience automatic coercions

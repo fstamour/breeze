@@ -1,0 +1,9 @@
+:PROPERTIES:
+:ID:       d487821d-01e7-41a1-b9db-1a856fd7eb01
+:END:
+#+title: Formatting code
+
+https://github.com/radian-software/apheleia
+
+🌷 Run code formatter on buffer contents without moving point, using
+RCS patches and dynamic programming.

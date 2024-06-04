@@ -7,3 +7,7 @@ flymake-show-buffer-diagnostics
 flymake-show-project-diagnostics
 
 next-error-function
+
+- https://www.gnu.org/software/emacs/manual/html_node/flymake/Troubleshooting.html
+- https://www.gnu.org/software/emacs/manual/html_node/flymake/Backend-functions.html
+- https://www.gnu.org/software/emacs/manual/html_node/flymake/An-annotated-example-backend.html

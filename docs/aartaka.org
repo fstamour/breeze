@@ -1,0 +1,10 @@
+:PROPERTIES:
+:ID:       52254263-fae9-4ead-8467-110735b07a2a
+:END:
+#+title: AArtaka
+
+a.k.a. Artyom Bologov
+
+https://github.com/aartaka/graven-image/tree/master
+
+https://github.com/aartaka/lisp-config/blob/master/ed.lisp
