@@ -267,10 +267,14 @@ corresponding commands in emacs."
   (cl-loop for (symbol cl-lambda-list docstring) in (breeze-eval "(breeze.command:list-all-commands t)")
            for (cl-symbol el-symbol) = (breeze-translate-command-symbol symbol)
            for el-lambda-list = (breeze-translate-command-lambda-list cl-lambda-list)
-           do (eval `(cl-defun ,el-symbol (&optional ,@el-lambda-list)
-                       ,docstring
-                       (interactive "" 'breeze-minor-mode 'breeze-major-mode)
-                       (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list)))))
+           for defun = `(cl-defun ,el-symbol (&optional ,@el-lambda-list)
+                          ,docstring
+                          ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
+                          (interactive)
+                          (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list))
+           do
+           ;; (breeze-debug "%S" defun)
+           (eval defun)))
 
 
 ;;; "Autoload"
