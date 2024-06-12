@@ -23,7 +23,7 @@
    #:eclass
    #:eclass-id
    #:eclass-find
-   #:cannonicalize
+   #:canonicalize
    #:egraph-add-enode
    #:merge-eclass
    #:rebuild)
@@ -231,19 +231,19 @@ eclasses.")
   (setf (gethash enode (enode-eclasses egraph)) eclass-id))
 
 (defun eclass-find (egraph eclass-id)
-  "Find the cannonical id for EGRAPH's eclass ECLASS-ID."
+  "Find the canonical id for EGRAPH's eclass ECLASS-ID."
   (disjoint-sets-find (union-find egraph) eclass-id))
 
 
 
-(defun cannonicalize (egraph enode)
+(defun canonicalize (egraph enode)
   "Return ENODE with all its children's eclass-id replaced by the
-cannonical (representative) eclass-id.
+canonical (representative) eclass-id.
 
-The first value is the original ENODE if it was already cannonical, or
+The first value is the original ENODE if it was already canonical, or
 a completely new enode if it wasn't.
 
-The second value is NIL iif ENODE was already cannonical."
+The second value is NIL iif ENODE was already canonical."
   (loop
     :with changed
     ;; TODO there's probably a way to postpone copy-seq until we know
@@ -251,10 +251,10 @@ The second value is NIL iif ENODE was already cannonical."
     :with new-enode = (copy-seq enode)
     :for i :from 1 :below (length enode)
     :for eclass-id = (aref enode i)
-    :for cannonical-eclass-id = (eclass-find egraph eclass-id)
-    :unless (= eclass-id cannonical-eclass-id)
+    :for canonical-eclass-id = (eclass-find egraph eclass-id)
+    :unless (= eclass-id canonical-eclass-id)
       :do (setf changed t
-                (aref new-enode i) cannonical-eclass-id)
+                (aref new-enode i) canonical-eclass-id)
     :finally (return (values (if changed
                                  new-enode
                                  enode)
@@ -289,36 +289,36 @@ The second value is NIL iif ENODE was already cannonical."
   "Merge eclasses represented by ID1 and ID2.
 This breaks the invariant of the egraph, rebuild must be called
 aftewards to restore them."
-  (let ((cannonical-id1 (eclass-find egraph id1))
-        (cannonical-id2 (eclass-find egraph id2)))
-    (if (= cannonical-id1 cannonical-id2)
-        cannonical-id1
-        (let ((new-cannonical-id
+  (let ((canonical-id1 (eclass-find egraph id1))
+        (canonical-id2 (eclass-find egraph id2)))
+    (if (= canonical-id1 canonical-id2)
+        canonical-id1
+        (let ((new-canonical-id
                 (disjoint-sets-union (union-find egraph) id1 id2)))
-          (push new-cannonical-id (pending egraph))
-          new-cannonical-id))))
+          (push new-canonical-id (pending egraph))
+          new-canonical-id))))
 
 (defmethod repair-parent-enodes (egraph eclass)
-  "Make sure each enodes is cannonical and points to a cannonical
+  "Make sure each enodes is canonical and points to a canonical
 eclass."
   (loop
     :for parent-enode
       :being :the :hash-key :of (parents eclass)
         :using (hash-value parent-eclass-id)
-    :for new-enode = (cannonicalize egraph parent-enode)
+    :for new-enode = (canonicalize egraph parent-enode)
     ;; Make sure the eclass ids contained in the enode are all
-    ;; cannonical eclass ids
+    ;; canonical eclass ids
     :unless (eq new-enode parent-enode)
       :do (remhash parent-enode (enode-eclasses egraph))
     :do
-       ;; Make sure the enode points to a cannonical eclass id
+       ;; Make sure the enode points to a canonical eclass id
        (setf (eclass-id egraph new-enode)
              (eclass-find egraph parent-eclass-id))))
 
 (defun repair-congruence (egraph eclass)
   "Restore the \"congruence\" invariant.
 
-If you cannonicalize an enode and it has a new eclass, it means that
+If you canonicalize an enode and it has a new eclass, it means that
 the new eclass is equivalent to the old one, and they must be merged.
 "
   (loop
@@ -326,7 +326,7 @@ the new eclass is equivalent to the old one, and they must be merged.
     :for parent-enode
       :being :the :hash-key :of (parents eclass)
         :using (hash-value parent-eclass-id)
-    :for new-enode = (cannonicalize egraph parent-enode)
+    :for new-enode = (canonicalize egraph parent-enode)
     :for equivalent-eclass-id = (gethash new-enode new-parent-enodes)
     :do
        (when equivalent-eclass-id
@@ -380,15 +380,15 @@ many merges in a batch and only call rebuild once afterwards."
       :collect eclass))
 
 (defun root-eclasses (egraph)
-  "Find all the cannonical eclasses that have no parents."
+  "Find all the canonical eclasses that have no parents."
   (let* ((roots (%root-eclasses egraph))
          (root-ids (to-set (mapcar #'id roots))))
     (loop
       :for eclass-id :being
         :the :hash-key :of (eclasses egraph)
           :using (hash-value eclass)
-      :for cannonical-id = (eclass-find egraph eclass-id)
-      :when (gethash cannonical-id root-ids)
+      :for canonical-id = (eclass-find egraph eclass-id)
+      :when (gethash canonical-id root-ids)
         :collect eclass)))
 
 (defun enode< (a b)

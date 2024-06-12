@@ -125,9 +125,9 @@ comparison."
     ,@(when (plusp (hash-table-count (parents eclass)))
         (list :parents (sort (alexandria:hash-table-values (parents eclass))
                              #'<)))
-    ,@(let ((cannonical-id (eclass-find egraph eclass-id)))
-        (unless (= eclass-id cannonical-id)
-          (list := cannonical-id)))))
+    ,@(let ((canonical-id (eclass-find egraph eclass-id)))
+        (unless (= eclass-id canonical-id)
+          (list := canonical-id)))))
 
 (defun dump-eclasses (egraph)
   "Dump EGRAPH's eclasses as a list for inspection and comparison."
