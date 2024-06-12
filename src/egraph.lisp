@@ -438,6 +438,10 @@ many merges in a batch and only call rebuild once afterwards."
 
 
 
+(defmethod add-form (egraph form)
+  "Add a FORM to an e-graph, creating e-classes if necessary."
+  (egraph-add-enode egraph form))
+
 (defmethod add-form (egraph (form cons))
   "Add a FORM to an e-graph, creating e-classes if necessary."
   (egraph-add-enode

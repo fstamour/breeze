@@ -200,7 +200,7 @@ comparison."
                      (:eclass-id 5 :enodes #(#(+ 1 1)))))
         (dump-egraph egraph)))
   (let ((egraph (make-egraph)))
-    (add-form egraph '(/ (* a  2) 2))
+    (add-form egraph '(/ (* a 2) 2))
     (is equalp
         '(:enodes ((:enode 2 :eclass-id 1)
                    (:enode a :eclass-id 0)

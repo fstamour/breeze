@@ -111,6 +111,7 @@
    (:file "lossless-reader")
    (:file "pattern")
    (:file "analysis")
+   (:file "egraph")
    (:file "command")
    (:file "refactor")
    (:file "dummy-package")
