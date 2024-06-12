@@ -921,8 +921,7 @@ newline or +end+)
   ;; TODO Is that what I want?
   (test-parse "#++;;" (sharp-feature 0 3 (list (token 2 3))) (line-comment 3 5))
   ;; TODO This is wrong... but _OMG_
-  (test-parse "cl-user::; wtf
-reaally?"
+  (test-parse (format nil "cl-user::; wtf~%reaally?")
               (token 0 9) (line-comment 9 14) (whitespace 14 15) (token 15 23))
   ;; TODO This is silly
   (test-parse ",@" (node 'comma 0 1) (node 'at 1 2))
