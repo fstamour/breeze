@@ -223,7 +223,9 @@
 
 (defun generate-documentation ()
   (let* ((root (breeze-relative-pathname "docs/"))
-         (index (merge-pathnames "reference.html" root)))
+         (index (merge-pathnames "reference.html" root))
+         #+(and sbcl windows)
+         (sb-impl::*default-external-format* :utf-8))
     (ensure-directories-exist root)
     (with-output-to-file
         (output
