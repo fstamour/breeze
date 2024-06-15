@@ -26,7 +26,7 @@
 (kill-threads-by-name "breeze command handler")
 
 
-(defvar *default-trace-report-default* *trace-report-default*)
+(defvar *default-trace-report-default* sb-debug:*trace-report-default*)
 
 ;; tracing is very very useful for debugging, but the default way sbcl
 ;; often prints "way too much" stuff
@@ -47,7 +47,7 @@
         (t
          (format stream "~3d ~s (~a ~{~a~^ ~})" depth event function values))))))
 
-(setf *trace-report-default* 'trace-report)
+(setf sb-debug:*trace-report-default* 'trace-report)
 
 
 
