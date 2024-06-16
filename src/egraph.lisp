@@ -201,11 +201,11 @@ eclasses.")
 (defmethod print-object ((egraph egraph) stream)
   "Print EGRAPH to STREAM."
   (print-unreadable-object
-      (egraph stream :type t :identity t)
-    (format stream "(~d e-nodes across ~d (~d) e-classes; ~d pending repair)"
+      (egraph stream :type t :identity nil)
+    (format stream "~d e-nodes across ~d e-classes, ~d pending repairs"
             (hash-table-count (enode-eclasses egraph))
             (hash-table-count (eclasses egraph))
-            (length (union-find egraph))
+            ;; (length (union-find egraph))
             (length (pending egraph)))))
 
 (defun make-egraph ()
