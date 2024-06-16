@@ -162,7 +162,11 @@
   (is pattern= (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
   (is pattern= (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
   (is pattern= (alternation #(:x)) (compile-pattern '(:alternation :x)))
-  (is pattern= (alternation #(:x :y)) (compile-pattern '(:alternation :x :y))))
+  (is pattern= (alternation #(:x :y)) (compile-pattern '(:alternation :x :y)))
+  (multiple-value-bind (p terms)
+      (compile-pattern '(?x ?x))
+    (is eq (aref p 0) (aref p 1))
+    (is eq (aref p 0) (gethash '?x terms))))
 
 
 

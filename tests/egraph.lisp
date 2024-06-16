@@ -499,13 +499,6 @@ comparison."
 #++
 (mkrule '(/ ?x 1) ?x)
 
-
-#++ ;; TODO make a test out of this
-;; This checks that all terms have the same address
-;; a more portable way would be ~ every + eq
-(map 'list #'sb-kernel:get-lisp-obj-address
-     (breeze.pattern:compile-pattern '(?x ?x)))
-
 (defun match-enode (egraph enode pattern set-of-bindings)
   ;; TODO support for variable-length matches
   (when (alexandria:length= enode pattern)
