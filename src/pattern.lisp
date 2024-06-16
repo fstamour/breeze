@@ -16,7 +16,10 @@
   ;; Working with match results
   (:export #:merge-sets-of-bindings
            #:find-binding
-           #:pattern-substitute))
+           #:pattern-substitute)
+  (:export #:make-rewrite
+           #:rewrite-pattern
+           #:rewrite-template))
 
 (in-package #:breeze.pattern)
 
@@ -574,3 +577,43 @@ bindings and keeping only those that have not conflicting bindings."
       (number pattern)
       ;; (t pattern)
       )))
+
+
+
+;;; Rules and rewrites
+
+
+;; TODO "rules" would be "bidirectional" and "rewrites" wouldn't.
+;; TODO (defun rule (a b) ...)
+;; TODO (defun make-rewrite (antecedant consequent) ...)
+
+#++ (progn
+      (defclass abstract-rule () ())
+
+      (defclass rule (abstract-rule) ())
+
+      (defun make-rule (a b)
+        (let ((*term-pool* (make-hash-table)))
+          (list :rule
+                (compile-pattern a)
+                (compile-pattern b))))
+
+      (defun make-rewrite (a b)
+        (let ((*term-pool* (make-hash-table)))
+          (list :rewrite
+                (compile-pattern a)
+                (compile-pattern b)))))
+
+(defun make-rewrite (pattern template)
+  (let ((*term-pool* (make-hash-table)))
+    (cons
+     (compile-pattern pattern)
+     (compile-pattern template))))
+
+(defun rewrite-pattern (rewrite)
+  "Get the pattern of a REWRITE rule."
+  (car rewrite))
+
+(defun rewrite-template (rewrite)
+  "Get the template of a REWRITE rule."
+  (cdr rewrite))

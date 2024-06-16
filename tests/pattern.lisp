@@ -496,3 +496,19 @@
     (let ((actual-bindings
             (sublis (alexandria:hash-table-alist term-pool) bindings)))
       (pattern-substitute compiled-pattern actual-bindings))))
+
+
+;;; Rules and rewrites
+
+
+#++
+(let ((r (make-rewrite '(/ ?x ?x) 1)))
+  (list (pattern= (rewrite-pattern r) #(/ (term :?x) (term :?x)))
+        (rewrite-template r)))
+
+#++
+(make-rewrite '(/ (* ?x ?y) ?z)
+              '(* ?x (/ ?y ?z)))
+
+#++
+(make-rewrite '(/ ?x 1) ?x)

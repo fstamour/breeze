@@ -480,25 +480,6 @@ comparison."
 
 ;;; Work in Progress - ematching!
 
-;; TODO "rules" would be "bidirectional" and "rewrites" wouldn't.
-;; TODO (defun rule (a b) ...)
-;; TODO (defun make-rewrite (antecedant consequent) ...)
-
-(defun mkrule (lhs rhs)
-  (let ((breeze.pattern::*term-pool* (make-hash-table)))
-    (cons (breeze.pattern:compile-pattern lhs)
-          (breeze.pattern:compile-pattern rhs))))
-
-#++
-(mkrule '(/ ?x ?x) 1)
-
-#++
-(mkrule '(/ (* ?x ?y) ?z)
-        '(* ?x (/ ?y ?z)))
-
-#++
-(mkrule '(/ ?x 1) ?x)
-
 (defun match-enode (egraph enode pattern set-of-bindings)
   ;; TODO support for variable-length matches
   (when (alexandria:length= enode pattern)
@@ -565,22 +546,22 @@ comparison."
         (merge* '(* a 1)
                 'a))
       (rebuild egraph))
-    (let ((rules
+    (let ((rewrites
             (list
-             (mkrule '(/ (* ?x ?y) ?y) '?x) ; this one should match
+             (make-rewrite '(/ (* ?x ?y) ?y) '?x) ; this one should match
              )
             #++
             (list
-             (mkrule '(/ ?x ?x) 1) ; unless ?x == 0
-             (mkrule '(* (/ ?x ?y) ?y) '?x)
+             (make-rewrite '(/ ?x ?x) 1) ; unless ?x == 0
+             (make-rewrite '(* (/ ?x ?y) ?y) '?x)
 
-             (mkrule '(/ (* ?x ?y) ?z)
-                     '(* ?x (/ ?y ?z)))
-             (mkrule '(/ ?x 1) '?x)
-             (mkrule '(* ?x 1) '?x)
-             (mkrule '(* 1 ?x) '?x)
-             (mkrule '(/ ?x 0) 0))))
-      (loop :for (pattern . substitution) :in rules
+             (make-rewrite '(/ (* ?x ?y) ?z)
+                           '(* ?x (/ ?y ?z)))
+             (make-rewrite '(/ ?x 1) '?x)
+             (make-rewrite '(* ?x 1) '?x)
+             (make-rewrite '(* 1 ?x) '?x)
+             (make-rewrite '(/ ?x 0) 0))))
+      (loop :for (pattern . substitution) :in rewrites
             :collect
             (loop
               :for eclass :in (root-eclasses egraph)
@@ -626,7 +607,7 @@ Does NOT rebuild the egraph's invariants."
 (define-test+run "apply 1 rewrite"
   (is equalp #(a)
       (let ((egraph (make-egraph* '(/ (* a 2) 2)))
-            (rewrite (mkrule '(/ (* ?x ?y) ?y) '?x)))
+            (rewrite (make-rewrite '(/ (* ?x ?y) ?y) '?x)))
         (apply-rewrite egraph rewrite)
         (rebuild egraph)
         (smallest-enodes
@@ -634,7 +615,7 @@ Does NOT rebuild the egraph's invariants."
 
 #++ ;; TODO It would be nice to be able to add a form as a vector into
 ;; an egraph. I think it could help with performance, because
-;; applying a rule and adding the resulting "substituted" form
+;; applying a rewrite and adding the resulting "substituted" form
 ;; would not involve conversion between lists and vectors anymore.
 (let ((egraph (make-egraph)))
   (add-form egraph #(/ #(* a 2) 2))
