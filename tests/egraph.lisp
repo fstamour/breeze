@@ -475,3 +475,188 @@ comparison."
           #(a)
           (smallest-enodes
            (root-eclasses egraph))))))
+
+
+
+;;; Work in Progress - ematching!
+
+(defun mkrule (lhs rhs)
+  (let ((breeze.pattern::*term-pool* (make-hash-table)))
+    (cons (breeze.pattern:compile-pattern lhs)
+          (breeze.pattern:compile-pattern rhs))))
+
+#++
+(mkrule '(/ ?x ?x) 1)
+
+#++
+(mkrule '(/ (* ?x ?y) ?z)
+        '(* ?x (/ ?y ?z)))
+
+#++
+(mkrule '(/ ?x 1) ?x)
+
+
+#++ ;; TODO make a test out of this
+;; This checks that all terms have the same address
+;; a more portable way would be ~ every + eq
+(map 'list #'sb-kernel:get-lisp-obj-address
+     (breeze.pattern:compile-pattern '(?x ?x)))
+
+;; (breeze.pattern:compile-pattern '(x))
+;; (multiple-value-list (breeze.pattern:compile-pattern '?x))
+
+;; Just making sure the "bindings" are looking like what I'm expecting
+#++
+(breeze.pattern:match
+    (breeze.pattern:compile-pattern '?x)
+  'y)
+;; => ((#S(BREEZE.PATTERN:TERM :NAME ?X) . Y))
+
+;; Drafting a "substitute" function, which should be in breeze.pattern
+
+#++
+(trace pattern-substitute)
+#++
+(untrace pattern-substitute)
+
+(progn
+  (defun pattern-substitute (pattern bindings)
+    (when pattern
+      ;; Patterns are never compiled to lists
+      (check-type pattern atom)
+      (etypecase pattern
+        (breeze.pattern:term
+         (let ((binding (assoc (breeze.pattern::term-name pattern)
+                               bindings
+                               :key #'breeze.pattern::term-name)))
+           (if binding
+               (cdr binding)
+               ;; TODO this could signal a condition (binding not
+               ;; found)
+               pattern)))
+        (vector
+         (map 'list
+              #'(lambda (subpattern)
+                  (pattern-substitute subpattern bindings))
+              pattern))
+        (symbol pattern)
+        (number pattern)
+        ;; (t pattern)
+        )))
+
+  (define-test+run pattern-substitute
+    (false (pattern-substitute nil nil))
+    (is eq t (pattern-substitute t nil))
+    (is eql 42 (pattern-substitute 42 nil))
+    (is equal '(a) (pattern-substitute #(a) nil))
+    (is equal '(a b c) (pattern-substitute #(a b c) nil))
+    #++ ;; TODO ?b is not a term
+    (flet ((comp (p) (breeze.pattern:compile-pattern p)))
+      (is equal '(a b c) (pattern-substitute
+                          (comp '(a ?b c)) '((?b . b))))
+      (is equal '(a (b) c) (pattern-substitute
+                            (comp '(a (?b) c)) '((?b . b)))))))
+
+
+
+#++
+(progn
+  (trace match-enode match-eclass
+         merge-sets-of-bindings
+         breeze.pattern::merge-bindings
+         breeze.pattern::make-bindings)
+
+  (defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
+    (loop :for bindings1 :in set-of-bindings1
+          :append (loop :for bindings2 :in set-of-bindings2
+                        :for merged-bindings = (breeze.pattern::merge-bindings
+                                                bindings1 bindings2)
+                        :when merged-bindings
+                          :collect merged-bindings)))
+
+
+  (defun match-enode (egraph enode pattern set-of-bindings)
+    ;; TODO support for variable-length matches
+    (when (alexandria:length= enode pattern)
+      ;; This is getting very complicated because
+      ;; "match-eclass" returns a list of possible bindings...
+      (loop
+        :for eclass-id :across enode
+        :for subpattern :across pattern
+        :for new-set-of-bindings =
+        ;; TODO Optimization: check if match returns T
+        ;; Probably not worth it, as I may change that code altogether...
+                                 (merge-sets-of-bindings
+                                  set-of-bindings
+                                  ;; TODO This assumes that the first element of the enode is not an eclass
+                                  (list (breeze.pattern::match eclass-id subpattern)))
+          :then (merge-sets-of-bindings
+                 new-set-of-bindings
+                 (match-eclass egraph
+                               (eclass egraph eclass-id)
+                               subpattern new-set-of-bindings))
+        :while new-set-of-bindings
+        :finally (return new-set-of-bindings))))
+
+  (defun match-eclass (egraph eclass pattern &optional (set-of-bindings '(t)))
+    (check-type egraph breeze.egraph::egraph)
+    (check-type eclass breeze.egraph::eclass)
+    (etypecase pattern
+      (breeze.pattern:term
+       ;; The whole class "matches"
+       (list (breeze.pattern::make-binding pattern eclass)))
+      ((or vector symbol number)
+       ;; Find every enode that matches the pattern
+       (loop :for enode :across (enodes eclass)
+             :for new-set-of-bindings := (and (vectorp enode)
+                                              (match-enode egraph enode pattern set-of-bindings))
+             :when new-set-of-bindings
+               :append new-set-of-bindings))))
+
+  (let ((egraph (make-egraph))
+        (input '(/ (* a 2) 2)))
+    (labels ((add* (form)
+               (add-form egraph form))
+             (merge* (form1 form2)
+               (merge-eclass egraph (add* form1) (add* form2)))
+             (dump-eclass* (eclass)
+               (dump-eclass egraph eclass)))
+      (add* input)
+      #++
+      (progn
+        (merge* '(* a 2)
+                '(ash a 1))
+        (merge* '(/ (* a 2) 2)
+                '(* a (/ 2 2)))
+        (merge* '(/ 2 2)
+                1)
+        (merge* '(* a 1)
+                'a))
+      (rebuild egraph))
+    (let ((rules
+            (list
+             (mkrule '(/ (* ?x ?y) ?y) '?x) ; this one should match
+             )
+            #++
+            (list
+             (mkrule '(/ ?x ?x) 1) ; unless ?x == 0
+             (mkrule '(* (/ ?x ?y) ?y) '?x)
+
+             (mkrule '(/ (* ?x ?y) ?z)
+                     '(* ?x (/ ?y ?z)))
+             (mkrule '(/ ?x 1) '?x)
+             (mkrule '(* ?x 1) '?x)
+             (mkrule '(* 1 ?x) '?x)
+             (mkrule '(/ ?x 0) 0))))
+      (loop :for (pattern . substitution) :in rules
+            :collect
+            (loop
+              :for eclass :in (root-eclasses egraph)
+              :for set-of-bindings = (match-eclass egraph eclass pattern)
+              :collect (list :pattern pattern
+                             :match set-of-bindings
+                             :substitutions (mapcar (lambda (bindings)
+                                                      (pattern-substitute substitution bindings))
+                                                    set-of-bindings)))))
+    ;; (dump-egraph egraph)
+    ))
