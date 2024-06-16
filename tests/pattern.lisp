@@ -481,3 +481,14 @@
   (test-match-ref (ref 'body-parameter) '(42))
   (test-match-ref (ref 'body-parameter) '(&body 42)
                   :bindings '((?var . 42))))
+
+
+
+;;; Match substitution
+
+(defun test-pattern-substitute (pattern bindings)
+  (multiple-value-bind (compiled-pattern term-pool)
+      (breeze.pattern:compile-pattern pattern)
+    (let ((actual-bindings
+            (sublis (alexandria:hash-table-alist term-pool) bindings)))
+      (pattern-substitute compiled-pattern actual-bindings))))

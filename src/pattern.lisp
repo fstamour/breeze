@@ -13,7 +13,9 @@
   (:export #:iterate
            #:iterator-done-p
            #:iterator-value)
-  (:export #:find-binding))
+  ;; Working with match results
+  (:export #:find-binding
+           #:pattern-substitute))
 
 (in-package #:breeze.pattern)
 
@@ -528,3 +530,31 @@ a whole new iterator."
 
 (defmethod match ((pattern repetition) (input sequence))
   (match pattern (coerce input 'vector)))
+
+
+
+;;; Match substitution
+
+(defun pattern-substitute (pattern bindings &optional (result-type 'vector))
+  (when pattern
+    ;; Patterns are never compiled to lists
+    (check-type pattern atom)
+    (etypecase pattern
+      (breeze.pattern:term
+       (let ((binding (assoc (breeze.pattern::term-name pattern)
+                             bindings
+                             :key #'breeze.pattern::term-name)))
+         (if binding
+             (cdr binding)
+             ;; TODO this could signal a condition (binding not
+             ;; found)
+             pattern)))
+      (vector
+       (map result-type
+            #'(lambda (subpattern)
+                (pattern-substitute subpattern bindings result-type))
+            pattern))
+      (symbol pattern)
+      (number pattern)
+      ;; (t pattern)
+      )))

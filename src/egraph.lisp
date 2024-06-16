@@ -5,6 +5,7 @@
 - eclasses ≅ set of enodes
 - enode ≅ an operator + operands eclasses (not enodes)")
   (:use #:cl)
+  (:use-reexport #:breeze.pattern)
   ;; Eclass
   (:export
    #:make-eclass
@@ -459,3 +460,6 @@ many merges in a batch and only call rebuild once afterwards."
   "Add ECLASS to an e-graph, creating e-classes if necessary."
   ;; assumes it's already in the egraph
   (id eclass))
+
+
+;;; E-matching, rewrites, rules, etc.

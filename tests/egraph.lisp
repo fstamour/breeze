@@ -506,65 +506,6 @@ comparison."
 (map 'list #'sb-kernel:get-lisp-obj-address
      (breeze.pattern:compile-pattern '(?x ?x)))
 
-;; (breeze.pattern:compile-pattern '(x))
-;; (multiple-value-list (breeze.pattern:compile-pattern '?x))
-
-;; Just making sure the "bindings" are looking like what I'm expecting
-#++
-(breeze.pattern:match
-    (breeze.pattern:compile-pattern '?x)
-  'y)
-;; => ((#S(BREEZE.PATTERN:TERM :NAME ?X) . Y))
-
-;; Drafting a "substitute" function, which should be in breeze.pattern
-
-#++
-(trace pattern-substitute)
-#++
-(untrace pattern-substitute)
-
-(defun pattern-substitute (pattern bindings &optional (result-type 'vector))
-  (when pattern
-    ;; Patterns are never compiled to lists
-    (check-type pattern atom)
-    (etypecase pattern
-      (breeze.pattern:term
-       (let ((binding (assoc (breeze.pattern::term-name pattern)
-                             bindings
-                             :key #'breeze.pattern::term-name)))
-         (if binding
-             (cdr binding)
-             ;; TODO this could signal a condition (binding not
-             ;; found)
-             pattern)))
-      (vector
-       (map result-type
-            #'(lambda (subpattern)
-                (pattern-substitute subpattern bindings result-type))
-            pattern))
-      (symbol pattern)
-      (number pattern)
-      ;; (t pattern)
-      )))
-
-(defun test-pattern-substitute (pattern bindings)
-  (multiple-value-bind (compiled-pattern term-pool)
-      (breeze.pattern:compile-pattern pattern)
-    (let ((actual-bindings
-            (sublis (alexandria:hash-table-alist term-pool) bindings)))
-      (pattern-substitute compiled-pattern actual-bindings))))
-
-(define-test pattern-substitute
-  (false (pattern-substitute nil nil))
-  (is eq t (pattern-substitute t nil))
-  (is eql 42 (pattern-substitute 42 nil))
-  (is equalp #(a) (pattern-substitute #(a) nil))
-  (is equalp #(a b c) (pattern-substitute #(a b c) nil))
-  (is equalp #(a b c) (test-pattern-substitute
-                       '(a ?b c) '((?b . b))))
-  (is equalp #(a #(b) c) (test-pattern-substitute
-                          '(a (?b) c) '((?b . b)))))
-
 
 (defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
   (loop :for bindings1 :in set-of-bindings1
