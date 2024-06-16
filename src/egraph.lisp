@@ -263,7 +263,8 @@ The second value is NIL iif ENODE was already canonical."
 
 
 (defun egraph-add-enode (egraph enode)
-  "Add ENODE to EGRAPH, creating a new e-class if necessary."
+  "Add ENODE to EGRAPH, creating a new e-class if necessary. Returns the
+eclass-id."
   (or
    ;; Do nothing if the enode already exists in the egraph
    (eclass-id egraph enode)
@@ -366,7 +367,8 @@ many merges in a batch and only call rebuild once afterwards."
          (setf (pending egraph) nil)
          (loop
            :for eclass-id :being :the :hash-key :of todo
-           :do (repair egraph eclass-id)))))
+           :do (repair egraph eclass-id))))
+  egraph)
 
 
 
@@ -452,3 +454,8 @@ many merges in a batch and only call rebuild once afterwards."
           (mapcar
            (lambda (element) (add-form egraph element))
            (rest form)))))
+
+(defmethod add-form (egraph (eclass eclass))
+  "Add ECLASS to an e-graph, creating e-classes if necessary."
+  ;; assumes it's already in the egraph
+  (id eclass))

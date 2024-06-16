@@ -249,6 +249,12 @@ compile-pattern is called, a new one is created."
   ;; The iterator to return when the current one is done
   parent)
 
+#++
+(defun iterator-depth (iterator)
+  (if (null (iterator-parent iterator))
+      0
+      (1+ (iterator-depth (iterator-parent iterator)))))
+
 (defun iterator-done-p (iterator)
   "Check if there's any values left to iterator over."
   (check-type iterator iterator)
