@@ -4,6 +4,7 @@
   (:documentation "Utilities")
   (:import-from #:alexandria #:symbolicate)
   (:export
+   #:string-designator
    #:around
    #:optimal-string-alignment-distance
    #:optimal-string-alignment-distance*

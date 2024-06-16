@@ -84,7 +84,7 @@ children nodes."
               (some (lambda (package-name)
                       (node-string-equal state package-name-node package-name))
                     `(,(package-name package)
-                      ,@(package-nicknames package)))))))
+                       ,@(package-nicknames package)))))))
         ;; symbol-node
         t)))))
 
@@ -165,7 +165,7 @@ children nodes."
             (bindings (match (compile-pattern ,pattern) node)))
        ,@body)))
 
-#++
+#++ ;; TODO
 (define-node-matcher in-package-node-p ('(in-package :?package-designator))
   (when bindings
     (second bindings)
@@ -177,11 +177,9 @@ children nodes."
   "Is NODE a cl:in-package node?"
   (let* ((*state* state)
          (*match-skip* #'whitespace-or-comment-node-p)
-         (bindings (match #.(compile-pattern `(in-package :?package)) node)))
-    (when bindings
-      (destructuring-bind (term package-designator-node) bindings
-        (declare (ignore term))
-        package-designator-node))))
+         (bindings (match #.(compile-pattern `(in-package :?package)) node))
+         (package-designator-node (cdr (find-binding bindings :?package))))
+    package-designator-node))
 
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
@@ -316,7 +314,7 @@ continue (recurse) in this new node instead.
 (defun push-diagnostic (start end severity format-string &rest format-args)
   "Create a diagnostic object and push it into the special variable
 *diagnostics*."
-  (push-diagnostic* start end  severity format-string format-args))
+  (push-diagnostic* start end severity format-string format-args))
 
 (defun diag-node (node severity format-string &rest format-args)
   (push-diagnostic* (node-start node) (node-end node)
@@ -333,9 +331,9 @@ continue (recurse) in this new node instead.
 (defun warn-undefined-in-package (state node)
   (alexandria:when-let ((package-designator-node (in-package-node-p state node)))
 
-    (let* ((package-designator (read-from-string (node-content state package-designator-node)))
-           (package (find-package package-designator)))
-      (unless package
+    (let* ((package-designator (read-from-string (node-content state package-designator-node))))
+      (when (and (typep package-designator 'breeze.utils:string-designator)
+                 (null (find-package package-designator)))
         (diag-warn
          node
          "Package ~s is not currently defined." package-designator)))))
@@ -372,7 +370,7 @@ continue (recurse) in this new node instead.
                                    firstp lastp nth
                                    previous
                                    quotedp
-                 &allow-other-keys)
+                                   &allow-other-keys)
           (declare (ignorable depth beforep afterp nth args quotedp))
           ;; Debug info
           ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)

@@ -9,6 +9,10 @@
                 #:false
                 #:of-type)
   ;; importing unexported symbols
+  (:import-from #:breeze.pattern
+                #:termp
+                #:term-name)
+  ;; importing unexported symbols
   (:import-from #:breeze.analysis
                 #:malformed-if-node-p))
 
@@ -16,6 +20,18 @@
 
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
+
+(defun normalize-bindings (bindings)
+  "This is only to make it easier to compare the bindings in the tests."
+  (or (eq t bindings)
+      (alexandria:alist-plist
+       (sort (loop :for (key . value) :in bindings
+                   :collect (cons (if (termp key)
+                                      (term-name key)
+                                      key)
+                                  value))
+             #'string<
+             :key #'car))))
 
 (defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
   (let* ((state (parse string))
@@ -153,7 +169,6 @@
 ;; TODO test pattern "x"
 ;; TODO test pattern "some-node" (I'll have to think about the syntax)
 
-
 (define-test+run "match terms against parse trees"
   (progn
     (is equalp (list :?x nil) (test-match-parse :?x ""))
@@ -220,6 +235,7 @@
   (is equal "x" (test-in-package-node-p "( in-package #| ∿ |# x )"))
   (is equal "x" (test-in-package-node-p "(cl:in-package x)"))
   (is equal "x" (test-in-package-node-p "(cl::in-package x)"))
+  (is equal "42" (test-in-package-node-p "(cl::in-package 42)"))
   ;; TODO ? Not sure it's worth it lol...
   ;; (is equal "x" (test-in-package-node-p "('|CL|::|IN-PACKAGE| x)"))
   (null (test-in-package-node-p "(cl:)")))
@@ -330,9 +346,14 @@
   (false (test-lint ";; "))
   (is equal '((0 2 :error "Syntax error")) (test-lint "#+"))
   (false (test-lint "(in-package :cl-user)"))
+  (false (test-lint "(in-package 42)"))
   (is equal '((0 56 :warning
                "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
       (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
+  #++ ;; TODO check if "in-package" is NOT quoted
+  (progn
+    (false (test-lint "'(in-package :PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME)"))
+    (false (test-lint "`(in-package :PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME)")))
   (is equalp
       '((1 3 :warning "Extraneous whitespaces."))
       (test-lint "(  )"))

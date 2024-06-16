@@ -304,9 +304,12 @@
   (true (merge-bindings t t))
   (false (merge-bindings (make-binding :?x 'a) nil))
   (false (merge-bindings nil (make-binding :?x 'a)))
-  (is equal '(:?x a) (merge-bindings (make-binding :?x 'a) t))
-  (is equal '(:?x a) (merge-bindings t (make-binding :?x 'a)))
-  (is equal '(:?x a :?y b) (merge-bindings (make-binding :?x 'a) (make-binding :?y 'b))))
+  (is equal '((:?x . a)) (merge-bindings (make-binding :?x 'a) t))
+  (is equal '((:?x . a)) (merge-bindings t (make-binding :?x 'a)))
+  (is equal '((:?x . a) (:?y . b)) (merge-bindings (make-binding :?x 'a) (make-binding :?y 'b)))
+  (let ((term (term 'a)))
+    (is equal `((,term . 42))
+        (merge-bindings `((,term . 42)) `((,term . 42))))))
 
 (defun test-match (pattern input)
   (match (compile-pattern pattern) input))
@@ -455,23 +458,26 @@
 
 
 
-;; (trace match :methods t)
 
-(defun test-match-ref (result &key matchp bindings)
-  (if matchp
-      (is equalp bindings result)
-      (false result)))
+(defun test-match-ref (pattern input &key bindings)
+  (let ((result (match pattern input)))
+    (if bindings
+        (is equalp bindings (if (listp result)
+                                (mapcar (lambda (x)
+                                          (cons (term-name (car x)) (cdr x)))
+                                        result)
+                                result)
+            "Matching the pattern ~s agains the input ~s should have created the bindings ~s but we got ~s instead."
+            pattern input bindings result)
+        (false result))))
+
 
 (define-test+run "match ref"
-  (test-match-ref (match (ref 'a) '(a 42))
-                  :matchp t
-                  :bindings '(#s(term :name ?a) 42))
-  (test-match-ref (match (ref 'b) '(a 42 a 73))
-                  :matchp t
-                  ;; TODO this "works", but I don't think that's the behaviour we want
-                  :bindings '(#s(term :name ?a) 42 #s(term :name ?a) 73))
-  (test-match-ref (match (ref 'body-parameter) '(42))
-                  :matchp nil)
-  (test-match-ref (match (ref 'body-parameter) '(&body 42))
-                  :matchp t
-                  :bindings '(#s(term :name ?var)  42)))
+  (test-match-ref (ref 'a) '(a 42) :bindings '((?a . 42)))
+  (test-match-ref (ref 'b) '(a 42 a 73))
+  ;; TODO What if we want to use the pattern 'a with independent bindings?
+  ;; Idea new syntax: (ref 'a ('?a ?a1)) or (ref 'a :prefix a1)
+  (test-match-ref (ref 'b) '(a 42 a 42) :bindings '((?a . 42)))
+  (test-match-ref (ref 'body-parameter) '(42))
+  (test-match-ref (ref 'body-parameter) '(&body 42)
+                  :bindings '((?var . 42))))

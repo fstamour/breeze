@@ -252,6 +252,11 @@
 
 (trace compile-pattern)
 
+(trace match :methods t)
+
+(trace :wherein test-match-ref
+       ;; match
+       merge-bindings)
 
 
 (in-package #:breeze.test.analysis)
@@ -272,7 +277,6 @@
  breeze.analysis::match-node)
 
 (untrace)
-
 
 
 (trace lint)

@@ -2,6 +2,8 @@
 
 (in-package #:breeze.utils)
 
+(deftype string-designator () '(or string character symbol))
+
 (defun optimal-string-alignment-distance (vec-a vec-b)
   "Compute an edit distance between two vector."
   (let* ((m (length vec-a))

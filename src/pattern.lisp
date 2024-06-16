@@ -13,7 +13,7 @@
   (:export #:iterate
            #:iterator-done-p
            #:iterator-value)
-  (:export #:normalize-bindings))
+  (:export #:find-binding))
 
 (in-package #:breeze.pattern)
 
@@ -206,6 +206,7 @@
 
 (defun ref-pattern (pattern)
   (check-type pattern ref)
+  ;; TODO rename terms????
   (or (gethash (ref-name pattern) *patterns*)
       (error "Failed to find the pattern ~S." (ref-name pattern))))
 
@@ -309,30 +310,48 @@ a whole new iterator."
         (iterator-position iterator)))
 
 
-;;; Bindings (e.g. the result of a successful match
+;;; Bindings (e.g. the result of a successful match)
 
 (defun make-empty-bindings () t)
 
 (defun make-binding (term input)
-  (list term input))
+  (list (cons term input)))
 
 (defun merge-bindings (bindings1 bindings2)
-  (cond
-    ((eq t bindings1) bindings2)
-    ((eq t bindings2) bindings1)
-    ((or (eq nil bindings1) (eq nil bindings2)) nil)
-    (t (append bindings1 bindings2))))
+  (flet ((name (x)
+           (if (termp x) (term-name x) x)))
+    (cond
+      ((eq t bindings1) bindings2)
+      ((eq t bindings2) bindings1)
+      ((or (eq nil bindings1) (eq nil bindings2)) nil)
+      (t
+       ;; TODO It would be possible to pass the bindings into all "match"
+       ;; functions and methods. It would allow to detect conflicting
+       ;; bindings earlier and stop the matching process earlier.
+       ;;
+       ;; N.B. a disjoint-set data structure could help detect cycles in
+       ;; the bindings.
+       ;;
+       ;; TODO use a hash-table ffs
+       (delete-duplicates
+        (sort (append bindings1 bindings2)
+              (lambda (a b)
+                (let ((na (name (car a)))
+                      (nb (name (car b))))
+                  (if (string= na nb)
+                      (unless (eql (cdr a) (cdr b))
+                        (return-from merge-bindings nil))
+                      ;; (error "Conflicting bindings: ~a ~a" a b)
+                      (string< na nb)))))
+        :key (alexandria:compose #'name #'car)
+        :test #'string=)))))
 
-(defun normalize-bindings (bindings)
-  (or (eq t bindings)
-      (alexandria:alist-plist
-       (sort (loop :for (key value) :on bindings :by #'cddr
-                   :collect (cons (if (termp key)
-                                      (term-name key)
-                                      key)
-                                  value))
-             #'string<
-             :key #'car))))
+(defun find-binding (bindings term-or-term-name)
+  (when bindings
+    (if (termp term-or-term-name)
+        (assoc term-or-term-name bindings)
+        (assoc term-or-term-name bindings
+               :key #'term-name))))
 
 
 ;;; Matching atoms
@@ -385,7 +404,11 @@ a whole new iterator."
                           (iterator-value input-iterator))
     :if new-bindings
       ;; collect all the bindings
-      :do (setf bindings (merge-bindings bindings new-bindings))
+      :do
+         ;; (break)
+         (setf bindings (merge-bindings bindings new-bindings))
+         ;; The new bindings conflicted with the existing ones...
+         (unless bindings (return nil))
     :else
       ;; failed to match, bail out of the whole function
       :do (return nil)
@@ -450,7 +473,10 @@ a whole new iterator."
           (if new-bindings
               ;; collect all the bindings (setf bindings
               ;; (merge-bindings bindings new-bindings))
-              (setf bindings (merge-bindings bindings new-bindings))
+              (progn
+                (setf bindings (merge-bindings bindings new-bindings))
+                ;; TODO check if bindings is nil after merging.
+                )
               ;; No match
               (if (<= (repetition-min pattern) i)
                   (return bindings)
