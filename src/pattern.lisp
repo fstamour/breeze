@@ -14,7 +14,8 @@
            #:iterator-done-p
            #:iterator-value)
   ;; Working with match results
-  (:export #:find-binding
+  (:export #:merge-sets-of-bindings
+           #:find-binding
            #:pattern-substitute))
 
 (in-package #:breeze.pattern)
@@ -373,6 +374,21 @@ a whole new iterator."
                       (string< na nb)))))
         :key (alexandria:compose #'name #'car)
         :test #'string=)))))
+
+(defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
+  "Merge two set of bindings (list of list of bindings), returns a new
+set of bindings.
+Matching a pattern against a set of values (e.g. an egraph) will yield
+a set of independant bindings. During the macthing process, we might
+need to refine the \"current\" set of bindings. Long-story short, this
+is analoguous to computing the Cartesian product of the two sets of
+bindings and keeping only those that have not conflicting bindings."
+  (loop :for bindings1 :in set-of-bindings1
+        :append (loop :for bindings2 :in set-of-bindings2
+                      :for merged-bindings = (breeze.pattern::merge-bindings
+                                              bindings1 bindings2)
+                      :when merged-bindings
+                        :collect merged-bindings)))
 
 (defun find-binding (bindings term-or-term-name)
   (when bindings

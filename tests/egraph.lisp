@@ -506,16 +506,6 @@ comparison."
 (map 'list #'sb-kernel:get-lisp-obj-address
      (breeze.pattern:compile-pattern '(?x ?x)))
 
-
-(defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
-  (loop :for bindings1 :in set-of-bindings1
-        :append (loop :for bindings2 :in set-of-bindings2
-                      :for merged-bindings = (breeze.pattern::merge-bindings
-                                              bindings1 bindings2)
-                      :when merged-bindings
-                        :collect merged-bindings)))
-
-
 (defun match-enode (egraph enode pattern set-of-bindings)
   ;; TODO support for variable-length matches
   (when (alexandria:length= enode pattern)
