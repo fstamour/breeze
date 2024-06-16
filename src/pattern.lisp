@@ -46,6 +46,11 @@
             (:predicate termp))
   (name nil :type symbol :read-only t))
 
+(defmethod print-object ((term term) stream)
+  (print-unreadable-object
+      (term stream :type t :identity t)
+    (format stream "~s" (term-name term))))
+
 (defun term= (a b)
   (and (termp a)
        (termp b)
@@ -151,24 +156,39 @@
 (defun term-symbol-p (x)
   (symbol-starts-with x #\?))
 
+(defparameter *term-pool* nil
+  "A pool of terms, used to share terms across patterns created by
+independent calls to compile-pattern.")
+
+(defun compile-pattern (pattern)
+  "Compiles a PATTERN (specified as a list). Returns 2 values: the
+compiled pattern and *term-pool*. If *term-pool* is nil when
+compile-pattern is called, a new one is created."
+  (if *term-pool*
+      (values (%compile-pattern pattern) *term-pool*)
+      (let ((*term-pool* (make-hash-table)))
+        (compile-pattern pattern))))
+
 ;; Default: leave as-is
-(defmethod compile-pattern (pattern) pattern)
+(defmethod %compile-pattern (pattern) pattern)
 
 ;; Compile symbols
-(defmethod compile-pattern ((pattern symbol))
+(defmethod %compile-pattern ((pattern symbol))
   (cond
-    ((term-symbol-p pattern) (term pattern))
+    ((term-symbol-p pattern)
+     (or (gethash pattern *term-pool*)
+         (setf (gethash pattern *term-pool*) (term pattern))))
     (t pattern)))
 
 ;; Compile lists
-(defmethod compile-pattern ((pattern cons))
+(defmethod %compile-pattern ((pattern cons))
   ;; Dispatch to another method that is eql-specialized on the firt
   ;; element of the list.
   (compile-compound-pattern (first pattern) pattern))
 
 ;; Default list compilation: recurse and convert to vector.
 (defmethod compile-compound-pattern (token pattern)
-  (map 'vector #'compile-pattern pattern))
+  (map 'vector #'%compile-pattern pattern))
 
 ;; Compile (:the ...)
 (defmethod compile-compound-pattern ((token (eql :the)) pattern)
@@ -184,15 +204,15 @@
 ;; Compile (:maybe ...)
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
   ;; TODO check the length of "pattern"
-  (maybe (compile-pattern (second pattern)) (third pattern)))
+  (maybe (%compile-pattern (second pattern)) (third pattern)))
 
 ;; Compile (:zero-or-more ...)
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
-  (zero-or-more (compile-pattern (rest pattern))))
+  (zero-or-more (%compile-pattern (rest pattern))))
 
 ;; Compile (:alternation ...)
 (defmethod compile-compound-pattern ((token (eql :alternation)) patterns)
-  (alternation (compile-pattern (rest patterns))))
+  (alternation (%compile-pattern (rest patterns))))
 
 
 ;;; Re-usable, named patterns
