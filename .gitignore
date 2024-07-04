@@ -4,6 +4,9 @@
 result
 public/
 
+# org-roam db
+*.db
+
 githooks/*.sample
 /.direnv/
 *.dot
