@@ -558,25 +558,26 @@ bindings and keeping only those that have not conflicting bindings."
   (when pattern
     ;; Patterns are never compiled to lists
     (check-type pattern atom)
-    (etypecase pattern
-      (breeze.pattern:term
-       (let ((binding (assoc (breeze.pattern::term-name pattern)
-                             bindings
-                             :key #'breeze.pattern::term-name)))
-         (if binding
-             (cdr binding)
-             ;; TODO this could signal a condition (binding not
-             ;; found)
-             pattern)))
-      (vector
-       (map result-type
-            #'(lambda (subpattern)
-                (pattern-substitute subpattern bindings result-type))
-            pattern))
-      (symbol pattern)
-      (number pattern)
-      ;; (t pattern)
-      )))
+    (flet ((substitute1 (x)
+             (etypecase x
+               (term
+                (alexandria:if-let ((binding (find-binding bindings x)))
+                  (cdr binding)
+                  ;; TODO this could signal a condition (binding not
+                  ;; found)
+                  x))
+               ((or symbol number) x))))
+      (if (vectorp pattern)
+          (map result-type
+               ;; Note: we could've use map to recurse directly into
+               ;; pattern-subtitute, but not doing so make tracing
+               ;; (and debugging) tremenduously easier.
+               #'(lambda (subpattern)
+                   (if (vectorp subpattern)
+                       (pattern-substitute subpattern bindings result-type)
+                       (substitute1 subpattern)))
+               pattern)
+          (substitute1 pattern)))))
 
 
 

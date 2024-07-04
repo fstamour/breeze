@@ -7,7 +7,11 @@
                 #:is
                 #:true
                 #:false
-                #:fail))
+                #:fail)
+  (:import-from #:breeze.egraph
+                #:map-stream
+                #:map-egraph
+                #:stream-eclass))
 
 (in-package #:breeze.test.egraph)
 
@@ -74,7 +78,7 @@
   ;; malformed enodes
   (progn
     (false (enode< #() #()))
-    (false (enode< #(x) #(y)))
+    (true (enode< #(x) #(y)))
     (false (enode< #(x) #(x)))
     (false (enode< #(y) #(x))))
   ;; proper enodes with children
@@ -104,40 +108,45 @@
     (true (enode< 0 1))
     (false (enode< 0 0))))
 
+(defun sort-enodes-dump (enodes-dump)
+  (sort enodes-dump #'enode< :key #'second))
+
 (defun dump-enodes (egraph)
   "Dump EGRAPH's enodes as a normalized list for inspection and
 comparison."
-  (sort
+  (sort-enodes-dump
    (loop
      :for enode :being :the :hash-key :of (enode-eclasses egraph)
        :using (hash-value eclass-id)
      :collect (list :enode (if (vectorp enode)
                                (copy-seq enode)
                                enode)
-                    :eclass-id eclass-id))
-   #'enode<
-   :key #'second))
+                    :eclass-id eclass-id))))
 
 (defun dump-eclass (egraph eclass &aux (eclass-id (id eclass)))
   "Dump EGRAPH's ECLASS as a list for inspection and comparison."
   `(:eclass-id ,eclass-id
     :enodes ,(copy-seq (enodes eclass))
-    ,@(when (plusp (hash-table-count (parents eclass)))
-        (list :parents (sort (alexandria:hash-table-values (parents eclass))
-                             #'<)))
+    ,@(if (plusp (hash-table-count (parents eclass)))
+          (list :parents (sort (alexandria:hash-table-values (parents eclass))
+                               #'enode<
+                               #++ #'(lambda (a b)
+                                       (when (and (numberp a))) <)))
+          (list :root))
     ,@(let ((canonical-id (eclass-find egraph eclass-id)))
         (unless (= eclass-id canonical-id)
           (list := canonical-id)))))
 
+(defun sort-eclasses-dump (eclasses-dump)
+  (sort eclasses-dump #'< :key #'second))
+
 (defun dump-eclasses (egraph)
   "Dump EGRAPH's eclasses as a list for inspection and comparison."
-  (sort
+  (sort-eclasses-dump
    (loop
      :for eclass-id :being :the :hash-key :of (eclasses egraph)
        :using (hash-value eclass)
-     :collect (dump-eclass egraph eclass))
-   #'<
-   :key #'second))
+     :collect (dump-eclass egraph eclass))))
 
 (defun dump-egraph (egraph)
   "Dump EGRPAH as a list for inspection and comparison."
@@ -148,44 +157,54 @@ comparison."
     ,@(when (pending egraph)
         (list :pending (pending egraph)))))
 
+(defun normalize-egraph-dump (egraph-dump)
+  (setf #1=(getf egraph-dump :enodes) (sort-enodes-dump #1#)
+        #2=(getf egraph-dump :eclasses) (sort-eclasses-dump #2#)
+        #| TODO maybe normalize "pending" |#))
+
+(defun egraph-dumps-equal-p (egraph-dump1 egraph-dump2)
+  (let ((egraph-dump1 (normalize-egraph-dump (copy-seq egraph-dump1)))
+        (egraph-dump2 (normalize-egraph-dump (copy-seq egraph-dump2))))
+    (equalp egraph-dump1 egraph-dump2)))
+
 
 
 (define-test+run "add enode(s) - snapshot tests"
   (let* ((egraph (make-egraph)))
-    (is equalp
+    (is egraph-dumps-equal-p
         '()
         (dump-egraph egraph)))
   (let* ((egraph (make-egraph)))
     (egraph-add-enode egraph 'x)
-    (is equalp
+    (is egraph-dumps-equal-p
         '(:enodes ((:enode x :eclass-id 0))
-          :eclasses ((:eclass-id 0 :enodes #(x))))
+          :eclasses ((:eclass-id 0 :enodes #(x) :root)))
         (dump-egraph egraph)))
   ;; Here, we add the e-node 'x twice
   (let ((egraph (make-egraph)))
     (egraph-add-enode egraph 'x)
     (egraph-add-enode egraph 'x)
-    (is equalp
+    (is egraph-dumps-equal-p
         '(:enodes ((:enode x :eclass-id 0))
-          :eclasses ((:eclass-id 0 :enodes #(x))))
+          :eclasses ((:eclass-id 0 :enodes #(x) :root)))
         (dump-egraph egraph)))
   ;; Here, we add the same _FORM_ twice
   (let* ((egraph (make-egraph)))
     (add-form egraph '(+ 1 2))
     (add-form egraph '(+ 1 2))
-    (is equalp
+    (is egraph-dumps-equal-p
         '(:enodes ((:enode 1 :eclass-id 0)
                    (:enode 2 :eclass-id 1)
                    (:enode #(+ 0 1) :eclass-id 2))
           :eclasses ((:eclass-id 0 :enodes #(1) :parents (2))
                      (:eclass-id 1 :enodes #(2) :parents (2))
-                     (:eclass-id 2 :enodes #(#(+ 0 1)))))
+                     (:eclass-id 2 :enodes #(#(+ 0 1)) :root)))
         (dump-egraph egraph)))
   (let ((egraph (make-egraph)))
     (add-form egraph '(+ x y))
     (add-form egraph '(+ x 2))
     (add-form egraph '(+ y y))
-    (is equalp
+    (is egraph-dumps-equal-p
         '(:enodes ((:enode 2 :eclass-id 3)
                    (:enode x :eclass-id 0)
                    (:enode y :eclass-id 1)
@@ -194,14 +213,14 @@ comparison."
                    (:enode #(+ 1 1) :eclass-id 5))
           :eclasses ((:eclass-id 0 :enodes #(x) :parents (2 4))
                      (:eclass-id 1 :enodes #(y) :parents (2 5))
-                     (:eclass-id 2 :enodes #(#(+ 0 1)))
+                     (:eclass-id 2 :enodes #(#(+ 0 1)) :root)
                      (:eclass-id 3 :enodes #(2) :parents (4))
-                     (:eclass-id 4 :enodes #(#(+ 0 3)))
-                     (:eclass-id 5 :enodes #(#(+ 1 1)))))
+                     (:eclass-id 4 :enodes #(#(+ 0 3)) :root)
+                     (:eclass-id 5 :enodes #(#(+ 1 1)) :root)))
         (dump-egraph egraph)))
   (let ((egraph (make-egraph)))
     (add-form egraph '(/ (* a 2) 2))
-    (is equalp
+    (is egraph-dumps-equal-p
         '(:enodes ((:enode 2 :eclass-id 1)
                    (:enode a :eclass-id 0)
                    (:enode #(* 0 1) :eclass-id 2)
@@ -209,25 +228,25 @@ comparison."
           :eclasses ((:eclass-id 0 :enodes #(a) :parents (2))
                      (:eclass-id 1 :enodes #(2) :parents (2 3))
                      (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                     (:eclass-id 3 :enodes #(#(/ 2 1)))))
+                     (:eclass-id 3 :enodes #(#(/ 2 1)) :root)))
         (dump-egraph egraph))))
 
 (define-test+run "add enode(s) - snapshot tests - step by step - (+ x y)"
   (let ((egraph (make-egraph)))
     (macrolet ((check (when expected)
-                 `(is equalp ,expected (dump-egraph egraph)
+                 `(is egraph-dumps-equal-p ,expected (dump-egraph egraph)
                       ,when)))
       (check "after initialization" '())
       (add-form egraph 'x)
       (check "after adding the form 'x"
              '(:enodes ((:enode x :eclass-id 0))
-               :eclasses ((:eclass-id 0 :enodes #(x)))))
+               :eclasses ((:eclass-id 0 :enodes #(x) :root))))
       (add-form egraph 'y)
       (check "after adding the form 'y"
              '(:enodes ((:enode x :eclass-id 0)
                         (:enode y :eclass-id 1))
-               :eclasses ((:eclass-id 0 :enodes #(x))
-                          (:eclass-id 1 :enodes #(y)))))
+               :eclasses ((:eclass-id 0 :enodes #(x) :root)
+                          (:eclass-id 1 :enodes #(y) :root))))
       (add-form egraph '(+ x y))
       (check
        "after adding the form '(+ x y)"
@@ -236,24 +255,24 @@ comparison."
                   (:enode #(+ 0 1) :eclass-id 2))
          :eclasses ((:eclass-id 0 :enodes #(x) :parents (2))
                     (:eclass-id 1 :enodes #(y) :parents (2))
-                    (:eclass-id 2 :enodes #(#(+ 0 1)))))))))
+                    (:eclass-id 2 :enodes #(#(+ 0 1)) :root)))))))
 
 (define-test+run "add enode(s) - snapshot tests - step by step - x is equivalent to y"
   (let ((egraph (make-egraph)))
     (macrolet ((check (when expected)
-                 `(is equalp ,expected (dump-egraph egraph)
+                 `(is egraph-dumps-equal-p ,expected (dump-egraph egraph)
                       ,when)))
       (check "after initialization" '())
       (add-form egraph 'x)
       (check "after adding the form 'x"
              '(:enodes ((:enode x :eclass-id 0))
-               :eclasses ((:eclass-id 0 :enodes #(x)))))
+               :eclasses ((:eclass-id 0 :enodes #(x) :root))))
       (add-form egraph 'y)
       (check "after adding the form 'y"
              '(:enodes ((:enode x :eclass-id 0)
                         (:enode y :eclass-id 1))
-               :eclasses ((:eclass-id 0 :enodes #(x))
-                          (:eclass-id 1 :enodes #(y)))))
+               :eclasses ((:eclass-id 0 :enodes #(x) :root)
+                          (:eclass-id 1 :enodes #(y) :root))))
       ;; TODO maybe add a convenience method "merge-forms"
       (merge-eclass egraph
                     (eclass-id egraph 'x)
@@ -261,8 +280,8 @@ comparison."
       (check "after merging the e-classes for the enodes 'x and 'y"
              '(:enodes ((:enode x :eclass-id 0)
                         (:enode y :eclass-id 1))
-               :eclasses ((:eclass-id 0 :enodes #(x))
-                          (:eclass-id 1 :enodes #(y) := 0))
+               :eclasses ((:eclass-id 0 :enodes #(x) :root)
+                          (:eclass-id 1 :enodes #(y) :root := 0))
                :pending (0)))
       (rebuild egraph)
       (check "after rebuild"
@@ -271,13 +290,13 @@ comparison."
              ;; that represents only 1 form.
              '(:enodes ((:enode x :eclass-id 0)
                         (:enode y :eclass-id 1))
-               :eclasses ((:eclass-id 0 :enodes #(x))
-                          (:eclass-id 1 :enodes #(y) := 0)))))))
+               :eclasses ((:eclass-id 0 :enodes #(x) :root)
+                          (:eclass-id 1 :enodes #(y) :root := 0)))))))
 
 (define-test+run "add enode(s) - snapshot tests - 1 + 1 = 2"
   (let ((egraph (make-egraph)))
     (macrolet ((check (when expected)
-                 `(is equalp ,expected (dump-egraph egraph)
+                 `(is egraph-dumps-equal-p ,expected (dump-egraph egraph)
                       ,when)))
       (merge-eclass egraph
                     (add-form egraph '2)
@@ -286,30 +305,35 @@ comparison."
                              '(:enodes ((:enode 1 :eclass-id 1)
                                         (:enode 2 :eclass-id 0)
                                         (:enode #(+ 1 1) :eclass-id 2))
-                               :eclasses ((:eclass-id 0 :enodes #(2))
+                               :eclasses ((:eclass-id 0 :enodes #(2) :root)
                                           (:eclass-id 1 :enodes #(1) :parents (2))
-                                          (:eclass-id 2 :enodes #(#(+ 1 1)))))) ))
+                                          (:eclass-id 2 :enodes #(#(+ 1 1)) :root)))) ))
       (check "after merging the e-classes for the enodes '2 and '(+ 1 1)"
              '(:enodes ((:enode 1 :eclass-id 1)
                         (:enode 2 :eclass-id 0)
                         (:enode #(+ 1 1) :eclass-id 2))
-               :eclasses ((:eclass-id 0 :enodes #(2))
+               :eclasses ((:eclass-id 0 :enodes #(2) :root)
                           (:eclass-id 1 :enodes #(1) :parents (2))
-                          (:eclass-id 2 :enodes #(#(+ 1 1)) := 0))
+                          (:eclass-id 2 :enodes #(#(+ 1 1)) :root := 0))
                :pending (0)))
       (rebuild egraph)
       (check "after rebuild"
              '(:enodes ((:enode 1 :eclass-id 1)
                         (:enode 2 :eclass-id 0)
                         (:enode #(+ 1 1) :eclass-id 2))
-               :eclasses ((:eclass-id 0 :enodes #(2))
+               :eclasses ((:eclass-id 0 :enodes #(2) :root)
                           (:eclass-id 1 :enodes #(1) :parents (2))
-                          (:eclass-id 2 :enodes #(#(+ 1 1)) := 0)))))))
+                          (:eclass-id 2 :enodes #(#(+ 1 1)) :root := 0)))))))
+
+;; TODO add 2; add (+ (+ 1 1) 1); assert 2 = (+ 1 1) then eclass for
+;; the value "2" should have the same parent all the equivalent
+;; classes. Perhaphs only keep track of the parents in the class
+;; representative?
 
 (define-test+run "add enode(s) - snapshot tests - a = a * 2 /2"
   (let ((egraph (make-egraph)))
     (macrolet ((check (when expected)
-                 `(is equalp ,expected (dump-egraph egraph)
+                 `(is egraph-dumps-equal-p ,expected (dump-egraph egraph)
                       ,when))
                (check-add (form expected)
                  `(progn
@@ -333,7 +357,7 @@ comparison."
          :eclasses ((:eclass-id 0 :enodes #(a) :parents (2))
                     (:eclass-id 1 :enodes #(2) :parents (2 3))
                     (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                    (:eclass-id 3 :enodes #(#(/ 2 1))))))
+                    (:eclass-id 3 :enodes #(#(/ 2 1)) :root))))
       (check-merge
        '(* a 2)
        '(ash a 1)
@@ -346,9 +370,9 @@ comparison."
          :eclasses ((:eclass-id 0 :enodes #(a) :parents (2 5))
                     (:eclass-id 1 :enodes #(2) :parents (2 3))
                     (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                    (:eclass-id 3 :enodes #(#(/ 2 1)))
+                    (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
                     (:eclass-id 4 :enodes #(1) :parents (5))
-                    (:eclass-id 5 :enodes #(#(ash 0 4)) := 2))
+                    (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2))
          :pending (2)))
       (check-merge
        '(/ (* a 2) 2)
@@ -364,11 +388,11 @@ comparison."
          :eclasses ((:eclass-id 0 :enodes #(a) :parents (2 5 7))
                     (:eclass-id 1 :enodes #(2) :parents (2 3 6))
                     (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                    (:eclass-id 3 :enodes #(#(/ 2 1)))
+                    (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
                     (:eclass-id 4 :enodes #(1) :parents (5))
-                    (:eclass-id 5 :enodes #(#(ash 0 4)) := 2)
+                    (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
                     (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (7))
-                    (:eclass-id 7 :enodes #(#(* 0 6)) := 3))
+                    (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3))
          :pending (3 2)))
       (check-merge
        '(/ 2 2)
@@ -384,11 +408,11 @@ comparison."
          :eclasses ((:eclass-id 0 :enodes #(a) :parents (2 5 7))
                     (:eclass-id 1 :enodes #(2) :parents (2 3 6))
                     (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                    (:eclass-id 3 :enodes #(#(/ 2 1)))
+                    (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
                     (:eclass-id 4 :enodes #(1) :parents (5) := 6)
-                    (:eclass-id 5 :enodes #(#(ash 0 4)) := 2)
+                    (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
                     (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (7))
-                    (:eclass-id 7 :enodes #(#(* 0 6)) := 3))
+                    (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3))
          :pending (6 3 2)))
       (rebuild egraph)
       (check "after rebuild"
@@ -403,11 +427,11 @@ comparison."
                :eclasses ((:eclass-id 0 :enodes #(a) :parents (2 5 7))
                           (:eclass-id 1 :enodes #(2) :parents (2 3 6))
                           (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                          (:eclass-id 3 :enodes #(#(/ 2 1)))
+                          (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
                           (:eclass-id 4 :enodes #(1) :parents (5) := 6)
-                          (:eclass-id 5 :enodes #(#(ash 0 4)) := 2)
+                          (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
                           (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (3))
-                          (:eclass-id 7 :enodes #(#(* 0 6)) := 3)))))))
+                          (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3)))))))
 
 
 (define-test+run "can I extract something useful?"
@@ -429,7 +453,7 @@ comparison."
       (merge* '(* a 1)
               'a)
       (rebuild egraph)
-      (is equalp
+      (is egraph-dumps-equal-p
           '(:enodes ((:enode 1 :eclass-id 4)
                      (:enode 2 :eclass-id 1)
                      (:enode a :eclass-id 0)
@@ -442,16 +466,16 @@ comparison."
             :eclasses ((:eclass-id 0 :enodes #(a) :parents (2 5 7 8) := 8)
                        (:eclass-id 1 :enodes #(2) :parents (2 3 6))
                        (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                       (:eclass-id 3 :enodes #(#(/ 2 1)))
+                       (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
                        (:eclass-id 4 :enodes #(1) :parents (5 8) := 6)
-                       (:eclass-id 5 :enodes #(#(ash 0 4)) := 2)
+                       (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
                        (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (3))
-                       (:eclass-id 7 :enodes #(#(* 0 6)) := 3)
-                       (:eclass-id 8 :enodes #(#(* 0 4)))))
+                       (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3)
+                       (:eclass-id 8 :enodes #(#(* 0 4)) :root)))
           ;; (add* input) = 3
           (dump-egraph egraph))
       ;; Finding the "root eclasses"
-      (is equalp
+      (is egraph-dumps-equal-p
           '((:eclass-id 3 :enodes #(#(/ 2 1)))
             (:eclass-id 5 :enodes #(#(ash 0 4)) := 2)
             (:eclass-id 7 :enodes #(#(* 0 6)) := 3)
@@ -463,7 +487,7 @@ comparison."
             :when (zerop (hash-table-count (parents eclass)))
               :collect (dump-eclass egraph eclass))
           "when trying to find the roots")
-      (is equalp
+      (is egraph-dumps-equal-p
           '((:eclass-id 0 :enodes #(a) :parents (2 5 7 8) := 8)
             (:eclass-id 3 :enodes #(#(/ 2 1)))
             (:eclass-id 7 :enodes #(#(* 0 6)) := 3)
@@ -480,100 +504,6 @@ comparison."
 
 ;;; Work in Progress - ematching!
 
-(defun match-enode (egraph enode pattern set-of-bindings)
-  ;; TODO support for variable-length matches
-  (when (alexandria:length= enode pattern)
-    ;; This is getting very complicated because
-    ;; "match-eclass" returns a list of possible bindings...
-    (loop
-      :for eclass-id :across enode
-      :for subpattern :across pattern
-      :for new-set-of-bindings =
-      ;; TODO Optimization: check if match returns T
-      ;; Probably not worth it, as I may change that code altogether...
-                               (merge-sets-of-bindings
-                                set-of-bindings
-                                ;; TODO This assumes that the first element of the enode is not an eclass
-                                (list (breeze.pattern::match eclass-id subpattern)))
-        :then (merge-sets-of-bindings
-               new-set-of-bindings
-               (match-eclass egraph
-                             (eclass egraph eclass-id)
-                             subpattern new-set-of-bindings))
-      :while new-set-of-bindings
-      :finally (return new-set-of-bindings))))
-
-(defun match-eclass (egraph eclass pattern &optional (set-of-bindings '(t)))
-  (check-type egraph breeze.egraph::egraph)
-  (check-type eclass breeze.egraph::eclass)
-  (etypecase pattern
-    (breeze.pattern:term
-     ;; The whole class "matches"
-     (list (breeze.pattern::make-binding pattern eclass)))
-    ((or vector symbol number)
-     ;; Find every enode that matches the pattern
-     (loop :for enode :across (enodes eclass)
-           :for new-set-of-bindings := (and (vectorp enode)
-                                            (match-enode egraph enode pattern set-of-bindings))
-           :when new-set-of-bindings
-             :append new-set-of-bindings))))
-
-#++
-(progn
-  #++
-  (trace match-enode match-eclass
-         merge-sets-of-bindings
-         breeze.pattern::merge-bindings
-         breeze.pattern::make-bindings)
-
-  (let ((egraph (make-egraph))
-        (input '(/ (* a 2) 2)))
-    (labels ((add* (form)
-               (add-form egraph form))
-             (merge* (form1 form2)
-               (merge-eclass egraph (add* form1) (add* form2)))
-             (dump-eclass* (eclass)
-               (dump-eclass egraph eclass)))
-      (add* input)
-      #++
-      (progn
-        (merge* '(* a 2)
-                '(ash a 1))
-        (merge* '(/ (* a 2) 2)
-                '(* a (/ 2 2)))
-        (merge* '(/ 2 2)
-                1)
-        (merge* '(* a 1)
-                'a))
-      (rebuild egraph))
-    (let ((rewrites
-            (list
-             (make-rewrite '(/ (* ?x ?y) ?y) '?x) ; this one should match
-             )
-            #++
-            (list
-             (make-rewrite '(/ ?x ?x) 1) ; unless ?x == 0
-             (make-rewrite '(* (/ ?x ?y) ?y) '?x)
-
-             (make-rewrite '(/ (* ?x ?y) ?z)
-                           '(* ?x (/ ?y ?z)))
-             (make-rewrite '(/ ?x 1) '?x)
-             (make-rewrite '(* ?x 1) '?x)
-             (make-rewrite '(* 1 ?x) '?x)
-             (make-rewrite '(/ ?x 0) 0))))
-      (loop :for (pattern . substitution) :in rewrites
-            :collect
-            (loop
-              :for eclass :in (root-eclasses egraph)
-              :for set-of-bindings = (match-eclass egraph eclass pattern)
-              :collect (list :pattern pattern
-                             :match set-of-bindings
-                             :substitutions (mapcar (lambda (bindings)
-                                                      (pattern-substitute substitution bindings))
-                                                    set-of-bindings)))))
-    ;; (dump-egraph egraph)
-    ))
-
 
 (defun make-egraph* (input &rest other-inputs)
   (let ((egraph (make-egraph)))
@@ -582,27 +512,107 @@ comparison."
     (rebuild egraph)
     egraph))
 
-(defun match-rewrite (egraph rewrite)
-  "Match 1 rewrite against an egraph, returns a list of bindings."
-  (loop
-    :with (pattern . substitution) := rewrite
-    :for eclass :in (root-eclasses egraph)
-    :for set-of-bindings = (match-eclass egraph eclass pattern)
-    :collect (list eclass
-                   ;; Compute the substitutions
-                   (mapcar (lambda (bindings)
-                             (pattern-substitute substitution bindings))
-                           set-of-bindings))))
+(progn
+  (defun test-simple-rewrite (input pattern template)
+    (test-simple-rewrite* input (make-rewrite pattern template)))
+  (defun test-simple-rewrite* (input rewrite)
+    (format t "~%~%")
+    (let ((egraph (if (typep input 'egraph) input  (make-egraph* input))))
+      (map-egraph #'print egraph :limit 100)
+      (format t "~%~%")
+      (let ((before (dump-egraph egraph))
+            (after (progn (apply-rewrite egraph rewrite)
+                          (rebuild egraph)
+                          (dump-egraph egraph))))
+        (progn
+          (format t "~%~%")
+          (format t "~&Applying the rewrite rule:~&    ~s~&    ~s"
+                  (rewrite-pattern rewrite)
+                  (rewrite-template rewrite))
+          (format t "~%~%")
+          (format t "~&Enodes before:~%~{    ~s~^~%~}" (second before))
+          (format t "~&Enodes after :~%~{    ~s~^~%~}" (second after))
+          (format t "~%~%")
+          (format t "~&Eclasses before:~%~{    ~s~^~%~}" (fourth before))
+          ;; (format t "~&Eclasses after :~%~{    ~s~^~%~}" (fourth after))
+          (format t "~&Eclasses after:")
+          (dolist (eclass-ish (fourth after))
+            (format t "~&    ~s's forms:" eclass-ish)
+            (let ((eclass-id (second eclass-ish)))
+              (map-stream #'(lambda (form)
+                              (format t "~&        ~a" form))
+                          (stream-eclass egraph (eclass egraph eclass-id)))))
+          (format t "~%~%")
+          (map-egraph #'print egraph :limit 100))
+        egraph)))
 
-(defun apply-rewrite (egraph rewrite)
-  "Match REWRITE's pattern against EGRAPH. Add the new forms and merge
-the corresponding ECLASSES.
-Does NOT rebuild the egraph's invariants."
-  (loop :for (eclass forms) :in (match-rewrite egraph rewrite)
-        :do (loop :for new-form :in forms
-                  :for eclass-id = (add-form egraph new-form)
-                  :do (merge-eclass egraph (id eclass) eclass-id)))
-  egraph)
+
+  #++
+  (let ((egraph (test-simple-rewrite '(/ a a) '(/ ?x ?x) 1)))
+    (test-simple-rewrite egraph 1 '(/ ?x ?x)))
+
+  #++
+  ((untrace)
+   (trace
+    ;; :wherein test-simple-rewrite
+    pattern-substitute
+    breeze.egraph::match-rewrite
+    breeze.egraph::match-eclass
+    breeze.egraph::match-enode
+    ;; merge-eclass
+    add-form
+    breeze.egraph::egraph-add-enode
+    breeze.egraph::form-to-enode
+    breeze.egraph::sequence-to-enode
+    breeze.egraph::atom-to-enode
+    ;; match
+    ;; add-parent
+    ))
+
+  #++
+  (let ((egraph (test-simple-rewrite '(+ a b c) '(+ ?x ?y ?z) '(+ ?x (+ ?y ?z)))))
+    (test-simple-rewrite egraph '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
+    (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
+    (setf *e* egraph))
+
+  #++
+  (let ((egraph (test-simple-rewrite '(* a 2) '(* ?x 2) '(ash ?x 1))))
+    ;; (test-simple-rewrite egraph '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
+    ;; (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
+    (setf *e* egraph))
+
+  #++
+  (let ((egraph (test-simple-rewrite '(+ 1 (* a 2)) '(* ?x 2) '(ash ?x 1))))
+    (test-simple-rewrite egraph '(* ?x 2) '(ash ?x 1))
+    ;; (test-simple-rewrite egraph '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
+    ;; (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
+    (setf *e* egraph))
+
+  #++
+  (let ((egraph (test-simple-rewrite '(/ (* a 2) 2) '(/ (* ?x ?y) ?y) '?x)))
+    (setf *e* egraph))
+
+  ;; '(/ (* a 2) 2)
+  ;; (untrace)
+  )
+
+#|
+Input:
+(+ a b c)
+
+Rewrites (applied in this order):
+'(+ ?x ?y ?z) '(+ ?x (+ ?y ?z))
+'(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z)
+'(+ ?x ?y) '(+ ?y ?x)
+
+Forms represented by the egraph:
+(+ A B C)
+(+ A (+ B C))
+(+ (+ A B) C)
+(+ (+ B C) A)
+(+ C (+ A B))
+|#
+
 
 (define-test+run "apply 1 rewrite"
   (is equalp #(a)
@@ -620,3 +630,56 @@ Does NOT rebuild the egraph's invariants."
 (let ((egraph (make-egraph)))
   (add-form egraph #(/ #(* a 2) 2))
   (dump-egraph egraph))
+
+#++
+(defparameter *e*)
+
+
+
+#++
+(let ((egraph (make-egraph* '(/ (* a 2) 2)))
+      (*print-readably* nil)
+      (*print-level* nil)
+      (*print-length* nil))
+  (format t "~&=========================================")
+  (format t "~&=========================================")
+  (format t "~&=========================================")
+  (let ((rewrites
+          (list
+           ;; These are not all sounds
+           (make-rewrite '(/ (* ?x ?y) ?y) '?x)
+           (make-rewrite '(* (/ ?x ?y) ?y) '?x)
+
+           (make-rewrite '(* ?x 2) '(ash ?x 1))
+
+           (make-rewrite '(/ ?x ?x) 1)
+
+           (make-rewrite '(/ (* ?x ?y) ?z) '(* ?x (/ ?y ?z)))
+
+           ;; (make-rewrite '(/ ?x 1) '?x)
+           ;; (make-rewrite '(* ?x 1) '?x)
+           ;; (make-rewrite '(* 1 ?x) '?x)
+           ;; (make-rewrite '(/ 0 ?x) 0)
+           )))
+    (loop :repeat 1
+          :do
+             (format t "~&=========================================")
+             (loop :for rewrite :in rewrites
+                   :do (test-simple-rewrite* egraph rewrite)
+                   #++ (progn (apply-rewrite egraph rewrite)
+                              (rebuild egraph)
+                              (map-egraph #'print egraph :limit 100)))))
+  egraph)
+
+;;
+
+#++
+(progn
+  (untrace)
+  (dump-egraph *e*)
+  (map-egraph #'print *e* :limit 100))
+
+
+;; (= 0 ?x) => (zerop x)
+;; (= x ?0) => (zerop x)
+;; (and (zerop ?x (= ?x ?y))) => (= 0 ?x ?y)

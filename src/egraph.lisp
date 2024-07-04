@@ -14,6 +14,7 @@
    #:parents)
   ;; Egraph
   (:export
+   #:egraph
    #:make-egraph
    #:enode-eclasses
    #:eclasses
@@ -29,11 +30,16 @@
    #:merge-eclass
    #:rebuild)
   (:export
+   #:root-node-p
+   #:root-eclass-p
    #:root-eclasses
    #:enode<
    #:smallest-enodes)
   (:export
-   #:add-form))
+   #:add-form)
+  (:export
+   #:match-rewrite
+   #:apply-rewrite))
 
 (in-package #:breeze.egraph)
 
@@ -138,7 +144,10 @@ Example:
     :accessor parents
     :documentation
     "Back-pointer to the parent enodes. Use for repairing the egraph's
-invariants."))
+invariants.
+Keys are parent enodes
+Values are the parent enode's eclass-id
+"))
   (:documentation "An equivalence class"))
 
 (defun make-eclass (id enodes &optional parents)
@@ -161,17 +170,22 @@ invariants."))
 
 (defmethod print-object ((eclass eclass) stream)
   "Print ECLASS to STREAM."
-  (print-unreadable-object
-      (eclass stream :type t :identity t)
-    (if (= 1 (length (enodes eclass)))
-        (format stream "~d (1 enode: ~s, ~d parent enodes)"
-                (id eclass)
-                (aref (enodes eclass) 0)
-                (hash-table-count (parents eclass)))
-        (format stream "~d (~d enodes, ~d parent enodes)"
-                (id eclass)
-                (length (enodes eclass))
-                (hash-table-count (parents eclass))))))
+  (format stream "#<eclass ~d ~a>" (id eclass) (enodes eclass))
+  #++ (print-unreadable-object
+          (eclass stream :type t :identity nil)
+        (format stream "~3d" (id eclass))
+        (format stream " ~w" (enodes eclass))
+        ;; (format stream "~{~w~}" (enodes eclass))
+        #++
+        (if (= 1 (length (enodes eclass)))
+            (format stream "~d (1 enode: ~s, ~d parent enodes)"
+                    (id eclass)
+                    (aref (enodes eclass) 0)
+                    (hash-table-count (parents eclass)))
+            (format stream "~d (~d enodes, ~d parent enodes)"
+                    (id eclass)
+                    (length (enodes eclass))
+                    (hash-table-count (parents eclass))))))
 
 
 
@@ -198,6 +212,7 @@ eclasses.")
     :accessor pending
     :documentation "A list of pending eclass ids to fix their invariants."))
   (:documentation "An equivalence graph"))
+
 
 (defmethod print-object ((egraph egraph) stream)
   "Print EGRAPH to STREAM."
@@ -235,6 +250,26 @@ eclasses.")
   "Find the canonical id for EGRAPH's eclass ECLASS-ID."
   (disjoint-sets-find (union-find egraph) eclass-id))
 
+(defmethod enodes ((egraph egraph))
+  "Get all the enodes in EGRAPH as a list."
+  (alexandria:hash-table-keys (enode-eclasses egraph)))
+
+(defun enode-parents (egraph enode)
+  "Returns a list of parent enodes."
+  (alexandria:hash-table-keys
+   (parents
+    (eclass egraph (eclass-id egraph enode)))))
+
+(defun root-eclass-p (eclass)
+  "Is eclass a root eclass?"
+  (zerop (hash-table-count (parents eclass))))
+
+(defun root-enode-p (egraph enode)
+  (zerop
+   (hash-table-count
+    (parents
+     (eclass egraph (eclass-id egraph enode))))))
+
 
 
 (defun canonicalize (egraph enode)
@@ -263,12 +298,25 @@ The second value is NIL iif ENODE was already canonical."
 
 
 
+(defun enode-add-parent (egraph parent-eclass-id enode)
+  "Go through the ENODE's children eclass and add PARENT-ECLASS-ID as its parent."
+  ;; For each children of ENODE; add the new eclass as a parent.
+  (when (vectorp enode)
+    (loop
+      :for i :from 1 :below (length enode)
+      :for child-eclass-id := (aref enode i)
+      :for child-eclass := (eclass egraph child-eclass-id)
+      :do (add-parent child-eclass enode parent-eclass-id))))
+
 (defun egraph-add-enode (egraph enode)
   "Add ENODE to EGRAPH, creating a new e-class if necessary. Returns the
-eclass-id."
+eclass-id (and a second value T, if the eclass was just created)."
   (or
    ;; Do nothing if the enode already exists in the egraph
-   (eclass-id egraph enode)
+   (when (typep enode 'eclass)
+     (values (id enode) t))
+   (alexandria:when-let ((eclass-id (eclass-id egraph enode)))
+     (values eclass-id t))
    (let* (;; Allocate a new eclass-id
           (id (disjoint-sets-add (union-find egraph)))
           ;; Create a new eclass with that id
@@ -278,14 +326,9 @@ eclass-id."
      ;; Add the new eclass into the egraph
      (setf (eclass egraph id) eclass)
      ;; For each children of ENODE; add the new eclass as a parent.
-     (when (vectorp enode)
-       (loop
-         :for i :from 1 :below (length enode)
-         :for child-eclass-id := (aref enode i)
-         :for child-eclass := (eclass egraph child-eclass-id)
-         :do (add-parent child-eclass enode id)))
-     id)))
-
+     (enode-add-parent egraph id enode)
+     ;; Return the new eclass-id
+     (values id nil))))
 
 (defun merge-eclass (egraph id1 id2)
   "Merge eclasses represented by ID1 and ID2.
@@ -379,7 +422,7 @@ many merges in a batch and only call rebuild once afterwards."
     :for eclass-id :being
       :the :hash-key :of (eclasses egraph)
         :using (hash-value eclass)
-    :when (zerop (hash-table-count (parents eclass)))
+    :when (root-eclass-p eclass)
       :collect eclass))
 
 (defun root-eclasses (egraph)
@@ -414,21 +457,19 @@ many merges in a batch and only call rebuild once afterwards."
          :for i :from 0
          :for el1 :across a
          :for el2 :across b
-         :unless (zerop i)
-           :do (cond
-                 ;; _could_ recurse here
-                 ((< el1 el2) (return t))
-                 ((> el1 el2) (return nil)))
+         :do (cond
+               ((equalp el1 el2) nil)
+               ((enode< el1 el2) (return t))
+               (t (return nil)))
          :finally
             ;; if we get there it's because either the 2 vectors are equal, or
             ;; one is the prefix of the other.
             ;;
-            ;; So we return true, if a is shorter or has the same length than
-            ;; b.
+            ;; So we return true, if a is shorter than b.
             (< (length a) (length b)))))))
 
 (defun smallest-enodes (eclasses)
-  "Find the smallest root enode (enode without parents)."
+  "Find the smallest enode from a set of eclasses."
   (let* ((all-nodes (sort (apply #'concatenate 'vector
                                  (mapcar #'enodes eclasses))
                           #'enode<))
@@ -440,26 +481,373 @@ many merges in a batch and only call rebuild once afterwards."
                all-nodes)))
 
 
+;;; TODO WARNING add-form, vector-to-enode, atom-to-enode,
+;;; form-to-enode, add-form-to-eclass, and fixups are a HUUUGE mess. I
+;;; was trying to fix something but I was too tired to think and was
+;;; almost trying anything before thinking enough about it.
 
 (defmethod add-form (egraph form)
   "Add a FORM to an e-graph, creating e-classes if necessary."
   (egraph-add-enode egraph form))
 
-(defmethod add-form (egraph (form cons))
-  "Add a FORM to an e-graph, creating e-classes if necessary."
-  (egraph-add-enode
-   egraph
-   ;; Convert FROM into an enode.
-   (apply #'vector
-          (car form)
-          (mapcar
-           (lambda (element) (add-form egraph element))
-           (rest form)))))
-
 (defmethod add-form (egraph (eclass eclass))
-  "Add ECLASS to an e-graph, creating e-classes if necessary."
-  ;; assumes it's already in the egraph
-  (id eclass))
+  "Add a FORM to an e-graph, creating e-classes if necessary."
+  (values (id eclass) eclass))
+
+(defun vector-to-enode (egraph form parent)
+  (let ((enode (make-array (length form) :initial-element nil)))
+    (setf (aref enode 0) (aref form 0))
+
+    (print enode)
+
+    (loop
+      :for i :from 1 :below (length form)
+      :for x = (aref form i)
+      ;; TODO id => id-or-enode
+      :for (id not-new-p new-fixups) = (multiple-value-list (form-to-enode egraph x enode))
+      :unless not-new-p
+        :collect (list enode parent :??? id) :into fixups
+      :when new-fixups
+        :append new-fixups :into fixups
+      :do (progn (setf (aref enode i) id)
+                 (print enode))
+      :finally (return
+                 (values
+                  ;; enode
+                  enode
+                  ;; not-new-p
+                  (eclass-id egraph enode)
+                  ;; fixups
+                  (append (list (list parent enode :vector))
+                          fixups))))))
+
+(defun atom-to-enode (egraph form parent)
+  (multiple-value-bind (id not-new-p)
+      (egraph-add-enode egraph form)
+    (values
+     ;; enode
+     id
+     ;; eclass, if it was alrea
+     ;; (when not-new-p (eclass egraph id))
+     not-new-p
+     ;; fixups to do
+     (if not-new-p nil (list (list parent form :atom))))))
+
+(defun form-to-enode (egraph form &optional parent)
+  (typecase form
+    (vector
+     (vector-to-enode egraph form parent))
+    (eclass
+     (values
+      (id form)
+      t
+      (list (list parent form :eclass))))
+    (t (atom-to-enode egraph form parent))))
+
+#++
+(defun form-to-enode (egraph form &optional parent-eclass)
+  (let ((enode (typecase form
+                 ((or cons vector)
+                  (let ((i 0))
+                    (map 'vector
+                         (lambda (eclass-id-or-constant)
+                           (cond
+                             ((plusp i) (add-form egraph eclass-id-or-constant))
+                             (t (incf i) eclass-id-or-constant)))
+                         form)))
+                 (t (multiple-value-bind (eclass-id new-eclass)
+                        (add-form egraph form)
+                      (when (and newp parent-eclass)
+                        (let ((new-eclass (eclass egraph ))))
+                        (maphash (lambda (parent-enode parent-eclass-id)
+                                   ;; (declare (ignore parent-enode))
+                                   (add-parent new-eclass parent-enode parent-eclass-id))
+                                 (parents parent-eclass)))
+                      eclass-id)))))
+    (values enode (eclass (eclass-id egraph enode)))))
+
+(defmethod add-form (egraph (form sequence))
+  "Add a FORM to an e-graph, creating e-classes if necessary."
+  (egraph-add-enode egraph
+                    (let ((i 0))
+                      (map 'vector
+                           (lambda (eclass-id-or-constant)
+                             (cond
+                               ((plusp i)
+                                (add-form egraph eclass-id-or-constant))
+                               (t (incf i) eclass-id-or-constant)))
+                           form))))
 
 
 ;;; E-matching, rewrites, rules, etc.
+
+(defun match-enode (egraph enode pattern set-of-bindings)
+  ;; TODO support for variable-length matches
+  (etypecase enode
+    ((or symbol number)
+     (merge-sets-of-bindings
+      set-of-bindings
+      (list (match pattern enode))))
+    (vector
+     (when (alexandria:length= enode pattern)
+       ;; This is getting very complicated because
+       ;; "match-eclass" returns a list of possible bindings...
+       (loop
+         :for eclass-id :across enode
+         :for subpattern :across pattern
+         :for new-set-of-bindings =
+         ;; TODO Optimization: check if match returns T
+         ;; Probably not worth it, as I may change that code altogether...
+                                  (merge-sets-of-bindings
+                                   set-of-bindings
+                                   ;; TODO This assumes that the first element of the enode is not an eclass
+                                   (list (breeze.pattern::match eclass-id subpattern)))
+           :then (merge-sets-of-bindings
+                  new-set-of-bindings
+                  (match-eclass egraph
+                                (eclass egraph eclass-id)
+                                subpattern new-set-of-bindings))
+         :while new-set-of-bindings
+         :finally (return new-set-of-bindings))))))
+
+(defun match-eclass (egraph eclass pattern &optional (set-of-bindings '(t)))
+  (check-type egraph egraph)
+  (check-type eclass eclass)
+  (etypecase pattern
+    (breeze.pattern:term
+     ;; The whole class "matches"
+     (list (breeze.pattern::make-binding pattern eclass)))
+    ((or vector symbol number)
+     ;; Find every enode that matches the pattern
+     (loop :for enode :across (enodes eclass)
+           :for new-set-of-bindings := (match-enode egraph enode pattern set-of-bindings)
+           :when new-set-of-bindings
+             :append new-set-of-bindings))))
+
+(defun match-rewrite (egraph rewrite)
+  "Match 1 rewrite against an egraph, returns a list of substituted
+forms."
+  (loop
+    :with (pattern . substitution) := rewrite
+    :for eclass-id :being :the :hash-key :of (eclasses egraph)
+      :using (hash-value eclass)
+    ;;    :for eclass :in (eclasses egraph)
+    :for set-of-bindings = (match-eclass egraph eclass pattern)
+    :when set-of-bindings
+      :collect (list eclass
+                     ;; Compute the substitutions
+                     (mapcar (lambda (bindings)
+                               (pattern-substitute substitution bindings))
+                             set-of-bindings))))
+
+#++
+(defun apply-rewrite (egraph rewrite)
+  "Match REWRITE's pattern against EGRAPH. Add the new forms and merge
+the corresponding ECLASSES.
+Does NOT rebuild the egraph's invariants."
+  #++ (format t "~&Rewrite from ~s to ~s"
+              (rewrite-pattern rewrite)
+              (rewrite-template rewrite))
+  (loop :for (eclass forms) :in (match-rewrite egraph rewrite)
+        :do (loop :for new-form :in forms
+                  :for new-eclass-id = (add-form egraph new-form)
+                  :for new-eclass = (eclass egraph new-eclass-id)
+                  :do (maphash (lambda (parent-enode parent-eclass-id)
+                                 ;; (declare (ignore parent-enode))
+                                 (add-parent new-eclass parent-enode parent-eclass-id))
+                               (parents eclass))
+                  :do (merge-eclass egraph (id eclass) new-eclass-id)))
+  egraph)
+
+;; TODO WARNING see WARNING about add-form et al.
+(defun fixups (egraph fixups)
+  (loop :for (parent-enode eclass-designator) :in fixups
+        :for eclass-id = (etypecase eclass-designator
+                           (eclass (id eclass-designator))
+                           ((or vector number symbol)
+                            (eclass-id egraph eclass-designator)))
+        :for eclass = (eclass egraph eclass-id)
+        :do (format t "~%TODO fixup parent-enode: ~a eclass-designator: ~a (eclass-id: ~a; eclass: ~a)"
+                    parent-enode eclass-designator eclass-id eclass)
+            ;; :unless (or eclass eclass-id) :do (break)
+        :when (and parent-enode eclass-id
+                   (and :todo-eclass-id-should-not-be-nil eclass))
+          :do
+        #++(format t "  ~%parent-eclass: ~a"
+                   (eclass-id egraph parent)
+                   #++(if (typep parent 'eclass)
+                          parent
+                          (eclass egraph parent)))
+           (add-parent
+            eclass
+            parent-enode
+            ;; parent-eclass-id
+            (eclass-id egraph parent-enode))))
+
+(defun add-form-to-eclass (egraph eclass form)
+  (if (typep form 'eclass)
+      (merge-eclass egraph (id eclass) (id form))
+      (multiple-value-bind (enode existing-eclass fixups)
+          (form-to-enode egraph form #++ eclass)
+        (unless existing-eclass
+          (eclass-add-enode eclass enode)
+          (setf (eclass-id egraph enode) (id eclass))
+          (push (id eclass) (pending egraph)))
+        (fixups egraph fixups))))
+
+(defun apply-rewrite (egraph rewrite)
+  "Match REWRITE's pattern against EGRAPH. Add the new forms and merge
+the corresponding ECLASSES.
+Does NOT rebuild the egraph's invariants."
+  #++ (format t "~&Rewrite from ~s to ~s"
+              (rewrite-pattern rewrite)
+              (rewrite-template rewrite))
+  (loop :for (eclass forms) :in (match-rewrite egraph rewrite)
+        ;; :for parent-eclass = (parent-eclass)
+        :do (loop :for new-form :in forms
+                  :do (add-form-to-eclass egraph eclass new-form)))
+  egraph)
+
+
+;;; Stream/Iterators
+
+(defgeneric stream-get (stream))
+
+(defgeneric stream-next (stream))
+
+(defgeneric stream-done-p (stream))
+
+(defun collect (stream &key (limit))
+  (if limit
+      (loop
+        repeat limit
+        until (stream-done-p stream)
+        collect (stream-get stream)
+        do (stream-next stream))
+      (loop
+        until (stream-done-p stream)
+        collect (stream-get stream)
+        do (stream-next stream))))
+
+(defun map-stream (fn stream &key (limit))
+  (if limit
+      (loop
+        repeat limit
+        until (stream-done-p stream)
+        do (funcall fn (stream-get stream))
+        do (stream-next stream))
+      (loop
+        until (stream-done-p stream)
+        do (funcall fn (stream-get stream))
+        do (stream-next stream))))
+
+
+(defun stream-sequence (seq)
+  "Create a stream out of a sequence, the stream will repeat the sequence
+infinitely, but will be considered \"done\" as soon as the iterator is
+past the last element of the sequence."
+  (let ((i 0)
+        (l (length seq)))
+    (lambda (&optional method)
+      (ecase method
+        ((nil) (elt seq (mod i l)))
+        (:next (progn (incf i)
+                      (zerop (mod i l))))
+        (:done (<= l i))))))
+
+(defun stream-constant (x)
+  "Create a stream out of one value."
+  (stream-sequence (vector x)))
+
+(defmethod stream-get ((stream function))
+  (funcall stream))
+
+(defmethod stream-next ((stream function))
+  (funcall stream :next))
+
+(defmethod stream-done-p ((stream function))
+  (funcall stream :done))
+
+
+(defun next-list-of-stream (streams)
+  "Given a sequence of streams, advance the sequence as a whole."
+  (etypecase streams
+    (cons (loop
+            for s in streams
+            for nextp = (stream-next s)
+            while nextp
+            finally (return nextp)))
+    (vector (loop
+              for s across streams
+              for nextp = (stream-next s)
+              while nextp
+              finally (return nextp)))))
+
+
+(defun stream-product (streams)
+  "Create a stream that produces the Cartesian product of all the STREAMS."
+  (let ((donep nil))
+    (lambda (&optional method)
+      (ecase method
+        (:next (setf donep (next-list-of-stream streams)))
+        (:done donep)
+        ((nil) (map 'list 'stream-get streams))))))
+
+(defun stream-sequence-product (sequences)
+  "Create a stream that produces the Cartesian product of all the SEQUENCES."
+  (stream-product
+   (mapcar #'stream-sequence sequences)))
+
+#++
+(collect (stream-sequence-product '(#(a b) #(c d))))
+;; => ((A C) (B C) (A D) (B D))
+
+(defun stream-concat (streams)
+  (let* ((s (stream-sequence streams))
+         (current (stream-get s)))
+    (lambda (&optional method)
+      (ecase method
+        (:next (when (stream-next current)
+                 (stream-next s)
+                 (setf current (stream-get s))
+                 (stream-done-p current)))
+        (:done (and (stream-done-p current) (stream-done-p s)))
+        ((nil) (stream-get current))))))
+
+#++
+(collect
+    (stream-concat (vector (stream-sequence '(a b)) (stream-constant 'c))))
+;; => (A B C)
+
+
+;;; Streaming terms out of egraphs
+
+(defun stream-eclass (egraph eclass)
+  (stream-concat
+   (map 'vector
+        (lambda (enode) (stream-enode egraph enode))
+        (enodes eclass))))
+
+(defun stream-enode (egraph enode)
+  (etypecase enode
+    ((or symbol number) (stream-constant enode))
+    (vector (stream-product
+             (let ((i 0))
+               (map 'vector
+                    (lambda (eclass-id-or-constant)
+                      (cond
+                        ((plusp i) (stream-eclass egraph (eclass egraph eclass-id-or-constant)))
+                        (t (incf i) (stream-constant eclass-id-or-constant))))
+                    enode))))))
+
+(defun map-egraph (fn egraph &key limit)
+  (map-stream
+   fn
+   (stream-concat
+    (map 'vector (lambda (eclass)
+                   (stream-eclass egraph eclass))
+         ;; TODO %root-eclasses is the right one to call BUT some
+         ;; eclass'e parents are not set correctly during rewriting.
+         (breeze.egraph::%root-eclasses egraph)
+         #++ (root-eclasses egraph)))
+   :limit limit))
