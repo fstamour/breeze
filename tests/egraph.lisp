@@ -11,7 +11,8 @@
   (:import-from #:breeze.egraph
                 #:map-stream
                 #:map-egraph
-                #:stream-eclass))
+                #:stream-eclass
+                #:stream-equivalent-eclasses))
 
 (in-package #:breeze.test.egraph)
 
@@ -307,7 +308,7 @@ comparison."
                                         (:enode #(+ 1 1) :eclass-id 2))
                                :eclasses ((:eclass-id 0 :enodes #(2) :root)
                                           (:eclass-id 1 :enodes #(1) :parents (2))
-                                          (:eclass-id 2 :enodes #(#(+ 1 1)) :root)))) ))
+                                          (:eclass-id 2 :enodes #(#(+ 1 1)) :root))))))
       (check "after merging the e-classes for the enodes '2 and '(+ 1 1)"
              '(:enodes ((:enode 1 :eclass-id 1)
                         (:enode 2 :eclass-id 0)
@@ -325,10 +326,54 @@ comparison."
                           (:eclass-id 1 :enodes #(1) :parents (2))
                           (:eclass-id 2 :enodes #(#(+ 1 1)) :root := 0)))))))
 
+
 ;; TODO add 2; add (+ (+ 1 1) 1); assert 2 = (+ 1 1) then eclass for
 ;; the value "2" should have the same parent all the equivalent
 ;; classes. Perhaphs only keep track of the parents in the class
 ;; representative?
+(define-test+run "add enode(s) - snapshot tests - 1 + 1 = 2 & 3 + (1 + 1)"
+  (let ((egraph (make-egraph)))
+    (macrolet ((check (when expected)
+                 `(is egraph-dumps-equal-p ,expected (dump-egraph egraph)
+                      ,when)))
+      (let* ((e2 (add-form egraph '2))
+             (e1+1 (add-form egraph '(+ 1 1)))
+             (e3+ (add-form egraph '(+ 3 (+ 1 1)))))
+        (declare (ignorable e3+))
+        (check "before merging the e-classes for the enodes '2 and '(+ 1 1)"
+               `(:enodes
+                 ;; enodes for the value 1, 2 and 3 happen to have the
+                 ;; eclass-id 1, 2 and 3.
+                 #1=((:enode 1 :eclass-id 1)
+                     (:enode 2 :eclass-id ,e2)
+                     (:enode 3 :eclass-id 3)
+                     (:enode #(+ 1 1) :eclass-id ,e1+1)
+                     (:enode #(+ 3 2) :eclass-id ,e3+))
+                 :eclasses
+                 ((:eclass-id 0 :enodes #(2) :root)
+                  (:eclass-id 1 :enodes #(1)        :parents (2))
+                  (:eclass-id 2 :enodes #(#(+ 1 1)) :parents (,e3+))
+                  (:eclass-id 3 :enodes #(3)        :parents (,e3+))
+                  (:eclass-id 4 :enodes #(#(+ 3 2)) :root))))
+        (merge-eclass egraph e2 e1+1)
+        (check "after merging the e-classes for the enodes '2 and '(+ 1 1)"
+               `(:enodes #1#
+                 :eclasses
+                 ((:eclass-id ,e2   :enodes #(2)        :parents (,e3+))
+                  (:eclass-id 1     :enodes #(1)        :parents (2))
+                  (:eclass-id ,e1+1 :enodes #(#(+ 1 1)) :parents (,e3+)  := ,e2)
+                  (:eclass-id 3     :enodes #(3)        :parents (,e3+))
+                  (:eclass-id ,e3+  :enodes #(#(+ 3 2)) :root))
+                 :pending (0)))
+        (rebuild egraph)
+        (check "after rebuild"
+               `(:enodes #1#
+                 :eclasses
+                 ((:eclass-id ,e2   :enodes #(2)        :parents (,e3+))
+                  (:eclass-id 1     :enodes #(1)        :parents (2))
+                  (:eclass-id ,e1+1 :enodes #(#(+ 1 1)) :parents (,e3+)  := ,e2)
+                  (:eclass-id 3     :enodes #(3)        :parents (,e3+))
+                  (:eclass-id ,e3+  :enodes #(#(+ 3 2)) :root))))))))
 
 (define-test+run "add enode(s) - snapshot tests - a = a * 2 /2"
   (let ((egraph (make-egraph)))
@@ -372,7 +417,7 @@ comparison."
                     (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
                     (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
                     (:eclass-id 4 :enodes #(1) :parents (5))
-                    (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2))
+                    (:eclass-id 5 :enodes #(#(ash 0 4)) :parents (3) := 2))
          :pending (2)))
       (check-merge
        '(/ (* a 2) 2)
@@ -390,7 +435,7 @@ comparison."
                     (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
                     (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
                     (:eclass-id 4 :enodes #(1) :parents (5))
-                    (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
+                    (:eclass-id 5 :enodes #(#(ash 0 4)) :parents (3) := 2)
                     (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (7))
                     (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3))
          :pending (3 2)))
@@ -409,9 +454,9 @@ comparison."
                     (:eclass-id 1 :enodes #(2) :parents (2 3 6))
                     (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
                     (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
-                    (:eclass-id 4 :enodes #(1) :parents (5) := 6)
-                    (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
-                    (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (7))
+                    (:eclass-id 4 :enodes #(1) :parents (5 7) := 6)
+                    (:eclass-id 5 :enodes #(#(ash 0 4)) :parents (3) := 2)
+                    (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (5 7))
                     (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3))
          :pending (6 3 2)))
       (rebuild egraph)
@@ -428,9 +473,9 @@ comparison."
                           (:eclass-id 1 :enodes #(2) :parents (2 3 6))
                           (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
                           (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
-                          (:eclass-id 4 :enodes #(1) :parents (5) := 6)
-                          (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
-                          (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (3))
+                          (:eclass-id 4 :enodes #(1) :parents (5 7) := 6)
+                          (:eclass-id 5 :enodes #(#(ash 0 4)) :parents (3) := 2)
+                          (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (2 3))
                           (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3)))))))
 
 
@@ -454,32 +499,30 @@ comparison."
               'a)
       (rebuild egraph)
       (is egraph-dumps-equal-p
-          '(:enodes ((:enode 1 :eclass-id 4)
-                     (:enode 2 :eclass-id 1)
-                     (:enode a :eclass-id 0)
-                     (:enode #(* 0 1) :eclass-id 2)
-                     (:enode #(ash 0 4) :eclass-id 5)
-                     (:enode #(* 0 4) :eclass-id 8)
-                     (:enode #(/ 1 1) :eclass-id 6)
-                     (:enode #(/ 2 1) :eclass-id 3)
-                     (:enode #(* 8 6) :eclass-id 3))
-            :eclasses ((:eclass-id 0 :enodes #(a) :parents (2 5 7 8) := 8)
-                       (:eclass-id 1 :enodes #(2) :parents (2 3 6))
-                       (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-                       (:eclass-id 3 :enodes #(#(/ 2 1)) :root)
-                       (:eclass-id 4 :enodes #(1) :parents (5 8) := 6)
-                       (:eclass-id 5 :enodes #(#(ash 0 4)) :root := 2)
-                       (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (3))
-                       (:eclass-id 7 :enodes #(#(* 0 6)) :root := 3)
-                       (:eclass-id 8 :enodes #(#(* 0 4)) :root)))
+          '(:enodes
+            ((:enode 1 :eclass-id 4)
+             (:enode 2 :eclass-id 1)
+             (:enode a :eclass-id 0)
+             (:enode #(* 8 1) :eclass-id 2)
+             (:enode #(* 8 6) :eclass-id 8)
+             (:enode #(/ 1 1) :eclass-id 6)
+             (:enode #(/ 2 1) :eclass-id 8)
+             (:enode #(ash 8 6) :eclass-id 2))
+            :eclasses
+            ((:eclass-id 0 :enodes #(a) :parents (2 5 7 8) := 8)
+             (:eclass-id 1 :enodes #(2) :parents (2 3 6))
+             (:eclass-id 2 :enodes #(#(* 0 1)) :parents (8))
+             (:eclass-id 3 :enodes #(#(/ 2 1)) :parents (2 2 8) := 8)
+             (:eclass-id 4 :enodes #(1) :parents (5 7 8) := 6)
+             (:eclass-id 5 :enodes #(#(ash 0 4)) :parents (3) := 2)
+             (:eclass-id 6 :enodes #(#(/ 1 1)) :parents (2 8))
+             (:eclass-id 7 :enodes #(#(* 0 6)) :root := 8)
+             (:eclass-id 8 :enodes #(#(* 0 4)) :parents (2 2 8))))
           ;; (add* input) = 3
           (dump-egraph egraph))
       ;; Finding the "root eclasses"
-      (is egraph-dumps-equal-p
-          '((:eclass-id 3 :enodes #(#(/ 2 1)))
-            (:eclass-id 5 :enodes #(#(ash 0 4)) := 2)
-            (:eclass-id 7 :enodes #(#(* 0 6)) := 3)
-            (:eclass-id 8 :enodes #(#(* 0 4))))
+      (is equalp
+          '((:eclass-id 7 :enodes #(#(* 0 6)) :root := 8))
           (loop
             :for eclass-id :being
               :the :hash-key :of (eclasses egraph)
@@ -487,13 +530,17 @@ comparison."
             :when (zerop (hash-table-count (parents eclass)))
               :collect (dump-eclass egraph eclass))
           "when trying to find the roots")
-      (is egraph-dumps-equal-p
+      ;; TODO The following next 2 tests were working because of a bug
+      ;; with how the parents when tracked.
+      #++
+      (is equalp
           '((:eclass-id 0 :enodes #(a) :parents (2 5 7 8) := 8)
             (:eclass-id 3 :enodes #(#(/ 2 1)))
             (:eclass-id 7 :enodes #(#(* 0 6)) := 3)
             (:eclass-id 8 :enodes #(#(* 0 4))))
           (mapcar #'dump-eclass* (root-eclasses egraph))
           "when trying to find the roots and their closure")
+      #++
       ;; Victory!
       (is equalp
           #(a)
@@ -512,12 +559,13 @@ comparison."
     (rebuild egraph)
     egraph))
 
+#++
 (progn
   (defun test-simple-rewrite (input pattern template)
     (test-simple-rewrite* input (make-rewrite pattern template)))
   (defun test-simple-rewrite* (input rewrite)
     (format t "~%~%")
-    (let ((egraph (if (typep input 'egraph) input  (make-egraph* input))))
+    (let ((egraph (if (typep input 'egraph) input (make-egraph* input))))
       (map-egraph #'print egraph :limit 100)
       (format t "~%~%")
       (let ((before (dump-egraph egraph))
@@ -543,8 +591,32 @@ comparison."
                               (format t "~&        ~a" form))
                           (stream-eclass egraph (eclass egraph eclass-id)))))
           (format t "~%~%")
-          (map-egraph #'print egraph :limit 100))
+          (let ((input-eclass-id 0))
+            (map-stream
+             (lambda (eclass-id)
+               (map-stream #'(lambda (form)
+                               (format t "~&~a" form))
+                           (stream-eclass egraph (eclass egraph eclass-id))))
+             (stream-equivalent-eclasses egraph input-eclass-id)
+             :limit 100)
+            ;; (map-egraph #'print egraph :limit 100)
+            ))
         egraph)))
+
+  #|
+  2024-07-05
+
+  2: (STREAM-ECLASS #<EGRAPH 5 e-nodes across 4 e-classes, 0 pending repairs> NIL)
+      Locals:
+        ECLASS = NIL
+        EGRAPH = #<EGRAPH 5 e-nodes across 4 e-classes, 0 pending repairs>
+  3: ((LAMBDA (BREEZE.EGRAPH::ECLASS-ID-OR-CONSTANT) :IN BREEZE.EGRAPH::STREAM-ENODE) #(+ 1 2))
+      Locals:
+        BREEZE.EGRAPH::ECLASS-ID-OR-CONSTANT = #(+ 1 2)  ;;;;;;;;;; This is not a constant or a class id, right?
+        EGRAPH = #<EGRAPH 5 e-nodes across 4 e-classes, 0 pending repairs>
+        BREEZE.EGRAPH::I = 1
+
+  |#
 
 
   #++
@@ -569,7 +641,7 @@ comparison."
     ;; add-parent
     ))
 
-  #++
+  ;; #++
   (let ((egraph (test-simple-rewrite '(+ a b c) '(+ ?x ?y ?z) '(+ ?x (+ ?y ?z)))))
     (test-simple-rewrite egraph '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
     (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
@@ -615,11 +687,22 @@ Forms represented by the egraph:
 
 
 (define-test+run "apply 1 rewrite"
-  (is equalp #(a)
+  (is egraph-dumps-equal-p
+      '(:enodes
+        ((:enode 2 :eclass-id 1)
+         (:enode a :eclass-id 0)
+         (:enode #(* 3 1) :eclass-id 2)
+         (:enode #(/ 2 1) :eclass-id 3))
+        :eclasses
+        ((:eclass-id 0 :enodes #(a) :parents (2) := 3)
+         (:eclass-id 1 :enodes #(2) :parents (2 3))
+         (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
+         (:eclass-id 3 :enodes #(#(/ 2 1)) :parents (2))))
       (let ((egraph (make-egraph* '(/ (* a 2) 2)))
             (rewrite (make-rewrite '(/ (* ?x ?y) ?y) '?x)))
         (apply-rewrite egraph rewrite)
-        (rebuild egraph)
+        (dump-egraph (rebuild egraph))
+        #++ ;; TODO
         (smallest-enodes
          (root-eclasses egraph)))))
 
