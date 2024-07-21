@@ -31,10 +31,7 @@ test:
           # - abcl
           # - ccl
           # - ecl
-  # There's a test that generates some documentation
-  artifacts:
-    paths:
-      - public
+
 
 ## The job "doc" will re-run the tests, but I'm keeping that
 ## redundancy because the job "test" will be expanded to work on
@@ -63,3 +60,6 @@ pages:
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
     - when: manual
+  artifacts:
+    paths:
+      - public
