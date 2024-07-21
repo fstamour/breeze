@@ -36,37 +36,23 @@ test:
     paths:
       - public
 
+## The job "doc" will re-run the tests, but I'm keeping that
+## redundancy because the job "test" will be expanded to work on
+## multiple cl implementations.
+
 # Build public/ folder using org-publish on docs/
-org-mode-publish:
+doc:
   image: docker:24.0.7
   services:
     - docker:24.0.5-dind
   script:
     - apk add --no-cache make
     - make public
-    - mv public org-mode-publish
-  artifacts:
-    paths:
-      - org-mode-publish
-  rules:
-    - when: manual
-
-# Merge "test" and "org-mode-publish"'s outputs
-doc:
-  needs:
-    - job: test
-      parallel:
-        matrix:
-          - STACK:
-            - sbcl
-      artifacts: true
-    - job: org-mode-publish
-      artifacts: true
-  script:
-    - cp org-mode-publish/* public/
   artifacts:
     paths:
       - public
+  rules:
+    - when: manual
 
 pages:
   needs:

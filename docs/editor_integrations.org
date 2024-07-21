@@ -8,7 +8,7 @@
 
 * TODO Make sure the commands are executed against _common lisp_ code :ux:editor:
 
-Gavinok tried breeze, but ran ~C-.~ on ~breeze.el~, this causes
+Gavinok tried breeze, but ran ~C-.~ on ~breeze.el~, this caused
 confusion for everybody.
 
 Here's some ideas to help with this:

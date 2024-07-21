@@ -39,4 +39,6 @@
           :with-toc nil
           )))
   (org-id-update-id-locations (directory-files root t "\\.org$"))
-  (org-publish project-alist forcep))
+  (org-publish project-alist forcep)
+  (copy-file "docs/listing-breeze.html" "public/")
+  (copy-file "docs/style.css" "public/"))
