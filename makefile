@@ -16,19 +16,16 @@ build-within-container:
 	$(DOCKER_BUILD) --target=$(TARGET) --output type=local,dest=$(or $(DEST),.) . 2>&1 | tee $(TARGET).log
 
 # Generate the documentation. in a docker
-dependencies.core: build-within-container
-dependencies.core: TARGET=dependencies.core
 dependencies.core: Dockerfile breeze.asd scripts/load-dependencies.lisp
+	$(MAKE) build-within-container TARGET=dependencies.core
 
 .PHONY: integration
-integration: TARGET=test
-integration: DEST=public
-integration: build-within-container dependencies.core
+integration: dependencies.core
+	$(MAKE) build-within-container TARGET=integration-tests DEST=public
 
 .PHONY: public
-public: TARGET=public
-public: DEST=public
-public: dependencies.core build-within-container
+public: dependencies.core
+	$(MAKE) build-within-container TARGET=public DEST=public
 
 
 # Run some "integration tests" that generates some screenshots

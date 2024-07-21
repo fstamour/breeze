@@ -34,7 +34,7 @@ COPY --from=deps /breeze/dependencies.core /dependencies.core
 
 ######################################################################
 ### Run the tests and generate some documentation
-FROM base as test
+FROM quicklisp as test
 
 COPY . .
 RUN sbcl --core dependencies.core \
@@ -42,15 +42,11 @@ RUN sbcl --core dependencies.core \
 
 FROM base as org-publish
 
-RUN mkdir /breeze
-WORKDIR /breeze
-
 RUN apk add bash ca-certificates emacs
 
 COPY . .
 COPY --from=test /breeze/docs /breeze/docs
 
-# RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -yq emacs
 RUN emacs -Q --batch --load scripts/org-publish-project.el --kill
 RUN ls
 RUN ls /breeze/public
@@ -63,11 +59,5 @@ COPY --from=org-publish /breeze/public /
 ######################################################################
 ### This is where I left off
 
-FROM deps as integration-tests
-
-# Ok, the base image is old af... so I'm going to try to make an
-# executable, and run it in an alpine-base layer that has a newer
-# emacs... _Maybe_ alpine is not the best idea because of the
-# libc... The base image uses debian, I should probably stick with it.
-RUN apt update && apt install -y -q --force-yes emacs
-RUN emacs -batch -l ert -l my-tests.el -f ert-run-tests-batch-and-exit
+# FROM deps as integration-tests
+# RUN emacs -batch -l ert -l my-tests.el -f ert-run-tests-batch-and-exit
