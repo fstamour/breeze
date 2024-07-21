@@ -28,7 +28,7 @@ integration: build-within-container dependencies.core
 .PHONY: public
 public: TARGET=public
 public: DEST=public
-public: build-within-container dependencies.core
+public: dependencies.core build-within-container
 
 
 # Run some "integration tests" that generates some screenshots

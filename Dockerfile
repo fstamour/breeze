@@ -1,9 +1,7 @@
-ARG LISP=sbcl
-ARG LISP_VERSION=2.2.4
-
 ######################################################################
 ### Base layers, setup working directory and quicklisp
-FROM docker.io/clfoundation/${LISP}:${LISP_VERSION} as base
+# FROM docker.io/clfoundation/${LISP}:${LISP_VERSION} as base
+FROM alpine:3.18.4 as base
 
 RUN mkdir /breeze
 WORKDIR /breeze
@@ -11,7 +9,12 @@ WORKDIR /breeze
 
 FROM base as quicklisp
 
-RUN QUICKLISP_DIST_VERSION=latest QUICKLISP_ADD_TO_INIT_FILE=true /usr/local/bin/install-quicklisp
+RUN apk add sbcl
+COPY scripts/quicklisp.lisp scripts/quicklisp.lisp
+RUN sbcl --non-interactive \
+     --load scripts/quicklisp.lisp \
+     --eval "(quicklisp-quickstart:install)" \
+     --eval "(ql-util:without-prompting (ql:add-to-init-file))"
 
 ######################################################################
 ### Download all needed dependencies (for the main and the test
@@ -37,8 +40,7 @@ COPY . .
 RUN sbcl --core dependencies.core \
      --eval "(asdf:test-system '#:breeze)"
 
-
-FROM alpine:3.18.4 as org-publish
+FROM base as org-publish
 
 RUN mkdir /breeze
 WORKDIR /breeze
