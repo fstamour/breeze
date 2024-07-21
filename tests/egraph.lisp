@@ -554,7 +554,7 @@ comparison."
 
 (defun make-egraph* (input &rest other-inputs)
   (let ((egraph (make-egraph)))
-    (add-form egraph input)
+    (add-input egraph input)
     (map nil (lambda (i) (add-form egraph i)) other-inputs)
     (rebuild egraph)
     egraph))
@@ -591,33 +591,20 @@ comparison."
                               (format t "~&        ~a" form))
                           (stream-eclass egraph (eclass egraph eclass-id)))))
           (format t "~%~%")
-          (let ((input-eclass-id 0))
-            (map-stream
-             (lambda (eclass-id)
-               (map-stream #'(lambda (form)
-                               (format t "~&~a" form))
-                           (stream-eclass egraph (eclass egraph eclass-id))))
-             (stream-equivalent-eclasses egraph input-eclass-id)
-             :limit 100)
-            ;; (map-egraph #'print egraph :limit 100)
+          (loop
+            :for input-eclass-id :in (input-eclasses egraph)
+            :do
+               (format t "~&Forms in input e-class ~d:" input-eclass-id)
+               (map-stream
+                (lambda (eclass-id)
+                  (map-stream #'(lambda (form)
+                                  (format t "~&-> ~a" form))
+                              (stream-eclass egraph (eclass egraph eclass-id))))
+                (stream-equivalent-eclasses egraph input-eclass-id)
+                :limit 100)
+               ;; (map-egraph #'print egraph :limit 100)
             ))
         egraph)))
-
-  #|
-  2024-07-05
-
-  2: (STREAM-ECLASS #<EGRAPH 5 e-nodes across 4 e-classes, 0 pending repairs> NIL)
-      Locals:
-        ECLASS = NIL
-        EGRAPH = #<EGRAPH 5 e-nodes across 4 e-classes, 0 pending repairs>
-  3: ((LAMBDA (BREEZE.EGRAPH::ECLASS-ID-OR-CONSTANT) :IN BREEZE.EGRAPH::STREAM-ENODE) #(+ 1 2))
-      Locals:
-        BREEZE.EGRAPH::ECLASS-ID-OR-CONSTANT = #(+ 1 2)  ;;;;;;;;;; This is not a constant or a class id, right?
-        EGRAPH = #<EGRAPH 5 e-nodes across 4 e-classes, 0 pending repairs>
-        BREEZE.EGRAPH::I = 1
-
-  |#
-
 
   #++
   (let ((egraph (test-simple-rewrite '(/ a a) '(/ ?x ?x) 1)))
@@ -715,7 +702,7 @@ Forms represented by the egraph:
   (dump-egraph egraph))
 
 #++
-(defparameter *e*)
+(defparameter *e* nil)
 
 
 

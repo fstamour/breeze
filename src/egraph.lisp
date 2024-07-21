@@ -20,7 +20,8 @@
    #:eclasses
    #:union-find
    #:eclasses
-   #:pending)
+   #:pending
+   #:input-eclasses)
   (:export
    #:eclass
    #:eclass-id
@@ -36,7 +37,8 @@
    #:enode<
    #:smallest-enodes)
   (:export
-   #:add-form)
+   #:add-form
+   #:add-input)
   (:export
    #:match-rewrite
    #:apply-rewrite))
@@ -210,7 +212,11 @@ eclasses.")
     :initform (list)
     :initarg :pending
     :accessor pending
-    :documentation "A list of pending eclass ids to fix their invariants."))
+    :documentation "A list of pending eclass ids to fix their invariants.")
+   (input-eclasses
+    :initform (list)
+    :accessor input-eclasses
+    :documentation "A convenient list of eclass ids considered as \"inputs\"."))
   (:documentation "An equivalence graph"))
 
 
@@ -305,6 +311,8 @@ The second value is NIL iif ENODE was already canonical."
     (loop
       :for i :from 1 :below (length enode)
       :for child-eclass-id := (aref enode i)
+      #++ (let ((id (aref enode i)))
+            (if (typep id 'eclass) (id id) id))
       :for child-eclass := (eclass egraph child-eclass-id)
       :do (add-parent child-eclass enode parent-eclass-id))))
 
@@ -427,7 +435,7 @@ many merges in a batch and only call rebuild once afterwards."
 
 
 
-(defun %root-eclasses (egraph)
+(defun root-eclasses (egraph)
   "Find all eclasses that have no parents."
   (loop
     :for eclass-id :being
@@ -435,18 +443,6 @@ many merges in a batch and only call rebuild once afterwards."
         :using (hash-value eclass)
     :when (root-eclass-p eclass)
       :collect eclass))
-
-(defun root-eclasses (egraph)
-  "Find all the canonical eclasses that have no parents."
-  (let* ((roots (%root-eclasses egraph))
-         (root-ids (to-set (mapcar #'id roots))))
-    (loop
-      :for eclass-id :being
-        :the :hash-key :of (eclasses egraph)
-          :using (hash-value eclass)
-      :for canonical-id = (eclass-find egraph eclass-id)
-      :when (gethash canonical-id root-ids)
-        :collect eclass)))
 
 (defun enode< (a b)
   (unless (eq a b)
@@ -503,17 +499,43 @@ eclass-id."
 eclass-id."
   (egraph-add-enode
    egraph
-   ;; Convert FROM into an enode.
+   ;; Convert FORM into an enode.
    (apply #'vector
           (car form)
           (mapcar
            (lambda (element) (add-form egraph element))
            (rest form)))))
 
+;; This one is used to add "forms" that were created by pattern
+;; substitution (e.g. by a rewrite). The pattern matching codes works
+;; with vectors.
+(defmethod add-form (egraph (form vector))
+  "Add a FORM to an e-graph, creating e-classes if necessary. Returns an
+eclass-id."
+  (egraph-add-enode
+   egraph
+   ;; Convert FORM into an enode.
+   (apply #'vector
+          (aref form 0)
+          (loop :for i :from 1 :below (length form)
+                :collect (add-form egraph (aref form i))))
+   #++ ;; TODO don't treat the first element in a special way
+   (map 'vector
+        (lambda (element) (add-form egraph element))
+        form)))
+
+;; This is also required for adding forms created by pattern
+;; substitution, because the matching and substitution is done on
+;; enodes, it creates forms that contains instance of eclasses (the
+;; bindings during matching binds to instances of elcasses).
 (defmethod add-form (egraph (eclass eclass))
   "Add ECLASS to an e-graph, creating e-classes if necessary."
   ;; assumes it's already in the egraph
   (id eclass))
+
+(defmethod add-input (egraph form)
+  (let ((eclass-id (add-form egraph form)))
+    (pushnew eclass-id (input-eclasses egraph))))
 
 
 ;;; E-matching, rewrites, rules, etc.
@@ -530,22 +552,22 @@ eclass-id."
        ;; This is getting very complicated because
        ;; "match-eclass" returns a list of possible bindings...
        (loop
-             :for eclass-id :across enode
-             :for subpattern :across pattern
-             :for new-set-of-bindings =
-             ;; TODO Optimization: check if match returns T
-             ;; Probably not worth it, as I may change that code altogether...
-             (merge-sets-of-bindings
-              set-of-bindings
-              ;; TODO This assumes that the first element of the enode is not an eclass
-              (list (breeze.pattern::match eclass-id subpattern)))
-             :then (merge-sets-of-bindings
-                    new-set-of-bindings
-                    (match-eclass egraph
-                                  (eclass egraph eclass-id)
-                                  subpattern new-set-of-bindings))
-             :while new-set-of-bindings
-             :finally (return new-set-of-bindings))))))
+         :for eclass-id :across enode
+         :for subpattern :across pattern
+         :for new-set-of-bindings =
+         ;; TODO Optimization: check if match returns T
+         ;; Probably not worth it, as I may change that code altogether...
+                                  (merge-sets-of-bindings
+                                   set-of-bindings
+                                   ;; TODO This assumes that the first element of the enode is not an eclass
+                                   (list (breeze.pattern::match eclass-id subpattern)))
+           :then (merge-sets-of-bindings
+                  new-set-of-bindings
+                  (match-eclass egraph
+                                (eclass egraph eclass-id)
+                                subpattern new-set-of-bindings))
+         :while new-set-of-bindings
+         :finally (return new-set-of-bindings))))))
 
 (defun match-eclass (egraph eclass pattern &optional (set-of-bindings '(t)))
   (check-type egraph egraph)
@@ -577,7 +599,6 @@ forms."
                                (pattern-substitute substitution bindings))
                              set-of-bindings))))
 
-#++
 (defun apply-rewrite (egraph rewrite)
   "Match REWRITE's pattern against EGRAPH. Add the new forms and merge
 the corresponding ECLASSES.
@@ -594,29 +615,6 @@ Does NOT rebuild the egraph's invariants."
                                  (add-parent new-eclass parent-enode parent-eclass-id))
                                (parents eclass))
                   :do (merge-eclass egraph (id eclass) new-eclass-id)))
-  egraph)
-
-(defun add-form-to-eclass (egraph eclass form)
-  (if (typep form 'eclass)
-      (merge-eclass egraph (id eclass) (id form))
-      (multiple-value-bind (eclass-id existing-eclass-p)
-          (add-form egraph form)
-        (unless existing-eclass-p
-          (eclass-add-enode eclass enode)
-          (setf (eclass-id egraph enode) (id eclass))
-          (push (id eclass) (pending egraph))))))
-
-(defun apply-rewrite (egraph rewrite)
-  "Match REWRITE's pattern against EGRAPH. Add the new forms and merge
-the corresponding ECLASSES.
-Does NOT rebuild the egraph's invariants."
-  #++ (format t "~&Rewrite from ~s to ~s"
-              (rewrite-pattern rewrite)
-              (rewrite-template rewrite))
-  (loop :for (eclass forms) :in (match-rewrite egraph rewrite)
-        ;; :for parent-eclass = (parent-eclass)
-        :do (loop :for new-form :in forms
-                  :do (add-form-to-eclass egraph eclass new-form)))
   egraph)
 
 
@@ -751,20 +749,28 @@ past the last element of the sequence."
         (enodes eclass))))
 
 (defun stream-equivalent-eclasses (egraph eclass-id)
+  "Create a stream that will iterate over all the eclasses that are
+equivalent to eclass-id."
   (let* ((canonical-id (eclass-find egraph eclass-id))
-         (id 0)
+         (id -1)
          (union-find (union-find egraph))
          (l (length union-find)))
-    (lambda (&optional method)
-      (ecase method
-        (:next (loop
-                 :for i = (incf id)
-                 :while (< id l)
-                 :for eclass-id = (aref union-find i)
-                 :when (= canonical-id eclass-id)
-                   :do (return id)))
-        (:done (<= l id))
-        ((nil) id)))))
+    (flet ((find-next ()
+             ;; Find the next equivalent id in the union-find data
+             ;; structure.
+             (loop
+               :for i = (incf id)
+               :while (< id l)
+               :for eclass-id = (aref union-find i)
+               :when (= canonical-id eclass-id)
+                 :do (return id))))
+      (find-next)
+      (lambda (&optional method)
+        (ecase method
+          (:next
+           (find-next))
+          (:done (<= l id))
+          ((nil) id))))))
 
 (defun stream-enode (egraph enode)
   (etypecase enode
@@ -778,7 +784,7 @@ past the last element of the sequence."
                         (t (incf i) (stream-constant eclass-id-or-constant))))
                     enode))))))
 
-(defun map-egraph (fn egraph eclass-ids &key limit)
+(defun map-egraph (fn egraph &key limit)
   (map-stream
    fn
    (stream-concat
