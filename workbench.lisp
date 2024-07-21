@@ -25,6 +25,30 @@
 ;; Kill all currently running breeze-commands
 (kill-threads-by-name "breeze command handler")
 
+
+(defvar *default-trace-report-default* sb-debug:*trace-report-default*)
+
+;; tracing is very very useful for debugging, but the default way sbcl
+;; often prints "way too much" stuff
+(defun trace-report (depth function event stack-frame values)
+  ;; (pprint-logical-block stream values :prefix ... :suffix ...)
+  (let ((*print-pretty* nil)
+        (stream *standard-output*))
+    (terpri stream)
+    (pprint-logical-block (stream values
+                                  :per-line-prefix (format nil "~v@{~A~:*~}" depth "  |"))
+      ;; (loop :repeat depth :do (format stream "  |"))
+      (pprint-indent :current depth stream)
+      (case event
+        (:enter
+         (format stream "~3d (~a ~{~a~^ ~})" depth function values))
+        (:exit
+         (format stream "~3d => ~{~a~^, ~}" depth values))
+        (t
+         (format stream "~3d ~s (~a ~{~a~^ ~})" depth event function values))))))
+
+(setf sb-debug:*trace-report-default* 'trace-report)
+
 
 
 (setf *break-on-signals* 'error)
@@ -95,6 +119,26 @@
 (context *a*)
 
 
+;;; Prototyping the request thingy...
+
+(request 'x)
+;; => nil
+
+(handler-bind
+    ((request #'(lambda (request)
+                  ;; (format t "~%request: ~s" request)
+                  (if (eq (what request) 'x)
+                      (answer 42)
+                      (signal request)))))
+  (mapcar (lambda (what)
+            (multiple-value-list (request what)))
+          '(x y)))
+;; => ((42 T) (NIL))
+
+(with-answers
+    ())
+
+
 
 ;; refactor.lisp
 
@@ -113,11 +157,11 @@
   )
 
 (let* ((*standard-output* *debug-io*)
-       (nodes )
-       (path )
-       (outer-node )
-       (parent-node )
-       (inner-node ))
+       (nodes)
+       (path)
+       (outer-node)
+       (parent-node)
+       (inner-node))
   (loop :for (node . index) :in path
         :for i :from 0
         :do (format t "~%=== Path part #~d, index ~d ===~%~s"
@@ -163,15 +207,125 @@
 
 ;;; lossless-reader.lisp
 
+(in-package #:breeze.lossless-reader)
+
 (trace
  read-string*
- read-char*)
+ read-char*
+ read-while)
 
 (trace
- %read-whitespaces
- %read-block-comment
- %read-token
+ read-whitespaces
+ read-block-comment
+ read-line-comment
+ read-sharpsign-dispatching-reader-macro
+ read-punctuation
+ ;; read-quoted-string
+ read-string
+ read-token
  read-parens
- read-extraneous-closing-parens)
+ read-extraneous-closing-parens
+ read-any
+ parse)
 
 (untrace)
+
+
+
+
+(in-package #:breeze.pattern)
+
+(trace iterator-next
+       iterator-maybe-push
+       iterator-maybe-pop)
+
+(trace merge-bindings)
+
+(trace match)
+
+(untrace)
+
+
+(in-package #:breeze.test.pattern)
+
+(test-match '(:zero-or-more a b) '(a b a b))
+
+(trace compile-pattern)
+
+(trace match :methods t)
+
+(trace :wherein test-match-ref
+       ;; match
+       merge-bindings)
+
+
+(in-package #:breeze.test.analysis)
+
+(trace in-package-node-p
+       :wherein test-in-package-node-p)
+
+(trace :wherein test-lint
+       in-package-node-p)
+
+(trace match
+       :wherein test-in-package-node-p)
+
+(trace
+ :wherein test-match-parse
+ match
+ breeze.analysis::match-symbol-to-token
+ breeze.analysis::match-node)
+
+(untrace)
+
+
+(trace lint)
+
+
+
+(in-package #:breeze.listener)
+
+(trace suggest-symbol
+       suggest-package
+       suggest-class)
+
+
+
+(progn
+  ;; List the slot of a condition
+  (sb-kernel::condition-assigned-slots *condition*)
+
+  ;; Get the first element of a condition's format arguments
+  (car
+   (slot-value *condition*
+               'sb-kernel::format-arguments)))
+
+
+
+(defparameter *condition* *last-condition*
+  "Just a quick way to save the last-condition.")
+
+
+
+#+ (or)
+(type-of *condition*)
+;; => SB-PCL::MISSING-SLOT
+
+
+
+(prin t)
+(commmon-lisp:print :oups)
+(cl:prin :oups)
+(call-with-correction-suggestion (lambda () (eval '(prin))))
+(make-instance 'typos)
+
+
+
+
+#|
+
+TODO Would be nice to have a "Shadow-import all" restart.
+
+|#
+
+

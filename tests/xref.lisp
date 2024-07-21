@@ -14,7 +14,7 @@
 (define-test find-package
   (is equal
       (find-packages-by-prefix "breeze")
-      (find-packages-by-regex "breeze.*")))
+      (find-packages-by-prefix "breeze.")))
 
 (defparameter *symbols*
   '(dum:*bound-variable*
@@ -79,7 +79,7 @@
          (with-output-to-string (*standard-output*)
            (loop :for symbol :being :the :external-symbol :of 'breeze.dummy.test
                  :for pass = (funcall fn symbol)
-                 :unless (str:containsp "undocumented" (string-downcase (symbol-name symbol)))
+                 :unless (search "undocumented" (string-downcase (symbol-name symbol)))
                    :do
                       (format t "~&(is ")
                       (unless pass (format t "(not "))

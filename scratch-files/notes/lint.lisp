@@ -1,3 +1,5 @@
+;; For examples of equivalent forms, search for the string "==" in
+;; ~/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/
 
 ;; definitely don't need the "if"
 ;; probably don't need the "null"
@@ -76,6 +78,32 @@ inline-function
   (t nil))
 ;; should be
 (member x '(1 2 3) :test #'=)
+
+(eql nil x)
+;; same with equal or equalp, but not eq
+
+(typep 'x nil)
+;; you probably want
+(typep 'x 'null)
+;; same with check-type, declarations, types in struct and classes, etc.
+
+keywordp
+
+(typep x some-type-that-has-an-existing-predictate)
+;; use the predicate instead
+symbol keyword integer number string cons atom list
+
+(typep 0 '(integer 1))
+(plusp 0)
+
+
+;; No need to nest variadic functions or macros
+(and (and a b) c) => (and a b c)
+(or (or a b) c) => (or a b c)
+(+ (+ a b) c) => (+ a b c)
+(* (* a b) c) => (* a b c)
+(min (min a b) c) => (min a b c)
+(max (max a b) c) => (max a b c)
 
 
 
@@ -292,3 +320,86 @@ prog*
 
 ;; it's redundent to add a quote before t, nil, or any keywords
 ':ok 'nil 'y
+
+Bad:
+(defmethod ((x '(:eql y))))
+(defmethod ((x (:eql y))))
+(defmethod ((x (:eql 'y))))
+(defmethod ((x '(:eql 'y))))
+(defmethod ((x 'y)))
+(defmethod ((x :y)))
+Good:
+(defmethod (x (eql 'y)))
+(defmethod (x (eql :y)))
+
+
+
+(defun f (y)
+  ;; Copy-pasted code, where the variables doesn't match, breeze
+  ;; should be able to "quickfix" this relpacing either x or y by the
+  ;; other.
+  (if (plusp x)
+      x
+      (- x)))
+
+
+;; Would be nice if we could detect this kind of typos...
+(defu nasdf (...) ...)
+
+
+Very bad:
+char\=
+
+Good:
+char/=
+
+
+(assoc "some string" alist)
+=>
+(assoc "some string" alist :test 'equal)
+
+
+(return-from 'x)
+=>
+(return-from x)
+
+
+(cons x nil) === (list x)
+
+
+(not (= ...))
+=>
+(/= ...)
+
+
+;; check for unused import-from and import
+
+;; nested defun
+;; defvar, defparameterm, defconstant inside defun
+;; warn about non-toplevel defparameter, defvar, defconstant, defmacro ?
+;; defparameter or defvar without earmuffs
+;; defconstant without +...+
+
+
+
+(let ((b (f1 a)))
+  (and b (let ((c (f2 b)))
+           (and c (f3 c)))))
+
+=>
+
+(let ((b (f1 a))
+      (c (and b (f2 b))))
+  (and c (f3 c)))
+
+=>
+
+(when-let* ((b (f1 a))
+            (c (and b (f2 b))))
+  (f3 c))
+
+
+
+;; Warn that the body is empty
+(let ((x 32)))
+;; Same with flet, macrolet, symbol-macrolet, etc

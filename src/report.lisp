@@ -1,44 +1,47 @@
+#|
+
+FIXME I originally named this "report" because I wanted
+something "holistic", but now I started calling this "listing", which
+is not holistic.
+
+TODO I _could_ generate objects instead of directly generating
+html... that way it _could_ be possible to generate something else
+than html.
+
+TODO Nice to haves: line numbers
+
+|#
+
+
 (defpackage #:breeze.report
   (:documentation "Using breeze's code to generate report to improve breeze.")
-  (:use #:cl)
-  (:import-from #:breeze.lossless-reader
-                #:parse
-                #:tree
-                #:node-content
-                #:node-start
-                #:node-end
-                #:node-type
-                #:source-substring
-                #:comment-node-p
-                #:whitespace-node-p
-                #:line-comment-node-p))
+  (:use #:cl #:breeze.lossless-reader))
 
 (in-package #:breeze.report)
+
+#++
+(ql:quickload "cl-ppcre")
 
 #++ ;; this is annoying af...
 (setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
 
 
-(defun find-all-breeze-systems ()
-  "Find all systems defined in breeze.asd."
-  (let ((result ())
-        (asd-pathname (asdf:system-source-file 'breeze)))
-    (asdf:map-systems (lambda (system)
-                        ;; TODO Perhaps use asdf:primary-system-name
-                        (when (equal asd-pathname
-                                     (asdf:system-source-file system))
-                          (push system result))))
-    result))
+(defun paragraphs (string)
+  "Split a string in \"paragraphs\" (a bit like markdown does, where two
+newlines or more marks the start of a new paragraph)."
+  ;; TODO What if it starts with newlines? or if it's only newlines; I
+  ;; should probably use string-trim before split.
+  (cl-ppcre:split
+   (cl-ppcre:create-scanner "\\n\\n+"
+                            :multi-line-mode t
+                            :single-line-mode t)
+   string))
 
-#++ (mapcar 'asdf:coerce-name (find-all-breeze-systems))
+#++;; TODO Make a test
+(paragraphs
+ (format nil "asd~5%qwe~%ert~2%jkl"))
 
-
-(defun enough-breeze (pathname)
-  "Given a pathname, return the relative pathname from the root of the
-breeze project (system)."
-  (uiop:enough-pathname
-   pathname
-   (asdf:system-source-directory 'breeze)))
+
 
 (defun remove-leading-semicolons (string)
   "Remove leading semicolons (e.g. from line comments)."
@@ -52,23 +55,22 @@ breeze project (system)."
 ;; => ""
 
 
+(defun escape-html (string)
+  (cl-ppcre:regex-replace-all
+   ;; I'm sure this is rock solid /s
+   (cl-ppcre:create-scanner "<((?!a |\/a|br).*?)>"
+                            :multi-line-mode t)
+   string
+   "&lt;\\1&gt;"))
 
+#++
+(progn
+  (escape-html "<br>")
+  (escape-html "<a>")
+  (escape-html "<a href=\"\"></a>")
+  (escape-html "=> (#<ASDF/SYSTEM:SYSTEM \"breeze/test\"> #<ASDF/SYSTEM:SYSTEM \"breeze/config\">)"))
 
-(defun paragraphs (string)
-  (cl-ppcre:split
-   (cl-ppcre:create-scanner "\\n\\n+"
-                            :multi-line-mode t
-                            :single-line-mode t)
-   string))
-
-#+example
-(paragraphs
- (format nil "asd~5%qwe~%ert~2%jkl"))
-
-
-
-
-
+
 
 (defun page-node-p (node)
   "Is the node (from the lossless parser) a new-page (^L) character?"
@@ -82,7 +84,7 @@ breeze project (system)."
     :with page = nil
     :for node :in
               (tree state)
-    :when (page-node-p node)
+    :when (and page (page-node-p node))
       :do (push (nreverse page) pages)
           (setf page nil)
     :do (push node page)
@@ -91,18 +93,28 @@ breeze project (system)."
          (push (nreverse page) pages))
        (return (nreverse pages))))
 
-;; TODO rename to parse-system-file, maybe (probably)?
+
+
+(defun enough-breeze (pathname)
+  "Given a pathname, return the relative pathname from the root of the
+breeze project (system)."
+  (uiop:enough-pathname
+   pathname
+   (asdf:system-source-directory 'breeze)))
+
+
 (defun parse-system (&optional (system 'breeze))
   "Parse (with lossless-reader) all files we want to include."
-  ;; TODO include files from other systems in this project.
   ;; TODO include all files that are tracked under git...
   (loop
-    :for file :in (breeze.asdf:system-files
-                   system
-                   :include-asd (asdf:primary-system-p system))
+    :for file :in (sort (breeze.asdf:find-all-related-files system)
+                        #'string<
+                        :key #'namestring)
     :for filename = (enough-breeze file)
     :for content-str = (alexandria:read-file-into-string file)
-    :for state = (parse content-str)
+    :for state = (progn
+                   (format *trace-output* "~&Parsing file ~s..." file)
+                   (parse content-str))
     :collect (list filename state (pages state))))
 
 #++
@@ -112,8 +124,8 @@ breeze project (system)."
 
 ;; TODO move to utils; add tests...
 (defun nrun (list predicate)
-  "If the first element of LIST satisfies PREDICATE, destructively
-extract the first run of elements that satisfies PREDICATE. Returns
+  "Destructively extract the first run of elements that satisfies
+PREDICATE, if the first element of LIST satisfies PREDICATE, . Returns
 the run and update LIST's first cons to point to the last element of
 the run."
   (when (and list
@@ -156,6 +168,7 @@ the run."
           list))
 ;; => (1 3), (3 4 5)
 
+
 
 (defun line-comment-or-ws (node)
   (and node
@@ -171,9 +184,6 @@ the run."
 (let ((node-list (tree (parse (format nil "; c~%  (+ 2 2) #| |#")))))
   (group-line-comments node-list))
 
-;; (defun render-line-comments (nodes))
-
-
 (defun page-title-node (page)
   "Try to infer the page's title. (Reminder: page is a list of node)"
   (loop
@@ -186,7 +196,63 @@ the run."
 
 (defun render-line-comment (out comment)
   (format out "~{<p>~a</p>~%~}"
-          (paragraphs comment)))
+          (paragraphs (escape-html comment))))
+
+#++
+(defun render-node (out state node)
+  (format out "~a"
+          (escape-html
+           (node-content state node))))
+
+
+;; This assumes the packages are loaded in the current image!
+(defun cl-token-p (string)
+  (multiple-value-bind
+        (value error)
+      (ignore-errors (read-from-string string))
+    (and (not (typep error 'error))
+         (eq #.(find-package "CL")
+             (symbol-package value)))))
+
+(defun token-style (state node)
+  (if (valid-node-p node)
+      (let ((content (node-content state node)))
+        (cond
+          ((char= #\: (char content 0)) 'keyword)
+          ((numberp (ignore-errors (read-from-string content))) 'number)
+          ((alexandria:starts-with-subseq "check-" content) 'special)
+          ((position #\: content) 'symbol)
+          ((cl-token-p content) 'symbol)))
+      'syntaxerror))
+
+(defun render-escaped (out string)
+  (write-string (escape-html string) out))
+
+(defun escaped-node-content (state node)
+  (escape-html (node-content state node)))
+
+(defun render-node (out state node &optional (depth 0))
+  (case (node-type node)
+    (string
+     (format out "<span class=\"string\">~a</span>"
+             (escaped-node-content state node)))
+    (token
+     (alexandria:if-let ((style (token-style state node)))
+       (format out "<span class=\"~(~a~)\">~a</span>"
+               (token-style state node)
+               (node-content state node))
+       (render-escaped out (node-content state node))))
+    (parens
+     (format out "<span class=\"~:[syntaxerror ~;~]paren~d\">(<span class=\"progn\">"
+             (valid-node-p node)
+             (min (1+ depth) 6))
+     (map nil (lambda (node)
+                (render-node out state node (1+ depth)))
+          (node-children node))
+     (format out "</span>)</span>"))
+    (t (format out "<span class=\"~a\">~a</span>"
+               (string-downcase (node-type node))
+               (escaped-node-content state node)))))
 
 (defun render-page (out state page)
   "Render 1 page as html, where PAGE is a list of nodes."
@@ -203,10 +269,11 @@ the run."
             (render-line-comment out (remove-leading-semicolons
                                       (source-substring state start end)))))
          (;; don't print whitespace nodes
-          (whitespace-node-p node))
+          (or (whitespace-node-p node) (page-node-p node)))
          (t
-          ;; TODO I should escape STRING
-          (format out "~%<pre>~a</pre>" (node-content state node))))))
+          (format out "~%<pre><code>")
+          (render-node out state node)
+          (format out "~%</code></pre>")))))
 
 (defmacro with-html-file ((stream-var filename) &body body)
   `(alexandria:with-output-to-file (,stream-var
@@ -214,6 +281,7 @@ the run."
                                     :if-exists :supersede)
      (labels ((fmt (&rest rest)
                 (apply #'format out rest)))
+       (fmt "<!DOCTYPE html>")
        (fmt "<html>")
        ;; https://github.com/emareg/classlesscss
        (fmt "<link rel=\"stylesheet\" href=\"style.css\" title=\"classless\" >")
@@ -259,28 +327,32 @@ the run."
   (format nil "docs/listing-~a.html"
           (cl-ppcre:regex-replace-all "/" (asdf:coerce-name system) "--")))
 
+
+
 (defun render (system &aux (pathname (system-listing-pathname system)))
-  (with-html-file (system out pathname)
-    ;; TODO "back to listings"
+  (format *debug-io* "~&Rendering listing for system ~s" system)
+  (with-system-listing (system out pathname)
+    ;; Table of content
     (fmt "<ol>")
     (loop
       :for (filename state pages) :in files
       :do
          (fmt "<li>")
          (fmt "~a" (link-to-file filename))
-         (when (breeze.utils:length>1? pages)
+         (progn ;;when (breeze.utils:length>1? pages)
            (fmt "<ol>")
            (loop
              :for page :in pages
              :for i :from 1
              :for page-title = (let ((node (page-title-node page)))
                                  (when node
-                                   (breeze.utils:summarize
+                                   (escape-html
                                     (remove-leading-semicolons (node-content state node)))))
              :do (fmt "<li>~a</li>" (link-to-page filename i page-title)))
            (fmt "</ol>"))
          (fmt "</li>"))
     (fmt "</ol>")
+    ;; The actual content
     (loop
       :for (filename state pages) :in files
       :for number-of-pages = (length pages)
@@ -290,41 +362,11 @@ the run."
            :for page :in pages
            :for i :from 1
            :do
-              (when (> number-of-pages 1)
-                (fmt "<h3 id=\"~a\">Page ~d</h3>" (page-id filename i) i))
+              (if (> number-of-pages 1)
+                  (fmt "<hr id=\"~a\"></h3>" (page-id filename i))
+                  (fmt "<div id=\"~a\"></div>" (page-id filename i)))
               (render-page out state page))))
   pathname)
 
 #++
 (render 'breeze)
-
-#++
-(mapcar 'render (find-all-breeze-systems))
-
-(defun listings.html ()
-  (with-html-file (out (breeze.utils:breeze-relative-pathname "docs/listings.html"))
-    (fmt "<ol>")
-    (loop
-      :for system :in (find-all-breeze-systems)
-      :for name = (asdf:coerce-name system)
-      :for file = (file-namestring (system-listing-pathname system))
-      :do (fmt "<li><a href=\"~a\">~a</a></li>" file name))
-    (fmt "</ol>")))
-
-#|
-
-FIXME I originally named this "report" because I wanted
-something "holistic", but now I started calling this "listing", which
-is not holistic.
-
-TODO In the same vein... I would like to have _all_ the listings in
-the same file (currently 1 file per system). I want this because it
-would be easier to convert to something else afterwards.
-
-TODO I _could_ generate objects instead of directly generating
-html... that way it _could_ be possible to generate something else
-than html.
-
-TODO Nice to haves: line numbers
-
-|#

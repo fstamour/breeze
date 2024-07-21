@@ -1,0 +1,77 @@
+* Tags
+
+** TODO This is broken since I started to split everything into small files
+
+Use =org-roam-db-query=
+
+example:
+https://d12frosted.io/posts/2021-01-16-task-management-with-roam-vol5.html
+
+See https://github.com/ahmed-shariff/org-roam-ql
+
+** Tag descriptions
+
+#+NAME: tags
+| Tag name     | Tag description                                                                                |
+|--------------+-----------------------------------------------------------------------------------------------|
+| 3rd_parties  | Relating to a third-party, e.g. an external library.                                          |
+| obsolete     | This task is now obsolete.                                                                    |
+| doc          | Relating to the documentation.                                                                |
+| ux           | This task is about improving the user experience                                              |
+| test         | This task is about testing                                                                    |
+| ops          | This task is about CI, releases, deploying docs, etc.                                         |
+| easy         | This task should be easy                                                                      |
+| bug          | This is an unintended bug                                                                     |
+| editor       | This task relates to the integration with an editor.                                          |
+| config       | Relating to breeze's configuration and setup.                                                 |
+| refactor     | Relating to breeze's refactoring facilities.                                                  |
+| capture      | Relating to breeze's capture feature.                                                         |
+| quickproject | Relating to quickproject integration.                                                         |
+| tech_debt    | Due to an ongoing refactoring, to an old hack, incomplete implementation, missing tests, etc. |
+| reader       | Relating to breeze.reader.                                                                    |
+| noexport     | org-mode internal tag                                                                         |
+
+
+#+begin_src emacs-lisp :var tags=tags
+  ;; (prin1-to-string (org-get-buffer-tags))
+  ;; (prin1-to-string tags)
+
+  ;; Find tags that have no descriptions
+  (let ((unknown-tags
+         (cl-set-difference
+          (mapcar #'car (org-get-buffer-tags))
+          (mapcar #'car tags)
+          :test #'string=)))
+    (or unknown-tags
+        "All good, no tags without description found."))
+#+end_src
+
+#+RESULTS:
+: All good, no tags without description found.
+
+** Make sure all tasks have some tags
+
+#+begin_src emacs-lisp
+  (let ((result))
+    (org-map-entries (lambda ()
+                       ;; (org-entry-is-todo-p)
+                       (cl-destructuring-bind (level reduced-level todo priority headline _tags)
+                           (org-heading-components)
+                         ;; _tags does not contain the inherited tags
+                         (when (and
+                                todo
+                                ;; todo could be "DONE" for example
+                                (string= todo "TODO")
+                                (not (org-get-tags)))
+                           (push (list headline) result)))))
+    (nreverse result))
+#+end_src
+
+#+RESULTS:
+| Programming with holes |
+
+
+* Local variables :noexport:
+# local variables:
+# org-confirm-babel-evaluate: nil
+# end:

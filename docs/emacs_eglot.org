@@ -1,0 +1,7 @@
+:PROPERTIES:
+:ID:       38d6dbd7-0580-4701-bd52-ee97174a0535
+:END:
+#+title: Emacs' eglot
+
+- =eglot--propose-changes-as-diff=
+- =eglot-forget-pending-continuations=

@@ -1,12 +1,13 @@
-;; https://asdf.common-lisp.dev/asdf.html
-;; https://quickdocs.org/asdf-dependency-graph
+;;;; Utilities for <a href="https://asdf.common-lisp.dev/asdf.html">ASDF</a>
 
 (uiop:define-package #:breeze.asdf
-    (:documentation "Utilities for adsf")
+  (:documentation "Utilities for asdf")
   (:nicknames #:basdf)
   (:use :cl #:alexandria)
   (:export
    #:system-files
+   #:find-all-related-systems
+   #:find-all-related-files
    #:clear-fasl
    #:reload-system
    #:recompile-system
@@ -14,6 +15,18 @@
    #:loadedp))
 
 (in-package #:breeze.asdf)
+
+(defun find-all-related-systems (system)
+  "Given a system, find all systems defined in the same system definition
+file (including the one passed as argument)."
+  (let ((result ())
+        (asd-pathname (asdf:system-source-file system)))
+    (asdf:map-systems (lambda (system)
+                        ;; TODO Perhaps use asdf:primary-system-name
+                        (when (equal asd-pathname
+                                     (asdf:system-source-file system))
+                          (push system result))))
+    result))
 
 (defun system-files (system-designator &key (include-asd t))
   "List all the files in a system. Including the .asd file itself."
@@ -23,6 +36,13 @@
       ,@(remove-if #'uiop/pathname:directory-pathname-p
                    (mapcar #'asdf/component:component-pathname
                            (asdf/component:sub-components system))))))
+
+(defun find-all-related-files (system)
+  "List all files in SYSTEM and in the other systems defined in the same
+system definition file."
+  (remove-duplicates
+   (alexandria:flatten
+    (mapcar #'system-files (find-all-related-systems system)))))
 
 (defun system-fasl-directory (system-designator)
   "Find the directory of a system's fasl files."
@@ -108,6 +128,37 @@
 (asdf:component-loaded-p
  (asdf:find-system "breeze"))
 
+#|
+
+TODO fix loadedp
+
+Here's a complex but that I never noticed:
+
+1. The function loadedp calls infer-systems
+2. loadedp will crash if it gets a path to a system file that doesn't
+contain any loaded system
+3. infer-systems returns only system definition files that contains a
+system that has not been loaded
+
+Which means that loadedp crashes when it's called on a file that is
+part of a system that no systems from the same system defintion file
+was loaded.
+
+It's subtle...
+
+The fix is (and/or):
+1. Test if I can get away with `(asdf:load-asd ...`
+2. add an ignore-error or something similar, because loadedp should
+never ever crash... But I would like some warning if an issues arise.
+Perhaps add an &optional errorp
+3. Maybe find an alternative to asdf/component:sub-component
+4. List the systems in the system file and check if any of them are
+loaded, if the file is not part of any of these, then the file is
+likely not loaded
+
+|#
+
+
 (defun infer-systems (pathname &aux systems)
   "Given a path (e.g. to a file), infer which systems it might be part of."
   (let* ((directory (uiop:pathname-directory-pathname pathname))
@@ -134,6 +185,9 @@
 This will return false if the file was loaded outside of asdf."
   (when pathname
     (loop :for system :in (infer-systems pathname)
+          ;; BUG if system is a path to an .asd file that has not been
+          ;; loaded, then sub-components will error (on
+          ;; asdf/component:component-if-feature).
           :for components = (asdf/component:sub-components system)
           :when (typep system 'asdf:system)
             :do (when-let* ((component-found (member
@@ -154,10 +208,13 @@ This will return false if the file was loaded outside of asdf."
 
 
 ;;; Inspecting a system's (transitive) dependencies
+;;; See also <a href="https://quickdocs.org/asdf-dependency-graph">asdf-dependency-graph</a>
 
 (defun system-dependencies (system-designator)
   (let ((system (asdf/system:find-system system-designator nil)))
     (remove-if-not #'stringp (asdf:system-depends-on system))))
+
+;; TODO use https://github.com/gpcz/cl-uniquifier/ to generate the labels?
 
 (defun write-dependecy-graph (root-system &optional (stream t)
                               &aux

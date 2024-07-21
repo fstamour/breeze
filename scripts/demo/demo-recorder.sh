@@ -84,6 +84,7 @@ function emacs_tty() {
 }
 
 function wait_for_emacs_to_stop() {
+    # TODO Time out?
     while pgrep emacs
     do
         sleep 1

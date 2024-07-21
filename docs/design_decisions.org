@@ -1,0 +1,72 @@
+:PROPERTIES:
+:ID:       14d42b3a-0a2f-4a3b-8937-7175e621c6ec
+:END:
+#+title: Design Decisions
+
+* Design decisions
+
+** Write everything in common lisp
+
+As much as possible, so that breeze can easily be ported to different
+platforms and editors.
+
+** Wrap definitions                                                :obsolete:
+
+Decision: Create wrapper macros (e.g. =br:defun=) to keep the original
+forms for later analysis.
+
+This decision is really not definitive.
+
+This decision is less than ideal, especially for existing systems, but
+it was the easiest to start with.
+
+*** Alternatives
+
+**** Keep the string being eval'd
+
+Advising swank's eval function is "a good start" in that direction.
+
+**** Parse the source code
+
+- Might be hard, but [[https://github.com/s-expressionists/Eclector][eclector]] could make this easy.
+- [[https://github.com/hyotang666/read-as-string][hyotang666/read-as-string]] is another candidate
+
+** Migrate to parachute 2022-03-08
+
+The test framework and the "wrap definition" parts always were
+proof-of-concepts: I wanted to be able to define some tests, and run
+them when either the test of the system-under-test was redefined. It
+worked, but now that I have a more and more complete common lisp
+parser, I can do the things properly. So I've move the concerned code
+into the folder "scratch-files" and I'll re-introduce them slowly in
+the future. (Because I really want something to run the tests in the
+background, for example.)
+
+** Read from strings instead of streams
+
+I did some tests and the code was like 100x faster when reading from
+string instead of reading from streams. There are multiple reasons: to
+ extract the "raw" text from the stream require consing new strings
+_and_ abusing file-position to move back and forth in the stream, both
+of these are very inefficient. Instead, we use displaced arrays which
+results in way less consing and no "stream state" to manage. This made
+both the code faster and simpler.
+
+From another point of view: why not? we were already copying the whole
+stream into the resulting tree, now we just have references to one
+string.
+
+** Use =licence= and not =license=
+
+This is a very tiny decision, but I know I'll forget it.
+
+What made me decide between the two: =licence= is what asdf use, and
+it's what the user will see in their projects.
+
+** Only use dependencies from quicklisp's distribution
+
+This project is not in quicklisp, and I don't plan to add it to
+quicklisp until it stabilizes (which might take years). I make sure to
+only use dependencies from quicklisp so that if somebody wants to try
+it out they'll just need to clone this repository in quicklisp's
+local-projects folder.

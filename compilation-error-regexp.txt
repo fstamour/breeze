@@ -1,0 +1,993 @@
+# Here's a few example of errors that could be detected
+
+
+
+ASDF could not load myelin because
+Component ASDF/USER::FIND-PORT not found, required by #<SYSTEM "myelin">.
+While evaluating the form starting at line 2, column 0
+  of #P"/opt/myelin/myelin.test.asd":
+While evaluating the form starting at line 7, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a ASDF/FIND-COMPONENT:MISSING-DEPENDENCY in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  Component ASDF/USER::FIND-PORT not found, required by #<SYSTEM "myelin">
+
+
+
+
+
+
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/hunchentoot-v1.3.0/hunchentoot.asd" contains definition for system "hunchentoot-test". Please only define "hunchentoot" and secondary systems with a name starting with "hunchentoot/" (e.g. "hunchentoot/test") in that file.
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/hunchentoot-v1.3.0/hunchentoot.asd" contains definition for system "hunchentoot-dev". Please only define "hunchentoot" and secondary systems with a name starting with "hunchentoot/" (e.g. "hunchentoot/test") in that file.
+ASDF could not load myelin because
+Component ASDF/USER::COM.INUOE.JZON not found, required by #<SYSTEM "myelin">.
+While evaluating the form starting at line 2, column 0
+  of #P"/opt/myelin/myelin.test.asd":
+While evaluating the form starting at line 7, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a ASDF/FIND-COMPONENT:MISSING-DEPENDENCY in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  Component ASDF/USER::COM.INUOE.JZON not found, required by #<SYSTEM "myelin">
+
+
+(ASDF/FIND-COMPONENT:RESOLVE-DEPENDENCY-NAME #<ASDF/SYSTEM:SYSTEM "myelin"> ASDF/USER::COM.INUOE.JZON NIL)
+   error finding frame source: Bogus form-number: the source file has probably
+                               changed too much to cope with.
+   source: NIL
+
+
+
+
+-*- mode: compilation; default-directory: "~/dev/myelin/" -*-
+Compilation started at Fri Jan 26 23:17:27
+
+make -k
+docker build -f myelin.dockerfile -t myelin .
+Sending build context to Docker daemon  257.5kB
+Step 1/16 : FROM docker.io/ubuntu:20.04
+ ---> f78909c2b360
+Step 2/16 : RUN apt-get update     && apt-get upgrade -y     && apt-get install -y sbcl curl vim emacs graphviz
+ ---> Using cache
+ ---> d62c83b6557e
+Step 3/16 : RUN cd /tmp     && curl -O https://beta.quicklisp.org/quicklisp.lisp     && sbcl --noinform             --disable-ldb             --lose-on-corruption             --load quicklisp.lisp             --eval '(quicklisp-quickstart:install :path "/opt/quicklisp")'             --eval '(ql::without-prompting (ql:add-to-init-file))'     && cp $HOME/.sbclrc /etc/sbclrc     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ ---> Using cache
+ ---> 942ecf286883
+Step 4/16 : RUN mkdir /opt/myelin
+ ---> Using cache
+ ---> 800051f9dda9
+Step 5/16 : WORKDIR /opt/myelin
+ ---> Using cache
+ ---> de7135cb0a2d
+Step 6/16 : COPY myelin-dependencies.asd /opt/myelin/
+ ---> 164dcd2c9497
+Step 7/16 : RUN sbcl --noinform          --disable-ldb          --lose-on-corruption          --eval '(require :asdf)'          --eval '(load "myelin-dependencies.asd")'          --eval "(ql:quickload '(#:myelin-dependencies #:swank))"
+ ---> Running in 2a0aec266b32
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "hunchentoot":
+  Load 2 ASDF systems:
+    asdf uiop
+  Install 20 Quicklisp releases:
+    alexandria babel bordeaux-threads cffi chunga cl+ssl
+    cl-base64 cl-fad cl-ppcre flexi-streams global-vars
+    hunchentoot md5 rfc2388 split-sequence
+    trivial-backtrace trivial-features trivial-garbage
+    trivial-gray-streams usocket
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-backtrace/2023-02-14/trivial-backtrace-20230214-git.tgz">
+; 9.15KB
+==================================================
+9,368 bytes in 0.00 seconds (9148.44KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/rfc2388/2018-08-31/rfc2388-20180831-git.tgz">
+; 12.23KB
+==================================================
+12,522 bytes in 0.00 seconds (12228.52KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/md5/2021-06-30/md5-20210630-git.tgz">
+; 16.33KB
+==================================================
+16,719 bytes in 0.00 seconds (8163.57KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-ppcre/2023-06-18/cl-ppcre-20230618-git.tgz">
+; 153.74KB
+==================================================
+157,428 bytes in 0.06 seconds (2562.30KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-fad/2022-02-20/cl-fad-20220220-git.tgz">
+; 24.69KB
+==================================================
+25,285 bytes in 0.00 seconds (12346.19KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-base64/2020-10-16/cl-base64-20201016-git.tgz">
+; 10.13KB
+==================================================
+10,373 bytes in 0.00 seconds (10129.88KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/split-sequence/2021-05-31/split-sequence-v2.0.1.tgz">
+; 11.43KB
+==================================================
+11,705 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/usocket/2023-06-18/usocket-0.8.6.tgz">
+; 91.60KB
+==================================================
+93,803 bytes in 0.05 seconds (1991.40KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/flexi-streams/2022-02-20/flexi-streams-20220220-git.tgz">
+; 435.47KB
+==================================================
+445,922 bytes in 0.10 seconds (4536.15KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/babel/2023-02-14/babel-20230214-git.tgz">
+; 267.55KB
+==================================================
+273,967 bytes in 0.06 seconds (4116.09KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/cffi/2023-10-21/cffi-20231021-git.tgz">
+; 257.22KB
+==================================================
+263,396 bytes in 0.07 seconds (3572.54KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl+ssl/2023-10-21/cl+ssl-20231021-git.tgz">
+; 90.20KB
+==================================================
+92,364 bytes in 0.05 seconds (1768.61KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-gray-streams/2023-10-21/trivial-gray-streams-20231021-git.tgz">
+; 7.87KB
+==================================================
+8,055 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/chunga/2023-10-21/chunga-20231021-git.tgz">
+; 20.44KB
+==================================================
+20,929 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-garbage/2023-10-21/trivial-garbage-20231021-git.tgz">
+; 10.75KB
+==================================================
+11,005 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-features/2023-06-18/trivial-features-20230618-git.tgz">
+; 11.10KB
+==================================================
+11,368 bytes in 0.00 seconds (11101.56KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/global-vars/2014-11-06/global-vars-20141106-git.tgz">
+; 3.50KB
+==================================================
+3,581 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/bordeaux-threads/2023-10-21/bordeaux-threads-v0.9.3.tgz">
+; 2991.12KB
+==================================================
+3,062,902 bytes in 0.45 seconds (6632.18KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/alexandria/2023-10-21/alexandria-20231021-git.tgz">
+; 55.87KB
+==================================================
+57,207 bytes in 0.02 seconds (2539.37KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/hunchentoot/2020-06-10/hunchentoot-v1.3.0.tgz">
+; 262.75KB
+==================================================
+269,060 bytes in 0.09 seconds (2887.41KB/sec)
+; Loading "hunchentoot"
+..................................................
+[package impl-specific-gray]......................
+[package trivial-gray-streams]....................
+[package chunga]..................................
+[package cl-base64]...............................
+[package alexandria]..............................
+[package alexandria-2]............................
+[package global-vars].............................
+[package trivial-garbage].........................
+[package bordeaux-threads]........................
+[package bordeaux-threads-2]......................
+[package cl-fad]..................................
+[package path]....................................
+[package cl-ppcre]................................
+..................................................
+[package flexi-streams]...........................
+..................................................
+..................................................
+..................................................
+[package babel-encodings].........................
+[package babel]...................................
+..................................................
+[package cffi-sys]................................
+[package cffi-features]...........................
+[package cffi]....................................
+..................................................
+[package cl+ssl/config]...........................
+[package split-sequence]..........................
+[package usocket].................................
+[package cl+ssl]..................................
+[package md5].....................................
+[package rfc2388].................................
+[package trivial-backtrace].......................
+[package url-rewrite].............................
+[package hunchentoot]...........................
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "spinneret":
+  Load 9 ASDF systems:
+    alexandria asdf bordeaux-threads cl-ppcre global-vars
+    split-sequence trivial-garbage trivial-gray-streams uiop
+  Install 18 Quicklisp releases:
+    anaphora closer-mop introspect-environment iterate
+    lisp-namespace mgl-pax named-readtables parenscript
+    parse-declarations parse-number serapeum spinneret
+    string-case trivia trivial-cltl2 trivial-file-size
+    trivial-macroexpand-all type-i
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-macroexpand-all/2017-10-23/trivial-macroexpand-all-20171023-git.tgz">
+; 1.92KB
+==================================================
+1,968 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-file-size/2022-11-06/trivial-file-size-20221106-git.tgz">
+; 3.15KB
+==================================================
+3,225 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/type-i/2023-02-14/type-i-20230214-git.tgz">
+; 5.94KB
+==================================================
+6,081 bytes in 0.00 seconds (5938.48KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-cltl2/2021-12-30/trivial-cltl2-20211230-git.tgz">
+; 6.24KB
+==================================================
+6,394 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/lisp-namespace/2022-11-06/lisp-namespace-20221106-git.tgz">
+; 9.56KB
+==================================================
+9,786 bytes in 0.00 seconds (9556.64KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/closer-mop/2023-10-21/closer-mop-20231021-git.tgz">
+; 23.25KB
+==================================================
+23,805 bytes in 0.00 seconds (23247.07KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/iterate/2021-05-31/iterate-release-b0f9a9c6-git.tgz">
+; 338.01KB
+==================================================
+346,126 bytes in 0.12 seconds (2725.92KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivia/2023-06-18/trivia-20230618-git.tgz">
+; 60.61KB
+==================================================
+62,061 bytes in 0.02 seconds (3030.32KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/string-case/2018-07-11/string-case-20180711-git.tgz">
+; 8.87KB
+==================================================
+9,081 bytes in 0.00 seconds (8868.16KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/parse-number/2018-02-28/parse-number-v1.7.tgz">
+; 5.58KB
+==================================================
+5,715 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/parse-declarations/2010-10-06/parse-declarations-20101006-darcs.tgz">
+; 35.80KB
+==================================================
+36,664 bytes in 0.01 seconds (2557.48KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/introspect-environment/2022-02-20/introspect-environment-20220220-git.tgz">
+; 9.47KB
+==================================================
+9,695 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/serapeum/2023-10-21/serapeum-20231021-git.tgz">
+; 246.36KB
+==================================================
+252,271 bytes in 0.07 seconds (3329.17KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/mgl-pax/2023-10-21/mgl-pax-20231021-git.tgz">
+; 958.83KB
+==================================================
+981,840 bytes in 0.20 seconds (4677.21KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/named-readtables/2023-10-21/named-readtables-20231021-git.tgz">
+; 26.11KB
+==================================================
+26,739 bytes in 0.00 seconds (13056.15KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/anaphora/2022-02-20/anaphora-20220220-git.tgz">
+; 6.16KB
+==================================================
+6,303 bytes in 0.00 seconds (6155.27KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/parenscript/2018-12-10/Parenscript-2.7.1.tgz">
+; 101.52KB
+==================================================
+103,952 bytes in 0.04 seconds (2360.83KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/spinneret/2023-10-21/spinneret-20231021-git.tgz">
+; 30.69KB
+==================================================
+31,424 bytes in 0.01 seconds (2789.77KB/sec)
+; Loading "spinneret"
+[package mgl-pax.asdf]............................
+[package anaphora]................................
+[package anaphora-basic]..........................
+[package anaphora-symbol].........................
+[package dref-ext]................................
+[package dref]....................................
+[package dref-ext]................................
+[package dref]....................................
+[package mgl-pax].................................
+[package mgl-pax].................................
+[package editor-hints.named-readtables]...........
+[package editor-hints.named-readtables]...........
+[package parenscript].............................
+[package ps-js-symbols]...........................
+[package ps-dom1-symbols].........................
+[package ps-dom2-symbols].........................
+[package ps-window-wd-symbols]....................
+[package ps-dom-nonstandard-symbols]..............
+[package ps-dhtml-symbols]........................
+[package ps-js]...................................
+..................................................
+[package trivia.level0]...........................
+[package trivia.level1]...........................
+[package trivia.fail].............................
+[package trivia.skip].............................
+[package trivia.next].............................
+[package trivia.level1.impl]......................
+[package lisp-namespace]..........................
+[package closer-mop]..............................
+[package closer-common-lisp]......................
+[package closer-common-lisp-user].................
+[package trivial-cltl2]...........................
+[package trivia.level2]...........................
+[package trivia.level2.impl]......................
+..................................................
+[package introspect-environment]..................
+[package type-i]..................................
+[package iterate].................................
+[package trivia.balland2006]......................
+[package string-case].............................
+[package org.mapcar.parse-number].................
+[package tcr.parse-declarations-1.0]..............
+[package trivial-file-size].......................
+[package trivial-macroexpand-all].................
+[package serapeum.sum]............................
+[package serapeum]................................
+[package serapeum-user]...........................
+[package serapeum.unlocked].......................
+[package serapeum/op].............................
+..................................................
+[package serapeum/static-let].....................
+..................................................
+..................................................
+..................................................
+..................................................
+[package serapeum/vector=]........................
+[package serapeum/mop]............................
+[package serapeum/internal-definitions]...........
+..................................................
+[package serapeum/dispatch-case]..................
+[package serapeum/generalized-arrays].............
+[package serapeum/contrib/hooks]..................
+[package spinneret]...............................
+[package spinneret-user]..........................
+[package spinneret.tag]..........
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "cl-who":
+  Load 1 ASDF system:
+    asdf
+  Install 1 Quicklisp release:
+    cl-who
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-who/2022-03-31/cl-who-20220331-git.tgz">
+; 24.24KB
+==================================================
+24,823 bytes in 0.00 seconds (4848.24KB/sec)
+; Loading "cl-who"
+[package cl-who]....
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "str":
+  Load 3 ASDF systems:
+    asdf cl-ppcre cl-ppcre-unicode
+  Install 2 Quicklisp releases:
+    cl-change-case cl-str
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-change-case/2023-10-21/cl-change-case-20231021-git.tgz">
+; 5.04KB
+==================================================
+5,163 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-str/2023-10-21/cl-str-20231021-git.tgz">
+; 24.63KB
+==================================================
+25,222 bytes in 0.00 seconds (24630.86KB/sec)
+; Loading "str"
+To load "cl-unicode":
+  Load 2 ASDF systems:
+    asdf cl-ppcre
+  Install 1 Quicklisp release:
+    cl-unicode
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-unicode/2021-02-28/cl-unicode-20210228-git.tgz">
+; 1260.39KB
+==================================================
+1,290,638 bytes in 0.26 seconds (4810.64KB/sec)
+; Loading "cl-unicode"
+[package cl-unicode]..............................
+[package cl-unicode-names]......................
+To load "str":
+  Load 1 ASDF system:
+    str
+; Loading "str"
+[package cl-ppcre-unicode]........................
+[package cl-change-case]..........................
+[package str]......
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "cl-strings":
+  Load 1 ASDF system:
+    asdf
+  Install 1 Quicklisp release:
+    cl-strings
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-strings/2021-04-11/cl-strings-20210411-git.tgz">
+; 10.94KB
+==================================================
+11,200 bytes in 0.00 seconds (10937.50KB/sec)
+; Loading "cl-strings"
+[package cl-strings]...
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "cl-hash-util":
+  Load 1 ASDF system:
+    asdf
+  Install 1 Quicklisp release:
+    cl-hash-util
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-hash-util/2023-10-21/cl-hash-util-20231021-git.tgz">
+; 7.08KB
+==================================================
+7,252 bytes in 0.00 seconds (0.00KB/sec)
+; Loading "cl-hash-util"
+[package cl-hash-util]..
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "cl-cron":
+  Load 2 ASDF systems:
+    asdf bordeaux-threads
+  Install 1 Quicklisp release:
+    cl-cron
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-cron/2023-10-21/cl-cron-20231021-git.tgz">
+; 15.99KB
+==================================================
+16,376 bytes in 0.00 seconds (7996.09KB/sec)
+; Loading "cl-cron"
+[package cl-cron]..
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "vas-string-metrics":
+  Load 1 ASDF system:
+    asdf
+  Install 1 Quicklisp release:
+    vas-string-metrics
+; Fetching #<URL "http://beta.quicklisp.org/archive/vas-string-metrics/2021-12-09/vas-string-metrics-20211209-git.tgz">
+; 6.73KB
+==================================================
+6,888 bytes in 0.00 seconds (0.00KB/sec)
+; Loading "vas-string-metrics"
+[package vas-string-metrics]
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "apply-argv":
+  Load 1 ASDF system:
+    alexandria
+  Install 1 Quicklisp release:
+    apply-argv
+; Fetching #<URL "http://beta.quicklisp.org/archive/apply-argv/2015-06-08/apply-argv-20150608-git.tgz">
+; 2.39KB
+==================================================
+2,451 bytes in 0.00 seconds (2393.55KB/sec)
+; Loading "apply-argv"
+[package apply-argv].
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "drakma":
+  Load 7 ASDF systems:
+    asdf chunga cl+ssl cl-base64 cl-ppcre flexi-streams
+    usocket
+  Install 3 Quicklisp releases:
+    chipz drakma puri
+; Fetching #<URL "http://beta.quicklisp.org/archive/puri/2020-10-16/puri-20201016-git.tgz">
+; 28.49KB
+==================================================
+29,178 bytes in 0.00 seconds (7123.54KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/chipz/2023-06-18/chipz-20230618-git.tgz">
+; 36.67KB
+==================================================
+37,547 bytes in 0.01 seconds (3055.58KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/drakma/2023-10-21/drakma-v2.0.10.tgz">
+; 73.55KB
+==================================================
+75,317 bytes in 0.04 seconds (2101.48KB/sec)
+; Loading "drakma"
+[package puri]....................................
+[package chipz]...................................
+[package drakma]........
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "lquery":
+  Load 1 ASDF system:
+    asdf
+  Install 7 Quicklisp releases:
+    array-utils clss documentation-utils form-fiddle lquery
+    plump trivial-indent
+; Fetching #<URL "http://beta.quicklisp.org/archive/form-fiddle/2023-10-21/form-fiddle-20231021-git.tgz">
+; 5.46KB
+==================================================
+5,590 bytes in 0.00 seconds (5458.98KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/trivial-indent/2023-10-21/trivial-indent-20231021-git.tgz">
+; 3.46KB
+==================================================
+3,538 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/documentation-utils/2023-10-21/documentation-utils-20231021-git.tgz">
+; 8.68KB
+==================================================
+8,889 bytes in 0.00 seconds (8680.66KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/plump/2023-10-21/plump-20231021-git.tgz">
+; 50.05KB
+==================================================
+51,256 bytes in 0.03 seconds (2002.19KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/clss/2023-10-21/clss-20231021-git.tgz">
+; 20.87KB
+==================================================
+21,372 bytes in 0.00 seconds (6957.03KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/array-utils/2023-10-21/array-utils-20231021-git.tgz">
+; 6.76KB
+==================================================
+6,926 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/lquery/2023-10-21/lquery-20231021-git.tgz">
+; 37.71KB
+==================================================
+38,610 bytes in 0.01 seconds (2693.22KB/sec)
+; Loading "lquery"
+[package array-utils].............................
+[package trivial-indent]..........................
+[package documentation-utils].....................
+[package form-fiddle].............................
+[package plump-lexer].............................
+[package plump-dom]...............................
+[package plump-parser]............................
+[package plump]...................................
+[package clss]....................................
+[package lquery]..................................
+[package lquery-funcs]............................
+[package lquery-macros]...........
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "clingon":
+  Load 4 ASDF systems:
+    alexandria asdf split-sequence uiop
+  Install 4 Quicklisp releases:
+    bobbin cl-reexport clingon with-user-abort
+; Fetching #<URL "http://beta.quicklisp.org/archive/with-user-abort/2023-02-14/with-user-abort-20230214-git.tgz">
+; 1.07KB
+==================================================
+1,094 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/cl-reexport/2021-02-28/cl-reexport-20210228-git.tgz">
+; 2.48KB
+==================================================
+2,538 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/bobbin/2020-10-16/bobbin-20201016-hg.tgz">
+; 6.18KB
+==================================================
+6,329 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/clingon/2023-10-21/clingon-20231021-git.tgz">
+; 597.65KB
+==================================================
+611,998 bytes in 0.13 seconds (4527.68KB/sec)
+; Loading "clingon"
+[package bobbin]..................................
+[package cl-reexport].............................
+[package with-user-abort].........................
+[package clingon.utils]...........................
+[package clingon.conditions]......................
+[package clingon.options].........................
+[package clingon.command].........................
+[package clingon]
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "find-port":
+  Load 2 ASDF systems:
+    asdf usocket
+  Install 1 Quicklisp release:
+    find-port
+; Fetching #<URL "http://beta.quicklisp.org/archive/find-port/2023-02-14/find-port-20230214-git.tgz">
+; 2.47KB
+==================================================
+2,534 bytes in 0.00 seconds (0.00KB/sec)
+; Loading "find-port"
+[package find-port]
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+To load "com.inuoe.jzon":
+  Load 7 ASDF systems:
+    asdf closer-mop documentation-utils flexi-streams
+    trivial-features trivial-gray-streams uiop
+  Install 2 Quicklisp releases:
+    float-features jzon
+; Fetching #<URL "http://beta.quicklisp.org/archive/float-features/2023-10-21/float-features-20231021-git.tgz">
+; 11.27KB
+==================================================
+11,540 bytes in 0.00 seconds (0.00KB/sec)
+; Fetching #<URL "http://beta.quicklisp.org/archive/jzon/2023-10-21/jzon-v1.1.2.tgz">
+; 65.71KB
+==================================================
+67,292 bytes in 0.04 seconds (1685.00KB/sec)
+; Loading "com.inuoe.jzon"
+[package float-features]..........................
+[package com.inuoe.jzon/eisel-lemire].............
+[package com.inuoe.jzon/ratio-to-double]..........
+[package com.inuoe.jzon/schubfach]................
+[package com.inuoe.jzon]..........................
+......
+To load "myelin-dependencies":
+  Load 1 ASDF system:
+    myelin-dependencies
+; Loading "myelin-dependencies"
+
+To load "swank":
+  Load 1 ASDF system:
+    asdf
+  Install 1 Quicklisp release:
+    slime
+; Fetching #<URL "http://beta.quicklisp.org/archive/slime/2023-02-14/slime-v2.28.tgz">
+; 807.68KB
+==================================================
+827,061 bytes in 0.18 seconds (4512.16KB/sec)
+; Loading "swank"
+[package swank-loader]............................
+[package swank/backend]...........................
+[package swank/rpc]...............................
+[package swank/match].............................
+[package swank-mop]...............................
+[package swank]...................................
+[package swank/source-path-parser]................
+[package swank/source-file-cache].................
+[package swank/sbcl]..............................
+[package swank/gray]..............................
+...........
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-util.lisp" (written 27 JAN 2024 04:18:09 AM):
+.
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-util.fasl
+; compilation finished in 0:00:00.012
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-repl.lisp" (written 27 JAN 2024 04:18:09 AM):
+......................................
+[package swank-repl]..
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-repl.fasl
+; compilation finished in 0:00:00.038
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-c-p-c.lisp" (written 27 JAN 2024 04:18:09 AM):
+.
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-c-p-c.fasl
+; compilation finished in 0:00:00.027
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-arglists.lisp" (written 27 JAN 2024 04:18:09 AM):
+.................
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-arglists.fasl
+; compilation finished in 0:00:00.357
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-fuzzy.lisp" (written 27 JAN 2024 04:18:09 AM):
+...
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-fuzzy.fasl
+; compilation finished in 0:00:00.081
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-fancy-inspector.lisp" (written 27 JAN 2024 04:18:09 AM):
+.......
+..
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-fancy-inspector.fasl
+; compilation finished in 0:00:00.125
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-presentations.lisp" (written 27 JAN 2024 04:18:09 AM):
+.
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-presentations.fasl
+; compilation finished in 0:00:00.035
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-presentation-streams.lisp" (written 27 JAN 2024 04:18:09 AM):
+.
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-presentation-streams.fasl
+; compilation finished in 0:00:00.022
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-asdf.lisp" (written 27 JAN 2024 04:18:09 AM):
+.....
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-asdf.fasl
+; compilation finished in 0:00:00.063
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-package-fu.lisp" (written 27 JAN 2024 04:18:09 AM):
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-package-fu.fasl
+; compilation finished in 0:00:00.005
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-hyperdoc.lisp" (written 27 JAN 2024 04:18:09 AM):
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-hyperdoc.fasl
+; compilation finished in 0:00:00.002
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-sbcl-exts.lisp" (written 27 JAN 2024 04:18:09 AM):
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-sbcl-exts.fasl
+; compilation finished in 0:00:00.011
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-mrepl.lisp" (written 27 JAN 2024 04:18:09 AM):
+.........................................
+[package swank-api]...............................
+[package swank-mrepl]..
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-mrepl.fasl
+; compilation finished in 0:00:00.035
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-trace-dialog.lisp" (written 27 JAN 2024 04:18:09 AM):
+...........................
+[package swank-trace-dialog].
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-trace-dialog.fasl
+; compilation finished in 0:00:00.024
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-macrostep.lisp" (written 27 JAN 2024 04:18:09 AM):
+.....................
+[package swank-macrostep]..
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-macrostep.fasl
+; compilation finished in 0:00:00.023
+; compiling file "/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-quicklisp.lisp" (written 27 JAN 2024 04:18:09 AM):
+
+; wrote /root/.slime/fasl/2.28/sbcl-2.0.1.debian-linux-x86-64/opt/quicklisp/dists/quicklisp/software/slime-v2.28/contrib/swank-quicklisp.fasl
+; compilation finished in 0:00:00.002
+
+* Removing intermediate container 2a0aec266b32
+ ---> 1b37bc65403a
+Step 8/16 : COPY myelin.asd .
+ ---> a6ec47991fc2
+Step 9/16 : COPY myelin.test.asd .
+ ---> 30ee7fbf3d5e
+Step 10/16 : COPY src/*.lisp /opt/myelin/src/
+ ---> b6fd69e824e6
+Step 11/16 : COPY tests/*.lisp /opt/myelin/tests/
+ ---> 2017616aa0e2
+Step 12/16 : COPY integration-tests/*.lisp /opt/myelin/integration-tests/
+ ---> ee2d67278cd8
+Step 13/16 : COPY scripts/dev-in-sandbox.lisp scripts/dev-in-sandbox.lisp
+ ---> e2d6061b5b58
+Step 14/16 : EXPOSE 4242
+ ---> Running in 51980ee6ee90
+Removing intermediate container 51980ee6ee90
+ ---> 0db072fe13c4
+Step 15/16 : EXPOSE 4005
+ ---> Running in 42d149e97505
+Removing intermediate container 42d149e97505
+ ---> 524a425f7732
+Step 16/16 : ENTRYPOINT ["sbcl", "--noinform", "--disable-ldb",   "--lose-on-corruption", "--load", "scripts/dev-in-sandbox.lisp"]
+ ---> Running in f9187650da58
+Removing intermediate container f9187650da58
+ ---> 1ee0837c4f2d
+Successfully built 1ee0837c4f2d
+Successfully tagged myelin:latest
+docker run -it --rm --net=host myelin
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/hunchentoot-v1.3.0/hunchentoot.asd" contains definition for system "hunchentoot-test". Please only define "hunchentoot" and secondary systems with a name starting with "hunchentoot/" (e.g. "hunchentoot/test") in that file.
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/hunchentoot-v1.3.0/hunchentoot.asd" contains definition for system "hunchentoot-dev". Please only define "hunchentoot" and secondary systems with a name starting with "hunchentoot/" (e.g. "hunchentoot/test") in that file.
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/cl-who-20220331-git/cl-who.asd" contains definition for system "cl-who-test". Please only define "cl-who" and secondary systems with a name starting with "cl-who/" (e.g. "cl-who/test") in that file.
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/cl-strings-20210411-git/cl-strings.asd" contains definition for system "cl-strings-tests". Please only define "cl-strings" and secondary systems with a name starting with "cl-strings/" (e.g. "cl-strings/test") in that file.
+ASDF could not load myelin because
+Component QUOTE not found, required by
+#<CL-SOURCE-FILE "myelin" "src" "project">.
+While evaluating the form starting at line 2, column 0
+  of #P"/opt/myelin/myelin.test.asd":
+While evaluating the form starting at line 7, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a ASDF/FIND-COMPONENT:MISSING-DEPENDENCY in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  Component QUOTE not found, required by
+  #<CL-SOURCE-FILE "myelin" "src" "project">
+
+
+
+(ASDF/FIND-COMPONENT:RESOLVE-DEPENDENCY-NAME #<ASDF/LISP-ACTION:CL-SOURCE-FILE "myelin" "src" "project"> QUOTE NIL)
+   error finding frame source: Bogus form-number: the source file has probably
+                               changed too much to cope with.
+   source: NIL
+
+
+
+
+
+
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/hunchentoot-v1.3.0/hunchentoot.asd" contains definition for system "hunchentoot-test". Please only define "hunchentoot" and secondary systems with a name starting with "hunchentoot/" (e.g. "hunchentoot/test") in that file.
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/hunchentoot-v1.3.0/hunchentoot.asd" contains definition for system "hunchentoot-dev". Please only define "hunchentoot" and secondary systems with a name starting with "hunchentoot/" (e.g. "hunchentoot/test") in that file.
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/cl-who-20220331-git/cl-who.asd" contains definition for system "cl-who-test". Please only define "cl-who" and secondary systems with a name starting with "cl-who/" (e.g. "cl-who/test") in that file.
+WARNING: System definition file #P"/opt/quicklisp/dists/quicklisp/software/cl-strings-20210411-git/cl-strings.asd" contains definition for system "cl-strings-tests". Please only define "cl-strings" and secondary systems with a name starting with "cl-strin-gs/" (e.g. "cl-strings/test") in that file.
+
+
+
+
+
+; caught ERROR:
+;   READ error during COMPILE-FILE:
+;
+;     Symbol "ADD-PACKAGE-LOCAL-NICKNAME" not found in the UIOP/DRIVER package.
+;
+;       Line: 24, Column: 32, File-Position: 565
+;
+;       Stream: #<SB-INT:FORM-TRACKING-STREAM for "file /opt/myelin/src/package.lisp" {1005FE6BD3}>
+
+
+
+
+
+
+
+
+ASDF could not load myelin because
+Failed to find the TRUENAME of /opt/myelin/src/project.lisp:
+  No such file or directory.
+While evaluating the form starting at line 2, column 0
+  of #P"/opt/myelin/myelin.test.asd":
+While evaluating the form starting at line 7, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a SB-INT:SIMPLE-FILE-ERROR in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  Failed to find the TRUENAME of /opt/myelin/src/project.lisp:
+    No such file or directory
+
+
+
+
+
+This would be an "info", not a warning nor an error:
+; wrote /root/.cache/common-lisp/sbcl-2.0.1.debian-linux-x64/opt/myelin/src/clock-tmpGHU3ALSV.fasl
+
+
+
+
+
+ASDF could not load myelin because The variable X is unbound..
+While evaluating the form starting at line 2, column 0
+  of #P"/opt/myelin/myelin.test.asd":
+While evaluating the form starting at line 7, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a UNBOUND-VARIABLE in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  The variable X is unbound.
+
+
+
+
+
+
+
+
+
+While evaluating the form starting at line 7, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a QUICKLISP-CLIENT:SYSTEM-NOT-FOUND in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  System "myelin.test" not found
+
+
+
+
+
+
+
+
+
+While evaluating the form starting at line 7, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a QUICKLISP-CLIENT:SYSTEM-NOT-FOUND in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  System "myelin.test" not found
+
+
+
+
+
+
+
+
+
+
+While evaluating the form starting at line 10, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a SB-BSD-SOCKETS:ADDRESS-IN-USE-ERROR in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  Socket error in "bind": EADDRINUSE (Address already in use)
+
+Type HELP for debugger help, or (SB-EXT:EXIT) to exit from SBCL.
+
+restarts (invokable by number or by possibly-abbreviated name):
+  0: [USE-VALUE] Try a port other than 4005
+  1: [RETRY    ] Retry EVAL of current toplevel form.
+  2: [CONTINUE ] Ignore error and continue loading file "/opt/myelin/scripts/dev-in-sandbox.lisp".
+  3: [ABORT    ] Abort loading file "/opt/myelin/scripts/dev-in-sandbox.lisp".
+  4:             Ignore runtime option --load "scripts/dev-in-sandbox.lisp".
+  5:             Skip rest of --eval and --load options.
+  6:             Skip to toplevel READ/EVAL/PRINT loop.
+  7: [EXIT     ] Exit SBCL (calling #'EXIT, killing the process).
+
+(SB-BSD-SOCKETS:SOCKET-ERROR "bind" 98)
+   error finding frame source: Bogus form-number: the source file has probably
+                               changed too much to cope with.
+   source: NIL
+0]
+
+
+
+
+
+
+
+
+WARNING: redefining MYELIN::EXTRACT-LINKS in DEFUN
+
+=======
+While evaluating the form starting at line 168, column 0
+  of #P"/opt/myelin/integration-tests/api-testing.lisp":
+While evaluating the form starting at line 22, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a UNBOUND-VARIABLE in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  The variable *ADDRESS* is unbound.
+
+Type HELP for debugger help, or (SB-EXT:EXIT) to exit from SBCL.
+
+restarts (invokable by number or by possibly-abbreviated name):
+  0: [CONTINUE   ] Retry using *ADDRESS*.
+  1: [USE-VALUE  ] Use specified value.
+  2: [STORE-VALUE] Set specified value and use it.
+  3: [RETRY      ] Retry EVAL of current toplevel form.
+  4:               Ignore error and continue loading file "/opt/myelin/integration-tests/api-testing.lisp".
+  5: [ABORT      ] Abort loading file "/opt/myelin/integration-tests/api-testing.lisp".
+  6:               Retry EVAL of current toplevel form.
+  7:               Ignore error and continue loading file "/opt/myelin/scripts/dev-in-sandbox.lisp".
+  8:               Abort loading file "/opt/myelin/scripts/dev-in-sandbox.lisp".
+  9:               Ignore runtime option --load "scripts/dev-in-sandbox.lisp".
+ 10:               Skip rest of --eval and --load options.
+ 11:               Skip to toplevel READ/EVAL/PRINT loop.
+ 12: [EXIT       ] Exit SBCL (calling #'EXIT, killing the process).
+
+(SB-INT:SIMPLE-EVAL-IN-LEXENV *ADDRESS* #<NULL-LEXENV>)
+0]
+
+
+
+
+
+
+
+
+
+
+While evaluating the form starting at line 168, column 0
+  of #P"/opt/myelin/integration-tests/api-testing.lisp":
+While evaluating the form starting at line 22, column 0
+  of #P"/opt/myelin/scripts/dev-in-sandbox.lisp":
+
+debugger invoked on a SB-INT:SIMPLE-PROGRAM-ERROR in thread
+#<THREAD "main thread" RUNNING {1000560083}>:
+  invalid number of arguments: 1
+
+Type HELP for debugger help, or (SB-EXT:EXIT) to exit from SBCL.
+
+restarts (invokable by number or by possibly-abbreviated name):
+  0: [REPLACE-FUNCTION] Call a different function with the same arguments
+  1: [CALL-FORM       ] Call a different form
+  2: [RETRY           ] Retry EVAL of current toplevel form.
+  3: [CONTINUE        ] Ignore error and continue loading file "/opt/myelin/integration-tests/api-testing.lisp".
+  4: [ABORT           ] Abort loading file "/opt/myelin/integration-tests/api-testing.lisp".
+  5:                    Retry EVAL of current toplevel form.
+  6:                    Ignore error and continue loading file "/opt/myelin/scripts/dev-in-sandbox.lisp".
+  7:                    Abort loading file "/opt/myelin/scripts/dev-in-sandbox.lisp".
+  8:                    Ignore runtime option --load "scripts/dev-in-sandbox.lisp".
+  9:                    Skip rest of --eval and --load options.
+ 10:                    Skip to toplevel READ/EVAL/PRINT loop.
+ 11: [EXIT            ] Exit SBCL (calling #'EXIT, killing the process).
+
+(SERVER-INTERFACE #<H:EASY-ACCEPTOR (host 127.0.0.1, port 40001)>) [external]
+   source: (DEFUN SERVER-INTERFACE ()
+             "Get the interface the server is listening to"
+             (H:ACCEPTOR-ADDRESS *SERVER*))
+0]

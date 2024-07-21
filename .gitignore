@@ -2,7 +2,10 @@
 *.core
 *.svg
 result
-docs/index.html
+public/
+
+# org-roam db
+*.db
 
 githooks/*.sample
 /.direnv/
@@ -11,3 +14,4 @@ githooks/*.sample
 *.png
 *.log
 *~
+/docs/sitemap.org

@@ -1,0 +1,18 @@
+:PROPERTIES:
+:ID:       5d211d9a-0749-4adb-abe0-e66133d09b5b
+:END:
+#+title: Editor integrations
+
+- [[id:6bd2b06d-0a3c-4d32-9a1e-4f6f36e1003d][Emacs integration]]
+- [[id:086c7705-e5ec-4dc0-852d-211c055eb145][Visual Studio Code integration]] (not implemented)
+
+* TODO Make sure the commands are executed against _common lisp_ code :ux:editor:
+
+Gavinok tried breeze, but ran ~C-.~ on ~breeze.el~, this caused
+confusion for everybody.
+
+Here's some ideas to help with this:
+
+- check the extension of the buffer or file
+- check the mode of the buffer
+- make sure it's not in the repl (for now)

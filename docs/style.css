@@ -6,6 +6,15 @@ Table of Contents:
  3. Classes
 */
 
+
+:root {
+   --text-color: black;
+   --dimmed-text-color: #777;
+   /* TODO better name? */
+   --contrast-background: #f4f5f6;
+}
+
+
 /* 1. Base Tags
 –––––––––––––––––––––––––––––––––––––––––––– */
 
@@ -21,7 +30,7 @@ ul, ol, dl, fieldset, pre, pre > code {
 }
 body {
 	margin: auto;
-	max-width: 50rem;
+	max-width: 80rem;
 	padding: 2rem 0.5rem 0rem;
 	overflow-x: hidden;
 }
@@ -29,7 +38,11 @@ footer { margin: 10rem 0rem 0rem; }
 
 
 /* text */
-:root { font: 13pt 'Open Sans', sans-serif; line-height: 1.5; color: #424456; }
+:root {
+    font: 13pt 'Open Sans', sans-serif;
+    line-height: 1.5;
+    color: var(--text-color)
+}
 small, sub, sup { font-size: 75%; }
 
 
@@ -42,9 +55,13 @@ h1 { font-size: 2.5em; font-weight: 300; }
 h2 { font-size: 2.0em; font-weight: 300; }
 h3 { font-size: 1.5em; font-weight: 400; }
 h4 { font-size: 1.1em; font-weight: 700; margin: .5em 0 0em; }
-h5 { font-size: 1.2em; font-weight: 400; margin-top: 0.5em; color: #777; }
+h5 { font-size: 1.2em; font-weight: 400; margin-top: 0.5em; color: var(--dimmed-text-color); }
 h6 { font-size: 1.0em; font-weight: 700; }
-p strong { color: #424456; font-weight: bold; font-size: 1.0em; }
+p strong {
+    color: var(--text-color);
+    font-weight: bold;
+    font-size: 1.0em;
+}
 
 
 /* lists */
@@ -59,14 +76,14 @@ td, th {
 }
 td:first-child, th:first-child { padding-left:  0; text-align: left; }
 td:last-child,  th:last-child  { padding-right: 0; }
-tr:hover{ background-color: #f4f5f6; }
+tr:hover{ background-color: var(--contrast-background); }
 
 
 /* figures */
 img { max-width: 100%; }
 figure { text-align: center; }
 figure > img { display: block; margin: 0.5em auto; }
-figcaption, caption { color: #777; margin-bottom: 1rem; }
+figcaption, caption { color: var(--dimmed-text-color); margin-bottom: 1rem; }
 
 
 /*code*/
@@ -74,10 +91,11 @@ pre > code {
   margin: 0;
   padding: 0.5rem 1.0rem;
   border-left: 0.3rem solid #3273dc;
-  background-color: #f4f5f6;
+  background-color: var(--contrast-background);
+  width: 80em;
 }
 code, kbd, samp {
-	padding: 0.3em; background: #f4f5f6; white-space: pre; font-size: 90%;
+	padding: 0.3em; background: var(--contrast-background); white-space: pre; font-size: 90%;
 }
 
 
@@ -91,7 +109,7 @@ a:hover, button:not([disabled]):hover {
 
 /* forms and inputs */
 textarea, input, button, select { border-radius: .3rem; border: .1rem solid #d1d1d1; padding: 0.3rem; outline: none;}
-button { padding: 0.7rem 1rem; cursor: pointer; font-weight: bold; letter-spacing: 0.1rem; color: #0065bd; background-color: #f4f5f6; border: .1rem solid #0065bd; }
+button { padding: 0.7rem 1rem; cursor: pointer; font-weight: bold; letter-spacing: 0.1rem; color: #0065bd; background-color: var(--contrast-background); border: .1rem solid #0065bd; }
 
 
 /* misc */
@@ -123,7 +141,7 @@ main aside {
 /* Extra: navbar  */
 body nav {
 	width: 100%; min-height: 3rem;
-	background-color: #f4f5f6;
+	background-color: var(--contrast-background);
 	border-bottom: solid 0.1rem #d1d1d1;
 }
 body > nav { position: fixed; top: 0; left: 0; }
@@ -147,7 +165,7 @@ nav ul > li > ul {
 	width: auto;
 	position: absolute;
 	padding: 1.0rem 2.5rem 0rem;
-	background-color: #f4f5f6;
+	background-color: var(--contrast-background);
 	z-index: 2;
 }
 nav ul > li > ul > li { white-space: nowrap; }
@@ -220,13 +238,9 @@ mark{ background-color: transparent; color: #007c30; text-decoration: underline 
 
 
 /* colors */
-.text-black    { color: #000; }
-.text-white    { color: #fff; }
 .text-primary  { color: #0065bd; }
 .text-secondary{ color: #333; }
 
-.bg-white    { background-color: #fff; }
-.bg-light    { background-color: #f4f5f6; }
 .bg-primary  { background-color: #0065bd; }
 .bg-secondary{ background-color: #d1d1d1; }
 
@@ -296,3 +310,135 @@ mark{ background-color: transparent; color: #007c30; text-decoration: underline 
 	[class*="col"] > * { margin-top: 1rem !important; }
 }
 @media (max-width: 61rem) { aside {position: relative; margin: 0.5rem 0; } }
+
+
+code .progn {
+    color: var(--text-color);
+    background-color: var(--contrast-background);
+}
+
+code .symbol{
+    color: #770055;
+    background-color: var(--contrast-background);
+}
+
+code a.symbol:link,
+code a.symbol:active,
+code a.symbol:visited,
+code a.symbol:hover{
+    color: #2AA198;
+    background-color: var(--contrast-background);
+}
+
+code .special {
+    color: #CB4B16;
+    background-color: var(--contrast-background);
+}
+
+code .keyword {
+    color: #770000;
+    background-color: var(--contrast-background);
+}
+
+code .comment {
+    color: #586E75;
+    background-color: var(--contrast-background);
+}
+
+code .string {
+    color: #B58900;
+    background-color: var(--contrast-background);
+}
+
+code .atom {
+    color: #314F4F;
+    background-color: var(--contrast-background);
+}
+
+code .macro {
+    color: #CB4B16;
+    background-color: var(--contrast-background);
+}
+
+code .variable {
+    color: #36648B;
+    background-color: var(--contrast-background);
+}
+
+code .function {
+    color: #8B4789;
+    background-color: var(--contrast-background);
+}
+
+code .attribute {
+    color: #CB4B16;
+    background-color: var(--contrast-background);
+}
+
+code .character {
+    color: #0055AA;
+    background-color: var(--contrast-background);
+}
+
+code .syntaxerror {
+    color: #FF0000;
+    background-color: var(--contrast-background);
+}
+
+code .diff-deleted {
+    color: #5F2121;
+    background-color: var(--contrast-background);
+}
+
+code .diff-added {
+    color: #215F21;
+    background-color: var(--contrast-background);
+}
+
+code span.paren1,
+code span.paren2,
+code span.paren3,
+code span.paren4,
+code span.paren5,
+code span.paren6
+ {
+    transition: background-color 0.2s linear,
+                border-color 0s,
+                font-size 0.3s ease-out;
+}
+
+
+code span.paren1:hover,
+code span.paren2:hover,
+code span.paren3:hover,
+code span.paren4:hover,
+code span.paren5:hover,
+code span.paren6:hover
+{
+    transform: scale(1.5);
+    /* font-size: 110%; */
+}
+
+code span.paren1:hover {
+    background-color: #BAFFFF;
+}
+
+code span.paren2:hover{
+    background-color: #FFCACA;
+}
+
+code span.paren3:hover{
+    background-color: #FFFFBA;
+}
+
+code span.paren4:hover{
+    background-color: #CACAFF;
+}
+
+code span.paren5:hover{
+    background-color: #CAFFCA;
+}
+
+code span.paren6:hover{
+    background-color: #FFBAFF;
+}

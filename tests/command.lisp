@@ -162,27 +162,27 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 ;; TODO
 (define-test message)
 
-(define-test context-buffer-string
+(define-test buffer-string
   (is string=
       "asdf"
-      (context-buffer-string
+      (buffer-string
        (alexandria:plist-hash-table
         '(buffer-string "asdf")))))
 
 ;; TODO
-(define-test context-buffer-name)
+(define-test buffer-name)
 
 ;; TODO
-(define-test context-buffer-file-name)
+(define-test buffer-file-name)
 
 ;; TODO
-(define-test context-point)
+(define-test point)
 
 ;; TODO
-(define-test context-point-min)
+(define-test point-min)
 
 ;; TODO
-(define-test context-point-max)
+(define-test point-max)
 
 ;; TODO Test augment-context-by-parsing-the-buffer
 #++

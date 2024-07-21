@@ -1,3 +1,7 @@
+;;;; System definitions for breeze and auxiliary systems
+
+
+;;; breeze.asd package
 
 (defpackage #:breeze.asd
   (:documentation "Package containing breeze's system defintions")
@@ -5,16 +9,8 @@
 
 (in-package #:breeze.asd)
 
-(asdf:defsystem breeze/config
-  :description "Configurations for breeze."
-  :version "0"
-  :author "Francis St-Amour"
-  :licence "BSD 2-Clause License"
-  :pathname "src"
-  :serial t
-  :components
-  ((:file "configuration")))
-
+
+;;; breeze system
 
 (defsystem breeze
   :name "breeze"
@@ -23,72 +19,70 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
-  :depends-on (breeze/config
-               ;; Multi-threading
+  :depends-on (;; Multi-threading
                bordeaux-threads
                chanl
-               trivial-timeout
-               ;; To create projects
+               ;; To create projects (scaffolds)
                quickproject
                ;; Utilities
                alexandria
-               anaphora
-               ;; cl-hash-util
-               cl-ppcre
-               closer-mop
-               str
-               uiop
-               ;; For documentation generation
-               3bmd 3bmd-ext-code-blocks 3bmd-ext-tables spinneret
-               ;; For reading lisp
-               eclector
-               trivial-package-local-nicknames
-               ;; For some portability checks
-               trivial-features)
+               uiop)
   :pathname "src"
   :components
   ((:file "logging")
    (:file "cl")
    (:file "utils")
-   ;; TODO #++
-   (:file "syntax-tree")
-   #++
-   (:file "reader" :depends-on ("syntax-tree" "utils"))
+   (:file "string-utils" :depends-on ("utils"))
+   (:file "test-file" :depends-on ("utils" "string-utils"))
+   (:file "configuration")
    (:file "lossless-reader" :depends-on ("utils"))
    (:file "pattern")
+   (:file "egraph")
+   (:file "analysis" :depends-on ("lossless-reader" "pattern"))
    (:file "command"
-    :depends-on (#++"reader"
-                 #++"syntax-tree"
-                 "utils"))
+    :depends-on ("utils"
+                 "configuration"))
    (:file "asdf")
    (:file "thread" :depends-on ("xref"))
    (:file "xref" :depends-on ("utils"))
-   (:file "documentation" :depends-on ("xref"))
    (:file "doctor")
    (:file "listener"
     :depends-on ("xref"
                  "command"))
-   (:file "refactor" :depends-on (#++"reader" "command" "utils" "cl"))
-   (:file "project" :depends-on ("utils" "command"))
-   (:file "capture" :depends-on ("utils" "command")))
+   (:file "suggestion"
+    :depends-on ("listener"))
+   (:file "refactor" :depends-on ("command" "utils" "cl"))
+   (:file "project" :depends-on ("utils" "command" "configuration"))
+   (:file "capture" :depends-on ("utils" "command" "configuration")))
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
            (uiop:symbol-call
             'breeze.test.main 'run-breeze-tests)))
 
-(defsystem breeze/docs
+
+;;; breeze/docs system
+
+(defsystem breeze/doc
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze)
+  :depends-on (breeze
+               ;; For documentation generation
+               spinneret
+               closer-mop
+               cl-ppcre)
   :pathname "src"
-  :serial t
+  :serial nil ; <-
   :components
-  ((:file "documentation")))
+  ((:file "documentation")
+   (:file "report")))
 
-(defsystem "breeze/kite"
+
+;;; breeze/kite system
+
+(defsystem breeze/kite
   :description "A breeze in a parachute makes a kite: utils for parachute"
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -99,21 +93,25 @@
   :components
   ((:file "kite")))
 
-(defsystem "breeze/test"
+
+;;; breeze/test system
+
+(defsystem breeze/test
   :description "Tests for the breeze system."
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze parachute breeze/kite)
+  :depends-on (breeze parachute breeze/kite breeze/doc)
   :pathname "tests"
   :serial t
   :components
   ((:file "utils")
    (:file "logging")
-   #++
-   (:file "reader")
+   (:file "lossless-reader.randmized")
    (:file "lossless-reader")
    (:file "pattern")
+   (:file "analysis")
+   (:file "egraph")
    (:file "command")
    (:file "refactor")
    (:file "dummy-package")

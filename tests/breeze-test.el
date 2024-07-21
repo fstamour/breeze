@@ -1,43 +1,87 @@
-;;; These are drafts of tests for breeze.el
 
+(require 'ert)
 
-(breeze-eval "(+ 1 2)")
-;; ("" "3 (2 bits, #x3, #o3, #b11)")
+(defun breeze--xor (a b)
+  (or (and a (not b))
+      (and (not a) b)))
 
-;; Should error
-;; (breeze-eval "")
-
-(breeze-eval "(error \"oups\")")
-
-(and
- (eq t (breeze-eval-predicate "t"))
- (eq t (breeze-eval-predicate "T"))
- (eq nil (breeze-eval-predicate "nil"))
- (eq nil (breeze-eval-predicate "NIL")))
-
-
-(breeze-interactive-eval "(read)")
-
-(breeze-interactive-eval "(error \"oupsie\")")
+(ert-deftest test/breeze--xor ()
+  (should (equal '(nil t t nil)
+                 (mapcar (lambda (args)
+                           (apply 'breeze--xor args))
+                         '((nil nil)
+                           (nil t)
+                           (t nil)
+                           (t t))))))
 
 
 
-(breeze-check-if-connected-to-listener)
-
-(breeze-ensure-breeze t)
-
-(breeze-init)
+(ert-deftest test/breeze-%symbolicate ()
+  (should (eq 'sly (breeze-%symbolicate2 "sly")))
+  (should (eq 'sly (breeze-%symbolicate2 'sly)))
+  (should (eq 'slime (breeze-%symbolicate2 "slime")))
+  (should (eq 'slime (breeze-%symbolicate2 'slime)))
+  (should (eq 'sly-eval (breeze-%symbolicate2 'sly "eval")))
+  (should (eq 'slime-eval (breeze-%symbolicate2 'slime "eval")))
+  (should (eq 'slime-connected-hook
+              (breeze-%symbolicate2 'slime "connected-hook"))))
 
 
 
-(breeze-validate-if-package-exists "CL")
+;; TODO true only if connected!
+(ert-deftest test/breeze-connection ()
+  (should (breeze--xor
+           (breeze-sly-connected-p)
+           (breeze-slime-connected-p)))
+  (should (eq t (breeze-check-if-connected-to-listener))))
+
+(ert-deftest test/breeze-eval ()
+  ;; Integers
+  (should (= (breeze-eval "(+ 1 2)") 3))
+  ;; Strings
+
+  (should (string= (breeze-eval "\"hi\"") "hi"))
+  ;; Symbols
+  (should (eq (breeze-eval "cl:t") t))
+  (should (eq (breeze-eval "cl:nil") nil))
+  (should (eq t (breeze-eval-predicate "t")))
+  (should (eq t (breeze-eval-predicate "T")))
+  (should (eq nil (breeze-eval-predicate "nil")))
+  (should (eq nil (breeze-eval-predicate "NIL"))))
+
+;; TODO Figure out how to evaluate something without triggering the debugger when an error occurs
+;; (ert-deftest breeze-eval-empty-string ()
+;;   :expected-result :failed
+;;   (breeze-eval ""))
+
+;; (let ((slime-event-hooks (list (lambda (event)
+;;                                  (message "Event: %S" (list (car event)
+;;                                                             (length (cdr event))))
+;;                                  nil))))
+;;   (breeze-eval "(error \"oups\")"))
+;; (breeze-eval "(read)")
+
+
+
+
+(ert-deftest test/breeze-relative-path ()
+  (should (file-exists-p (breeze-relative-path)))
+  (should (file-exists-p (breeze-relative-path "src/")))
+  (should (file-exists-p (breeze-relative-path "src/breeze.el")))
+  (should (file-exists-p (breeze-relative-path "src/ensure-breeze.lisp"))))
+
+(ert-deftest test/breeze-init ()
+  (should (eq t (breeze-validate-if-package-exists "CL")))
+  (should (eq nil (breeze-validate-if-package-exists "this package probably doesn't exists"))))
 ;; t
 
-(breeze-validate-if-package-exists "this package probably doesn't exists")
-;; nil
 
-(breeze-validate-if-breeze-package-exists)
+;; TODO only after (breeze-ensure)
+;; (should (eq t (breeze-validate-if-breeze-package-exists)))
+
+;; (should (eq t (breeze-ensure)))
 
 
 
-(breeze-system-definition)
+(ert-deftest test/breeze-intergration ()
+  (ert-test-erts-file "breeze.erts"))

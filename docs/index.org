@@ -1,0 +1,33 @@
+:PROPERTIES:
+:ID:       9c910250-abdc-4cbe-961b-46ad5c4f82d4
+:END:
+#+title: Breeze
+#+options: toc:nil
+
+* Documentation
+
+- [[id:d08ab932-1204-4e7c-9869-40fc53500071][Introduction]]
+- [[id:e5d64314-8b13-4a6b-997f-1aae94910d63][Goals and non-goals]]
+- [[id:11dd9906-75ff-4abc-82a5-b7dda0936f06][Roadmap]]
+- [[id:306350c9-0fb5-478b-958b-b35cae726280][Getting Started]]
+- [[id:5d211d9a-0749-4adb-abe0-e66133d09b5b][Editor integrations]]
+- [[id:14d42b3a-0a2f-4a3b-8937-7175e621c6ec][Design Decisions]]
+- [[id:279c4ea6-2004-4a7a-a2c9-905f27fae42c][Contributing]]
+- [[id:e712f3d1-0734-43f0-886a-3008ca5f722d][Testing Breeze]]
+- [[id:bb5c6ad4-0f89-48aa-9295-13e5e248a897][Glossary]]
+- [[file:reference.html][Reference]]
+- [[file:listing-breeze.html][Source listings]]
+
+* Internal notes
+
+- [[id:7d0f5cd2-d216-4882-84ac-27c004ad6fbd][Links to some dependencies' documentation]]
+- [[id:598a884c-56d0-4378-b5f5-acb2671d5112][Inbox]]
+- [[id:e2ff6189-1fd8-4d3c-9b7d-3d3ddbf2b0aa][Ideas]]
+- [[id:b9f7e1f4-dc86-46e0-860b-f845f180110e][Breeze on the internets]]
+- [[id:31236780-159e-4a58-9019-37f57f5b4997][FAQ from newbies about common lisp]]
+- [[id:62112623-6002-4cb9-87de-cb530ce0a36e][Silimar projects]]
+- [[id:13ea055e-4715-4583-811b-bff78ca300ee][Candidate Features]]
+
+** More specific notes
+
+- [[id:32155195-1bc4-4f2d-8f6a-12fb0bd68ecc][E-graphs]]

@@ -1,0 +1,20 @@
+:PROPERTIES:
+:ID:       e55cab7e-beb6-4cb4-be2e-d0d78a8f568a
+:END:
+#+title: Linting asd files
+
+* Use =(in-package #:asdf-user)= at the start of the file
+
+Using (interned) symbols in the .asd files _might_ intern symbols in
+=*package*= (especially if someone tries to =(read ...)= the =.asd=
+file.
+
+* Look for missing files
+
+I could see one nice workflow:
+1. Open the system defintion
+2. Add a file in the =:components= list
+3. The linter highlights the missing file
+4. The user choose a "code action" that creates the file and opens it
+   in the editor, perhaps even adding a package definition at the
+   start.

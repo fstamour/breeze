@@ -114,6 +114,7 @@
                     (list wrapper loop)
                     loop))))))))
 
+;; TODO turn this into a test
 #+nil
 (map-external-symbol (sym (find-package :br))
                      (boundp sym)
@@ -121,23 +122,16 @@
                      print
   :collect (print sym))
 
+;; TODO turn this into a test
 #+nil
 (map-external-symbol
-    (symbol (find-package :br))
-    (boundp symbol)
-    (:h3 "Special variables")
-    :dl
-  :do
-  (:dt (symbol-name symbol))
-  (:dd (documentation symbol 'variable)))
-
-
-(defun render-markdown (pathname)
-  "Read a markdown file and render it in spinneret's *html* stream."
-  (let ((3bmd-tables:*tables* t))
-    (3bmd:parse-and-print-to-stream
-     (breeze-relative-pathname pathname)
-     spinneret:*html*)))
+ (symbol (find-package :br))
+ (boundp symbol)
+ (:h3 "Special variables")
+ :dl
+ :do
+ (:dt (symbol-name symbol))
+ (:dd (documentation symbol 'variable)))
 
 
 ;; TODO
@@ -164,27 +158,19 @@
 - [ ] Structures
 - [ ] Type definitions (I'm not sure this one can be done with introspection alone).
 |#
+
+(defun find-breeze-packages ()
+  (remove-if (lambda (package)
+               (position #\. (package-name package) :start (length #1="breeze.")))
+             (breeze.xref:find-packages-by-prefix #1#)))
+
 (defun render-reference ()
   (spinneret:with-html
     (let ((packages
             (sort
-             (breeze.xref:find-packages-by-regex "^breeze\\.[^.]+$")
+             (find-breeze-packages)
              #'string<
              :key #'package-name)))
-      #+nil
-      (progn
-        (:h1 "Packages' documentation")
-        (loop
-          :for package :in packages
-          :for package-name = (string-downcase (package-name package))
-          :for docfile = (breeze-relative-pathname
-                          (format nil "docs/~a.md" package-name))
-          :do
-             (if (probe-file docfile)
-                 (progn
-                   (:h2 (:a :id package-name package-name))
-                   (render-markdown docfile))
-                 (warn "Could not find \"~a\"." docfile))))
       (:h1 (:a :id "reference" "Reference"))
       ;; Package index
       (:dl
@@ -199,8 +185,6 @@
       (loop
         :for package :in packages
         :for package-name = (string-downcase (package-name package))
-        :for docfile = (breeze-relative-pathname
-                        (format nil "docs/~a.md" package-name))
         :do
            (macrolet ((gen (title
                             predicate-body
@@ -225,31 +209,28 @@
 
 (defun generate-documentation-to-stream (stream)
   (let ((spinneret:*html* stream))
-    (let (
-          (spinneret:*suppress-inserted-spaces* t)
+    (let ((spinneret:*suppress-inserted-spaces* t)
           (spinneret:*html-style* :tree)
           (*print-pretty* nil))
       (spinneret:with-html
-        (:doctype)
+          (:doctype)
         (:html
          (:head
-          (:title "Breeze")
+          (:title "Reference")
           (:link :rel "stylesheet" :href "style.css"))
          (:body
-          (:ol
-           (:li (:a :href "#readme" "Breeze"))
-           (:li (:a :href "#emacs" "Emacs integration"))
-           (:li (:a :href "#reference" "Reference")))
-          (render-markdown "README.md")
-          (render-markdown "docs/emacs.md")
           (render-reference)))))))
 
 (defun generate-documentation ()
-  (let ((index (breeze-relative-pathname "docs/index.html")))
+  (let* ((root (breeze-relative-pathname "docs/"))
+         (index (merge-pathnames "reference.html" root))
+         #+(and sbcl windows)
+         (sb-impl::*default-external-format* :utf-8))
+    (ensure-directories-exist root)
     (with-output-to-file
         (output
          index
          :if-exists :supersede
          :if-does-not-exist :create)
       (generate-documentation-to-stream output)
-      (format t "~%breeze.documentation: ~s written.~%" index))))
+      (format *trace-output* "~%breeze.documentation: ~s written.~%" index))))
