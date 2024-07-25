@@ -187,9 +187,11 @@
      (cl-destructuring-bind
          (point-from point-to replacement-string)
          (cdr request)
-       (kill-region (1+ point-from) (1+ point-to))
-       (goto-char (1+ point-from))
-       (insert replacement-string)))
+       (let ((point (point)))
+         (kill-region (1+ point-from) (1+ point-to))
+         (goto-char (1+ point-from))
+         (insert replacement-string)
+         (goto-char point))))
     ("message"
      (message "%s" (cl-second request)))
     ("find-file"

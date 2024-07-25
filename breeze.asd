@@ -51,7 +51,7 @@
                  "command"))
    (:file "suggestion"
     :depends-on ("listener"))
-   (:file "refactor" :depends-on ("command" "utils" "cl"))
+   (:file "refactor" :depends-on ("command" "utils" "cl" "analysis"))
    (:file "project" :depends-on ("utils" "command" "configuration"))
    (:file "capture" :depends-on ("utils" "command" "configuration")))
   :in-order-to ((test-op (load-op breeze/test)))

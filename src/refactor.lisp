@@ -568,24 +568,29 @@ a message and stop the current command."
           (message "System \"~a\" successfully loaded." system)
           (return-from-command))))))
 
-
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (ignore-errors (maybe-ask-to-load-system))
   (augment-context-by-parsing-the-buffer (context*))
   (check-in-package)
-  (let* (;; Compute the applicable commands
-         (commands (sanitize-list-of-commands (compute-suggestions)))
-         ;; TODO What if there are no suggestions?
-         ;; Ask the user to choose a command
-         (choice (choose "Choose a command: "
-                         (mapcar #'second commands)))
-         (command-function (car (find choice commands
-                                      :key #'second
-                                      :test #'string=))))
-    (if command-function
-        (funcall command-function)
-        (message "~s is not a valid choice" choice)))
+  ;; TODO try to fix only the "current" block and/or iterate
+  (multiple-value-bind (fixed fixed-anything-p)
+      (breeze.analysis:fix :buffer-string (buffer-string)
+                           :point-max (point-max))
+    (if fixed-anything-p
+        (replace-region (point-min) (point-max) fixed)
+        (let* (;; Compute the applicable commands
+               (commands (sanitize-list-of-commands (compute-suggestions)))
+               ;; TODO What if there are no suggestions?
+               ;; Ask the user to choose a command
+               (choice (choose "Choose a command: "
+                               (mapcar #'second commands)))
+               (command-function (car (find choice commands
+                                            :key #'second
+                                            :test #'string=))))
+          (if command-function
+              (funcall command-function)
+              (message "~s is not a valid choice" choice)))))
   #++
   (message "Failed to parse..."))
 

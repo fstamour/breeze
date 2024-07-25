@@ -413,3 +413,63 @@
 #++ ;; Style warnings
 (progn
   (test-lint "like::%really"))
+
+
+(define-test+run lint
+  #++ ;; TODO the "fix" is to eval the defpackage, usually
+  (is equal '((0 56 :warning
+               "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
+      (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
+  (is equalp
+      '((1 3 :warning "Extraneous whitespaces."))
+      (test-lint "(  )"))
+  (is equalp
+      '((2 4 :warning "Extraneous internal whitespaces."))
+      (test-lint "(x  y)"))
+  (is equalp
+      '((3 4 :warning "Extraneous trailing whitespaces.")
+        (1 2 :warning "Extraneous leading whitespaces."))
+      (test-lint "( x )")))
+
+#++
+(let ((diags))
+  (values (with-output-to-string (*standard-output*)
+            (setf diags (lint :buffer-string "( a b ( )  ) " :fixp t)))
+          diags))
+
+(defun test-fix (input)
+  (multiple-value-list (fix :buffer-string input)))
+
+(define-test+run test-fix
+  (is equal '("()" nil) (test-fix "()"))
+  (is equal '(")" nil) (test-fix ")")) ; TODO if reasonable
+  (is equal '("()" t) (test-fix "("))
+  (is equal '("((()))" t) (test-fix "((("))
+  (is equal '("()" t) (test-fix "( )"))
+  (is equal '("()" t) (test-fix "(
+)"))
+  (is equal '("(a b)" t) (test-fix "(a   b)"))
+  (is equal '("(a)" t) (test-fix "(  a  )"))
+  (is equal '("((a))" t) (test-fix "(
+  (
+    a
+  )
+)"))
+  (is equal '("((a))" t) (test-fix "((
+
+    a
+
+  ))"))
+  #++ ;; TODO more whitespace fixes
+  (progn
+    (is equal '("#+(or)" t) (test-fix "#+ (or)"))
+    (is equal '("(+ (- 1 2) 3)" t) (test-fix "(+(- 1 2)3)")))
+  #++ ;; TODO
+  (progn
+    ;; TODO (defpackage -> replace symbols by uninterned symbols
+    (is equal '("(in-package \"x\")" t) (test-fix "(in-package \"x\")"))
+    (is equal '("(in-package #:x)" t) (test-fix "(in-package :x)"))
+    (is equal '("(in-package #:x)" t) (test-fix "(in-package 'x)"))
+    (is equal '("(trace x)" t) (test-fix "(trace 'x)"))
+    (is equal '("(block x)" t) (test-fix "(block 'x)"))
+    (is equal '("(return-from x)" t) (test-fix "(return-from 'x)"))))

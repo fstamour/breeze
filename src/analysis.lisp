@@ -10,7 +10,8 @@
    #:find-path-to-position)
   (:export
    #:in-package-node-p
-   #:lint))
+   #:lint
+   #:fix))
 
 (in-package #:breeze.analysis)
 
@@ -84,7 +85,7 @@ children nodes."
               (some (lambda (package-name)
                       (node-string-equal state package-name-node package-name))
                     `(,(package-name package)
-                       ,@(package-nicknames package)))))))
+                      ,@(package-nicknames package)))))))
         ;; symbol-node
         t)))))
 
@@ -214,7 +215,7 @@ children nodes."
 ;;; applying them...
 
 
-;; TODO try to keep track wheter the current node is quoted or not
+;; TODO try to keep track whether the current node is quoted or not
 (defun %walk (state callback tree depth quotedp)
   (when tree
     (flet ((cb (node &rest args)
@@ -304,11 +305,11 @@ continue (recurse) in this new node instead.
 (defun push-diagnostic* (start end severity format-string format-args)
   "Create a diagnostic object and push it into the special variable
 *diagnostics*."
-  (push
-   (make-diagnostic start end
-                    severity
-                    format-string format-args)
-   *diagnostics*))
+  (let ((diagnostic (make-diagnostic start end
+                                     severity
+                                     format-string format-args)))
+    (push diagnostic *diagnostics*)
+    diagnostic))
 
 ;; Same as push-diagnostic*, but takes a &rest
 (defun push-diagnostic (start end severity format-string &rest format-args)
@@ -337,15 +338,65 @@ continue (recurse) in this new node instead.
         (diag-warn
          node
          "Package ~s is not currently defined." package-designator)))))
+#|
+
+Which conditions should I use?
+
+simple-error
+simple-warning
+
+parse-error
+style-warning
+
+simple-condition-format-control, simple-condition-format-arguments
+
+(apply #'format nil (simple-condition-format-control foo)
+(simple-condition-format-arguments foo))
+
+|#
+
+(define-condition simple-node-condition (simple-condition)
+  ((node :initarg :node :reader target-node)
+   (replacement :initarg :replacement :reader replacement :initform 'cl:null)))
+
+(defun replacementp (simple-node-condition)
+  (not (eq (replacement simple-node-condition) 'cl:null)))
+
+(define-condition simple-node-error (simple-node-condition simple-error) ())
+
+(define-condition simple-node-warning (simple-node-condition simple-warning) ())
+
+(define-condition node-parse-error (simple-node-error parse-error) ())
+
+(define-condition node-style-warning (simple-node-warning style-warning) ())
+
+(defun node-style-warning (node message &key (replacement 'null))
+  (signal (make-condition
+           'node-style-warning
+           :node node
+           :format-control message
+           :replacement replacement)))
+
+#++
+(let ((c (node-style-warning (node 'dummy 0 1) "Bad node ~a")))
+  (apply #'format nil (simple-condition-format-control c)
+         (target-node c)
+         (simple-condition-format-arguments c)))
 
 (defun warn-extraneous-whitespaces (state node firstp lastp previous)
   (cond
     ((and firstp lastp)
-     (diag-warn node "Extraneous whitespaces."))
+     (node-style-warning
+      node "Extraneous whitespaces."
+      :replacement nil))
     (firstp
-     (diag-warn node "Extraneous leading whitespaces."))
+     (node-style-warning
+      node "Extraneous leading whitespaces."
+      :replacement nil))
     ((and lastp (not (line-comment-node-p previous)))
-     (diag-warn node "Extraneous trailing whitespaces."))
+     (node-style-warning
+      node "Extraneous trailing whitespaces."
+      :replacement nil))
     ((and (not (or firstp lastp))
           ;; Longer than 1
           (< 1 (- (node-end node) (node-start node)))
@@ -354,34 +405,88 @@ continue (recurse) in this new node instead.
                          (source state)
                          :start (node-start node)
                          :end (node-end node))))
-     (diag-warn node "Extraneous internal whitespaces."))))
+     (node-style-warning
+      node "Extraneous internal whitespaces."
+      :replacement " "))))
 
 (defun error-invalid-node (node)
   (unless (valid-node-p node)
     (diag-error node "Syntax error")))
 
-(defun lint (&key buffer-string point-max &allow-other-keys
-             &aux
-               (state (parse buffer-string))
-               (*diagnostics* '())
-               (*point-max* (or point-max (length buffer-string))))
+(defun analyse (&key buffer-string point-max callback
+                &allow-other-keys
+                &aux
+                  (state (parse buffer-string))
+                  (*point-max* (or point-max (length buffer-string))))
   (walk state
         (lambda (node &rest args &key depth aroundp beforep afterp
                                    firstp lastp nth
                                    previous
                                    quotedp
-                                   &allow-other-keys)
+                 &allow-other-keys)
           (declare (ignorable depth beforep afterp nth args quotedp))
-          ;; Debug info
-          ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
-          (when aroundp
-            (error-invalid-node node)
-            (warn-undefined-in-package state node)
-            (when (and (plusp depth)
-                       (whitespace-node-p node))
-              (warn-extraneous-whitespaces state node firstp lastp previous)))
-          ;; Always return the node, we don't want to modify it.
-          ;; Technically, we could return nil to avoid recursing into
-          ;; the node (when aroundp is true, that is).
-          node))
+          (let ((new-node
+                  (catch 'return-node
+                    ;; Debug info
+                    ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
+                    (when aroundp
+                      (error-invalid-node node)
+                      (warn-undefined-in-package state node)
+                      (when (and (plusp depth)
+                                 (whitespace-node-p node))
+                        (warn-extraneous-whitespaces state node firstp lastp previous)))
+                    ;; Always return the node, we don't want to modify it.
+                    ;; Technically, we could return nil to avoid recursing into
+                    ;; the node (when aroundp is true, that is).
+                    node)))
+            (if callback
+                (apply callback new-node :state state #| 👀 |#args)
+                new-node)))))
+
+(defun lint (&key buffer-string point-max
+             &allow-other-keys
+             &aux (*diagnostics* '()))
+  (handler-bind
+      ((node-style-warning (lambda (condition)
+                             (format *debug-io* "NODE-STYLE-WARNING")
+                             (diag-warn (target-node condition)
+                                        (simple-condition-format-control condition)
+                                        (simple-condition-format-arguments condition)))))
+    (analyse :buffer-string buffer-string
+             :point-max point-max))
   *diagnostics*)
+
+(defun fix (&key buffer-string point-max &allow-other-keys
+            &aux fixed-anything-p)
+  (values (with-output-to-string (out)
+            (handler-bind
+                ((node-style-warning (lambda (condition)
+                                       (when (replacementp condition)
+                                         (setf fixed-anything-p t)
+                                         (let ((replacement (replacement condition)))
+                                           ;; (format *debug-io* "~&got the condition: ~a ~s" condition replacement)
+                                           (when (stringp replacement)
+                                             (write-string (replacement condition) out)))
+                                         (throw 'return-node nil)))))
+              (analyse :buffer-string buffer-string
+                       :point-max point-max
+                       :callback (lambda (node &rest args &key
+                                                            state
+                                                            depth aroundp beforep afterp
+                                                            firstp lastp nth
+                                                            previous
+                                                            quotedp
+                                          &allow-other-keys)
+                                   ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
+                                   (when (and (not (valid-node-p node))
+                                              (parens-node-p node))
+                                     (setf fixed-anything-p t))
+                                   (cond
+                                     (beforep
+                                      (write-char #\( out))
+                                     (afterp
+                                      (write-char #\) out))
+                                     ((not (or aroundp beforep afterp))
+                                      (breeze.lossless-reader::write-node node state out)))
+                                   node))))
+          fixed-anything-p))
