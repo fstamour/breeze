@@ -1,0 +1,9 @@
+:PROPERTIES:
+:ID:       44f1edb0-d65f-4e6c-bd87-5bed4fc07376
+:END:
+#+title: Debug Adapter Protocol
+
+Not unlike LSP (Language Server Protocol), but for debugger.
+
+- [[https://microsoft.github.io/debug-adapter-protocol/][Official web page]]
+- [[https://github.com/svaante/dape][Dape - Debug Adapter Protocol for Emacs]]
