@@ -473,3 +473,8 @@
     (is equal '("(trace x)" t) (test-fix "(trace 'x)"))
     (is equal '("(block x)" t) (test-fix "(block 'x)"))
     (is equal '("(return-from x)" t) (test-fix "(return-from 'x)"))))
+
+
+#++ ;; TODO this crashes because it tries to call (read "#)") inside
+    ;; breeze.analysis::warn-undefined-in-package
+(breeze.analysis::analyse :buffer-string "(in-package #)")
