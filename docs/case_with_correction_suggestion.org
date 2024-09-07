@@ -1,0 +1,18 @@
+:PROPERTIES:
+:ID:       f50fbc39-3148-4ecb-8e46-719ef3e05fd8
+:END:
+#+title: Case with correction suggestion
+
+Image a variant of =cl:ecase= that find the nearest match and provides
+a corresponding restart for it.
+
+#+begin_src lisp
+(let ((x 'boo))
+  (case x
+    (foo ...)
+    (bar ...)))
+;; => error: 'boo is not one of '(foo bar)
+;; => restart: use 'foo instead
+#+end_src
+
+What if there are many options with the same edit distance?
