@@ -227,7 +227,7 @@ receiving the data it requested."
          (insert replacement-string)
          (goto-char point))))
     ("message"
-     (message "%s" (cl-second request)))
+     (breeze-message "%s" (cl-second request)))
     ("find-file"
      (find-file (cl-second request)))
     (_ (breeze-debug "Unknown request: %S" request) )))
@@ -379,18 +379,46 @@ Uses the variable breeze-breeze.el to find the root."
           ".."
           components)))
 
-;; TODO this doesn't work on "remote systems"
+;; TODO this doesn't work well on a "remote systems"
+(defun breeze-%loader ()
+  "Read src/ensure-breeze.lisp as a string and tweak it for use by a
+listener."
+  (with-temp-buffer
+    (insert-file-contents (breeze-relative-path "src/ensure-breeze.lisp"))
+    (beginning-of-buffer)
+
+    ;; (search-forward "(or-die ") (previous-line)
+
+    (insert "(cl:multiple-value-bind (#1=#.(gensym \"result\") #2=#.(gensym \"condition\")) (cl:ignore-errors \n")
+
+    (search-forward "*asd*")
+    (forward-line) (back-to-indentation)
+    (kill-sexp)
+    (insert (format "%S" (breeze-relative-path "breeze.asd")))
+
+    (end-of-buffer)
+    (insert "\n)
+(list #1# (when #2# (format nil \"~A\" #2#)))
+)")
+    (buffer-string)))
+
+;; (breeze-%loader)
+
 (cl-defun breeze-load (&optional cont)
   "Asynchronously load breeze into the inferior lisp."
-  (let ((path (breeze-relative-path "src/ensure-breeze.lisp")))
-    (breeze-%eval-async
-     `(cl:not (cl:not (cl:probe-file ,path)))
-     (lambda (file-exists-p)
-       (if file-exists-p
-           (breeze-%eval-async
-            `(cl:load ,path)
-            cont)
-         (error "Can't find the file %S from the inferior lisp." path))))))
+  (interactive)
+  (breeze-%eval-async
+   `(cl:let ((cl:*package* (cl:find-package :cl-user)))
+            (cl:eval (cl:read-from-string ,(breeze-%loader))))
+   (lambda (result)
+     (cl-destructuring-bind (success condition)
+         result
+       (breeze-message (if (and success (not condition))
+                           "Breeze loaded successfully. (%s)"
+                         condition)
+                       success)
+       (when (and (and success (not condition)) cont)
+         (funcall cont))))))
 
 (cl-defun breeze-ensure (&optional callback)
   "Make sure that breeze is loaded in the inferior lisp."
