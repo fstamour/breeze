@@ -476,6 +476,31 @@ with which arguments."
                'breeze-connected-hook-function))
 
 
+;;; Incremental parsing
+
+(defun breeze-after-change-function (start stop length)
+  (breeze-ensure
+   (lambda ()
+     (breeze-eval-async
+      (prin1-to-string
+       (let ((base (list 'breeze.analysis:after-change-function
+                         start stop length
+                         :buffer-name (buffer-name)
+                         :buffer-file-name (buffer-file-name)
+                         )))
+         (if (zerop length)
+             (append base (list :insertion (buffer-substring-no-properties start stop)))
+           base)))))))
+
+(add-hook 'breeze-minor-mode-hook
+          (lambda ()
+            (if breeze-minor-mode
+                ;; When enabling breeze-minor-mode
+                (add-hook 'after-change-functions 'breeze-after-change-function nil t)
+              ;; When disabling breeze-minor-mode
+              (remove-hook 'after-change-functions 'breeze-after-change-function t))))
+
+
 ;;; Hooks for flymake
 
 (defun breeze-lint (args callback)

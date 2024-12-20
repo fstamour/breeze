@@ -11,7 +11,8 @@
   (:export
    #:in-package-node-p
    #:lint
-   #:fix))
+   #:fix
+   #:after-change-function))
 
 (in-package #:breeze.analysis)
 
@@ -490,3 +491,37 @@ simple-condition-format-control, simple-condition-format-arguments
                                       (breeze.lossless-reader::write-node node state out)))
                                    node))))
           fixed-anything-p))
+
+
+
+;;; Incremental parsing (the interface with the editor at least)
+
+(defun push-edit (edit)
+  (print edit))
+
+;; TODO keep track of the buffers/files, process these kind of edits
+;; "object":
+;;
+;; (:DELETE-AT 18361 1)
+;; (:INSERT-AT 17591 ";")
+
+(defun breeze.analysis:after-change-function (start stop length &rest rest
+                                              &key
+                                                buffer-name
+                                                buffer-file-name
+                                                insertion
+                                              &allow-other-keys)
+  (declare (ignorable start stop length rest buffer-name buffer-file-name insertion)) ; yea, you heard me
+  ;; consider ignore-error + logs, because if something goes wrong in
+  ;; this function, editing is going to be funked.
+  (push-edit
+   (cond
+     ((zerop length)
+      (list :insert-at start insertion))
+     ((plusp length)
+      (list :delete-at start length))
+     (t :unknown-edit))))
+
+;; TODO add NOTE: "can't splice comment", but I whish I could
+;; e.g.  `  ;; (some | code)`
+;; paredit-splice-sexp or paredit-splice-sexp-killing-backward
