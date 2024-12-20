@@ -141,24 +141,24 @@ calls the continuation CONT with the resulting value."
 
 ;;; Common lisp driven interactive commands
 
-(defun breeze-compute-buffer-args ()
+(cl-defun breeze-compute-buffer-args (&key (include-buffer-content-p t))
   "Compute the list of buffer-related arguments to send to breeze
 when starting a command."
-  (apply 'format
-         ":buffer-name %s
-          :buffer-file-name %s
-          :buffer-string %s
-          :point %s
-          :point-min %s
-          :point-max %s"
-         (mapcar #'prin1-to-string
-                 (list
-                  (buffer-name)
-                  (buffer-file-name)
-                  (buffer-substring-no-properties (point-min) (point-max))
-                  (1- (point))
-                  (1- (point-min))
-                  (1- (point-max))))))
+  (format
+   (concat
+    ":buffer-name %S "
+    ":buffer-file-name %S "
+    ":buffer-string %S "
+    ":point %S "
+    ":point-min %S "
+    ":point-max %S")
+   (buffer-name)
+   (buffer-file-name)
+   (when include-buffer-content-p
+     (buffer-substring-no-properties (point-min) (point-max)))
+   (1- (point))
+   (1- (point-min))
+   (1- (point-max))))
 
 (defun breeze-command-start (name &optional extra-args)
   "Start a command by evaluating the CL function breeze.command:start-command.
@@ -478,34 +478,54 @@ with which arguments."
 
 ;;; Hooks for flymake
 
-(defun breeze-lint (callback)
+(defun breeze-lint (args callback)
   "Asynchronously calls the function breeze.analysis:lint."
+  ;; TODO use ARGS to be able to INCREMENTALLY parse and analyzed the
+  ;; buffer
+  ;;
+  ;; (null args) => first call ever
+  ;;
+  ;; :recent-changes
+  ;; :changes-start
+  ;; :changes-end
   (breeze-ensure
    (lambda ()
+     ;; (cl-loop for change in (cl-getf args :recent-changes) do (breeze-debug "  change: %S" change))
      (breeze-eval-async
       (format "(breeze.analysis:lint %s)"
-              (breeze-compute-buffer-args))
+              (breeze-compute-buffer-args
+               ;; :include-buffer-content-p (null args)
+               ))
       callback)))
   nil)
 
+;; TODO maybe delete?
+(defun breeze-lint-interactive ()
+  "Call breeze-lint, but print the diagnostics as messages. Mainly
+for debugging breeze itself."
+  (interactive)
+  (breeze-lint nil (lambda (diag)
+                     (message "breeze-lint: %s" diag))))
+
 (defun breeze-flymake (report-fn &rest args)
   "A flymake diagnostic function to integrate breeze.analysis:lint with flymake."
-  (breeze-debug "flymake: %S" args)
+  ;; this logs way too much (probably slowing down everything too):
+  ;; (breeze-debug "flymake: %S" args)
   (if (and
        (not (breeze-disabled-p))
        (breeze-listener-connected-p)
        ;; TODO breeze-ready-p
        )
       (let ((buffer (current-buffer)))
-        (breeze-lint (lambda (cl-diagnostics)
-                       (funcall report-fn
-                                (cl-loop for (beg end type text) in cl-diagnostics
-                                         collect (flymake-make-diagnostic
-                                                  ;; Locus
-                                                  buffer
-                                                  (1+ beg) (1+ end)
-                                                  type
-                                                  text))))))
+        (breeze-lint args (lambda (cl-diagnostics)
+                            (funcall report-fn
+                                     (cl-loop for (beg end type text) in cl-diagnostics
+                                              collect (flymake-make-diagnostic
+                                                       ;; Locus
+                                                       buffer
+                                                       (1+ beg) (1+ end)
+                                                       type
+                                                       text))))))
     ;; Not connected, so we can't call breeze's linter.
     (funcall report-fn nil)))
 
@@ -531,6 +551,7 @@ flymake error."
       (flymake-goto-next-error))))
 
 ;; TODO assumes slime
+;; TODO this doesn't work well at all
 (defun breeze-previous-note ()
   "Go to either the previous note from the listener or to the
 previous flymake error."
@@ -621,7 +642,9 @@ previous flymake error."
   "Keymap for breeze-minor-mode")
 
 (define-minor-mode breeze-minor-mode
-  "Breeze mimor mode."
+  "Toggle Breeze minor mode on or off
+
+Breeze minor mode is an Emacs minor mode that complements lisp-mode."
   :lighter " brz"
   :keymap breeze-minor-mode-map)
 
@@ -660,12 +683,14 @@ previous flymake error."
 (defun breeze-minor-mode-enable-flymake-mode ()
   "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
   (interactive)
+  ;; TODO actually enable flymake
   (add-hook 'breeze-minor-mode-hook 'flymake-mode)
   (add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend))
 
 (defun breeze-minor-mode-disable-flymake-mode ()
   "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
   (interactive)
+  ;; TODO actually disable flymake
   (remove-hook 'breeze-minor-mode-hook 'flymake-mode)
   (remove-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend))
 

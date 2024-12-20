@@ -70,3 +70,62 @@ slime-connected-hook
 slime-event-hooks
 
 ;; contribs (like slime-repl) defines even more hooks
+
+
+;;; Flymake
+
+flymake-diagnostic-functions
+
+(flymake-disabled-backends)
+
+;; - invoking flymake-start with a prefix argument is a way to reset the
+;; disabled backend list
+;; - so that they will be tried again in the next check.
+;; - Manually toggling flymake-mode off and on again also works.
+
+
+
+;;; flymake example of "recent changes"
+
+;; writing "asdf"
+;; here we see that the first entry is the most recent.
+(:recent-changes ((16191 16192 #("f" 0 1 (fontified t)))
+                  (16190 16191 #("d" 0 1 (fontified t)))
+                  (16189 16190 #("s" 0 1 (fontified t)))
+                  (16188 16189 #("a" 0 1 (fontified t))))
+                 :changes-start 16188 :changes-end 16192)
+
+;; (insert "asdf")
+;; one edit = 1 change
+(:recent-changes ((16188 16192 "asdf")) :changes-start 16188 :changes-end 16192)
+
+;; deleting (backward) 5 chars in a row
+(:recent-changes ((16186 16186 "")
+                  (16187 16187 "")
+                  (16188 16188 "")
+                  (16189 16189 "")
+                  (16190 16190 ""))
+                 :changes-start 16186 :changes-end 16190)
+
+;; deleting (forward)
+(:recent-changes ((17460 17460 "")
+                  (17460 17460 "")
+                  (17460 17460 "")
+                  (17460 17460 "")) :changes-start 17460 :changes-end 17460)
+
+;; C-k to delete a bunch of chars
+(:recent-changes ((16181 16181 "")) :changes-start 16181 :changes-end 16181)
+
+;; here's a big issue: with what flymakes provides, we cannot know
+;; when multiple characters are deleted at once :/
+
+;; flymake uses a hook:
+;; after-change-functions
+
+;; Three arguments are passed to each function:
+;; 1. beginning of the range of changed text
+;; 2. end of the range of changed text
+;; 3. length in chars of the pre-change text replaced by that range.
+
+;; (zerop length) => insertion
+;; (if (= start end)) => deletion, (plusp length)
