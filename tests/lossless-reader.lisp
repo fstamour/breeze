@@ -271,7 +271,30 @@ newline or +end+)
                                expected-pos
                                expected-children
                                given-numeric-argument)
-  "Helps testing the read-sharpsign-* functions."
+  "Helps testing the read-sharpsign-* functions.
+
+SHARPSING-READER-FUNCTION is the function under test.
+
+NODE-TYPE is the expected type of the node returned by
+SHARPSING-READER-FUNCTION.
+
+INPUT can be a list or a string, this is used to determine where to
+start reading. If it is a string it is assumed that the first
+character is a #. If it is a list, its element will be concatenated
+into one string and the reader will start at the end of the first
+element.
+
+EXPECTED-END is the expected node's end. E.g. (true (eql expected-end (node-end node)))
+
+EXPECTED-POS is the expected position of the parser's state after the
+SHARPSING-READER-FUNCTION's execution.
+
+EXPECTED-CHILDREN is the exepected list of node's children
+
+GIVEN-NUMERIC-ARGUMENT is passed to SHARPSING-READER-FUNCTION as the
+\"optional sequence of digits\" (in the hyperspec's words) read by
+the function read-sharpsign-dispatching-reader-macro
+"
   (let* ((starting-position (if (listp input) (length (first input)) 1))
          (input (if (listp input) (apply 'concatenate 'string input) input))
          (expected-end (or expected-end (length input)))
@@ -288,7 +311,7 @@ newline or +end+)
                               state
                               ;; Assumes we started reading the
                               ;; # as the first character.
-                              0
+                              0 ;; TODO shouldn't this be "starting-position"?
                               given-numeric-argument)
                 :form (list sharpsing-reader-function
                             state 0 given-numeric-argument)
@@ -433,9 +456,152 @@ newline or +end+)
   (test-read-sharpsign-dot "#. a" (list (whitespace 2 3)
                                         (token 3 4))
                            4))
+
+;;; #b sharp-binary
+
+(defun test-read-sharpsign-b (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-b
+   :node-type 'sharp-binary
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-b
+  (test-read-sharpsign-b "#b" :end +end+)
+  (test-read-sharpsign-b "#B" :end +end+)
+  (test-read-sharpsign-b "#bx" :end +end+)
+  (test-read-sharpsign-b "#Bx" :end +end+)
+  (test-read-sharpsign-b "#b1")
+  (test-read-sharpsign-b "#B1")
+  (test-read-sharpsign-b "#b666" :end +end+)
+  (test-read-sharpsign-b "#b9" :end +end+))
+
+;; TODO this in invalid (float binary): (read-from-string "#b0.1")
+;; TODO this in invalid (ratinal binary): (read-from-string "#b0/2")
+;; TODO this is valid (rational binary): (read-from-string "#b0/1")
 
 
-;;; #c
+;;; #o sharp-octal
+
+(defun test-read-sharpsign-o (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-o
+   :node-type 'sharp-octal
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-o
+  (test-read-sharpsign-o "#o" :end +end+)
+  (test-read-sharpsign-o "#O" :end +end+)
+  (test-read-sharpsign-o "#ox" :end +end+)
+  (test-read-sharpsign-o "#Ox" :end +end+)
+  (test-read-sharpsign-o "#o1")
+  (test-read-sharpsign-o "#O1")
+  (test-read-sharpsign-o "#o666")
+  (test-read-sharpsign-o "#o9" :end +end+))
+
+;; TODO this in invalid (float octal): (read-from-string "#o0.1")
+;; TODO this is valid (rational octal): (read-from-string "#o0/3")
+
+
+;;; #x sharp-hexa
+
+(defun test-read-sharpsign-x (input &key child end)
+  (test-read-sharpsign*
+   :sharpsing-reader-function 'read-sharpsign-x
+   :node-type 'sharp-hexa
+   :input input
+   :expected-end end
+   :expected-children child))
+
+(define-test+run read-sharpsign-x
+  (test-read-sharpsign-x "#x" :end +end+)
+  (test-read-sharpsign-x "#X" :end +end+)
+  (test-read-sharpsign-x "#xx" :end +end+)
+  (test-read-sharpsign-x "#Xx" :end +end+)
+  (test-read-sharpsign-x "#x1")
+  (test-read-sharpsign-x "#X1")
+  (test-read-sharpsign-x "#x666")
+  (test-read-sharpsign-x "#xF")
+  (test-read-sharpsign-x "#xf")
+  (test-read-sharpsign-x "#xz" :end +end+))
+
+;; TODO this in invalid (float hex): (read-from-string "#x0.1")
+;; TODO this is valid (rational hex): (read-from-string "#x0/3")
+
+
+;;; #r sharp-radix
+
+(defun split-at (string char)
+  (let ((p (position-if (lambda (c)
+                          (char-equal c char))
+                        string)))
+    (list (subseq string 0 p)
+          (subseq string p))))
+
+;; (split-at "#01r23" #\r)
+;; => ("#01" "r23")
+
+(defun test-read-sharpsign-r (input &key end)
+  (check-type input string)
+  (let* (;; assumes input is a string
+         (input (split-at input #\r))
+         ;; assumes input starts with #
+         (numeric-argument (let ((prefix (first input)))
+                             (when (< 2 (length prefix))
+                               (parse-integer prefix :start 1)))))
+    (test-read-sharpsign*
+     :sharpsing-reader-function 'read-sharpsign-r
+     :node-type 'sharp-radix
+     :input input
+     :expected-end end
+     ;; :expected-children child
+     :given-numeric-argument numeric-argument)))
+
+ (parse-integer
+  "#" :start 1 :junk-allowed t)
+
+(trace read-sharpsign-r)
+
+(define-test+run read-sharpsign-r
+  ;; no radix
+  (progn
+    (test-read-sharpsign-r "#r" :end +end+)
+    (test-read-sharpsign-r "#R" :end +end+)
+    (test-read-sharpsign-r "#rr" :end +end+)
+    (test-read-sharpsign-r "#Rr" :end +end+)
+    (test-read-sharpsign-r "#r1" :end +end+)
+    (test-read-sharpsign-r "#R1" :end +end+)
+    (test-read-sharpsign-r "#r666" :end +end+)
+    (test-read-sharpsign-r "#rF" :end +end+)
+    (test-read-sharpsign-r "#rf" :end +end+)
+    (test-read-sharpsign-r "#rz" :end +end+))
+  ;; bad radix
+  (progn
+    (test-read-sharpsign-r "#1r0" :end +end+)
+    (test-read-sharpsign-r "#37R0" :end +end+))
+  ;; good radix
+  (progn
+    (test-read-sharpsign-r "#2r" :end +end+)
+    (test-read-sharpsign-r "#2R" :end +end+)
+    (test-read-sharpsign-r "#2rr" :end +end+)
+    (test-read-sharpsign-r "#2Rr" :end +end+)
+    ;; TODO WIP those tests don't passes just yet
+    #++
+    (test-read-sharpsign-r "#2r1")
+    #++
+    (test-read-sharpsign-r "#2R1")
+    #|
+    (test-read-sharpsign-r "#2r666" :end +end+)
+    (test-read-sharpsign-r "#rF")
+    (test-read-sharpsign-r "#rf")
+    (test-read-sharpsign-r "#rz" :end +end+)
+    |#))
+
+
+;;; #c sharp-complex
 
 (defun test-read-sharpsign-c (input &key child end)
   (test-read-sharpsign*

@@ -689,6 +689,7 @@ the occurence of STRING."
     (%read-sharpsign-any state start 'sharp-eval)))
 
 (defun %read-sharpsign-number (state start type radix)
+  "Read a number"
   (let ((n (read-number state radix)))
     (node type start (if n (pos state) +end+))))
 
@@ -700,9 +701,11 @@ the occurence of STRING."
 
 (defun read-sharpsign-o (state start number)
   (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
-  (when (read-char* state #\b nil)
-    (%read-sharpsign-number state start 'sharp-octal 8)))
+  (when (read-char* state #\o nil)
+    (if number
+        ;; (if number) => invalid syntax
+        (node 'sharp-octal start +end+)
+        (%read-sharpsign-number state start 'sharp-octal 8))))
 
 (defun read-sharpsign-x (state start number)
   (declare (ignore number))
@@ -712,8 +715,49 @@ the occurence of STRING."
 
 (defun read-sharpsign-r (state start radix)
   (when (read-char* state #\r nil)
-    (let ((n (read-number state radix)))
-      (node 'sharp-radix start (if n (pos state) +end+)))))
+    (cond
+      ((null radix)
+       ;; radix missing in #R
+
+       ;; Some ideas to improve error detection, reporting and correction
+       ;;
+       ;; TODO here we could try to call "read-number" anyway
+       ;;
+       ;; TODO we could try with radix = 36 to be the "most
+       ;; inclusive", if that fails we can tell the user "char <X> is
+       ;; not a valid digit, even if the radix was set correctly"
+       ;;
+       ;; TODO we could try to infer which radix would make sense? but
+       ;; if they're using "R" it's probably because it's a weird
+       ;; radix... we could tell the user which minimal radix would
+       ;; work.
+       ;;
+       ;; TODO each node could have a list of errors (diagnostics?)
+       ;; attached, so we can have better feedback than just "syntax
+       ;; error" (could we re-use the node-childred to store the
+       ;; diagnostics?)
+       ;;
+       ;; TODO if we fail to parse this, it would be nice to tell the
+       ;; caller (read-sharpsign-dispatching-reader-macro -> read-any)
+       ;; where it would make sense to restart reading. I think it's
+       ;; something doable for terminals (e.g. not read-parens)
+       ;;
+       ;; TODO instead of one sentinel value (+end+), we could use
+       ;; negative positions... we could encode the "where to restart
+       ;; reading" with this.
+       ;;   - valid-node-p could use =(not (minusp 0))= to check if
+       ;;     =(node-end node)= is considered valid.
+       ;;   - -1 could still be used as "no-end"
+       ;;   - any POS below -1 would mean "I think we can can restart
+       ;;     parsing at position (- (1+ POS))
+       ;; TODO write those in docs/*.org, like a normal human being
+       (node 'sharp-radix start +end+))
+      ((not (<= 2 radix 36))
+       ;; illegal radix for #R: <X>.
+       (node 'sharp-radix start +end+))
+      (t
+       (let ((n (read-number state radix)))
+         (node 'sharp-radix start (if n (pos state) +end+)))))))
 
 (defun read-sharpsign-c (state start number)
   (declare (ignore number))
