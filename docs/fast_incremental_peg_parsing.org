@@ -1,0 +1,9 @@
+:PROPERTIES:
+:ID:       a1b34261-e041-412a-a291-c26fd0e34668
+:END:
+#+title: Fast Incremental PEG Parsing
+
+https://www.youtube.com/watch?v=k3vBR58u3cY
+
+Presented at SLE 2021, part of SPLASH 2021.
+By Zachary Yedidia, Stephen Chong
