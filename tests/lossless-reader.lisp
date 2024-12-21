@@ -563,7 +563,7 @@ the function read-sharpsign-dispatching-reader-macro
  (parse-integer
   "#" :start 1 :junk-allowed t)
 
-(trace read-sharpsign-r)
+;; (trace read-sharpsign-r)
 
 (define-test+run read-sharpsign-r
   ;; no radix
