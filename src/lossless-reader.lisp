@@ -222,10 +222,18 @@ common lisp.")
             (:predicate rangep))
   (start 0
    :type (integer 0)
-   :read-only t)
+   ;; TODO Made non-readonly for testing incremental parsing, until I
+   ;; implement a better data structure
+   ;;
+   ;; :read-only t
+   )
   (end +end+
    :type (integer -1)
-   :read-only t))
+   ;; TODO Made non-readonly for testing incremental parsing, until I
+   ;; implement a better data structure
+   ;;
+   ;; :read-only t
+   ))
 
 (defstruct (node
             ;; (:constructor node (type start end &optional children))
@@ -1075,7 +1083,7 @@ Returns a new node with one of these types:
 
 ;;; Putting it all toghether
 
-(defun parse (string &aux (state (make-state string)))
+(defun parse (string &optional (state (make-state string)))
   "Parse a string, stop at the end, or when there's a parse error."
   (setf (tree state)
         (loop
@@ -1088,6 +1096,16 @@ Returns a new node with one of these types:
           :while (and (valid-node-p node)
                       (not (donep state)))))
   state)
+
+(defun reparse (state)
+  (loop
+    :for node-start = (pos state)
+    :for node = (read-any state)
+    ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
+    :when node
+      :collect node
+    :while (and (valid-node-p node)
+                (not (donep state)))))
 
 ;; (parse "#2()")
 ;; (parse "(")
