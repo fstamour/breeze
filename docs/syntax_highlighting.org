@@ -1,0 +1,103 @@
+:PROPERTIES:
+:ID:       8a919b83-89f4-40b8-aeb4-2638c308cddf
+:END:
+#+title: Syntax highlighting
+
+Implementing syntax highlighting "in breeze" would:
+- improve the situation in emacs
+- provide the same "backend" for each editors
+- be a very good test for the parser
+
+* Syntax highlighting in Emacs
+
+Oftentimes, the syntax highlighting is not exactly right.
+
+I can't remember a specific example of the syntax highlighting beging
+_broken_ (not just inexact) rigth this moment, but it's easy to
+imagine a custom reader macro that would cause issues.
+
+One example, the "cl keywords" (as defined by emacs' syntax
+highlighting) are detected as such even if the symbol is actually
+shadowed. This is not _always_ want we want.
+
+It would be nice to have the cl:loop keywords highlighted even when
+they're not :keywords.
+
+The various "literals" are not highlighted at all (like =#\Return=, or
+=#x1A=).
+
+It could be nice to have highlighting specific to a macro... That
+would be hard in general, but it might be possible for quite a few
+macros...
+
+It could be nice to highlight the cl:format's control strings.
+
+** How syntax highlighting works in emacs
+
+#+begin_quote
+font-lock-mode is the standard way to have Emacs perform syntax
+highlighting in the current buffer. It is enabled by default.
+#+end_quote
+From [[https://www.gnu.org/software/emacs/manual/html_node/efaq/Turning-on-syntax-highlighting.html][How do I turn on syntax highlighting?]]
+
+See info node: [[info:emacs#Font Lock][emacs#Font Lock]]
+
+- =font-lock-mode= uses predefined font faces like
+  =font-lock-string-face=/
+- it has a "just in time" syntax highlighting which is called
+  =jit-locking=
+
+Syntax highlighting can be done in different ways:
+- regex
+- syntax tables
+- "Use syntax tree produced by a full-blown parser" ← bingo
+  - it is called "Parser-based font lock"
+
+*** Parser-based Font Lock
+
+See info node: [[info:emacs#Parser-based Font Lock][emacs#Parser-based Font Lock]]
+
+aannnd disappointment, it only talks about treesitter...
+
+** Apparently, I'm not the only one wanting the improve CL font-lock
+
+https://www.n16f.net/blog/custom-font-lock-configuration-in-emacs/
+
+*** TODO Explore this blog and add notes in there
+
+This blog seems to have a lot of posts about using lisp and tweaking
+editors (emacs) to make it event better.
+
+** DIY fontification ??
+
+*** Using syntax table
+
+[[info:elisp#Syntax Tables][elisp#Syntax Tables]] are used by Font lock mode...
+
+https://www.emacswiki.org/emacs/EmacsSyntaxTable
+
+#+begin_quote
+When the syntax table is not flexible enough to specify the syntax of
+a language, you can override the syntax table for specific character
+occurrences in the buffer, by applying a syntax-table text property.
+#+end_quote
+From [[info:elisp#Syntax Properties][elisp#Syntax Properties]]
+
+The function =syntax-propertize-function= is used by font-lock mode
+during "during syntactic fontification".
+
+This [[https://stackoverflow.com/a/25251144][StackOverflow answer]] seems to be a good example of how to
+customize this... And I _think_ it would be the right place
+
+Use =setq-local= though.. or =(make-local-variable
+'syntax-propertize-function)=
+
+Another interesting explanation of =syntax-propertize-function=.
+
+=lisp-mode-syntax-table= is the name of the variable containing the
+syntax table object for the =lisp-mode=.
+
+*** Using text properties
+
+I _could_ set the ='face= property manually too... (it overrides the
+='font-lock-face= property).

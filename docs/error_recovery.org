@@ -1,5 +1,7 @@
-
-Error recovery
+:PROPERTIES:
+:ID:       9eee6140-644d-4615-ae88-be84243f63af
+:END:
+#+title: Error recovery
 
 - basic: use "synchronization points", places where it looks like a
 good place to restart parsing after an invalid parse
@@ -10,3 +12,12 @@ start from a previous good state (incremental parsing)
 - I noticed that for lisp, a lot of things would be "easy" to parse
 backward, this would help tremendously pin-pointing where a "bad
 parse" begins.
+
+
+
+An easy case for error recovery:
+
+#+begin_src lisp
+  #|
+  it's missing a closing "pipehash" before the end of the string
+#+end_src

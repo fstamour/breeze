@@ -403,3 +403,6 @@ char/=
 ;; Warn that the body is empty
 (let ((x 32)))
 ;; Same with flet, macrolet, symbol-macrolet, etc
+
+
+let* (<only-one-binding>) => let

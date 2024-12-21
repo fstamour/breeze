@@ -18,6 +18,10 @@ Skip: t
 $(+ 2 2)
 =-=-=
 
+;; 2024-12-20 I just found out about emacs' parse-sexp-ignore-comments
+;; variable, but its behaviour (when using paredit) seems pretty
+;; chaotic (from my 2 min tests).
+
 
 Name: contextual split sexp
 Command: breeze:split-sexp

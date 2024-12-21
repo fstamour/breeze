@@ -1,0 +1,9 @@
+:PROPERTIES:
+:ID:       b139c21c-3a35-4b69-acd5-00b9d71090ce
+:END:
+#+title: Helping with setting up slime for remote sessions
+
+It would be nice if breeze could help with detecting misconfigured (or
+not configured) file path translation (=slime-filename-translations=).
+
+Most people just don't know this feature exists.

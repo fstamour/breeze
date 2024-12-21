@@ -744,3 +744,37 @@ strings get concatenated."
 (buffer-string
  (alexandria:plist-hash-table
   '(:buffer-string "asdf")))
+
+#++ ;; TODO modify a define-package/defpackage form to add 1
+    ;; import-from "clause". In this case alexandria:when-let
+(let* ((input
+         "(uiop:define-package #:package
+    (:use #:cl)
+  (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
+  ;; Category A
+  (:export
+   #:a
+   #:b
+   #:c)
+  ;; Category B
+  (:export
+   #:d
+   #:e
+   #:f))")
+       (expected-output
+         "(uiop:define-package #:package
+    (:use #:cl)
+  (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
+  ;; Category A
+  (:export
+   #:a
+   #:b
+   #:c)
+  ;; Category B
+  (:export
+   #:d
+   #:e
+   #:f)
+  (:import-from #:alexandria
+                #:when-let))")
+       (state (read-))))
