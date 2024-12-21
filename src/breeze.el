@@ -698,12 +698,14 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 (defun enable-breeze-minor-mode ()
   "Enable breeze-minor-mode."
   (interactive)
-  (breeze-minor-mode 1))
+  (unless breeze-minor-mode
+    (breeze-minor-mode 1)))
 
 (defun disable-breeze-minor-mode ()
   "Disable breeze-minor-mode."
   (interactive)
-  (breeze-minor-mode -1))
+  (when breeze-minor-mode
+    (breeze-minor-mode -1)))
 
 (defun breeze-minor-mode-enable-flymake-mode ()
   "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
@@ -728,6 +730,10 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
   "Configure a hook to enable breeze-minor-mode in lisp-mode."
   (interactive)
   (remove-hook 'lisp-mode-hook #'breeze-minor-mode))
+
+;; TODO use the hook "change-major-mode-hook" (or
+;; "after-change-major-mode-hook"??) to disable/enable
+;; breeze-minor-mode
 
 
 ;;; major mode
