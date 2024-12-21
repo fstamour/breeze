@@ -1092,7 +1092,11 @@ the function read-sharpsign-dispatching-reader-macro
   ;; TODO This is silly
   (test-parse ",@" (node 'comma 0 1) (node 'at 1 2))
   ;; TODO This is silly
-  (test-parse ",." (node 'comma 0 1) (node 'dot 1 2)))
+  (test-parse ",." (node 'comma 0 1) (node 'dot 1 2))
+  (test-parse "(in-package #)" (parens 0 -1
+                                       (list (token 1 11)
+                                             (whitespace 11 12)
+                                             (sharp-unknown 12 -1)))))
 
 #++ ;; this is cursed
 (read-from-string "cl-user::; wtf
