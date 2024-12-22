@@ -1,0 +1,6 @@
+let g:swank_port=4005
+let g:swank_host=localhost
+
+call  SlimvConnectSwank
+echom SlimvConnectSwank
+

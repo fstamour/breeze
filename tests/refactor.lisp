@@ -684,11 +684,12 @@ strings get concatenated."
 
 #++
 (test-quickfix "blah.lisp" "" ""
-               :inputs '("Insert a defpackage form."))
+               :inputs '("Insert a defpackage form." "foo"))
+
 
 #++
 (test-quickfix "blah.lisp" "  " "  "
-               :inputs '("Insert a defpackage form."))
+               :inputs '("Insert a defpackage form." "foo"))
 
 
 (defun expect-suggestions (&rest expected-suggested-commands)
@@ -746,9 +747,9 @@ strings get concatenated."
   '(:buffer-string "asdf")))
 
 #++ ;; TODO modify a define-package/defpackage form to add 1
-    ;; import-from "clause". In this case alexandria:when-let
+;; import-from "clause". In this case alexandria:when-let
 (let* ((input
-         "(uiop:define-package #:package
+        "(uiop:define-package #:package
     (:use #:cl)
   (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
   ;; Category A
@@ -762,7 +763,7 @@ strings get concatenated."
    #:e
    #:f))")
        (expected-output
-         "(uiop:define-package #:package
+        "(uiop:define-package #:package
     (:use #:cl)
   (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
   ;; Category A
@@ -778,3 +779,31 @@ strings get concatenated."
   (:import-from #:alexandria
                 #:when-let))")
        (state (read-))))
+
+#++ ;; TODO
+(define-test "simple format fixes"
+    (let* ((trace (drive-command #'fix-formatting
+                                 :inputs '()
+                                 :context '())))
+      (common-trace-asserts 'fix-formatting trace 4)
+
+      ;; TODO
+      (destructuring-bind (input request) (first trace)
+        (false input)
+        (is string= "read-string" (first request))
+        (is string= "Name of the object (parameter name of the method): " (second request))
+        (false (third request)))
+      (destructuring-bind (input request) (second trace)
+        (is string= "node" input)
+        (is string= "read-string" (first request))
+        (is string= "Type of the object: " (second request))
+        (false (third request)))
+      (destructuring-bind (input request) (third trace)
+        (is string= "node" input)
+        (is string= "insert" (first request))
+        (is equal
+            '("(defmethod print-object ((node node) stream)"
+              "  (print-unreadable-object"
+              "      (node stream :type t :identity nil)"
+              "    (format stream \"~s\" (node-something node))))")
+            (split-by-newline (second request))))))

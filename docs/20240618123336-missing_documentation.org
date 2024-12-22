@@ -1,0 +1,10 @@
+:PROPERTIES:
+:ID:       018d969c-f075-406a-95a0-d4bac06df069
+:END:
+#+title: Missing Documentation
+
+I do have some utilities to flag missing documentation.
+
+I found out that Zulu' too made something:
+
+https://gitlab.com/Zulu-Inuoe/common.lisp/-/blob/4d326828efb78c6518fc2364021a143ec4c98b8b/utils.lisp#L283
