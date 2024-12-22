@@ -1,0 +1,10 @@
+:PROPERTIES:
+:ID:       1af469ee-d6ec-46fe-a335-b044e142eb7d
+:END:
+#+title: Emacs eat - Emulate a terminal
+
+Emulate A Terminal, in a region, in a buffer and in Eshell
+
+https://codeberg.org/akib/emacs-eat
+
+Seems interesting...

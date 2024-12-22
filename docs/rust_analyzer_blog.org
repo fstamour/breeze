@@ -1,0 +1,6 @@
+:PROPERTIES:
+:ID:       9fdf7c6a-793f-4ea3-b538-0742c7582aa3
+:END:
+#+title: Rust analyzer blog
+
+https://rust-analyzer.github.io/blog
