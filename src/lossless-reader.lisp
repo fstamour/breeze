@@ -25,12 +25,17 @@ common lisp.")
            #:node-end
            #:node-type
            #:node-children
-           #:ensure-nodes
-           #:append-nodes
-           #:nodes
            #:copy-node
            #:valid-node-p
            #:node-content)
+  ;; Node sequences
+  (:export #:ensure-nodes
+           #:append-nodes
+           #:nodes
+           #:nth-node
+           #:first-node
+           #:second-node
+           #:last-node)
   ;; Node constructors
   (:export #:block-comment
            #:parens
@@ -251,22 +256,42 @@ common lisp.")
 
 (defun ensure-nodes (x)
   "Ensure that that X is a sequence of node."
-  (if (listp x)
-      x
-      (list x)))
+  (typecase x
+    (null nil)
+    (vector x)
+    (cons (coerce x 'vector))
+    (t (vector x))))
 
 (defun append-nodes (nodes1 nodes2)
   "Concatenate two sequences of nodes."
-  (append nodes1 nodes2))
+  (concatenate 'vector nodes1 nodes2))
 
 ;; (declaim (inline %nodes))
 (defun %nodes (x y)
   "Create a sequence of nodes. But less used-friendly."
-  (append-nodes (ensure-nodes x) (ensure-nodes y)))
+  (if x
+      (if y
+          (append-nodes (ensure-nodes x) (ensure-nodes y))
+          (ensure-nodes x))
+      (when y (ensure-nodes y))))
 
 (defun nodes (&optional node &rest nodes)
   "Create a sequence of nodes."
   (%nodes node nodes))
+
+
+(defun nth-node (nodes n)
+  (when nodes
+    (aref nodes n)))
+
+(defun first-node (nodes)
+  (nth-node nodes 0))
+
+(defun second-node (nodes)
+  (nth-node nodes 1))
+
+(defun last-node (nodes)
+  (nth-node nodes (1- (length nodes))))
 
 (defun node (type start end &optional child &rest children)
   #++ (when (= +end+ end)
@@ -845,15 +870,7 @@ first node being whitespaces.)"
   (when (read-char* state #\=)
     (multiple-value-bind (end children)
         (read-any* state)
-      ;; TODO sharp-label would benefit from having it own data
-      ;; structure, this is abusing the children
-      (node 'sharp-label start end
-            (append
-             (when (and (integerp number)
-                        (<= 0 number))
-               (list :label number))
-             (when children
-               (list :form children)))))))
+      (node 'sharp-label start end (%nodes number children)))))
 
 (defun read-sharpsign-sharpsign (state start number)
   (when (read-char* state #\#)
@@ -1104,8 +1121,8 @@ Returns a new node with one of these types:
       :when el
         :collect el :into content
       :unless (valid-node-p el)
-        :do (return (parens start +end+ content))
-      :finally (return (parens start (pos state) content)))))
+        :do (return (parens start +end+ (ensure-nodes content)))
+      :finally (return (parens start (pos state) (ensure-nodes content))))))
 
 ;; TODO add tests with skip-whitespaces-p set
 (defun read-any (state &optional skip-whitespaces-p)
@@ -1220,21 +1237,23 @@ Returns a new node with one of these types:
                            (end node)))))
 
 (defun %unparse (tree state stream depth transform)
-  (when tree
-    (if (listp tree)
-        (mapcar (lambda (node)
-                  (%unparse (funcall transform node)
-                            state stream (1+ depth)
-                            transform))
-                tree)
-        (case (node-type tree)
-          (parens
-           (write-char #\( stream)
-           (%unparse (node-children tree) state stream depth transform)
-           (unless (no-end-p tree)
-             (write-char #\) stream)))
-          (t
-           (write-node (funcall transform tree) state stream))))))
+  (etypecase tree
+    (null)
+    ((or vector cons)
+     (map nil (lambda (node)
+                (%unparse (funcall transform node)
+                          state stream (1+ depth)
+                          transform))
+          tree))
+    (node
+     (case (node-type tree)
+       (parens
+        (write-char #\( stream)
+        (%unparse (node-children tree) state stream depth transform)
+        (unless (no-end-p tree)
+          (write-char #\) stream)))
+       (t
+        (write-node (funcall transform tree) state stream))))))
 
 (defun unparse (state &optional (stream t) (transform #'identity))
   (if stream
