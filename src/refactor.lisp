@@ -40,6 +40,7 @@
    #:insert-defgeneric
    #:insert-defmethod
    #:insert-print-unreadable-object-boilerplate
+   #:insert-make-load-form-boilerplate
    #:insert-lambda
    ;; Other commands
    #:quickfix))
@@ -301,6 +302,22 @@ defun."
      name
      type name)))
 
+(define-command insert-make-load-form-boilerplate ()
+  "Insert a make-load-form method form."
+  (let ((name (read-string
+               "Name of the object (parameter name of the method): "))
+        (type (read-string
+               "Type of the object: "))
+        (slots (read-string
+                "Slots of the object: ")))
+    (insert
+     "(defmethod make-load-form ((~A ~A) &optional environment)~
+          ~%  (make-load-form-saving-slots ~A~
+          ~%                              :slot-names '(~{~A~^ ~})~
+          ~%                              :environment environment))"
+     name type
+     name
+     (list slots))))
 
 (define-command insert-lambda ()
   "Insert a lambda form."
