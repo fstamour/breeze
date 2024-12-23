@@ -25,6 +25,8 @@ common lisp.")
            #:node-end
            #:node-type
            #:node-children
+           #:ensure-nodes
+           #:append-nodes
            #:nodes
            #:copy-node
            #:valid-node-p
@@ -247,15 +249,23 @@ common lisp.")
   (children '()
    :read-only t))
 
-(declaim (inline %nodes))
-(defun %nodes (node nodes)
-  (if nodes
-      (cons node nodes)
-      node))
+(defun ensure-nodes (x)
+  "Ensure that that X is a sequence of node."
+  (if (listp x)
+      x
+      (list x)))
 
-(declaim (inline nodes))
+(defun append-nodes (nodes1 nodes2)
+  "Concatenate two sequences of nodes."
+  (append nodes1 nodes2))
+
+;; (declaim (inline %nodes))
+(defun %nodes (x y)
+  "Create a sequence of nodes. But less used-friendly."
+  (append-nodes (ensure-nodes x) (ensure-nodes y)))
+
 (defun nodes (&optional node &rest nodes)
-  "Create a sequence of nodes"
+  "Create a sequence of nodes."
   (%nodes node nodes))
 
 (defun node (type start end &optional child &rest children)
@@ -265,7 +275,9 @@ common lisp.")
    :type type
    :start start
    :end end
-   :children (%nodes child children)))
+   :children (if children
+                 (%nodes child children)
+                 child)))
 
 (defmethod make-load-form ((node node) &optional environment)
   (make-load-form-saving-slots node
@@ -375,7 +387,7 @@ common lisp.")
 (defun parens (start end &optional children)
   (node 'parens start end
         (if (nodep children)
-            (list children)
+            (nodes children)
             children)))
 
 (defun print-nodes (stream nodes colonp atp)
@@ -676,9 +688,12 @@ the occurence of STRING."
       (node 'sharp-char start (if token (pos state) +end+) token))))
 
 (defun read-any* (state)
+  "Like READ-ANY, but return the end of the read and a sequence of nodes
+as two values (Wheras READ-ANY returns two nodes (also as values), the
+first node being whitespaces.)"
   (multiple-value-bind (whitespaces form)
       (read-any state t)
-    (let ((children (remove-if #'null (list whitespaces form)))
+    (let ((children (%nodes whitespaces form))
           (end (if (and form
                         (valid-node-p form))
                    (pos state)
@@ -776,7 +791,7 @@ the occurence of STRING."
        ;;
        ;; TODO each node could have a list of errors (diagnostics?)
        ;; attached, so we can have better feedback than just "syntax
-       ;; error" (could we re-use the node-childred to store the
+       ;; error" (could we re-use the node-children to store the
        ;; diagnostics?)
        ;;
        ;; TODO if we fail to parse this, it would be nice to tell the
@@ -978,6 +993,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (untrace))
 
 (defun %token-symbol-node (string &optional (start 0) (end (length string)))
+  "See TOKEN-SYMBOL-NODE's docstring."
   (when (and string start end
              (< -1 start end)
              (plusp (length string)))
@@ -1000,7 +1016,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
           (and (not (= position (1- end)))
                (node 'qualified-symbol
                      start end
-                     (list
+                     (nodes
                       (node 'package-name start position)
                       (node 'symbol-name (1+ position) end)))))))
       ;; p::x
@@ -1011,7 +1027,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
             (char= #\: (char string (1+ first)))
             (node 'possibly-internal-symbol
                   start end
-                  (list
+                  (nodes
                    (node 'package-name start first)
                    (node 'symbol-name (+ 2 first) end)))))))))
 

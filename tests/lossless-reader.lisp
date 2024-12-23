@@ -182,6 +182,21 @@ newline or +end+)
   (test-node-print-object
    (parens 3 5) "(parens 3 5)"))
 
+(define-test+run ensure-nodes
+  (false (ensure-nodes nil))
+  (is equal '(t) (ensure-nodes t))
+  (is equal '(t) (ensure-nodes (ensure-nodes t))))
+
+(define-test+run nodes
+  (false (%nodes nil nil))
+  (is equal '(t) (%nodes t nil))
+  (is equal '(t t) (%nodes t t))
+  (is equal '(t) (%nodes nil t))
+  (false (nodes))
+  (is equal '(t) (nodes t))
+  (is equal '(a b) (nodes 'a 'b))
+  (is equal '(a b c) (nodes 'a 'b 'c)))
+
 
 ;;; Low-level parsing helpers
 
