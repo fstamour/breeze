@@ -378,10 +378,14 @@ common lisp.")
             (list children)
             children)))
 
+(defun print-nodes (stream nodes colonp atp)
+  (declare (ignore colonp atp))
+  (format stream "(list ~{~s~^ ~})" nodes))
+
 (defmethod print-object ((node node) stream)
   (let ((*print-case* :downcase)
         (children (node-children node)))
-    (format stream "(~:[node '~;~]~s ~d ~d~:[ ~s~;~@[ (list ~{~s~^ ~})~]~])"
+    (format stream "(~:[node '~;~]~s ~d ~d~:[ ~s~;~@[ ~/breeze.lossless-reader::print-nodes/~]~])"
             (member (node-type node)
                     '(parens
                       token
