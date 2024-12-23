@@ -255,6 +255,11 @@ common lisp.")
    :end end
    :children children))
 
+(defmethod make-load-form ((node node) &optional environment)
+  (make-load-form-saving-slots node
+                               :slot-names '(start end type children)
+                               :environment environment))
+
 
 ;;; Constructors
 
