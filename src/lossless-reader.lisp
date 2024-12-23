@@ -25,6 +25,7 @@ common lisp.")
            #:node-end
            #:node-type
            #:node-children
+           #:nodes
            #:copy-node
            #:valid-node-p
            #:node-content)
@@ -246,6 +247,17 @@ common lisp.")
   (children '()
    :read-only t))
 
+(declaim (inline %nodes))
+(defun %nodes (node nodes)
+  (if nodes
+      (cons node nodes)
+      node))
+
+(declaim (inline nodes))
+(defun nodes (&optional node &rest nodes)
+  "Create a sequence of nodes"
+  (%nodes node nodes))
+
 (defun node (type start end &optional child &rest children)
   #++ (when (= +end+ end)
         (break))
@@ -253,9 +265,7 @@ common lisp.")
    :type type
    :start start
    :end end
-   :children (if children
-                 (cons child children)
-                 child)))
+   :children (%nodes child children)))
 
 (defmethod make-load-form ((node node) &optional environment)
   (make-load-form-saving-slots node
@@ -273,33 +283,57 @@ common lisp.")
              `(progn
                 ;; predicate
                 (defun
+                    ;; name of the predicate
                     ,(alexandria:symbolicate type '-node-p)
+                    ;; lambda list
                     (node)
+                  ;; docstring
                   ,(format nil "Is this a node of type ~s" type)
+                  ;; predicate's implementation
                   (and (nodep node)
                        (eq (node-type node) ',type)
                        node))
                 ;; constructor
                 ,(unless no-constructor-p
-                   `(defun ,name (start end
-                                  ,@(when children
-                                      (case children
-                                        (&optional (list '&optional 'children))
-                                        ((t) (list 'children))
-                                        (t (alexandria:ensure-list children)))))
-                      (node ',type start end ,@(when children
-                                                 (if (eq t children)
-                                                     (list 'children)
-                                                     (alexandria:ensure-list children))))))
+                   `(defun
+                        ;; name of the constructor function
+                        ,name
+                        ;; lambda list
+                        (start end
+                         ,@(when children
+                             (case children
+                               ;; :children &optional
+                               (&optional (list '&optional 'children))
+                               ;; :children t
+                               ((t) (list 'children))
+                               ;; :children some-name
+                               (t (alexandria:ensure-list children)))))
+                      ,(format nil "Make a node of type ~s" type)
+                      ;; constructor's implementation
+                      ,(cond
+                         ((null children)
+                          `(node ',type start end))
+                         ((eq t children)
+                          `(node ',type start end children))
+                         (t
+                          `(node ',type start end ,@(list children))))))
                 ;; copier
-                (defun ,(alexandria:symbolicate 'copy- name)
-                    (node &key (start nil startp)
+                (defun
+                    ;; name of the copier function
+                    ,(alexandria:symbolicate 'copy- name)
+                    ;; lambda list
+                    (node &key
+                            (start nil startp)
                             (end nil endp)
                             ,@(when children
                                 (list `(children nil childrenp))))
+                  ;; docstring
+                  ,(format nil "Make a shallow copy of a node of type ~s, possibly replacing one of the attributes." type)
+                  ;; copier's implementation
                   (node ',type
                         (if startp start (node-start node))
                         (if endp end (node-end node))
+                        ;; N.B. This is just a shallow copy
                         ,@(when children
                             `((if childrenp children (node-children node)))))))))
   ;; TODO more of then needs children...
