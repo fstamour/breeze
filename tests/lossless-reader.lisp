@@ -149,7 +149,12 @@ newline or +end+)
   (is equalp (node 'x 0 2 (node 'y 1 2)) (node 'x 0 2 (node 'y 1 2)))
   (is equalp
       (node 'x 0 3 (node 'y 1 2) (node 'z 2 3))
-      (node 'x 0 3 (list (node 'y 1 2) (node 'z 2 3)))))
+      (node 'x 0 3 (nodes (node 'y 1 2) (node 'z 2 3))))
+  (is equalp (node 'parens 1 2) (parens 1 2))
+  (is equalp (parens 1 2 'x) (parens 1 2 'x))
+  (is equalp
+      (parens 1 2 (node 'x 3 4))
+      (parens 1 2 (nodes (node 'x 3 4)))))
 
 (defun test-node-print-object (node &optional expected)
   (is-equalp
