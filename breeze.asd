@@ -107,7 +107,7 @@
   :components
   ((:file "utils")
    (:file "logging")
-   (:file "lossless-reader.randmized")
+   (:file "lossless-reader.randomized")
    (:file "lossless-reader")
    (:file "pattern")
    (:file "analysis")
