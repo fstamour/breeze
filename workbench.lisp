@@ -144,7 +144,7 @@
 
 (in-package #:breeze.refactor)
 
-(all-commands)
+(list-all-commands)
 
 (let* ((context (cdr (assoc :context *qf*)))
        (inner-node (gethash 'BREEZE.COMMAND::INNER-NODE context))

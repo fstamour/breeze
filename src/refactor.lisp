@@ -388,14 +388,6 @@ defun."
     insert-handler-case-form
     insert-lambda))
 
-(defun all-commands ()
-  (remove-duplicates
-   (append
-    *commands-applicable-at-toplevel*
-    *commands-applicable-in-a-loop-form*
-    *commands-applicable-inside-another-form-or-at-toplevel*)))
-
-
 (defun validate-nearest-in-package (nodes outer-node)
   "Find the lastest \"in-package\" form, test if the packages can be
 found."
@@ -434,12 +426,14 @@ For debugging purposes ONLY.")
 (defun sanitize-list-of-commands (commands)
   ;; Some methods returns lists, some just a symbol.
   ;; We flatten that to just a list of symbols.
-  (setf commands (alexandria:flatten
-                  (copy-seq (alexandria:ensure-list commands))))
+  (setf commands
+        (alexandria:flatten
+         (copy-seq
+          (alexandria:ensure-list commands))))
 
   ;; Fallback to suggesting _all_ commands.
   (unless commands
-    (setf commands (copy-seq (all-commands))))
+    (setf commands (copy-seq (list-all-commands))))
 
   ;; Deduplicate commands
   (setf commands (remove-duplicates commands))
