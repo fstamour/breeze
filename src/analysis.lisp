@@ -79,8 +79,9 @@ children nodes."
            (and (null package)
                 (node-string-equal state symbol-node name)))
           ((qualified-symbol possibly-internal-symbol)
-           (destructuring-bind (package-name-node symbol-name-node)
-               (node-children symbol-node)
+           (let* ((nodes (node-children symbol-node))
+                  (package-name-node (first-node nodes))
+                  (symbol-name-node (second-node nodes)))
              (and
               (node-string-equal state symbol-name-node name)
               (some (lambda (package-name)
@@ -193,13 +194,21 @@ N.B. This doesn't guarantee that it's a valid node."
 
 (defun find-node (position nodes)
   "Given a list of NODES, return which node contains the POSITION."
-  (when (listp nodes)
-    (loop :for node :in nodes
-          :for start = (node-start node)
-          :for end = (node-end node)
-          :for i :from 0
-          :when (and (<= start end) (< position end))
-            :do (return (cons node i)))))
+  (typecase nodes
+    (vector
+     (loop :for node :across nodes
+           :for start = (node-start node)
+           :for end = (node-end node)
+           :for i :from 0
+           :when (and (<= start end) (< position end))
+             :do (return (cons node i))))
+    (cons
+     (loop :for node :in nodes
+           :for start = (node-start node)
+           :for end = (node-end node)
+           :for i :from 0
+           :when (and (<= start end) (< position end))
+             :do (return (cons node i))))))
 
 (defun find-path-to-position (state position)
   "Given a list of NODES, return a path (list of cons (node . index))"
@@ -227,6 +236,7 @@ N.B. This doesn't guarantee that it's a valid node."
         (list
          (loop
            :for i :from 0
+           :for firstp = (zerop i)
            :for previous = nil :then (first rest)
            :for rest :on tree
            :for node = (car rest)
@@ -237,13 +247,36 @@ N.B. This doesn't guarantee that it's a valid node."
                            (cb node
                                :aroundp t
                                :nth i
-                               :firstp (eq tree rest)
-                               :lastp (null (cdr rest))
+                               :firstp firstp
+                               :lastp (null next)
                                :previous previous
                                :next next
                                :quotedp quotedp)
                            (1+ depth)
                            quotedp)))
+        (vector
+         (nodes
+          (loop
+            :for i :from 0
+            :for firstp = (zerop i)
+            :for lastp = (= (1- (length tree)) i)
+            :for previous = nil :then node
+            ;; :for rest :on tree
+            :for node :across tree
+            :for next = (unless lastp (aref tree (1+ i)))
+            ;; Recurse
+            :collect (%walk state
+                            callback
+                            (cb node
+                                :aroundp t
+                                :nth i
+                                :firstp firstp
+                                :lastp (null next)
+                                :previous previous
+                                :next next
+                                :quotedp quotedp)
+                            (1+ depth)
+                            quotedp))))
         (node
          (case (node-type tree)
            (parens

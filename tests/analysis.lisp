@@ -33,6 +33,10 @@
              #'string<
              :key #'car))))
 
+(defun make-binding (term input)
+  (normalize-bindings
+   (breeze.pattern::make-binding term input)))
+
 (defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
   (let* ((state (parse string))
          (*match-skip* (when skip-whitespaces-and-comments
@@ -174,29 +178,29 @@
     (is equalp (list :?x nil) (test-match-parse :?x ""))
     (is equalp (list :?x nil) (test-match-parse :?x "" t))
     (is equalp
-        (list :?x (list (token 0 1)))
+        (make-binding :?x (list (token 0 1)))
         (test-match-parse :?x "x"))
     (is equalp
-        (list :?x (list (whitespace 0 1) (token 1 2)))
+        (make-binding :?x (list (whitespace 0 1) (token 1 2)))
         (test-match-parse :?x " x"))
     (is equalp
-        (list :?x (list (whitespace 0 1) (token 1 2)))
+        (make-binding :?x (list (whitespace 0 1) (token 1 2)))
         (test-match-parse :?x " x" t)))
   (progn
     (false (test-match-parse '(:?x) ""))
     (false (test-match-parse '(:?x) "" t))
     (is equalp
-        (list :?x (token 0 1))
+        (make-binding :?x (token 0 1))
         (test-match-parse '(:?x) "x"))
     (false (test-match-parse '(:?x) " x"))
     (is equalp
-        (list :?x (token 1 2))
+        (make-binding :?x (token 1 2))
         (test-match-parse '(:?x) " x" t))
     (is equalp
-        (list :?x (parens 0 4 (list (token 1 3))))
+        (make-binding :?x (parens 0 4 (nodes (token 1 3))))
         (test-match-parse '(:?x) "(42)"))
     (is equalp
-        (list :?x (token 1 3))
+        (make-binding :?x (token 1 3))
         (test-match-parse '((:?x)) "(42)"))))
 
 (define-test+run "match vector against parse trees"
@@ -263,7 +267,7 @@
             :for path = (find-node i (tree state))
             :collect (cons (node-type (car path)) (cdr path)))))
 
-(define-test find-path-to-position
+(define-test+run find-path-to-position
   (is equalp
       '((whitespace)
         (parens whitespace)
@@ -284,56 +288,6 @@
                       (node-type (car path)))
                     path)
             #++(list i (length path)))))
-
-
-;;; Fixing formatting issues...
-
-(defun parens-has-leading-whitespaces-p (node)
-  (and (parens-node-p node)
-       (whitespace-node-p (first (node-children node)))))
-
-(defun parens-has-trailing-whitespaces-p (node)
-  (and (parens-node-p node)
-       (whitespace-node-p (alexandria:lastcar (node-children node)))))
-
-(defun cdr-if (condition list)
-  (if condition (cdr list) list))
-
-(defun butlast-if (condition list)
-  (if condition (butlast list) list))
-
-(defun fix-trailing-whitespaces-inside-parens (node)
-  (let ((first-child (parens-has-leading-whitespaces-p node))
-        (last-child (parens-has-trailing-whitespaces-p node)))
-    (if (or first-child last-child)
-        (copy-parens
-         node
-         :children (butlast-if
-                    last-child
-                    (cdr-if first-child (node-children node))))
-        node)))
-
-
-(defun test-remove-whitespaces (input output)
-  (let* ((input (format nil input))
-         (output (format nil output))
-         (state (parse input)))
-    (breeze.kite:is
-     :comparator 'string=
-     :form `(unparse ,state nil 'fix-trailing-whitespaces-inside-parens)
-     :got (unparse state nil 'fix-trailing-whitespaces-inside-parens)
-     :expected output)))
-
-(define-test+run remove-whitespaces
-  (test-remove-whitespaces "( )" "()")
-  (test-remove-whitespaces "(~%~%~%)" "()")
-  (test-remove-whitespaces "(   ) " "() ")
-  (test-remove-whitespaces " ( ) " " () ")
-  ;; TODO handle indentation levels!
-  ;; (test-remove-whitespaces "(;;~%  )" "(;;~% )")
-  (test-remove-whitespaces "( x)" "(x)")
-  (test-remove-whitespaces "( x )" "(x)"))
-
 
 
 ;;; Testing the linter
@@ -457,7 +411,7 @@
           diags))
 
 (defun test-fix (input)
-  (multiple-value-list (fix :buffer-string input)))
+  (multiple-value-list (fix :buffer-string (format nil input))))
 
 (define-test+run test-fix
   (is equal '("()" nil) (test-fix "()"))
@@ -468,20 +422,24 @@
   ;; (is equal '("()" t) (test-fix "("))
   ;; (is equal '("((()))" t) (test-fix "((("))
   (is equal '("()" t) (test-fix "( )"))
-  (is equal '("()" t) (test-fix "(
-)"))
-  (is equal '("(a b)" t) (test-fix "(a   b)"))
+  (is equal '("()" t) (test-fix "(~%)"))
+  (is equal '("() " t) (test-fix "(   ) "))
+  (is equal '("() " t) (test-fix "( ) "))
+  (is equal '(" ()" t) (test-fix " ( )"))
+  (is equal '(" () " t) (test-fix " ( ) "))
+  (is equal '("(a)" t) (test-fix "( a)"))
+  (is equal '("(a)" t) (test-fix "(a )"))
   (is equal '("(a)" t) (test-fix "(  a  )"))
-  (is equal '("((a))" t) (test-fix "(
-  (
-    a
-  )
-)"))
-  (is equal '("((a))" t) (test-fix "((
-
-    a
-
-  ))"))
+  (is equal '("(a b)" t) (test-fix "(a   b)"))
+  (is equal '("((a))" t) (test-fix "(~%  (~%    a~%  )~%)"))
+  (is equal '("((a))" t) (test-fix "((~%~%    a~%~%  ))"))
+  ;; TODO handle indentation levels!
+  #++
+  (progn
+    (is equal '("(;;~% )" t) (test-fix "(;;~%    )"))
+    (is equal '("(;;~% )" t) (test-fix "(;;~% ~%)"))
+    ;; TODO This should be detected as "extraneous internal newlines"...
+    (is equal '("(;;~% )" t) (test-fix "(;;~% ~%)")))
   #++ ;; TODO more whitespace fixes
   (progn
     (is equal '("#+(or)" t) (test-fix "#+ (or)"))
