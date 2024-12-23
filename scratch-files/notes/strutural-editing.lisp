@@ -295,3 +295,14 @@ Code: breeze-doublequote
 =-=
 "\""
 =-=-=
+
+;; Paredit doesn't shadow the C-t binding, which is normally bound to transpose-chars.
+;; which means that it lets you do this (|) -> )|(
+Name: transpose-chars
+
+;; here's a test to make sure it doesn't do that
+=-=
+(|)
+=-=
+(|)
+=-=
