@@ -372,17 +372,6 @@ common lisp.")
             (listp children)
             children)))
 
-;; TODO make a test out of this
-#++
-(mapcar
- #'princ-to-string
- (list
-  (node 'asdf 1 3)
-  (node 'asdf 1 3 (node 'qwer 3 5))
-  (node 'asdf 1 3 (list (node 'qwer 3 5)
-                        (node 'uiop 6 8)))
-  (parens 3 5)))
-
 
 ;;; Predicates
 

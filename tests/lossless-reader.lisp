@@ -23,12 +23,31 @@ newline or +end+)
 
 ;;; Reader state
 
-#++
-(progn
-  (node 'boo 1 2)
-  #s(node :type boo :start 1 :end 2)
-  (list #s(node :type boo :start 1 :end 2))
-  (list '#s(node :type boo :start 1 :end 2)))
+(defun test-node-print-object (node &optional expected)
+  (is-equalp
+   :input node
+   :got (prin1-to-string node)
+   :form `(prin1-to-string ,node)
+   :expected expected))
+
+(define-test+run node-print-object
+  (test-node-print-object (node 'asdf 1 3) "(node 'asdf 1 3)")
+  (test-node-print-object #s(node :type boo :start 1 :end 2) "(node 'boo 1 2)")
+  (test-node-print-object
+   (list #s(node :type boo :start 1 :end 2))
+   "((node 'boo 1 2))")
+  (test-node-print-object
+   (list '#s(node :type boo :start 1 :end 2))
+   "((node 'boo 1 2))")
+  (test-node-print-object
+   (node 'asdf 1 3 (node 'qwer 3 5))
+   "(node 'asdf 1 3 (node 'qwer 3 5))")
+  (test-node-print-object
+   (node 'asdf 1 3 (list (node 'qwer 3 5)
+                         (node 'uiop 6 8)))
+   "(node 'asdf 1 3 (list (node 'qwer 3 5) (node 'uiop 6 8)))")
+  (test-node-print-object
+   (parens 3 5) "(parens 3 5)"))
 
 
 ;;; testing helpers
