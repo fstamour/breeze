@@ -4,9 +4,11 @@
 (defpackage #:breeze.test.lossless-reader
   (:documentation "Test package for #:breeze.lossless-reader")
   (:use #:cl #:breeze.lossless-reader)
+  ;; Importing non-exported symbols
   (:import-from #:breeze.lossless-reader
                 #:*state-control-string*
                 #:state-context
+                #:%nodes
                 #:read-sharpsign-backslash
                 #:read-sharpsign-quote
                 #:read-sharpsign-left-parens
