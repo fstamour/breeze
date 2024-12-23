@@ -23,32 +23,6 @@ newline or +end+)
 
 ;;; Reader state
 
-(defun test-node-print-object (node &optional expected)
-  (is-equalp
-   :input node
-   :got (prin1-to-string node)
-   :form `(prin1-to-string ,node)
-   :expected expected))
-
-(define-test+run node-print-object
-  (test-node-print-object (node 'asdf 1 3) "(node 'asdf 1 3)")
-  (test-node-print-object #s(node :type boo :start 1 :end 2) "(node 'boo 1 2)")
-  (test-node-print-object
-   (list #s(node :type boo :start 1 :end 2))
-   "((node 'boo 1 2))")
-  (test-node-print-object
-   (list '#s(node :type boo :start 1 :end 2))
-   "((node 'boo 1 2))")
-  (test-node-print-object
-   (node 'asdf 1 3 (node 'qwer 3 5))
-   "(node 'asdf 1 3 (node 'qwer 3 5))")
-  (test-node-print-object
-   (node 'asdf 1 3 (list (node 'qwer 3 5)
-                         (node 'uiop 6 8)))
-   "(node 'asdf 1 3 (list (node 'qwer 3 5) (node 'uiop 6 8)))")
-  (test-node-print-object
-   (parens 3 5) "(parens 3 5)"))
-
 
 ;;; testing helpers
 
@@ -167,6 +141,41 @@ newline or +end+)
 ;; TODO test "next-char="
 (define-test+run next-char=)
 
+
+;;; Node structs
+
+(define-test+run node-constructor
+  (is equalp (node 'x 0 0) (node 'x 0 0))
+  (is equalp (node 'x 0 2 (node 'y 1 2)) (node 'x 0 2 (node 'y 1 2)))
+  (is equalp
+      (node 'x 0 3 (node 'y 1 2) (node 'z 2 3))
+      (node 'x 0 3 (list (node 'y 1 2) (node 'z 2 3)))))
+
+(defun test-node-print-object (node &optional expected)
+  (is-equalp
+   :input node
+   :got (prin1-to-string node)
+   :form `(prin1-to-string ,node)
+   :expected expected))
+
+(define-test+run node-print-object
+  (test-node-print-object (node 'asdf 1 3) "(node 'asdf 1 3)")
+  (test-node-print-object #s(node :type boo :start 1 :end 2) "(node 'boo 1 2)")
+  (test-node-print-object
+   (list #s(node :type boo :start 1 :end 2))
+   "((node 'boo 1 2))")
+  (test-node-print-object
+   (list '#s(node :type boo :start 1 :end 2))
+   "((node 'boo 1 2))")
+  (test-node-print-object
+   (node 'asdf 1 3 (node 'qwer 3 5))
+   "(node 'asdf 1 3 (node 'qwer 3 5))")
+  (test-node-print-object
+   (node 'asdf 1 3 (list (node 'qwer 3 5)
+                         (node 'uiop 6 8)))
+   "(node 'asdf 1 3 (list (node 'qwer 3 5) (node 'uiop 6 8)))")
+  (test-node-print-object
+   (parens 3 5) "(parens 3 5)"))
 
 
 ;;; Low-level parsing helpers

@@ -246,14 +246,16 @@ common lisp.")
   (children '()
    :read-only t))
 
-(defun node (type start end &optional children)
+(defun node (type start end &optional child &rest children)
   #++ (when (= +end+ end)
         (break))
   (make-node
    :type type
    :start start
    :end end
-   :children children))
+   :children (if children
+                 (cons child children)
+                 child)))
 
 (defmethod make-load-form ((node node) &optional environment)
   (make-load-form-saving-slots node
