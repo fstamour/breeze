@@ -81,10 +81,11 @@ control whether to recursively iterate over a value's elements.
 ;;; Interface (generics)
 
 (defgeneric donep (iterator)
-  (:documentation "Check if there's any values left to iterator over."))
+  (:documentation "Check if there's any values left to iterate over."))
 
 (defgeneric next (iterator)
-  (:documentation "Advance the iterator. Might return a whole new iterator."))
+  (:documentation "Advance the iterator. Might return a whole new iterator, you better
+save this function's return value."))
 
 (defgeneric value (iterator)
   (:documentation "Get the current value of the iterator"))
@@ -194,6 +195,9 @@ control whether to recursively iterate over a value's elements.
 
 (defmethod depth ((iterator depth-first-iterator))
   (if (null (parent iterator)) 0 (1+ (depth (parent iterator)))))
+
+
+;;; Implementing "next" method for "depth-first-iterator"
 
 (defmethod digp ((iterator depth-first-iterator))
   (let ((predicate (dig-value-p iterator)))
