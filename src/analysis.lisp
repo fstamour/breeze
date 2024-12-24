@@ -567,7 +567,8 @@ simple-condition-format-control, simple-condition-format-arguments
 ;;; Incremental parsing (the interface with the editor at least)
 
 (defun push-edit (edit)
-  (print edit))
+  (declare (ignore edit))
+  #++ (print edit))
 
 ;; TODO keep track of the buffers/files, process these kind of edits
 ;; "object":
