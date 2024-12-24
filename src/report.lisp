@@ -82,7 +82,7 @@ newlines or more marks the start of a new paragraph)."
   (loop
     :with pages = nil
     :with page = nil
-    :for node :in
+    :for node :across
               (tree state)
     :when (and page (page-node-p node))
       :do (push (nreverse page) pages)

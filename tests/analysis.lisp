@@ -175,16 +175,16 @@
 
 (define-test+run "match terms against parse trees"
   (progn
-    (is equalp (list :?x nil) (test-match-parse :?x ""))
-    (is equalp (list :?x nil) (test-match-parse :?x "" t))
+    (is equalp (make-binding :?x nil) (test-match-parse :?x ""))
+    (is equalp (make-binding :?x nil) (test-match-parse :?x "" t))
     (is equalp
-        (make-binding :?x (list (token 0 1)))
+        (make-binding :?x (nodes (token 0 1)))
         (test-match-parse :?x "x"))
     (is equalp
-        (make-binding :?x (list (whitespace 0 1) (token 1 2)))
+        (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
         (test-match-parse :?x " x"))
     (is equalp
-        (make-binding :?x (list (whitespace 0 1) (token 1 2)))
+        (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
         (test-match-parse :?x " x" t)))
   (progn
     (false (test-match-parse '(:?x) ""))
@@ -221,7 +221,7 @@
 
 (defun test-in-package-node-p (string)
   (let* ((state (parse string))
-         (node (first (tree state))))
+         (node (first-node (tree state))))
     ;; The funky reader macro and quasiquote is to fuck with slime and
     ;; sly's regex-based search for "(in-package". Without this the
     ;; rest of the file is evaluated in cl-user by slime and sly.

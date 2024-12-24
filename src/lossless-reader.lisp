@@ -32,6 +32,7 @@ common lisp.")
   (:export #:ensure-nodes
            #:append-nodes
            #:nodes
+           #:nodesp
            #:nth-node
            #:first-node
            #:second-node
@@ -279,6 +280,8 @@ common lisp.")
   "Create a sequence of nodes."
   (%nodes node nodes))
 
+(defun nodesp (x)
+  (vectorp x))
 
 (defun nth-node (nodes n)
   (when nodes
@@ -1153,15 +1156,16 @@ Returns a new node with one of these types:
 (defun parse (string &optional (state (make-state string)))
   "Parse a string, stop at the end, or when there's a parse error."
   (setf (tree state)
-        (loop
-          ;; :for i :from 0
-          :for node-start = (pos state)
-          :for node = (read-any state)
-          ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
-          :when node
-            :collect node
-          :while (and (valid-node-p node)
-                      (not (donep state)))))
+        (nodes
+         (loop
+           ;; :for i :from 0
+           :for node-start = (pos state)
+           :for node = (read-any state)
+           ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
+           :when node
+             :collect node
+           :while (and (valid-node-p node)
+                       (not (donep state))))))
   state)
 
 (defun reparse (state)
@@ -1239,7 +1243,7 @@ Returns a new node with one of these types:
 (defun %unparse (tree state stream depth transform)
   (etypecase tree
     (null)
-    ((or vector cons)
+    (vector
      (map nil (lambda (node)
                 (%unparse (funcall transform node)
                           state stream (1+ depth)

@@ -1058,7 +1058,7 @@ the function read-sharpsign-dispatching-reader-macro
   (let* ((state (parse input))
          (tree (tree state)))
     (if expected
-        (is-equalp* input tree expected)
+        (is-equalp* input tree (ensure-nodes expected))
         (is-equalp* input tree))))
 
 (define-test+run "parse"
@@ -1203,7 +1203,7 @@ reaally?")
   (loop :for file :in (breeze.asdf:system-files 'breeze)
         :for content = (alexandria:read-file-into-string file)
         :do (let* ((state (parse content))
-                   (last-node (alexandria:lastcar (tree state)))
+                   (last-node (last-node (tree state)))
                    (result (unparse state nil)))
               (walk state (lambda (node &rest args
                                    &key depth

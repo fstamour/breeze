@@ -23,7 +23,7 @@
   "Returns the number of children of NODE, or nil if it doesn't have any
 children nodes."
   (let ((children (node-children node)))
-    (when (listp children)
+    (when (nodesp children)
       (length children))))
 
 (defun node-string= (state node string)
@@ -201,13 +201,6 @@ N.B. This doesn't guarantee that it's a valid node."
            :for end = (node-end node)
            :for i :from 0
            :when (and (<= start end) (< position end))
-             :do (return (cons node i))))
-    (cons
-     (loop :for node :in nodes
-           :for start = (node-start node)
-           :for end = (node-end node)
-           :for i :from 0
-           :when (and (<= start end) (< position end))
              :do (return (cons node i))))))
 
 (defun find-path-to-position (state position)
@@ -233,27 +226,6 @@ N.B. This doesn't guarantee that it's a valid node."
              "Call callback with NODE, DEPTH and ARGS."
              (apply callback node :depth depth args)))
       (etypecase tree
-        (list
-         (loop
-           :for i :from 0
-           :for firstp = (zerop i)
-           :for previous = nil :then (first rest)
-           :for rest :on tree
-           :for node = (car rest)
-           :for next = (second rest)
-           ;; Recurse
-           :collect (%walk state
-                           callback
-                           (cb node
-                               :aroundp t
-                               :nth i
-                               :firstp firstp
-                               :lastp (null next)
-                               :previous previous
-                               :next next
-                               :quotedp quotedp)
-                           (1+ depth)
-                           quotedp)))
         (vector
          (nodes
           (loop
