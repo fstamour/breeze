@@ -639,6 +639,8 @@ previous flymake error."
 ;;; The names breeze-other-file and breeze-other-file-other-window are
 ;;; inspired by projectile's equivalent commands.
 
+;; TODO would be nice if it suggested to create the alternate files if
+;; it didn't exist.
 (defun breeze-other-file ()
   "Open other file."
   (interactive)
