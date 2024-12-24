@@ -172,12 +172,17 @@
 
 
 (define-condition stop ()
-  ())
+  ()
+  (:documentation "Condition used to stop the current command."))
 
 (defun return-from-command ()
+  "Signal a condition of type STOP to stop a command."
   (signal 'stop))
 
 (defun call-with-command-signal-handler (fn)
+  "Establishes a throw tag named STOP to non-locally stop a command. Also
+installs a condition handler for conditions of type STOP, the handler
+uses the throw tag to stop the command immediately."
   (catch 'stop
     (handler-bind
         ((stop (lambda (condition)
