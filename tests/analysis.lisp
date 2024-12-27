@@ -175,8 +175,12 @@
 
 (define-test+run "match terms against parse trees"
   (progn
-    (is equalp (make-binding :?x nil) (test-match-parse :?x ""))
-    (is equalp (make-binding :?x nil) (test-match-parse :?x "" t))
+    (is equalp
+        (make-binding :?x #())
+        (test-match-parse :?x ""))
+    (is equalp
+        (make-binding :?x #())
+        (test-match-parse :?x "" t))
     (is equalp
         (make-binding :?x (nodes (token 0 1)))
         (test-match-parse :?x "x"))

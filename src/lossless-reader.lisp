@@ -1155,17 +1155,17 @@ Returns a new node with one of these types:
 
 (defun parse (string &optional (state (make-state string)))
   "Parse a string, stop at the end, or when there's a parse error."
-  (setf (tree state)
-        (nodes
-         (loop
-           ;; :for i :from 0
-           :for node-start = (pos state)
-           :for node = (read-any state)
-           ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
-           :when node
-             :collect node
-           :while (and (valid-node-p node)
-                       (not (donep state))))))
+  (let ((result (make-array '(0) :adjustable t :fill-pointer t)))
+    (loop
+      ;; :for i :from 0
+      :for node-start = (pos state)
+      :for node = (read-any state)
+      ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
+      :when node
+        :do (vector-push-extend node result)
+      :while (and (valid-node-p node)
+                  (not (donep state))))
+    (setf (tree state) result))
   state)
 
 (defun reparse (state)
