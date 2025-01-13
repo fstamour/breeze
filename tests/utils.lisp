@@ -70,12 +70,6 @@
             :for i :upto (length string)
             :collect (around string i 3))))
 
-(define-test stream-size
-  (is = 24
-      (with-input-from-string
-          (stream "(1 #|comment|# \"string\")")
-        (stream-size stream))))
-
 (define-test before-last
   (false (before-last '()))
   (false (before-last '(a)))

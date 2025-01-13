@@ -120,19 +120,6 @@
                  (list-all-packages)))
 
 
-;;; Stream stuff
-
-(defun stream-size (stream)
-  "Get the total size of STREAM."
-  (let ((current-position (file-position stream)))
-    (when current-position
-      (unwind-protect
-           (progn
-             (file-position stream :end) ;; TODO This might fail
-             (file-position stream))
-        (file-position stream current-position)))))
-
-
 ;;; Path stuff
 
 (defun breeze-relative-pathname (pathname)
