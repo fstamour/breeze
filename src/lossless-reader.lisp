@@ -8,6 +8,13 @@ common lisp.")
                 #:subseq-displaced
                 #:+whitespaces+
                 #:whitespacep)
+  (:import-from #:breeze.iterator
+                #:vector-iterator
+                #:make-vector-iterator
+                #:pos
+                #:donep
+                #:next
+                #:value)
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
@@ -188,11 +195,11 @@ common lisp.")
     :type string
     :accessor source
     :documentation "The string being parsed.")
-   (pos
-    :initform 0
-    :initarg :pos
-    :accessor pos
-    :documentation "The position within the string.")
+   (iterator
+    :initarg :iterator
+    :type vector-iterator
+    :accessor iterator
+    :documentation "The iterator on the source.")
    (tree
     :initform 0
     :initarg :pos
@@ -210,7 +217,9 @@ common lisp.")
   (:documentation "The reader's state"))
 
 (defun make-state (string)
-  (make-instance 'state :source string))
+  (make-instance 'state
+                 :source string
+                 :iterator (make-vector-iterator string)))
 
 (defmethod print-object ((state state) stream)
   (print-unreadable-object
@@ -375,7 +384,6 @@ common lisp.")
                         ;; N.B. This is just a shallow copy
                         ,@(when children
                             `((if childrenp children (node-children node)))))))))
-  ;; TODO more of then needs children...
   (aux whitespace)
   (aux block-comment)
   (aux line-comment)
@@ -523,11 +531,17 @@ common lisp.")
 
 ;;; Reader position (in the source string)
 
+(defmethod pos ((state state))
+  (pos (iterator state)))
+
+(defmethod (setf pos) (new-pos (state state))
+  (setf (pos (iterator state)) new-pos))
+
+(defmethod donep ((state state))
+  (donep (iterator state)))
+
 (defun valid-position-p (state position)
   (< -1 position (length (source state))))
-
-(defun donep (state)
-  (not (valid-position-p state (pos state))))
 
 
 ;;; Getting and comparing characters

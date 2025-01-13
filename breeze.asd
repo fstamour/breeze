@@ -37,7 +37,7 @@
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
    (:file "iterator")
-   (:file "lossless-reader" :depends-on ("utils"))
+   (:file "lossless-reader" :depends-on ("utils" "iterator"))
    (:file "pattern")
    (:file "egraph")
    (:file "analysis" :depends-on ("lossless-reader" "pattern"))
