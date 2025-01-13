@@ -673,7 +673,11 @@ previous flymake error."
 
 Breeze minor mode is an Emacs minor mode that complements lisp-mode."
   :lighter " brz"
-  :keymap breeze-minor-mode-map)
+  :keymap breeze-minor-mode-map
+  :interactive (lisp-mode)
+  (when breeze-minor-mode
+    ;; TODO What if dabbrev-abbrev-skip-leading-regexp is already customized?
+    (setf dabbrev-abbrev-skip-leading-regexp "\\(#?:\\)\\|+")))
 
 ;; Analogous to org-insert-structure-template
 ;; (define-key breeze-minor-mode-map (kbd "C-c C-,") 'breeze-insert)
