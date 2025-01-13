@@ -406,3 +406,38 @@ char/=
 
 
 let* (<only-one-binding>) => let
+
+
+#|
+Here's some cases that it might be possible to fix
+automatically (like the typos):
+
+1. odd number of &KEY arguments
+might be hard to figure out which :key is missing or extraneous
+
+2. Execution of a form compiled with errors.
+Compile-time error:
+  illegal function call
+
+((a)) ; missing quote
+((k . v))  ; missing quote
+
+3. dot context error
+((k . v . c))
+
+4. More than one object follows . in list.
+(x . y z
+|#
+
+;; we could "easily" fix these mistakes:
+(loop :for i :below 2 :collec i)
+#|
+in sbcl:
+unknown LOOP keyword: :COLLEC
+current LOOP context: :COLLEC I.
+[Condition of type SB-INT:SIMPLE-PROGRAM-ERROR]
+|#
+
+
+(with-output-to-string (*standard-input*) ...)
+;; should be "-output*"
