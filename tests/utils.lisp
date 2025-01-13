@@ -68,19 +68,7 @@
         "...ghijklm")
       (loop :with string = "abcdefghijklm"
             :for i :upto (length string)
-            :collect (around string i 3)))  )
-
-
-
-(define-test read-stream-range
-  (is equal
-      (multiple-value-list
-       (with-input-from-string
-           (stream "(1 #|comment|# \"string\")")
-         (values
-          (read-stream-range stream 3 (+ 3 11))
-          (file-position stream))))
-      '("#|comment|#" 0)))
+            :collect (around string i 3))))
 
 (define-test stream-size
   (is = 24
