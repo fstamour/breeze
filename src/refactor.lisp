@@ -16,6 +16,9 @@
    #:symbol-package-qualified-name
    #:before-last
    #:find-version-control-root)
+  (:import-from
+   #:breeze.indirection
+   #:indirect)
   (:export
    #:command-description
    ;; Simple transformation commands
@@ -166,7 +169,7 @@ defun."
   "Try to infer the name of the project from the PATH."
   ;; Infer project-name by location .git folder
   (when path
-    (if-let ((vc-root (find-version-control-root path)))
+    (if-let ((vc-root (indirect (find-version-control-root path))))
       (directory-name vc-root))))
 
 (defun infer-is-test-file (path)

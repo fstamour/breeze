@@ -3,7 +3,8 @@
 (uiop:define-package #:breeze.test.refactor
     (:use :cl #:breeze.refactor)
   ;; Importing non-exported symbols of the "package under test"
-  (:import-from #:breeze.refactor)
+  (:import-from #:breeze.refactor
+                #:infer-project-name)
   ;; Things needed to "drive" a command
   (:import-from #:breeze.command
                 #:start-command
@@ -23,6 +24,8 @@
   (:import-from #:breeze.utils
                 #:remove-indentation
                 #:split-by-newline)
+  (:import-from #:breeze.indirection
+                #:with-simple-indirections)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -34,6 +37,22 @@
 (in-package #:breeze.test.refactor)
 
 (defparameter *directory* "./")
+
+
+
+(define-test infer-project-name
+  (false
+   (with-simple-indirections
+       ((breeze.utils:find-version-control-root))
+     (infer-project-name "some path"))
+   "infer-project-name should return nil if the version control root directory was not found")
+  (is string= "foobar"
+      (with-simple-indirections
+          ((breeze.utils:find-version-control-root
+            #p"/home/nobody/projects/foobar/"))
+        (infer-project-name "some path"))
+      "infer-project-name should return the name of the version control root directory when it is found"))
+
 
 
 ;;; Testing suggestions

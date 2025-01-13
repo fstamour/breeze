@@ -11,6 +11,8 @@
                 #:when-let*)
   (:import-from #:breeze.utils
                 #:before-last)
+  (:import-from #:breeze.indirection
+                #:indirection)
   (:export
    #:start-command
    #:cancel-command
@@ -441,16 +443,6 @@ uses the throw tag to stop the command immediately."
       (context *command*)
       (error "*command* is nil")))
 
-(define-condition request ()
-  ((what :initarg :what :reader what)))
-
-(defun request (what)
-  (catch 'answer
-    (signal 'request :what what)))
-
-(defun answer (value)
-  (throw 'answer (values value t)))
-
 (defun context-set (context key value)
   "Set KEY to VALUE in CONTEXT."
   (setf (gethash key context) value))
@@ -461,9 +453,12 @@ uses the throw tag to stop the command immediately."
       (gethash key context)
     (if presentp
         value
-        (multiple-value-bind (value answeredp)
-            (request key)
-          (when answeredp
+        (let* ((caughtp t)
+               (value
+                 (catch 'indirection
+                   (signal 'indirection :form `(context-get ,key))
+                   (setf caughtp nil))))
+          (when caughtp
             (context-set context key value))
           value))))
 
