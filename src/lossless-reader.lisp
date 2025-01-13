@@ -20,6 +20,7 @@ common lisp.")
            #:source-substring)
   ;; Nodes
   (:export #:+end+
+           #:range
            #:node
            #:node-start
            #:node-end
@@ -221,8 +222,6 @@ common lisp.")
               (length excerpt)
               (length (source state))))))
 
-
-
 (alexandria:define-constant +end+ -1)
 
 (defstruct (range
@@ -269,7 +268,7 @@ common lisp.")
 
 ;; (declaim (inline %nodes))
 (defun %nodes (x y)
-  "Create a sequence of nodes. But less used-friendly."
+  "Create a sequence of nodes. But less user-friendly."
   (if x
       (if y
           (append-nodes (ensure-nodes x) (ensure-nodes y))
@@ -606,7 +605,6 @@ the occurence of STRING."
 
 ;; 2023-05-20 only used in read-token
 ;; 2024-01-03 and read- dispatch reader macro
-;; TODO return a range instead of a list
 (defun read-while (state predicate &key (advance-position-p t) (start (pos state)))
   "Returns nil or (list start end)"
   (loop
@@ -617,7 +615,7 @@ the occurence of STRING."
     :do (when (or (null c) (not (funcall predicate c)))
           (when (/= start pos)
             (when advance-position-p (setf (pos state) pos))
-            (return (list start pos)))
+            (return (range start pos)))
           (return nil))))
 
 ;; Will be useful for finding some synchronization points
@@ -698,10 +696,14 @@ the occurence of STRING."
 
 ;; TODO rename read-integer
 (defun read-number (state &optional (radix 10))
-  (let ((range (read-while state #'(lambda (char) (digit-char-p char radix)))))
-    (when range
-      (let ((*read-base* radix))
-        (values (read-from-string (apply #'source-substring state range)) range)))))
+  (when-let ((range (read-while state
+                                (lambda (char)
+                                  (digit-char-p char radix)))))
+    (values (parse-integer (source state)
+                           :start (start range)
+                           :end (end range)
+                           :radix radix)
+            range)))
 
 ;;; TODO in the following read-sharpsign-* functions, number should be
 ;;; renamed "prefix"
@@ -785,7 +787,6 @@ first node being whitespaces.)"
     (%read-sharpsign-number state start 'sharp-binary 2)))
 
 (defun read-sharpsign-o (state start number)
-  (declare (ignore number))
   (when (read-char* state #\o nil)
     (if number
         ;; (if number) => invalid syntax
@@ -957,20 +958,20 @@ provided."
            (cond
              ((null c)
               (setf (pos state) pos)
-              (return (list start +end+)))
+              (return (range start +end+)))
              ((char= c delimiter)
               (setf (pos state) (1+ pos))
-              (return (list start (1+ pos))))
+              (return (range start (1+ pos))))
              ((char= c escape) (incf pos))
              ((and validp
                    (not (funcall validp c)))
               (setf (pos state) pos)
-              (return (list start 'invalid))))))))
+              (return (range start +end+))))))))
 
 (defreader read-string ()
   "Read \"\""
-  (when-let ((string (read-quoted-string state #\" #\\)))
-    (apply #'node 'string string)))
+  (when-let ((range (read-quoted-string state #\" #\\)))
+    (node 'string (start range) (end range))))
 
 (defun not-terminatingp (c)
   "Test whether a character is terminating. See
@@ -994,7 +995,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 (defreader read-backslash ()
   (when (read-char* state #\\)
     (when (read-char* state)
-      (list start (pos state)))))
+      (range start (pos state)))))
 
 (defreader read-pipe ()
   (when (current-char= state #\|)
@@ -1078,7 +1079,7 @@ Returns a new node with one of these types:
                 (not-terminatingp (current-char state))
                 (not (donep state)))
     :finally (return (unless (= start (pos state))
-                       (let ((end (if part (second part) +end+)))
+                       (let ((end (if part (end part) +end+)))
                          (token start end)
                          ;; for debugging
                          #++
