@@ -327,7 +327,7 @@ newline in the expected result."
     (destructuring-bind (input request) (third trace)
       (is equal '"var" input)
       (is string= "insert" (first request))
-      (is string= "*var* " (second request)))
+      (is string= "*var*" (second request)))
     (destructuring-bind (input request) (fourth trace)
       (is string= "read-string" (first request))
       (is string= "Initial value: " (second request))
@@ -336,7 +336,7 @@ newline in the expected result."
       (is equal '"42" input)
       (is string= "insert" (first request))
       (is equal
-          '("42"
+          '(" 42"
             "")
           (split-by-newline (second request))))
     (destructuring-bind (input request) (sixth trace)
@@ -463,7 +463,6 @@ newline in the expected result."
             "(in-package #:pkg)")
           (split-by-newline (second request))))))
 
-
 (define-test+run insert-defparameter
   (let* ((trace (drive-command #'insert-defparameter
                                :inputs '("param" "\"meh\""
@@ -482,7 +481,7 @@ newline in the expected result."
     (destructuring-bind (input request) (third trace)
       (is string= "param" input)
       (is string= "insert" (first request))
-      (is string= "*param* " (second request)))
+      (is string= "*param*" (second request)))
     (destructuring-bind (input request) (fourth trace)
       (false input)
       (is string= "read-string" (first request))
@@ -492,7 +491,7 @@ newline in the expected result."
       (is string= "\"meh\"" input)
       (is string= "insert" (first request))
       (is equal
-          '("\"meh\""
+          '(" \"meh\""
             "")
           (split-by-newline (second request))))
     (destructuring-bind (input request) (sixth trace)

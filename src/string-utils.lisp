@@ -19,7 +19,10 @@
    #:+whitespaces+
    #:trim-whitespace
    #:whitespacep
-   #:symbol-package-qualified-name))
+   #:symbol-package-qualified-name
+   #:ensure-prefix
+   #:ensure-suffix
+   #:ensure-circumfix))
 
 (in-package #:breeze.string)
 
@@ -286,3 +289,34 @@ AROUND. Add elipseses before and after if necessary."
   (let ((*print-escape* t)
         (*package* (find-package "KEYWORD")))
     (prin1-to-string symbol)))
+
+
+(defun ensure-prefix (prefix string)
+  (if (alexandria:starts-with-subseq prefix string)
+      string
+      (concatenate 'string prefix string)))
+
+#++
+(and (equal
+      "*a"
+      (ensure-prefix "*" "a"))
+     (equal (ensure-prefix "*" "a")
+            (ensure-prefix "*" "*a")))
+
+(defun ensure-suffix (suffix string)
+  (if (alexandria:ends-with-subseq suffix string)
+      string
+      (concatenate 'string string suffix)))
+
+#++
+(and (equal
+      "a*"
+      (ensure-suffix "*" "a"))
+     (equal (ensure-suffix "*" "a")
+            (ensure-suffix "*" "a*")))
+
+(defun ensure-circumfix (circumfix string)
+  (ensure-suffix circumfix (ensure-prefix circumfix string)))
+
+#++
+(equal "*a*" (ensure-circumfix "*" "a"))

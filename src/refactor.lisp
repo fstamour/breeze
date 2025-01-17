@@ -12,6 +12,9 @@
    #:symbolicate
    #:lastcar)
   (:import-from
+   #:breeze.string
+   #:ensure-circumfix)
+  (:import-from
    #:breeze.utils
    #:symbol-package-qualified-name
    #:before-last
@@ -117,26 +120,28 @@
    "Enter the variable name for the value: "
    "~a)"))
 
-(defun insert-defvar-shaped (form-name)
+(defun insert-defvar-shaped (form-name &optional circumfix)
   "Start a command to insert a form that has the same shape as a
 defvar."
   (insert "(~a " form-name)
-  ;; TODO Check if name is surrounded by "*"
-  (read-string-then-insert "Name: " "*~a* ")
-  (read-string-then-insert "Initial value: " "~a~%")
+  (let ((name (read-string "Name: ")))
+    (insert (if circumfix
+                (ensure-circumfix circumfix name)
+                name)))
+  (read-string-then-insert "Initial value: " " ~a~%")
   (read-string-then-insert "Documentation string " "\"~a\")"))
 
 (define-command insert-defvar ()
   "Insert a defvar form."
-  (insert-defvar-shaped "defvar"))
+  (insert-defvar-shaped "defvar" "*"))
 
 (define-command insert-defparameter ()
   "Insert a defparameter form."
-  (insert-defvar-shaped "defparameter"))
+  (insert-defvar-shaped "defparameter" "*"))
 
 (define-command insert-defconstant ()
   "Insert a defconstant form."
-  (insert-defvar-shaped "defconstant"))
+  (insert-defvar-shaped "defconstant" "+"))
 
 ;; TODO Add "alexandria" when the symbol is not interned
 ;;      ^^^ that should go in "refactor.lisp"
