@@ -6,7 +6,7 @@
   (:import-from #:breeze.xref
                 #:classp
                 #:function-designator-p)
-  (:import-from #:breeze.utils
+  (:import-from #:breeze.string
                 #:optimal-string-alignment-distance*)
   (:export
    #:rpc-eval

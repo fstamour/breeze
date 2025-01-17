@@ -87,7 +87,7 @@
                       (unless pass (format t ")"))
                       (format t ")")))))
   (format t "(define-test ~(~a~%~a~))" fn
-          (breeze.utils:indent-string 2 test-cases)))
+          (breeze.string:indent-string 2 test-cases)))
 
 (define-test classp
   (false (classp 'dum:*bound-variable*))

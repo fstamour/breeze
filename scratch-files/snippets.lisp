@@ -60,7 +60,7 @@
 
 (defun indent (&optional (stream *standard-output*))
   "Print a number of space based on the value of *indentation*."
-  (princ (breeze.utils:repeat-string *indentation* "  ") stream))
+  (princ (breeze.string:repeat-string *indentation* "  ") stream))
 
 (defun transform-snippet (body)
   "Take a skeleton and generate the code to execute it."

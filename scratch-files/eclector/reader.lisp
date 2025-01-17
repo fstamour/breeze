@@ -10,7 +10,7 @@ This package also re-exports symbols from breeze.syntax-tree.")
   (:import-from #:alexandria
                 #:if-let
                 #:when-let)
-  (:import-from #:breeze.utils
+  (:import-from #:breeze.string
                 #:subseq-displaced)
   (:export
    ;; Parse and unparse list of forms

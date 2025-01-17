@@ -1,9 +1,11 @@
 (defpackage #:breeze.capture
   (:documentation "Utilities for quick capture and management of code.")
   (:use #:cl)
-  (:import-from #:breeze.utils
-                #:subseq-displaced
+  (:import-from #:breeze.string
+                #:remove-indentation
                 #:whitespacep)
+  (:import-from #:breeze.utils
+                #:subseq-displaced)
   (:import-from #:breeze.command
                 #:choose
                 #:define-command
@@ -12,8 +14,6 @@
   (:import-from #:breeze.config
                 #:*capture-folder*
                 #:*capture-template*)
-  (:import-from #:breeze.utils
-                #:remove-indentation)
   (:export #:capture))
 
 (in-package #:breeze.capture)

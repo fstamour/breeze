@@ -10,9 +10,10 @@
                 #:macrop
                 #:classp
                 #:simple-function-p)
-  (:import-from #:breeze.utils
-                #:breeze-relative-pathname
+  (:import-from #:breeze.string
                 #:summarize)
+  (:import-from #:breeze.utils
+                #:breeze-relative-pathname)
   (:export
    #:find-undocumented-symbols))
 

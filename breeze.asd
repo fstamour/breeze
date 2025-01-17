@@ -110,6 +110,7 @@
   :serial t
   :components
   ((:file "utils")
+   (:file "string-utils")
    (:file "logging")
    (:file "lossless-reader.randomized")
    (:file "iterator")

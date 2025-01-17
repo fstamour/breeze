@@ -145,7 +145,7 @@
 (defun print-node-prefix (node stream)
   (alexandria:if-let (prefix (node-prefix node))
     (format stream "~s "
-            (if (every #'breeze.utils:whitespacep prefix)
+            (if (every #'breeze.string:whitespacep prefix)
                 (length prefix)
                 (node-prefix node)))))
 

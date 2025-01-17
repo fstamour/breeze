@@ -21,7 +21,7 @@
                 #:outer-node)
   (:import-from #:breeze.test.command
                 #:drive-command)
-  (:import-from #:breeze.utils
+  (:import-from #:breeze.string
                 #:remove-indentation
                 #:split-by-newline)
   (:import-from #:breeze.indirection

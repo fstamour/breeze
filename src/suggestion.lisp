@@ -36,7 +36,7 @@ of the instance of that had the smallest score."
     (do-symbols (sym)
       (when (fboundp sym)
         (candidate sym
-                   (breeze.utils:optimal-string-alignment-distance*
+                   (breeze.string:optimal-string-alignment-distance*
                     input
                     (string-downcase sym)
                     3))))))
@@ -49,7 +49,7 @@ of the instance of that had the smallest score."
           :for package-name = (package-name package) :do
             (loop :for name in `(,package-name ,@(package-nicknames package)) :do
               (candidate name
-                         (breeze.utils:optimal-string-alignment-distance*
+                         (breeze.string:optimal-string-alignment-distance*
                           input
                           (string-downcase name)
                           3))))))
@@ -68,7 +68,7 @@ of the instance of that had the smallest score."
     (do-symbols (sym)
       (when (classp sym)
         (candidate sym
-                   (breeze.utils:optimal-string-alignment-distance*
+                   (breeze.string:optimal-string-alignment-distance*
                     input
                     (string-downcase sym)
                     3))))))
@@ -105,9 +105,9 @@ of the instance of that had the smallest score."
                      input candidate condition))
        (warn "Did you mean \"~a\"?~%~a"
              candidate
-             (breeze.utils:indent-string
+             (breeze.string:indent-string
               2
-              (breeze.utils:print-comparison
+              (breeze.string:print-comparison
                nil
                (string-downcase candidate)
                input)))))))

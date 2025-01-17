@@ -4,7 +4,7 @@
     (:documentation "A fast, lossless, robust and superficial reader for a superset of
 common lisp.")
   (:use #:cl)
-  (:import-from #:breeze.utils
+  (:import-from #:breeze.string
                 #:subseq-displaced
                 #:+whitespaces+
                 #:whitespacep)
@@ -224,8 +224,8 @@ common lisp.")
 (defmethod print-object ((state state) stream)
   (print-unreadable-object
       (state stream :type t :identity nil)
-    (let ((excerpt (breeze.utils:around (source state)
-                                        (pos state))))
+    (let ((excerpt (breeze.string:around (source state)
+                                         (pos state))))
       (format stream "~s ~d/~d"
               excerpt
               (length excerpt)
@@ -1125,7 +1125,7 @@ Returns a new node with one of these types:
          (string (source state)))
     `(,pos
       ,(at state pos)
-      ,(breeze.utils:around string pos))))
+      ,(breeze.string:around string pos))))
 
 
 ;; don't forget to handle dotted lists

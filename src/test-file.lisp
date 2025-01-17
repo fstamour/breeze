@@ -8,9 +8,10 @@
                 #:symbolicate
                 #:when-let
                 #:make-keyword)
-  (:import-from #:breeze.utils
+  (:import-from #:breeze.string
                 #:whitespacep
-                #:trim-whitespace
+                #:trim-whitespace)
+  (:import-from #:breeze.utils
                 #:with-collectors
                 #:with)
   (:export #:read-spec-file))

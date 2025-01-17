@@ -401,7 +401,7 @@ simple-condition-format-control, simple-condition-format-arguments
     (and (valid-node-p node)
          (let* ((content (node-content state package-designator-node))
                 (package-designator (read-from-string content)))
-           (when (and (typep package-designator 'breeze.utils:string-designator)
+           (when (and (typep package-designator 'breeze.string:string-designator)
                       (null (find-package package-designator )))
              (node-style-warning
               node

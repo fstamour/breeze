@@ -4,21 +4,6 @@
   (:documentation "Utilities")
   (:import-from #:alexandria #:symbolicate)
   (:export
-   #:string-designator
-   #:around
-   #:optimal-string-alignment-distance
-   #:optimal-string-alignment-distance*
-   #:repeat-string
-   #:split-by-newline
-   #:indent-string
-   #:remove-indentation
-   #:print-comparison
-   #:summarize
-   #:+whitespaces+
-   #:trim-whitespace
-   #:whitespacep
-   #:symbol-package-qualified-name)
-  (:export
    #:walk
    #:walk-car
    #:walk-list
