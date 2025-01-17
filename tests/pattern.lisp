@@ -174,10 +174,11 @@
     a ?a)
 
 (defpattern b
-    (:ref a) (:ref a))
+  (:ref a) (:ref a))
 
 
 ;;; Pattern iterators...
+;;; TODO (important!) replace by iterator.lisp's iterators
 
 ;;; Imagine I have a structure that looks like this:
 

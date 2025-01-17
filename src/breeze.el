@@ -566,6 +566,8 @@ for debugging breeze itself."
 
 ;; TODO assumes slime
 ;; TODO this doesn't work well at all
+;; TODO if there's no slime/sly notes, nor flymake errors,
+;;      go to the next "TODO"
 (defun breeze-next-note ()
   "Go to either the next note from the listener or to the next
 flymake error."

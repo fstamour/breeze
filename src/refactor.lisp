@@ -46,7 +46,8 @@
    #:insert-make-load-form-boilerplate
    #:insert-lambda
    ;; Other commands
-   #:quickfix))
+   #:quickfix
+   #| WIP |# #++ #:other-file))
 
 (in-package #:breeze.refactor)
 
@@ -66,6 +67,10 @@
     ~%  )"
      name
      (substitute #\Space #\- name))))
+
+#++ ;; snippet draft:
+`(define-command (:the symbol ?name) () \n
+   (fmt "\"~@(~a~).\"" ?name))
 
 (define-command insert-handler-case-form ()
   "Insert handler case form."
@@ -548,7 +553,7 @@ commands that the user might want to run."
     (if (and parent-node
              (not (listp parent-node)))
         (destructuring-bind (from . to)
-            (node-source parent-node)
+            (node-source parent-node) ;; TODO undefined function:
           (replace-region from to ""))
         (message "No parent node at point."))))
 
@@ -611,3 +616,25 @@ a message and stop the current command."
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
+
+
+
+#++ ;; TODO
+(define-command move-to-tests ())
+
+(define-command other-file ()
+  "Find the alternative file for the current file."
+  (message (buffer-file-name)))
+
+;; 1. generate dirs from "vc-root" '("src" "t" "test" "tests")
+;; 2. find in which directory is the current file
+;; 3. find which alternative directory exists
+;; 4. find which alternative file exists
+
+;; On second thought, the "find test directory"/"find test files" should be part of the "workspace".
+
+#++
+(if-let (buffer-file-name))
+#++
+(if-let ((vc-root (indirect (find-version-control-root path))))
+  (directory-name vc-root))

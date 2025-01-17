@@ -3,6 +3,9 @@
 :END:
 #+title: Ideas
 * Random ideas
+
+** A command to insert compiler notes (at point) as a comment
+
 ** (tips), (tips "test"), (tips "doc")
 ** (next) ;; what's next? print functions that aren't done, that have no tests or documentation.
 *** functions that aren't implemented or done

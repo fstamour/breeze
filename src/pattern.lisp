@@ -82,9 +82,6 @@
               (typed-term-type b))))
 
 
-
-;; TODO Maybe generalize "maybe" and "zero-or-more" into "repetition"
-
 (defstruct (repetition
             (:constructor repetition (pattern min max &optional name))
             :constructor
@@ -237,6 +234,8 @@ compile-pattern is called, a new one is created."
       (error "Failed to find the pattern ~S." (ref-name pattern))))
 
 
+;;; TODO (important!) replace by iterator.lisp's iterators
+;;;
 ;;; Iterator:
 ;;;  - takes care of "recursing" into referenced patterns
 ;;;  - conditionally skips inputs

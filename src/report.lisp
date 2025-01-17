@@ -10,6 +10,11 @@ than html.
 
 TODO Nice to haves: line numbers
 
+TODO Render file-comment ";;;;" differently
+TODO Render comments differently based on the number of ";"
+
+TODO Split comment/paragraphs when the line starts with "TODO"
+
 |#
 
 

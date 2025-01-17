@@ -166,6 +166,8 @@ save this function's return value."))
 
 
 ;;; depth-first iterator
+;;;
+;;; Would "nested" iterator be a better name?
 
 (defclass depth-first-iterator (vector-iterator)
   ((parent

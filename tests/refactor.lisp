@@ -266,22 +266,22 @@ newline in the expected result."
           (split-by-newline (second request))))))
 
 (define-test+run insert-breeze-define-command
-    (let* ((trace (drive-command #'insert-breeze-define-command
-                                 :inputs '("rmrf")
-                                 :context '())))
-      (common-trace-asserts 'insert-breeze-define-command trace 3)
-      (destructuring-bind (input request) (first trace)
-        (is string= "read-string" (first request))
-        (is string= "Name of the command (symbol): " (second request))
-        (is string= nil (third request)))
-      (destructuring-bind (input request) (second trace)
-        (is equal '"rmrf" input)
-        (is string= "insert" (first request))
-        (is equal
-            '("(define-command rmrf ()"
-              "  \"Rmrf.\""
-              "  )")
-            (split-by-newline (second request))))))
+  (let* ((trace (drive-command #'insert-breeze-define-command
+                               :inputs '("rmrf")
+                               :context '())))
+    (common-trace-asserts 'insert-breeze-define-command trace 3)
+    (destructuring-bind (input request) (first trace)
+      (is string= "read-string" (first request))
+      (is string= "Name of the command (symbol): " (second request))
+      (is string= nil (third request)))
+    (destructuring-bind (input request) (second trace)
+      (is equal '"rmrf" input) ;; TODO the linter should warn me about the extraneous quote
+      (is string= "insert" (first request))
+      (is equal
+          '("(define-command rmrf ()"
+            "  \"Rmrf.\""
+            "  )")
+          (split-by-newline (second request))))))
 
 (define-test+run insert-defun
   (let* ((trace (drive-command #'insert-defun

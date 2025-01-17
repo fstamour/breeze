@@ -110,7 +110,6 @@
     (is eq (skip-value-p root-iterator) (skip-value-p iterator))
     (is eq (dig-value-p root-iterator) (dig-value-p iterator))))
 
-;; TODO This _could_ be renamed "flatten"...
 (defun flatten (vector &optional skipp)
   (loop
     :for i :from 0
@@ -126,8 +125,6 @@
     :for value = (value iterator)
     ;; :do (format *debug-io* "~&~d: ~S~%~%" i value)
     :collect value))
-
-
 
 (define-test+run flatten
   (is equalp '(a b c d e f g)
