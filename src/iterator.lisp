@@ -39,7 +39,8 @@ generalization of that first iteration (ha!).
    #:firstp
    #:lastp
    #:before-last-p
-   #:depth))
+   #:depth
+   #:collect))
 
 (in-package #:breeze.iterator)
 
@@ -83,7 +84,7 @@ control whether to recursively iterate over a value's elements.
 (defgeneric donep (iterator)
   (:documentation "Check if there's any values left to iterate over."))
 
-(defgeneric next (iterator)
+(defgeneric next (iterator &key &allow-other-keys)
   (:documentation "Advance the iterator. Might return a whole new iterator, you better
 save this function's return value."))
 
@@ -126,13 +127,23 @@ save this function's return value."))
 
 (defun make-vector-iterator (vector &key
                                       (position 0)
-                                      (skip-value-p nil))
-  "Construct a vector-iterator for VECTOR."
+                                      (skip-value-p nil)
+                                      dont-skip-p)
+  "Construct a vector-iterator for VECTOR.
+
+If DONT-SKIP-P is non-nil, the first elements won't be skipped
+automatically even if the SKIP-VALUE-P predicate would be true for
+those values."
   (check-type vector vector)
-  (make-instance 'vector-iterator
-                 :vector vector
-                 :position position
-                 :skip-value-p skip-value-p))
+  (let ((iterator
+          (make-instance 'vector-iterator
+                         :vector vector
+                         :position position
+                         :skip-value-p skip-value-p)))
+    (unless dont-skip-p
+      (when (skipp iterator)
+        (next iterator)))
+    iterator))
 
 (defmethod skipp ((iterator vector-iterator))
   (let ((predicate (skip-value-p iterator)))
@@ -142,8 +153,13 @@ save this function's return value."))
 (defmethod donep ((iterator vector-iterator))
   (not (< -1 (pos iterator) (length (vec iterator)))))
 
-(defmethod next ((iterator vector-iterator))
-  (incf (pos iterator)))
+(defmethod next ((iterator vector-iterator) &key dont-skip-p)
+  (if dont-skip-p
+      (incf (pos iterator))
+      (loop
+        :do (incf (pos iterator))
+        :while (and (not (donep iterator))
+                    (skipp iterator)))))
 
 (defmethod value ((iterator vector-iterator))
   (when (donep iterator) (error "No more values in this iterator."))
@@ -245,7 +261,10 @@ ITERATOR unchanged."
         (maybe-dig-out parent))
       iterator))
 
-(defmethod next ((iterator depth-first-iterator))
+(defmethod next ((iterator depth-first-iterator)
+                 &key dont-skip-p dont-dig-p)
+  ;; TODO handle dont-skip-p
+  ;; TODO handle dont-dig-p
   (flet ((%next (iterator)
            (incf (pos iterator))
            (maybe-dig (maybe-dig-out iterator))))
@@ -253,3 +272,20 @@ ITERATOR unchanged."
             :then (%next new-iterator)
           :while (skipp new-iterator)
           :finally (return new-iterator))))
+
+
+
+
+;; TODO This doesn't work well with the current implementation of the
+;; "depth-first" iterators.
+(defun collect (iterator &key (limit))
+  (if limit
+      (loop
+        repeat limit
+        until (donep iterator)
+        collect (value iterator)
+        do (next iterator))
+      (loop
+        until (donep iterator)
+        collect (value iterator)
+        do (next iterator))))

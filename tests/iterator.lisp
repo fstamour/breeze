@@ -51,6 +51,27 @@
     (false (donep (make-depth-first-iterator #(1 2 3))))
     (true (donep (make-depth-first-iterator #(1 2 3) :position 10)))))
 
+(defun skip-odd-values (iterator)
+  (oddp (value iterator)))
+
+(define-test+run skipp
+  (progn
+    (false (skipp (make-vector-iterator #() :skip-value-p #'skip-odd-values)))
+    (false (skipp (make-vector-iterator #(2) :skip-value-p #'skip-odd-values)))
+    (false (skipp (make-vector-iterator #(1) :skip-value-p #'skip-odd-values)))
+    (false (skipp (make-vector-iterator #(1)
+                                        :skip-value-p #'skip-odd-values :dont-skip-p nil)))
+    (is equal '(2 4) (collect (make-vector-iterator #(1 2 3 4)
+                                                    :skip-value-p #'skip-odd-values))))
+  #++ ;; TODO
+  (progn
+    (true (donep (make-depth-first-iterator #())))
+    (true (donep (make-depth-first-iterator #() :position -1)))
+    (true (donep (make-depth-first-iterator #() :position 1)))
+    (false (donep (make-depth-first-iterator #(1))))
+    (false (donep (make-depth-first-iterator #(1 2 3))))
+    (true (donep (make-depth-first-iterator #(1 2 3) :position 10)))))
+
 (define-test+run dig
   (let* ((vector1 #(1 2 3))
          (vector2 #(a b c d e f))
@@ -111,6 +132,12 @@
     (is eq (dig-value-p root-iterator) (dig-value-p iterator))))
 
 (defun flatten (vector &optional skipp)
+  #++
+  (collect (make-depth-first-iterator
+            vector
+            :dig-value-p (lambda (iterator)
+                           (vectorp (value iterator)))
+            :skip-value-p skipp))
   (loop
     :for i :from 0
     :for iterator := (make-depth-first-iterator
