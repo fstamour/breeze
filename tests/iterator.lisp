@@ -105,3 +105,12 @@
                (prog1 (oddp i) (incf i)))
              :apply-filter-to-iterator-p t)))
       "Should flatten the nested vectors and keep only the odd positions."))
+
+
+#++
+(collect
+    (make-concat-iterator
+     (vector
+      (make-vector-iterator #(1 2 3))
+      (make-vector-iterator #(a b c))))
+  :limit 10)

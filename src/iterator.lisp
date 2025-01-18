@@ -31,7 +31,9 @@ generalization of that first iteration (ha!).
            #:make-vector-iterator
            #:make-nested-vector-iterator
            #:flattener
-           #:make-flattener)
+           #:make-flattener
+           #:concat-iterator
+           #:make-concat-iterator)
   ;; Accessors
   (:export
    #:vec
@@ -48,7 +50,8 @@ generalization of that first iteration (ha!).
    #:lastp
    #:before-last-p
    #:depth
-   #:collect))
+   #:collect
+   #:map-iterator))
 
 (in-package #:breeze.iterator)
 
@@ -335,6 +338,34 @@ ITERATOR unchanged."
     (maybe-dig-in iterator)))
 
 
+;;; Concat iterator
+;;
+;; TODO maybe find a better name
+;; TODO add documentation
+;; TODO add tests
+
+(defclass concat-iterator (vector-iterator) ())
+
+(defun make-concat-iterator (iterators)
+  (make-instance 'concat-iterator :vector (coerce iterators 'vector)))
+
+(defmethod child-iterator ((iterator concat-iterator))
+  (aref (vec iterator) (pos iterator)))
+
+(defmethod next ((iterator concat-iterator) &key &allow-other-keys)
+  (loop :do (next (child-iterator iterator))
+            (when (donep (child-iterator iterator))
+              (incf (pos iterator)))
+        :until (or (donep iterator)
+                   (not (donep (child-iterator iterator))))))
+
+(defmethod value ((iterator concat-iterator))
+  (value (call-next-method iterator)))
+
+(defmethod leaf-iterator ((iterator concat-iterator))
+  (leaf-iterator (value iterator)))
+
+
 
 (defun collect (iterator &key (limit))
   (if limit
@@ -346,4 +377,16 @@ ITERATOR unchanged."
       (loop
         until (donep iterator)
         collect (value iterator)
+        do (next iterator))))
+
+(defun map-iterator (fn iterator &key (limit))
+  (if limit
+      (loop
+        repeat limit
+        until (donep iterator)
+        do (funcall fn (value iterator))
+        do (next iterator))
+      (loop
+        until (donep iterator)
+        do (funcall fn (value iterator))
         do (next iterator))))
