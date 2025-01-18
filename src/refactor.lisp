@@ -124,12 +124,13 @@
   "Start a command to insert a form that has the same shape as a
 defvar."
   (insert "(~a " form-name)
-  (let ((name (read-string "Name: ")))
-    (insert (if circumfix
-                (ensure-circumfix circumfix name)
-                name)))
-  (read-string-then-insert "Initial value: " " ~a~%")
-  (read-string-then-insert "Documentation string " "\"~a\")"))
+  (read-string-then-insert "Name: " "~a "
+                           (lambda (name)
+                             (ensure-circumfix circumfix name)))
+  (read-string-then-insert "Initial value: " "~a~%")
+  (read-string-then-insert "Documentation string " "~a)"
+                           (lambda (name)
+                             (ensure-circumfix "\"" name))))
 
 (define-command insert-defvar ()
   "Insert a defvar form."

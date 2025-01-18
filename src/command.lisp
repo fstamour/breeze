@@ -525,9 +525,9 @@ position."
   (send "read-string" prompt initial-input)
   (recv1))
 
-(defun read-string-then-insert (prompt control-string)
+(defun read-string-then-insert (prompt control-string &optional (fn #'identity))
   (insert control-string
-          (read-string prompt)))
+          (funcall fn (read-string prompt))))
 
 (defun choose (prompt collection &key (allow-empty-collection-p t))
   "Send a message to the editor to ask the user to choose one element
