@@ -21,19 +21,27 @@ generalization of that first iteration (ha!).
   ;; Generics
   (:export #:donep
            #:next
-           #:value
-           #:skipp
-           #:digp)
+           #:value)
   ;; Classes and Constructors
-  (:export #:vector-iterator
-           #:depth-first-iterator
+  (:export #:proxy-iterator-mixin
+           #:selector
+           #:make-selector
+           #:vector-iterator
+           #:nested-vector-iterator
            #:make-vector-iterator
-           #:make-depth-first-iterator)
+           #:make-nested-vector-iterator
+           #:flattener
+           #:make-flattener)
   ;; Accessors
   (:export
    #:vec
-   #:pos
-   #:parent)
+   #:pos)
+  ;; Functions for nested-vector-iterator
+  (:export
+   #:vectors
+   #:positions
+   #:push-vector
+   #:pop-vector)
   ;; Other utility functions
   (:export
    #:firstp
@@ -73,8 +81,9 @@ Conclusion:
 I think I'll go with "2. put a predicate in the iterator" because of
 C) and D)
 
-P.S. By the same logic, I'll put a predicate in the iterator to
-control whether to recursively iterate over a value's elements.
+=== a few weeks later ===
+
+I could also define an iterator that uses another one and skip values. So the "base" iterators are kept simple.
 
 |#
 
@@ -91,21 +100,8 @@ save this function's return value."))
 (defgeneric value (iterator)
   (:documentation "Get the current value of the iterator"))
 
-(defgeneric skipp (iterator)
-  (:documentation "Check whether to skip the current value or not")
-  (:method (iterator) "Default implementation" nil))
-
-(defgeneric digp (iterator)
-  (:documentation "Check whether to iterate on the current value's elements or not.")
-  (:method (iterator) "Default implementation" nil))
-
 
 ;;; vector-iterator
-
-;; TODO I'm not sure I want to keep the "vector-iterator" class,
-;; because everything it can do, the "depth-first-iterator" can
-;; do... but this one is definitly simpler... but I would need more
-;; tests if I want to keep both.
 
 (defclass vector-iterator ()
   ((vector
@@ -117,49 +113,22 @@ save this function's return value."))
     :initform 0
     :initarg :position
     :accessor pos
-    :documentation "Current position of the iterator in the vector.")
-   (skip-value-p
-    :initform nil
-    :initarg :skip-value-p
-    :accessor skip-value-p
-    :documentation "Optional predicate to skip over certain values."))
+    :documentation "Current position of the iterator in the vector."))
   (:documentation "An iterator for vectors."))
 
-(defun make-vector-iterator (vector &key
-                                      (position 0)
-                                      (skip-value-p nil)
-                                      dont-skip-p)
-  "Construct a vector-iterator for VECTOR.
-
-If DONT-SKIP-P is non-nil, the first elements won't be skipped
-automatically even if the SKIP-VALUE-P predicate would be true for
-those values."
+(defun make-vector-iterator (vector &key (position 0))
+  "Construct a vector-iterator for VECTOR."
   (check-type vector vector)
-  (let ((iterator
-          (make-instance 'vector-iterator
-                         :vector vector
-                         :position position
-                         :skip-value-p skip-value-p)))
-    (unless dont-skip-p
-      (when (skipp iterator)
-        (next iterator)))
-    iterator))
-
-(defmethod skipp ((iterator vector-iterator))
-  (let ((predicate (skip-value-p iterator)))
-    (and predicate (not (donep iterator))
-         (funcall predicate iterator))))
+  (check-type position (integer 0))
+  (make-instance 'vector-iterator
+                 :vector vector
+                 :position position))
 
 (defmethod donep ((iterator vector-iterator))
   (not (< -1 (pos iterator) (length (vec iterator)))))
 
-(defmethod next ((iterator vector-iterator) &key dont-skip-p)
-  (if dont-skip-p
-      (incf (pos iterator))
-      (loop
-        :do (incf (pos iterator))
-        :while (and (not (donep iterator))
-                    (skipp iterator)))))
+(defmethod next ((iterator vector-iterator) &key)
+  (incf (pos iterator)))
 
 (defmethod value ((iterator vector-iterator))
   (when (donep iterator) (error "No more values in this iterator."))
@@ -181,103 +150,192 @@ those values."
   (= (pos iterator) (1- (length (vec iterator)))))
 
 
-;;; depth-first iterator
-;;;
-;;; Would "nested" iterator be a better name?
+;;; Iterators that encapsulate other iterators
 
-(defclass depth-first-iterator (vector-iterator)
-  ((parent
+(defclass proxy-iterator-mixin ()
+  ((child-iterator
     :initform nil
-    :initarg :parent
-    :accessor parent)
-   (dig-value-p
-    :initform nil
-    :initarg :dig-value-p
-    :accessor dig-value-p
-    :documentation "Optional predicate to dig into certain values."))
-  (:documentation "A depth-first iterator for nested vectors."))
+    :initarg :iterator
+    :accessor child-iterator
+    :documentation "Child iterator.")))
 
-(defun make-depth-first-iterator (vector &key
-                                           (position 0)
-                                           (skip-value-p nil)
-                                           (dig-value-p nil))
-  "Create a new depth-first iterator on VECTOR."
-  (check-type vector vector)
-  (let ((iterator (maybe-dig (make-instance
-                              'depth-first-iterator
-                              :vector vector
-                              :position position
-                              :skip-value-p skip-value-p
-                              :dig-value-p dig-value-p))))
-    (if (skipp iterator) (next iterator) iterator)))
+(defmethod donep ((iterator proxy-iterator-mixin))
+  (donep (child-iterator iterator)))
 
-(defmethod depth ((iterator depth-first-iterator))
-  (if (null (parent iterator)) 0 (1+ (depth (parent iterator)))))
+(defmethod next ((iterator proxy-iterator-mixin) &key &allow-other-keys)
+  (next (child-iterator iterator)))
+
+(defmethod value ((iterator proxy-iterator-mixin))
+  (value (child-iterator iterator)))
+
+(defmethod leaf-iterator (iterator) iterator)
+
+(defmethod leaf-iterator ((iterator proxy-iterator-mixin))
+  (leaf-iterator (child-iterator iterator)))
 
 
-;;; Implementing "next" method for "depth-first-iterator"
+;;; Selector - iterator that skip values
 
-(defmethod digp ((iterator depth-first-iterator))
-  (let ((predicate (dig-value-p iterator)))
-    (and predicate
-         (funcall predicate iterator))))
+(defclass selector (proxy-iterator-mixin)
+  ((filter-in
+    :initform nil
+    :initarg :filter-in
+    :accessor filter-in
+    :documentation "Predicate to remove certain values. (If it returns nil for a value, that value is skipped.")))
 
-(defmethod dig ((iterator depth-first-iterator) x)
-  "Create a new iterator on VECTOR, with ITERATOR as parent. Returns the
-new iterator."
-  (make-instance 'depth-first-iterator
-                 :vector (etypecase x
-                           (vector x)
-                           ;; or just T to specify to iterate on the
-                           ;; current value.
-                           ((eql t) (value iterator)))
-                 :parent iterator
-                 :skip-value-p (skip-value-p iterator)
-                 :dig-value-p (dig-value-p iterator)))
+(defun make-selector (child-iterator filter-in
+                      &key
+                        dont-skip-p
+                        apply-filter-to-iterator-p)
+  "Construct a selector from CHILD-ITERATOR.
 
-(defun maybe-dig (iterator)
-  "If ITERATOR is not done and the current value needs to be iterated
-over, \"push\" a new iterator."
-  (if (donep iterator)
-      iterator
-      ;; dig-value-p is allowed to return a different any vector, not
-      ;; just the current value.
-      (let ((value-to-dig-into (digp iterator)))
-        (if value-to-dig-into
-            (maybe-dig (dig iterator value-to-dig-into))
-            iterator))))
+If DONT-SKIP-P is non-nil, the first elements won't be skipped
+automatically even if the SKIP-VALUE-P predicate would be true for
+those values.
 
-(defun maybe-dig-out (iterator)
+If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applied to the CHILD-ITERATOR instead of the its current value. This can be used for example to skip the last value, by accessing the iterator's state."
+  (let ((iterator (make-instance
+                   'selector
+                   :iterator child-iterator
+                   :filter-in (if apply-filter-to-iterator-p
+                                  filter-in
+                                  (lambda (iterator)
+                                    (funcall filter-in (value iterator)))))))
+    (unless dont-skip-p
+      (when (skipp iterator)
+        (next iterator)))
+    iterator))
+
+(defmethod skipp ((iterator selector))
+  "Check whether to skip the current value or not"
+  (let ((predicate (filter-in iterator)))
+    (and predicate (not (donep iterator))
+         (not (funcall predicate (leaf-iterator iterator))))))
+
+(defmethod next ((iterator selector) &key dont-skip-p)
+  (if dont-skip-p
+      (next (child-iterator iterator))
+      (loop
+        :do (next (child-iterator iterator))
+        :while (and (not (donep iterator))
+                    (skipp iterator)))))
+
+
+;;; iterator for nested vectors
+
+(defclass nested-vector-iterator ()
+  ((vectors
+    :initform (make-array '(0)
+                          :element-type 'vector
+                          :adjustable t
+                          :fill-pointer t)
+    :initarg :vectors
+    :accessor vectors)
+   (depth
+    :initform -1
+    :initarg :depth
+    :accessor depth)
+   (positions
+    :initform (make-array '(1)
+                          :element-type '(integer 0)
+                          :adjustable t
+                          :initial-element 0
+                          :fill-pointer 0)
+    :initarg :positions
+    :accessor positions))
+  (:documentation "An iterator for nested vectors."))
+
+(defun make-nested-vector-iterator (vector &key (position 0))
+  "Create a new depth-first iterator on VECTOR."
+  (check-type vector vector)
+  (push-vector (make-instance 'nested-vector-iterator)
+               vector
+               :position position))
+
+(defmethod vec ((iterator nested-vector-iterator))
+  (aref (vectors iterator) (depth iterator)))
+
+(defmethod pos ((iterator nested-vector-iterator))
+  (aref (positions iterator) (depth iterator)))
+
+(defmethod (setf pos) (new-position (iterator nested-vector-iterator))
+  (setf (aref (positions iterator) (depth iterator)) new-position))
+
+;; same implementation as vector-iterator's
+(defmethod donep ((iterator nested-vector-iterator))
+  (not (< -1 (pos iterator) (length (vec iterator)))))
+
+;; same implementation as vector-iterator's
+(defmethod next ((iterator nested-vector-iterator) &key)
+  (incf (pos iterator)))
+
+;; same implementation as vector-iterator's
+(defmethod value ((iterator nested-vector-iterator))
+  (when (donep iterator) (error "No more values in this iterator."))
+  (aref (vec iterator) (pos iterator)))
+
+(defmethod push-vector ((iterator nested-vector-iterator)
+                        vector &key (position 0))
+  (vector-push-extend vector (vectors iterator))
+  (vector-push-extend position (positions iterator))
+  (incf (depth iterator))
+  iterator)
+
+(defmethod pop-vector ((iterator nested-vector-iterator))
+  (decf (fill-pointer (vectors iterator)))
+  (decf (fill-pointer (positions iterator)))
+  (decf (depth iterator))
+  iterator)
+
+
+;;; Depth-first iterator
+
+;; TODO I don't really like that name...
+(defclass flattener (proxy-iterator-mixin)
+  ((digger
+    :initform nil
+    :initarg :digger
+    :accessor digger
+    :documentation "Callback to control which value to recurse into.")))
+
+(defmethod make-flattener ((iterator nested-vector-iterator) digger
+                           &key apply-digger-to-iterator-p)
+  (make-instance 'flattener
+                 :iterator iterator
+                 :digger (if apply-digger-to-iterator-p
+                             digger
+                             (lambda (iterator)
+                               (funcall digger (value iterator))))))
+
+(defmethod maybe-dig-in ((iterator flattener))
+  (unless (donep iterator)
+    (let ((value-to-dig-in (funcall (digger iterator)
+                                    (child-iterator iterator))))
+      (when value-to-dig-in
+        (push-vector (child-iterator iterator)
+                     (if (eq t value-to-dig-in)
+                         (value (child-iterator iterator))
+                         value-to-dig-in))))))
+
+(defmethod maybe-dig-out ((iterator flattener))
+  ;; TODO this docstring is not exactly right, it's still written as
+  ;; if iterator was like a linked list (it used to be).
   "If ITERATOR is done and has a parent, return the next
 parent (i.e. the parent might also be done, in which case the parent's
 parents is returned, and so on and so on). Otherwise, just return
 ITERATOR unchanged."
-  (check-type iterator depth-first-iterator)
-  (if (and (donep iterator) (parent iterator))
-      (let ((parent (parent iterator)))
-        ;; Advance the position
-        (incf (pos parent))
-        ;; return the parent
-        (maybe-dig-out parent))
-      iterator))
+  (loop :with it = (child-iterator iterator)
+        :while (and (donep iterator) (plusp (depth it)))
+        :do (pop-vector it) (next it)))
 
-(defmethod next ((iterator depth-first-iterator)
-                 &key dont-skip-p dont-dig-p)
-  ;; TODO handle dont-skip-p
-  ;; TODO handle dont-dig-p
-  (flet ((%next (iterator)
-           (incf (pos iterator))
-           (maybe-dig (maybe-dig-out iterator))))
-    (loop :for new-iterator = (%next iterator)
-            :then (%next new-iterator)
-          :while (skipp new-iterator)
-          :finally (return new-iterator))))
-
+(defmethod next ((iterator flattener) &key dont-dig-in-p)
+  (next (child-iterator iterator))
+  (maybe-dig-out iterator)
+  (unless dont-dig-in-p
+    (maybe-dig-in iterator)))
 
 
 
-;; TODO This doesn't work well with the current implementation of the
-;; "depth-first" iterators.
 (defun collect (iterator &key (limit))
   (if limit
       (loop
