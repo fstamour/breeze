@@ -30,8 +30,8 @@ generalization of that first iteration (ha!).
            #:nested-vector-iterator
            #:make-vector-iterator
            #:make-nested-vector-iterator
-           #:flattener
-           #:make-flattener
+           #:recursive-iterator
+           #:make-recursive-iterator
            #:concat-iterator
            #:make-concat-iterator)
   ;; Accessors
@@ -293,49 +293,71 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 ;;; Depth-first iterator
 
-;; TODO I don't really like that name...
-(defclass flattener (proxy-iterator-mixin)
-  ((digger
+(defclass recursive-iterator (nested-vector-iterator)
+  ((recurse-into
     :initform nil
-    :initarg :digger
-    :accessor digger
-    :documentation "Callback to control which value to recurse into.")))
+    :initarg :recurse-into
+    :accessor recurse-into
+    :documentation "Callback to control which value to recurse into.")
+   (order
+    :initform nil
+    :initarg :order
+    :accessor order
+    :documentation "Defines the \"tree-traversal\" order. Valid values are
+:subtree-only (the default) or :root-then-subtree. Other possible
+orders exists, but they're not needed by breeze for now."))
+  (:documentation "Iterator for nested vectors that automatically recurse into subtrees."))
 
-(defmethod make-flattener ((iterator nested-vector-iterator) digger
-                           &key apply-digger-to-iterator-p)
-  (make-instance 'flattener
-                 :iterator iterator
-                 :digger (if apply-digger-to-iterator-p
-                             digger
-                             (lambda (iterator)
-                               (funcall digger (value iterator))))))
+(defun make-recursive-iterator (vector recurse-into &key apply-recurse-into-to-iterator-p order)
+  (push-vector
+   (make-instance 'recursive-iterator
+                  :recurse-into (if apply-recurse-into-to-iterator-p
+                                    recurse-into
+                                    (lambda (iterator)
+                                      (funcall recurse-into (value iterator))))
+                  :order (ecase order
+                           (:root-then-subtree order)
+                           ;; default
+                           ((nil :subtree-only) :subtree-only)))
 
-(defmethod maybe-dig-in ((iterator flattener))
+   vector))
+
+
+(defmethod maybe-dig-in ((iterator recursive-iterator))
   (unless (donep iterator)
-    (let ((value-to-dig-in (funcall (digger iterator)
-                                    (child-iterator iterator))))
+    (let ((value-to-dig-in (funcall (recurse-into iterator) iterator)))
       (when value-to-dig-in
-        (push-vector (child-iterator iterator)
+        (push-vector iterator
                      (if (eq t value-to-dig-in)
-                         (value (child-iterator iterator))
-                         value-to-dig-in))))))
+                         (value iterator)
+                         value-to-dig-in))
+        t))))
 
-(defmethod maybe-dig-out ((iterator flattener))
+(defmethod maybe-dig-out ((iterator recursive-iterator))
   ;; TODO this docstring is not exactly right, it's still written as
   ;; if iterator was like a linked list (it used to be).
   "If ITERATOR is done and has a parent, return the next
 parent (i.e. the parent might also be done, in which case the parent's
 parents is returned, and so on and so on). Otherwise, just return
 ITERATOR unchanged."
-  (loop :with it = (child-iterator iterator)
-        :while (and (donep iterator) (plusp (depth it)))
-        :do (pop-vector it) (next it)))
+  (loop
+    :while (and (donep iterator) (< 0 (depth iterator)))
+    :do (pop-vector iterator) (next iterator :dont-recurse-p t)))
 
-(defmethod next ((iterator flattener) &key dont-dig-in-p)
-  (next (child-iterator iterator))
-  (maybe-dig-out iterator)
-  (unless dont-dig-in-p
-    (maybe-dig-in iterator)))
+(defmethod next ((iterator recursive-iterator) &key dont-recurse-p)
+  (ecase (order iterator)
+    (:root-then-subtree
+     ;; if the current node is "recursable", then we recurse into it
+     (unless (unless dont-recurse-p
+               (maybe-dig-in iterator))
+       (call-next-method)
+       (maybe-dig-out iterator)))
+    ;; default
+    ((nil :subtree-only)
+     (call-next-method)
+     (maybe-dig-out iterator)
+     (unless dont-recurse-p
+       (maybe-dig-in iterator)))))
 
 
 ;;; Concat iterator

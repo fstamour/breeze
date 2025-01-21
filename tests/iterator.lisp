@@ -73,38 +73,61 @@
     (and (vectorp x)
          (evenp (length x)))))
 
-(define-test+run flattener
+(define-test+run recursive-iterator+flatten
   (is equal '(1 2 3 4)
-      (collect
-          (make-flattener
-           (make-nested-vector-iterator #(1 #(2 3) 4))
-           #'vectorp))
+      (collect (make-recursive-iterator #(1 #(2 3) 4) #'vectorp))
       "It should have flattened the nested vectors.")
   (is equal '(a b c d e f g)
-      (collect
-          (make-flattener
-           (make-nested-vector-iterator #(a b #(c d #(e f) g)))
-           #'vectorp))
+      (collect (make-recursive-iterator #(a b #(c d #(e f) g)) #'vectorp))
       "It should have flattened the nested vectors.")
   (is equal '(1 2 3 4 5 6 7 8 9)
       (collect
           (make-selector
-           (make-flattener
-            (make-nested-vector-iterator #(1 2 #(3 4 #(5 6) 7) 8 9))
-            #'vectorp)
+           (make-recursive-iterator #(1 2 #(3 4 #(5 6) 7) 8 9) #'vectorp)
            (constantly t)))
-      "Selector and flattener should interact correctly...")
+      "Selector and recursive-iterator should interact correctly...")
   (is equal '(b d f)
       (let ((i 0))
         (collect
             (make-selector
-             (make-flattener
-              (make-nested-vector-iterator #(a b #(c d #(e f) g)))
+             (make-recursive-iterator
+              #(a b #(c d #(e f) g))
               #'vectorp)
              (lambda (iterator)
                (prog1 (oddp i) (incf i)))
              :apply-filter-to-iterator-p t)))
       "Should flatten the nested vectors and keep only the odd positions."))
+
+(define-test+run recursive-iterator+pre-order
+  (is equalp '(1 #(2 3) 2 3 4)
+      (collect
+          (make-recursive-iterator
+           #(1 #(2 3) 4)
+           #'vectorp
+           :order :root-then-subtree))
+      "It should have iterated on both the vectors and their elements.")
+  (is equalp '(a b #(c d #(e f) g) c d #(e f) e f g)
+      (collect
+          (make-recursive-iterator #(a b #(c d #(e f) g)) #'vectorp
+                                   :order :root-then-subtree))
+      "It should have iterated on both the vectors and their elements.")
+  (is equalp '(1 2 #(3 4 #(5 6) 7) 3 4 #(5 6) 5 6 7 8 9)
+      (collect
+          (make-selector
+           (make-recursive-iterator #(1 2 #(3 4 #(5 6) 7) 8 9) #'vectorp
+                                    :order :root-then-subtree)
+           (constantly t)))
+      "Selector and recursive-iterator (pre-order traversal) should interact correctly...")
+  (is equalp '(b c #(e f) f)
+      (let ((i 0))
+        (collect
+            (make-selector
+             (make-recursive-iterator #(a b #(c d #(e f) g)) #'vectorp
+                                      :order :root-then-subtree)
+             (lambda (iterator)
+               (prog1 (oddp i) (incf i)))
+             :apply-filter-to-iterator-p t)))
+      "Should iterate on both the vectors and their elements and keep only the odd positions."))
 
 
 #++
