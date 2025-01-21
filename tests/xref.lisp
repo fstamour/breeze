@@ -98,3 +98,9 @@
   (false (classp 'dum:another-generic-function))
   (false (classp 'dum:*unbound-variable*))
   (false (classp 'dum:a-function)))
+
+(define-test externalp
+  (true (externalp 'cl:null))
+  (null (externalp 'this-unexported-symbol))
+  (false (externalp '#:uninterned-symbol))
+  (false (externalp (gensym))))

@@ -58,9 +58,10 @@
   (find-class symbol nil))
 
 (defun externalp (symbol)
-  (eq :external
-      (nth-value 1 (find-symbol (symbol-name symbol)
-                                (symbol-package symbol)))))
+  (and (symbol-package symbol)
+       (eq :external
+           (nth-value 1 (find-symbol (symbol-name symbol)
+                                     (symbol-package symbol))))))
 
 (defun function-designator-p (designator)
   (or (functionp designator)
