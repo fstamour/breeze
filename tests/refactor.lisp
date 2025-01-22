@@ -31,22 +31,6 @@
 (defparameter *directory* "./")
 
 
-
-(define-test infer-project-name
-  (false
-   (with-simple-indirections
-       ((breeze.utils:find-version-control-root))
-     (infer-project-name "some path"))
-   "infer-project-name should return nil if the version control root directory was not found")
-  (is string= "foobar"
-      (with-simple-indirections
-          ((breeze.utils:find-version-control-root
-            #p"/home/nobody/projects/foobar/"))
-        (infer-project-name "some path"))
-      "infer-project-name should return the name of the version control root directory when it is found"))
-
-
-
 ;;; Testing suggestions
 
 ;; TODO...

@@ -4,24 +4,19 @@
 
 (uiop:define-package #:breeze.refactor
     (:documentation "Snippets and refactoring commands")
-  (:use #:cl #:breeze.command #++ #:breeze.reader)
-  (:import-from
-   #:alexandria
-   #:ends-with-subseq
-   #:if-let
-   #:symbolicate
-   #:lastcar)
-  (:import-from
-   #:breeze.string
-   #:ensure-circumfix)
-  (:import-from
-   #:breeze.utils
-   #:symbol-package-qualified-name
-   #:before-last
-   #:find-version-control-root)
-  (:import-from
-   #:breeze.indirection
-   #:indirect)
+  (:use #:cl #:breeze.command #:breeze.workspace)
+  (:import-from #:alexandria
+                #:ends-with-subseq
+                #:if-let
+                #:symbolicate
+                #:lastcar)
+  (:import-from #:breeze.string
+                #:ensure-circumfix)
+  (:import-from #:breeze.utils
+                #:symbol-package-qualified-name
+                #:before-last)
+  (:import-from #:breeze.indirection
+                #:indirect)
   (:export
    #:command-description
    ;; Simple transformation commands
@@ -145,11 +140,9 @@ defvar."
   (insert-defvar-shaped "defconstant" "+"))
 
 ;; TODO Add "alexandria" when the symbol is not interned
-;;      ^^^ that should go in "refactor.lisp"
 (define-command insert-define-constant ()
   "Insert a alexandria:define-constant form."
   (insert-defvar-shaped "define-constant"))
-
 
 (defun insert-defun-shaped (form-name)
   "Start a command to insert a form that has the same shape as a
@@ -168,54 +161,15 @@ defun."
   "Insert a defmacro form."
   (insert-defun-shaped "defmacro"))
 
-;; TODO Move to config?
-;; TODO This might change per-project... We could try to infer it?
-(defparameter *insert-defpackage/cl-user-prefix* nil
-  "Whether to include (in-package #:cl-user) before a defpackage form.")
-
-(defun directory-name (pathname)
-  (lastcar (pathname-directory pathname)))
-
-(defun infer-project-name (path)
-  "Try to infer the name of the project from the PATH."
-  ;; Infer project-name by location .git folder
-  (when path
-    (if-let ((vc-root (indirect (find-version-control-root path))))
-      (directory-name vc-root))))
-
-(defun infer-is-test-file (path)
-  "Try to infer if a file is part of the tests."
-  (when path
-    (member
-     (directory-name path)
-     '("test" "tests" "t")
-     :test #'string-equal)))
-
-(defun infer-package-name-from-file (file-pathname)
-  "Given a FILE-PATHNAME, infer a proper package name."
-  (when file-pathname
-    (let ((project (infer-project-name file-pathname))
-          (test (when (infer-is-test-file file-pathname)
-                  "test"))
-          (name (pathname-name file-pathname)))
-      (format nil "~{~a~^.~}"
-              (remove-if #'null (list project test name))))))
-
-#+ (or)
-(trace
- infer-project-name
- infer-is-test-file
- infer-package-name-from-file)
-
 (define-command insert-defpackage ()
   "Insert a defpackage form."
   (let ((package-name
           (read-string
            "Name of the package: "
            (infer-package-name-from-file (buffer-file-name)))))
-    (when *insert-defpackage/cl-user-prefix*
+    (when (in-package-cl-user-p)
       (insert
-       "(cl:in-package #:cl-user)~%~%~"))
+       "(cl:in-package #:cl-user)~%~%"))
     (if nil ; TODO
         (insert "(uiop:define-package ")
         (insert "(defpackage "))
