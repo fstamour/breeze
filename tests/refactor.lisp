@@ -506,7 +506,7 @@ newline in the expected result."
       (is string= "insert" (first request))
       (is equal
           '("(handler-bind"
-            "  ((error #'(lambda (condition)"
+            "  ((error (lambda (condition)"
             "    (describe condition *debug-io*))))"
             "  (frobnicate))")
           (split-by-newline (second request))))))
@@ -544,7 +544,7 @@ newline in the expected result."
     (destructuring-bind (input request) (first trace)
       (false input)
       (is string= "insert" (first request))
-      (is string= "#'(lambda ())" (second request)))))
+      (is string= "(lambda ())" (second request)))))
 
 (define-test insert-loop-clause-for-hash
   (let* ((trace (drive-command #'insert-loop-clause-for-hash

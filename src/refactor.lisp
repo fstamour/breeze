@@ -87,7 +87,7 @@
   "Insert handler bind form."
   (insert
    "(handler-bind~
-  ~%  ((error #'(lambda (condition)~
+  ~%  ((error (lambda (condition)~
   ~%    (describe condition *debug-io*))))~
   ~%  (frobnicate))"))
 
@@ -335,7 +335,7 @@ defun."
 
 (define-command insert-lambda ()
   "Insert a lambda form."
-  (insert "#'(lambda ())"))
+  (insert "(lambda ())"))
 
 ;; TODO quick-insert (format *debug-io* "~&")
 
