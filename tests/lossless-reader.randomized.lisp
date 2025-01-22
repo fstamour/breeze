@@ -27,7 +27,9 @@
                 #:read-sharpsign-sharpsign
                 #:read-sharpsign-plus
                 #:read-sharpsign-minus
-                #:%token-symbol-node)
+                #:%token-symbol-node
+                #:unparse)
+  (:import-from #:breeze.analysis #:walk) ; TODO that ain't clean
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run

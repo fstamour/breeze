@@ -1234,3 +1234,39 @@ reaally?")
                 (false mismatch "Failed to round-trip the file ~s. The first mismatch is at position: "
                        file
                        mismatch)))))
+
+
+
+#++ ;; TODO convert to tests on node-iterator and goto-position
+(define-test find-node
+  (is equal
+      '((whitespace . 0) (parens . 1) (parens . 1) (parens . 1) (parens . 1)
+        (parens . 1) (parens . 1) (parens . 1) (parens . 1) (whitespace . 2))
+      (loop :with input = " ( loop ) "
+            :with state = (parse input)
+            :for i :from 0 :below (length input)
+            :for path = (find-node i (tree state))
+            :collect (cons (node-type (car path)) (cdr path)))))
+
+#++ ;; TODO convert to tests on node-iterator and goto-position
+(define-test+run find-path-to-position
+  (is equalp
+      '((whitespace)
+        (parens whitespace)
+        (parens whitespace)
+        (parens token)
+        (parens token)
+        (parens token)
+        (parens token)
+        (parens whitespace)
+        (parens)
+        (whitespace))
+      (loop :with input = " ( loop ) "
+            :with state = (parse input)
+            :for i :from 0 :below (length input)
+            :for path = (find-path-to-position state i)
+            :collect
+            (mapcar (lambda (path)
+                      (node-type (car path)))
+                    path)
+            #++(list i (length path)))))

@@ -11,10 +11,16 @@ common lisp.")
   (:import-from #:breeze.iterator
                 #:vector-iterator
                 #:make-vector-iterator
+                #:make-nested-vector-iterator
+                #:make-recursive-iterator
                 #:pos
+                #:depth
                 #:donep
                 #:next
-                #:value)
+                #:value
+                #:recursive-iterator
+                #:push-vector
+                #:collect)
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
@@ -177,12 +183,14 @@ common lisp.")
            #:read-whitespaces
            #:read-block-comment)
   (:export
-   #:token-symbol-node)
+   #:token-symbol-node
+   #:node-contains-position-p
+   #:make-node-iterator
+   #:node-iterator
+   #:goto-position)
   (:export
-   ;; top-level parsing/unparsing
-   #:parse
-   #:unparse ;; maybe deprecate?
-   #:walk))
+   ;; top-level parsing
+   #:parse))
 
 (in-package #:breeze.lossless-reader)
 
@@ -1244,7 +1252,77 @@ Returns a new node with one of these types:
               (return result))))
 
 
-;;; Unparse
+;;; Node iterators
+
+(defclass node-iterator (recursive-iterator)
+  ((parser-state
+    :initarg :state
+    :type state
+    :accessor state))
+  (:documentation "An iterator for parse-trees."))
+
+;; TODO add tests
+(defmethod make-node-iterator ((state state))
+  (when (null (tree state))
+    (error "Can't iterate on an empty parse tree."))
+  (push-vector
+   (make-instance 'node-iterator
+                  :state state
+                  :recurse-into (lambda (iterator)
+                                  (node-children (value iterator)))
+                  :order :root-then-subtree)
+   (tree state)))
+
+;; TODO add tests
+(defmethod make-node-iterator ((string string))
+  (make-node-iterator (parse string)))
+
+#++
+(list (collect
+          (make-node-iterator
+           (parse "a b c"))
+        :limit 100)
+
+      (collect
+          (make-node-iterator
+           (parse "a (b c)"))
+        :limit 100))
+
+;; TODO add tests
+(defun node-contains-position-p (node position)
+  (let ((start (node-start node))
+        (end (node-end node)))
+    (and (<= start end) (< position end))))
+
+;; TODO add tests
+(defmethod goto-position ((iterator node-iterator) position)
+  ;; TODO this might not be necessary, as an optimization, when can
+  ;; check if the current node contains the position. If yes, check if
+  ;; there are children, if not, check the parent.
+  ;; TODO use binary search
+  (setf (depth iterator) 0
+        (pos iterator) 0)
+  (unless (donep iterator) ; the parse tree is empty... it _shouldn't_ happen...
+    (loop
+      :until (donep iterator)
+      :for node = (value iterator)
+      :do (if (node-contains-position-p node position)
+              (if (node-children node)
+                  (next iterator) ; this will recurse into the node's children
+                  (return node))
+              (next iterator :dont-recurse-p t))))
+  iterator)
+
+#++
+(let* ((input "a (b c)")
+       (state (parse input))
+       (it (make-node-iterator state)))
+  (loop :for i :below (1- (length input))
+        :do (goto-position it i)
+        :collect (node-content state (value it))))
+
+
+;;; Unparse (not exported, only used to test the parser!)
 
 ;; Should I pass the depth here too?
 (defun write-node (node state stream)

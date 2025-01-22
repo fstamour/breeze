@@ -5,9 +5,7 @@
   (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
   ;; Tree/Form predicate
   (:export
-   #:in-package-node-p
-   #:find-node
-   #:find-path-to-position)
+   #:in-package-node-p)
   (:export
    #:in-package-node-p
    #:lint
@@ -193,27 +191,12 @@ N.B. This doesn't guarantee that it's a valid node."
     ;; (destructuring-bind (&key ?cond ?then ?else ?extra) bindings)
     t))
 
-(defun find-node (position nodes)
-  "Given a list of NODES, return which node contains the POSITION."
-  (typecase nodes
-    (vector
-     (loop :for node :across nodes
-           :for start = (node-start node)
-           :for end = (node-end node)
-           :for i :from 0
-           :when (and (<= start end) (< position end))
-             :do (return (cons node i))))))
+
+;;; TODO Quotep
 
-(defun find-path-to-position (state position)
-  "Given a list of NODES, return a path (list of cons (node . index))"
-  (loop :for found = (find-node position (tree state))
-          :then (find-node position (node-children (car found)))
-        #++ (let ((node (car found)))
-              (and (listp (node-content state node))
-                   ;; (car (node-content state node))
-                   (find-node position (node-content state node))))
-        :while found
-        :collect found))
+;; - look at the "path", from the top-level
+;; - if there's any =(quote ...= node, then it is quoted
+;; - if there are "quasiquotes", it's more complicated...
 
 
 ;;; Trying to figure out how to run the "formatting rules" without
@@ -221,6 +204,7 @@ N.B. This doesn't guarantee that it's a valid node."
 
 
 ;; TODO try to keep track whether the current node is quoted or not
+;; TODO replace by node-iterator?
 (defun %walk (state callback tree depth quotedp)
   (when tree
     (flet ((cb (node &rest args)

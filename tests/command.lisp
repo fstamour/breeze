@@ -184,9 +184,9 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 ;; TODO
 (define-test point-max)
 
-;; TODO Test augment-context-by-parsing-the-buffer
+;; TODO Test node-iterator
 #++
-(augment-context-by-parsing-the-buffer
+(node-iterator
  (context-plist-to-hash-table
   `(:buffer-string ,(string #\Newline)
     :position 1)))

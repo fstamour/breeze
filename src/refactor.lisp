@@ -536,7 +536,6 @@ a message and stop the current command."
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (ignore-errors (maybe-ask-to-load-system))
-  (augment-context-by-parsing-the-buffer (context*))
   (check-in-package)
   ;; TODO try to fix only the "current" block and/or iterate
   (multiple-value-bind (fixed fixed-anything-p)

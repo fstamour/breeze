@@ -43,7 +43,10 @@ generalization of that first iteration (ha!).
    #:vectors
    #:positions
    #:push-vector
-   #:pop-vector)
+   #:pop-vector
+   #:value-at-depth
+   #:parent-value
+   #:root-value)
   ;; Other utility functions
   (:export
    #:firstp
@@ -289,6 +292,20 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
   (decf (fill-pointer (positions iterator)))
   (decf (depth iterator))
   iterator)
+
+;; TODO add tests
+(defmethod value-at-depth ((iterator nested-vector-iterator) depth)
+  (let ((pos (aref (positions iterator) depth))
+        (vec (aref (vectors iterator) depth)))
+    (aref vec pos)))
+
+;; TODO add tests
+(defmethod parent-value ((iterator nested-vector-iterator))
+  (value-at-depth (1- (depth iterator))))
+
+;; TODO add tests
+(defmethod root-value ((iterator nested-vector-iterator))
+  (value-at-depth 0))
 
 
 ;;; Depth-first iterator

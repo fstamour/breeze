@@ -91,22 +91,20 @@ differences between swank and slynk."
 
 (define-command interactive-eval-command ()
   "A command to interactively evaluate code."
-  (setf *last-parse* (breeze.lossless-reader:parse (buffer-string)))
-  (message "Parsed without signalling an error.")
-  #++
-  (let ((context (context*)))
+  (let* ((context (context*))
+         (node-iterator (node-iterator)))
     (setf *interactive-eval-last-context* context)
-    (if (augment-context-by-parsing-the-buffer context)
-        (let ((node (context-get context
-                                 ;; 'breeze.command::parent-node
-                                 'breeze.command::outer-node)))
-          (progn
-            ;; TODO (pulse-momentary-highlight-region begin end)
-            ;; TODO Find what's the value of *package* at this node...
-            #++
-            (let ((string (breeze.syntax-tree:node-raw node)))
-              (interactive-eval string)
-              ;; (message "~s" string)
-              )))
-        ;; (message "Can't parse maybe?")
-        )))
+    (message "Parsed without signalling an error.")
+    #++
+    (if
+     (let ((node (root-value node-iterator)))
+       (progn
+         ;; TODO (pulse-momentary-highlight-region begin end)
+         ;; TODO Find what's the value of *package* at this node...
+         #++
+         (let ((string (breeze.syntax-tree:node-raw node)))
+           (interactive-eval string)
+           ;; (message "~s" string)
+           )))
+     ;; (message "Can't parse maybe?")
+     )))

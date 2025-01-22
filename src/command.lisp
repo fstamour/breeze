@@ -2,7 +2,7 @@
 
 (uiop:define-package #:breeze.command
     (:documentation "Interactive commands' core")
-  (:use :cl :breeze.logging)
+  (:use :cl #:breeze.logging)
   (:import-from #:alexandria
                 #:symbolicate
                 #:with-gensyms
@@ -28,6 +28,7 @@
    #:point
    #:point-min
    #:point-max
+   #:node-iterator ; TODO maybe a better name?
    ;; Basic composables commands
    #:insert
    #:read-string
@@ -43,23 +44,7 @@
    #:return-from-command
    #:define-command
    #:commandp
-   #:list-all-commands
-   ;; Utilities to add very useful information into the context
-   #:augment-context-by-parsing-the-buffer
-   ;; Keys in the *context* hash-table
-   #:buffer-string
-   #:buffer-name
-   #:buffer-file-name
-   #:point
-   #:point-min
-   #:point-max
-   #:point
-   #:nodes
-   #:path
-   #:outer-node
-   #:inner-node
-   #:inner-node-index
-   #:parent-node))
+   #:list-all-commands))
 
 (in-package #:breeze.command)
 
@@ -501,6 +486,14 @@ See \"narrowing\" in Emacs.
 It can be null."
   (context-get context 'point-max))
 
+(defun node-iterator (&optional (context (context*)))
+  (or (context-get 'node-iterator context)
+      (context-set context 'node-iterator
+                   (breeze.lossless-reader:goto-position
+                    (breeze.lossless-reader:make-node-iterator
+                     (buffer-string context))
+                    (point context)))))
+
 
 ;;; Basic commands, to be composed
 
@@ -638,29 +631,3 @@ Example:
             (send "done"))))
        ;; Add a flag into the symbol's plist
        (setf (get ',name 'commandp) ',(or lambda-list t)))))
-
-
-;;; Utilities to get more context
-
-;; TODO It should be easier to test with the request/answer stuff?
-(defun parse-buffer (context)
-  (breeze.lossless-reader:parse (buffer-string context)))
-
-(defun augment-context-by-parsing-the-buffer (context)
-  (let ((parse-result (parse-buffer context)))
-    ;; TODO re-implement those against the new parse tree
-    #++
-    (let* (;; Find the node "at point"
-           (path (find-path-to-node (point context) nodes))
-           ;; Find the top-level form "at point"
-           (outer-node (caar path))
-           ;; Find the innermost form "at point"
-           (inner-node (car (lastcar path)))
-           (inner-node-index (cdr (lastcar path)))
-           ;; Find the innermost form's parent
-           (parent-node (car (before-last path))))
-      #. `(progn ,@(loop :for key in '(nodes path outer-node
-                                       inner-node inner-node-index parent-node)
-                         :collect
-                         `(context-set context ',key ,key))))
-    parse-result))

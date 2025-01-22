@@ -94,7 +94,7 @@ newline in the expected result."
 #++
 (define-command insert-test ()
   "Insert a missing test!"
-  (augment-context-by-parsing-the-buffer (breeze.command:context*))
+  (node-iterator)
 
   (breeze.refactor::let+ctx (outer-node
                              (outer-node-car (when (breeze.syntax-tree:list-node-p outer-node)

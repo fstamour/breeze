@@ -260,40 +260,6 @@
   (true (test-malformed-if-node-p "(if a b c d)")))
 
 
-
-(define-test find-node
-  (is equal
-      '((whitespace . 0) (parens . 1) (parens . 1) (parens . 1) (parens . 1)
-        (parens . 1) (parens . 1) (parens . 1) (parens . 1) (whitespace . 2))
-      (loop :with input = " ( loop ) "
-            :with state = (parse input)
-            :for i :from 0 :below (length input)
-            :for path = (find-node i (tree state))
-            :collect (cons (node-type (car path)) (cdr path)))))
-
-(define-test+run find-path-to-position
-  (is equalp
-      '((whitespace)
-        (parens whitespace)
-        (parens whitespace)
-        (parens token)
-        (parens token)
-        (parens token)
-        (parens token)
-        (parens whitespace)
-        (parens)
-        (whitespace))
-      (loop :with input = " ( loop ) "
-            :with state = (parse input)
-            :for i :from 0 :below (length input)
-            :for path = (find-path-to-position state i)
-            :collect
-            (mapcar (lambda (path)
-                      (node-type (car path)))
-                    path)
-            #++(list i (length path)))))
-
-
 ;;; Testing the linter
 
 (defun test-lint (buffer-string)
