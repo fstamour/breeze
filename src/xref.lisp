@@ -69,6 +69,7 @@
            (fboundp designator)
            (not (macrop designator)))))
 
+;; TODO
 ;; (function-designator-p #'first)
 ;; (function-designator-p 'first)
 ;; (function-designator-p '(a b c))

@@ -441,3 +441,23 @@ current LOOP context: :COLLEC I.
 
 (with-output-to-string (*standard-input*) ...)
 ;; should be "-output*"
+
+
+
+#|
+Invalid initialization argument:
+  :INITIARG
+in call for class #<STANDARD-CLASS SB-MOP:STANDARD-DIRECT-SLOT-DEFINITION>.
+   [Condition of type SB-PCL::INITARG-ERROR]
+See also:
+  Common Lisp Hyperspec, 7.1.2 [:section]
+|#
+
+
+
+#|
+
+- check for unused imports
+- check for things that are not exported and are not used
+
+|#

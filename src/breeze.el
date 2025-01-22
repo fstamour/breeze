@@ -35,6 +35,29 @@
 
 ;;; Lisp listener state
 
+;; TODO this isn't used for anything yet
+;; (defun breeze-find-slime-connections ()
+;;   (cl-remove-duplicates
+;;    (cl-loop for buffer the buffers
+;;             when (and (equal (buffer-local-value 'major-mode buffer) 'slime-repl-mode))
+;;             collect (buffer-local-value 'slime-buffer-connection buffer))))
+
+;; (defun prefix-find-slime-repl-buffers ()
+;;   (cl-loop for buffer the buffers
+;;            when (and (equal (buffer-local-value 'major-mode buffer) 'slime-repl-mode))
+;;            collect buffer))
+
+;; (defun prefix-slime-repl-input-history (buffer)
+;;   (mapcar (lambda (entry)
+;;             (substring-no-properties entry))
+;;           (buffer-local-value 'slime-repl-input-history buffer)))
+
+;; (prefix-slime-repl-input-history
+;;  (cl-first (prefix-find-slime-repl-buffers)))
+
+
+
+
 (defun breeze-sly-connected-p ()
   "Check if sly loaded and connected."
   (and (fboundp 'sly-connected-p)

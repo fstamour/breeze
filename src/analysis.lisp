@@ -55,6 +55,7 @@ children nodes."
 (defmethod match (pattern (state state))
   (match-parser-state pattern state))
 
+;; TODO move to utils, maybe rename "safe-plusp"
 (defun plusp* (x)
   (and (numberp x) (plusp x)))
 

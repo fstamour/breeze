@@ -180,6 +180,7 @@ likely not loaded
 #++
 (infer-systems (truename "./"))
 
+;; TODO if it's not part of a system, check if it should
 (defun loadedp (pathname &aux (pathname (uiop:truename* pathname)))
   "Check whether PATHNAME is part of a system, and wheter it was loaded.
 This will return false if the file was loaded outside of asdf."

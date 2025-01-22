@@ -223,7 +223,7 @@ defun."
 
 
 
-;; TODO How could I re-use an hypothetical "insert-slot" command?
+;; TODO How could I re-use an hypothetical "add-slot" command?
 (define-command insert-defclass ()
   "Insert a defclass form."
   (read-string-then-insert
@@ -356,6 +356,7 @@ defun."
     insert-handler-case-form
     insert-lambda))
 
+;; TODO use a node-iterator instead
 (defun validate-nearest-in-package (nodes outer-node)
   "Find the lastest \"in-package\" form, test if the packages can be
 found."
@@ -502,21 +503,6 @@ commands that the user might want to run."
 
 
 
-;; I made this command mostly for manually testing replace-region
-(define-command delete-parent-form
-    ()
-  "Given the context, suggest some applicable commands."
-  (augment-context-by-parsing-the-buffer (context*))
-  (let+ctx (parent-node)
-    ;; Save some information for debugging
-    (setf *qf* `((:context . ,(context*))))
-    (if (and parent-node
-             (not (listp parent-node)))
-        (destructuring-bind (from . to)
-            (node-source parent-node) ;; TODO undefined function:
-          (replace-region from to ""))
-        (message "No parent node at point."))))
-
 (defun check-in-package ()
   "Make sure the previous in-package form desginates a package that can
 be found. If it's not the case (e.g. because the user forgot to define
@@ -573,11 +559,25 @@ a message and stop the current command."
   #++
   (message "Failed to parse..."))
 
+#|
+
+TODO there's some different kind of "quickfixes":
+
+- quickfixes are "obviously" the right thing to do, you don't have to ask
+- code actions are contextual commands
+- contextual inserts (add a binding to a let)
+- contextual changes (move an expression into a let, change let to let*)
+  - contextual "inverts" (e.g. =x= → =(not x)=
+- non-contextual snippets
+
+|#
+
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
 
 
+;;; Test files
 
 #++ ;; TODO
 (define-command move-to-tests ())
