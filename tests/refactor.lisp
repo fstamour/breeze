@@ -5,14 +5,6 @@
   ;; Importing non-exported symbols of the "package under test"
   (:import-from #:breeze.refactor
                 #:infer-project-name)
-  ;; Things needed to "drive" a command
-  (:import-from #:breeze.command
-                #:start-command
-                #:cancel-command
-                #:continue-command
-                #:context-plist-to-hash-table
-                #:*command*
-                #:donep)
   ;; Things needed to define new commands
   (:import-from #:breeze.command
                 #:define-command
