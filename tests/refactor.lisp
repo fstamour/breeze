@@ -94,7 +94,8 @@ newline in the expected result."
 #++
 (define-command insert-test ()
   "Insert a missing test!"
-  (node-iterator)
+  (let ((node-iterator (node-iterator)))
+    )
 
   (breeze.refactor::let+ctx (outer-node
                              (outer-node-car (when (breeze.syntax-tree:list-node-p outer-node)
@@ -155,7 +156,6 @@ newline in the expected result."
       (insert "))"))))
 
 
-
 ;; This is emacs lisps to add a binding to the command "insert-test"
 ;; defined just above:
 #+elisp
@@ -178,6 +178,8 @@ newline in the expected result."
   (is = expected-length (length trace)
       "The command ~a was expected to have a trace of length ~d, got ~d instead."
       command-name expected-length (length trace)))
+
+
 
 (define-test insert-asdf
   (let* ((trace (drive-command #'insert-asdf
@@ -668,7 +670,7 @@ newline in the expected result."
   "Helper function to test the quickfix command. The PRE and POST
 arguments represents the content of the buffer, the point is where the
 strings get concatenated."
-  (let ((buffer-file-name (namestring (merge-pathnames buffer-name *directory*)))
+  (let ((buffer-filename (namestring (merge-pathnames buffer-name *directory*)))
         (point (length pre))
         (buffer-string (concatenate 'string pre post)))
     (drive-command 'quickfix

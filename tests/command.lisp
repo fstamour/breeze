@@ -5,11 +5,10 @@
   (:use :cl #:breeze.command)
   (:import-from #:alexandria
                 #:assoc-value)
-  ;; symbols not exported
+  ;; importing non-exported symbols not exported
   (:import-from #:breeze.command
                 #:id
                 #:find-actor
-                #:context-plist-to-hash-table
                 #:donep
                 #:command-handler
                 #:thread
@@ -30,16 +29,6 @@
 
 (define-test donep
   (true (donep nil)))
-
-(define-test context-plist-to-hash-table
-  (let ((plist (alexandria:hash-table-plist
-                (context-plist-to-hash-table '(buffer-string "asdf" ok 42)))))
-    (is equal "asdf" (getf plist 'buffer-string)
-        "This context should contain the key 'buffer-string with the value \"asdf\".")
-    (false (getf plist :buffer-string)
-           "Contexts should not contain the key :buffer-string.")
-    (is = 42 (getf plist 'ok)
-        "This context should contain the key 'ok with the value 42.")))
 
 ;; (trace donep)
 
@@ -162,18 +151,11 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 ;; TODO
 (define-test message)
 
-(define-test buffer-string
-  (is string=
-      "asdf"
-      (buffer-string
-       (alexandria:plist-hash-table
-        '(buffer-string "asdf")))))
-
 ;; TODO
 (define-test buffer-name)
 
 ;; TODO
-(define-test buffer-file-name)
+(define-test buffer-filename)
 
 ;; TODO
 (define-test point)

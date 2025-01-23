@@ -111,7 +111,7 @@
 ;; Find the ids of the commands that ran for/from a specific file
 (loop
   :for actor-id :being :the :hash-key :of *actors* :using (hash-value actor)
-  :for filename = (context-buffer-file-name (context actor))
+  :for filename = (current-buffer-filename (context actor))
   :when (alexandria:ends-with-subseq "breeze/kite/kite.lisp" filename)
     :collect actor-id)
 

@@ -2,11 +2,12 @@
 
 (uiop:define-package #:breeze.command
     (:documentation "Interactive commands' core")
-  (:use :cl #:breeze.logging)
+  (:use :cl #:breeze.logging #:breeze.workspace)
   (:import-from #:alexandria
                 #:symbolicate
                 #:with-gensyms
                 #:if-let
+                #:when-let
                 #:lastcar
                 #:when-let*)
   (:import-from #:breeze.utils
@@ -22,13 +23,12 @@
    #:context*
    #:context-get
    #:context-set
-   #:buffer-string
-   #:buffer-name
-   #:buffer-file-name
-   #:point
-   #:point-min
-   #:point-max
-   #:node-iterator ; TODO maybe a better name?
+   #:current-buffer-name
+   #:current-buffer-filename
+   #:current-point
+   #:current-point-min
+   #:current-point-max
+   #:current-parse-tree
    ;; Basic composables commands
    #:insert
    #:read-string
@@ -299,11 +299,13 @@ uses the throw tag to stop the command immediately."
 ;; swank::*emacs-connection* and swank::send-counter are bound to nil
 ;; inside the new threads.
 (defun maybe-swank-special-variables ()
+  ;; TODO this might not work if readtable-case is not :upcase
   (maybe-variables "SWANK"
                    "*EMACS-CONNECTION*"
                    "*SEND-COUNTER*"))
 
 (defun maybe-slynk-special-variables ()
+  ;; TODO this might not work if readtable-case is not :upcase
   (maybe-variables "SLYNK"
                    "*EMACS-CONNECTION*"
                    "*SEND-COUNTER*"))
@@ -365,9 +367,13 @@ uses the throw tag to stop the command immediately."
   (log-debug "Starting command...")
   (check-type fn (or function symbol))
   (check-type context-plist (or null cons))
-  (let ((command (make-instance
-                  'command-handler
-                  :context (context-plist-to-hash-table context-plist))))
+  (let* ((buffer (and context-plist
+                      (add-to-workspace context-plist)))
+         (command (make-instance
+                   'command-handler
+                   :context (alexandria:alist-hash-table
+                             (when buffer
+                               `((:buffer . ,buffer)))))))
     ;; Create the thread for the command handler
     (make-actor-thread
      command
@@ -378,9 +384,7 @@ uses the throw tag to stop the command immediately."
           (check-special-variables)
           (wait-for-sync command)
           (send-started-message command)
-          (if extra-args
-              (apply fn extra-args)
-              (funcall fn))))))
+          (apply fn extra-args)))))
     (send-sync command)
     (wait-for-started-message command)
     (log-debug "Command started.")
@@ -434,52 +438,46 @@ uses the throw tag to stop the command immediately."
             (context-set context key value))
           value))))
 
-(defun buffer-string (&optional (context (context*)))
-  "Get the \"buffer-string\" from the CONTEXT.
-The buffer-string is the content of the buffer.
+(defun current-buffer-name (&optional (context (context*)))
+  "Get the buffer's name from the CONTEXT.
 It can be null."
-  (context-get context 'buffer-string))
+  (when-let ((buffer (context-get context :buffer)))
+    (name buffer)))
 
-(defun buffer-name (&optional (context (context*)))
-  "Get the \"buffer-name\" from the CONTEXT.
-The buffer-name is the name of the buffer.
-It can be null."
-  (context-get context 'buffer-name))
-
-(defun buffer-file-name (&optional (context (context*)))
-  "Get the \"buffer-file-name\" the CONTEXT.
-The buffer-file-name is the name of the file that the buffer is
+(defun current-buffer-filename (&optional (context (context*)))
+  "Get the buffer's filename from the CONTEXT.
+The buffer-filename is the name of the file that the buffer is
 visiting.
 It can be null."
-  (context-get context 'buffer-file-name))
+  (when-let ((buffer (context-get context :buffer)))
+    (filename buffer)))
 
-(defun point (&optional (context (context*)))
-  "Get the \"point\" from the CONTEXT.
+(defun current-point (&optional (context (context*)))
+  "Get the buffer's point from the CONTEXT.
 The point is the position of the cursor.
 It can be null."
-  (context-get context 'point))
+  (when-let ((buffer (context-get context :buffer)))
+    (point buffer)))
 
-(defun point-min (&optional (context (context*)))
-  "Get the \"point-min\" from the CONTEXT.
+(defun current-point-min (&optional (context (context*)))
+  "Get the buffer's point-min from the CONTEXT.
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get context 'point-min))
+  (when-let ((buffer (context-get context :buffer)))
+    (point-min buffer)))
 
-(defun point-max (&optional (context (context*)))
-  "Get the \"point-max\" from the CONTEXT.
+(defun current-point-max (&optional (context (context*)))
+  "Get the buffer's point-max from the CONTEXT.
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (context-get context 'point-max))
+  (when-let ((buffer (context-get context :buffer)))
+    (point-max buffer)))
 
-(defun node-iterator (&optional (context (context*)))
-  (or (context-get 'node-iterator context)
-      (context-set context 'node-iterator
-                   (breeze.lossless-reader:goto-position
-                    (breeze.lossless-reader:make-node-iterator
-                     (buffer-string context))
-                    (point context)))))
+(defun current-parse-tree (&optional (context (context*)))
+  (when-let ((buffer (context-get context :buffer)))
+    (parse-tree buffer)))
 
 
 ;;; Basic commands, to be composed
@@ -575,7 +573,6 @@ resulting string to the editor."
 (defun commandp (symbol)
   (get symbol 'breeze.command::commandp))
 
-
 (defun list-all-commands (&optional with-details-p)
   (loop
     :for package :in (list-all-packages)
@@ -594,9 +591,7 @@ resulting string to the editor."
 
 (defmacro define-command (name lambda-list
                           &body body)
-  "Macro to define command with the basic context.
-More special-purpose context can be passed, but it must be done so
-using keyword arguments.
+  "Macro to define a command.
 
 Example:
 
