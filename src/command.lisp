@@ -275,30 +275,17 @@ uses the throw tag to stop the command immediately."
       t))
 
 (defun cancel-command-on-error (id thunk)
-  (handler-bind
-      ((error #'(lambda (condition)
-                  (log-error "~&An error occurred: ~a" condition)
-                  (cancel-command id condition))))
-    (funcall thunk)))
-
-(defun context-plist-to-hash-table (context-plist)
-  (loop
-    :with ht = (make-hash-table)
-    :for (key value) :on context-plist :by #'cddr
-    :for normalized-key = (if (member (symbol-name key)
-                                      '#.(mapcar #'symbol-name
-                                                 '(buffer-string
-                                                   buffer-name
-                                                   buffer-file-name
-                                                   point
-                                                   point-min
-                                                   point-max))
-                                      :test #'string=)
-                              (intern (symbol-name key) #.*package*)
-                              key)
-    :when value
-      :do (setf (gethash normalized-key ht) value)
-    :finally (return ht)))
+  (tagbody
+   :retry
+     (restart-case
+         (handler-bind
+             ((error #'(lambda (condition)
+                         (log-error "~&An error occurred: ~a" condition)
+                         (cancel-command id condition))))
+           (funcall thunk))
+       (retry-command ()
+         :report "Retry calling the command"
+         (go :retry)))))
 
 (defun maybe-variables (package-name &rest symbol-names)
   (if-let ((package (find-package package-name)))
