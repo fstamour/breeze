@@ -4,12 +4,28 @@
   (:import-from #:alexandria
                 #:ends-with-subseq
                 #:if-let
+                #:when-let*
+                #:when-let
                 #:symbolicate
                 #:lastcar)
   (:import-from #:breeze.indirection
                 #:indirect)
   (:import-from #:breeze.utils
                 #:find-version-control-root)
+  (:import-from #:breeze.lossless-reader
+                #:node-iterator
+                #:make-node-iterator
+                #:state
+                #:source
+                #:goto-position)
+  (:export #:add-to-workspace
+           #:find-buffer
+           #:name
+           #:filename
+           #:parse-tree
+           #:point
+           #:point-min
+           #:point-max)
   (:export #:in-package-cl-user-p
            #:infer-package-name-from-file
            #:infer-project-name
@@ -43,10 +59,98 @@ Design decision(s):
 |#
 
 
+(defclass buffer ()
+  (#++ ;; TODO
+   (editor
+    :initform nil
+    :initarg :editor
+    :accessor editor
+    :documentation "In which editor is this buffer opened?")
+   (name
+    :initform nil
+    :initarg :name
+    :accessor name
+    :documentation "Name of the buffer")
+   (node-iterator
+    :initform nil
+    :initarg :node-iterator
+    :accessor parse-tree
+    :documentation "Node at point")
+   ;; TODO the docstring for current-point{,-min,-max} in command.lisp
+   ;; are pretty good. Use them.
+   (point
+    :initform nil
+    :initarg :point
+    :accessor point
+    :documentation "Where the point is in the buffer.")
+   (filename
+    :initform nil
+    :initarg :filename
+    :accessor filename
+    :documentation "Path to the file visited (in emacs' lingo) by the buffer.")
+   (point-min
+    :initform nil
+    :initarg :point-min
+    :accessor point-min
+    :documentation "If the buffer is narrowed, ... TODO")
+   (point-max
+    :initform nil
+    :initarg :point-max
+    :accessor point-max
+    :documentation "If the buffer is narrowed, ... TODO"))
+  (:documentation "Represents an editor's buffer (e.g. an opened file)
 
-;; TODO this ain't used, ain't defined well either
-(defvar *workspace* nil
+(Technically, it represents a buffer with the mode \"lisp-mode\"..."))
+
+;; TODO add mutex(es)?
+(defclass workspace ()
+  ((buffers
+    :initform (make-hash-table :test 'equal)
+    :accessor buffers
+    :documentation ""))
+  (:documentation ""))
+
+(defmethod find-buffer ((buffer-name string))
+  (gethash buffer-name (buffers *workspace*)))
+
+(defmethod ensure-buffer ((buffer-name string))
+  (or (find-buffer buffer-name)
+      (setf (gethash buffer-name (buffers *workspace*))
+            (make-instance 'buffer :name buffer-name))))
+
+(defvar *workspace* (make-instance 'workspace)
   "The workspace.")
+
+;; (untrace add-to-workspace)
+(defmethod add-to-workspace ((context-plist cons))
+  ;; TODO check that the context contains enough stuff to make a
+  ;; buffer object that is not completly useless.
+  ;; TODO check if the buffer is not already in the workspace
+  (breeze.logging:log-info "Adding the file ~s to the workspace"
+                           (getf context-plist :buffer-file-name))
+  (when-let* ((name (getf context-plist :buffer-name))
+              (buffer (ensure-buffer name)))
+    (setf (filename buffer) (getf context-plist :buffer-file-name)
+          (point buffer) (getf context-plist :point)
+          (point-min buffer) (getf context-plist :point-min)
+          (point-max buffer) (getf context-plist :point-max))
+    ;; Update the content of the buffer
+    (when-let ((new-content (getf context-plist :buffer-string)))
+      (if-let ((old-node-iterator (parse-tree buffer)))
+        (unless (string= (source (state old-node-iterator)) new-content)
+          (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" name)
+          (setf (parse-tree buffer) (make-node-iterator new-content)))
+        (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" name)
+               (setf (parse-tree buffer) (make-node-iterator new-content)))))
+    ;; Update the position (point)
+    (when-let ((point (getf context-plist :point)))
+      (unless (= point (point buffer))
+        (setf (point buffer) point)
+        (goto-position (parse-tree buffer) point)))
+    ;; return the buffer
+    buffer))
+
+
 
 ;; TODO This might change per-project... We could try to infer it?
 (defmethod in-package-cl-user-p ()

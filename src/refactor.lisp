@@ -166,7 +166,7 @@ defun."
   (let ((package-name
           (read-string
            "Name of the package: "
-           (infer-package-name-from-file (buffer-file-name)))))
+           (infer-package-name-from-file (current-buffer-filename)))))
     (when (in-package-cl-user-p)
       (insert
        "(cl:in-package #:cl-user)~%~%"))
@@ -372,22 +372,6 @@ found."
 
 
 
-(defmacro let+ctx (bindings &body body)
-  "Helper macro, to ease the access to the current commands' context."
-  `(let*
-       (,@ (loop :for binding :in bindings
-                 :if (listp binding)
-                   ;; acts like a regular "let*"
-                   :collect binding
-                 :else
-                   :collect `(,binding (context-get (context*) ',binding))))
-     ,@body))
-
-
-#+ (or)
-(let+ctx ((x 42)
-          nodes position path))
-
 (defparameter *qf* nil
   "Data from the latest quickfix invocation.
 For debugging purposes ONLY.")
@@ -510,7 +494,7 @@ a package and/or evaluate the form that defines the package) they show
 a message and stop the current command."
   (let+ctx (nodes
             outer-node
-            ;; Check if the closes defpackage was evaluated once
+            ;; Check if the closest defpackage was evaluated once
             (invalid-in-package
              (and nodes
                   outer-node
@@ -522,9 +506,9 @@ a message and stop the current command."
 
 
 (defun maybe-ask-to-load-system ()
-  (if-let ((file-name (buffer-file-name)))
+  (if-let ((filename (current-buffer-filename)))
     (multiple-value-bind (status system)
-        (breeze.asdf:loadedp (buffer-file-name))
+        (breeze.asdf:loadedp filename)
       (when (eq :not-loaded status)
         (when (ask-y-or-n-p "The current file is part of the system \"~a\", but has not been loaded yet. Do you want to load it now? (y/n) "
                             (asdf:component-name system))
@@ -568,6 +552,11 @@ TODO there's some different kind of "quickfixes":
 - contextual changes (move an expression into a let, change let to let*)
   - contextual "inverts" (e.g. =x= → =(not x)=
 - non-contextual snippets
+- contextual delete (remove a binding in a let)
+- other: if point is on a (trace ...), suggest to untrace something,
+  to comment or remove the form, to replace trace by untrace, or add
+  the equivalent untrace next to it.
+- contextual move up/down, out/into (e.g. slots in defclass)
 
 |#
 

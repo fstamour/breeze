@@ -387,7 +387,7 @@ simple-condition-format-control, simple-condition-format-arguments
          (let* ((content (node-content state package-designator-node))
                 (package-designator (read-from-string content)))
            (when (and (typep package-designator 'breeze.string:string-designator)
-                      (null (find-package package-designator )))
+                      (null (find-package package-designator)))
              (node-style-warning
               node
               (format nil "Package ~s is not currently defined." package-designator)))))))
