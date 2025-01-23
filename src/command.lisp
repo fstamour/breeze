@@ -23,6 +23,7 @@
    #:context*
    #:context-get
    #:context-set
+   #:current-buffer
    #:current-buffer-name
    #:current-buffer-filename
    #:current-point
@@ -438,10 +439,15 @@ uses the throw tag to stop the command immediately."
             (context-set context key value))
           value))))
 
+(defun current-buffer (&optional (context (context*)))
+  "Get the buffer's name from the CONTEXT.
+It can be null."
+  (context-get context :buffer))
+
 (defun current-buffer-name (&optional (context (context*)))
   "Get the buffer's name from the CONTEXT.
 It can be null."
-  (when-let ((buffer (context-get context :buffer)))
+  (when-let ((buffer (current-buffer context)))
     (name buffer)))
 
 (defun current-buffer-filename (&optional (context (context*)))
@@ -449,14 +455,14 @@ It can be null."
 The buffer-filename is the name of the file that the buffer is
 visiting.
 It can be null."
-  (when-let ((buffer (context-get context :buffer)))
+  (when-let ((buffer (current-buffer context)))
     (filename buffer)))
 
 (defun current-point (&optional (context (context*)))
   "Get the buffer's point from the CONTEXT.
 The point is the position of the cursor.
 It can be null."
-  (when-let ((buffer (context-get context :buffer)))
+  (when-let ((buffer (current-buffer context)))
     (point buffer)))
 
 (defun current-point-min (&optional (context (context*)))
@@ -464,7 +470,7 @@ It can be null."
 The point-min is the position of the beginning of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (when-let ((buffer (context-get context :buffer)))
+  (when-let ((buffer (current-buffer context)))
     (point-min buffer)))
 
 (defun current-point-max (&optional (context (context*)))
@@ -472,11 +478,11 @@ It can be null."
 The point-max is the position of the end of buffer-string.
 See \"narrowing\" in Emacs.
 It can be null."
-  (when-let ((buffer (context-get context :buffer)))
+  (when-let ((buffer (current-buffer context)))
     (point-max buffer)))
 
 (defun current-parse-tree (&optional (context (context*)))
-  (when-let ((buffer (context-get context :buffer)))
+  (when-let ((buffer (current-buffer context)))
     (parse-tree buffer)))
 
 
