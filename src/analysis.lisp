@@ -175,6 +175,7 @@ children nodes."
     (destructuring-bind (&key ?package-designator) bindings
       ?package-designator)))
 
+;; TODO don't include nodes that are quoted...
 (defun in-package-node-p (state node)
   "Is NODE a cl:in-package node?
 N.B. This doesn't guarantee that it's a valid node."
@@ -183,6 +184,23 @@ N.B. This doesn't guarantee that it's a valid node."
          (bindings (match #.(compile-pattern `(in-package :?package)) node))
          (package-designator-node (cdr (find-binding bindings :?package))))
     package-designator-node))
+
+
+;; WIP this is where I left off last time
+(defun find-nearest-in-package (buffer)
+  (let* ((position (point buffer))
+         (parse-tree (parse-tree buffer))
+         (candidates (top-level-in-package (state parse-tree))))
+    (unless candidates
+      ;; TODO compute them, put them in a vector so we can
+      ;; differentiate between "not computed" and "no in-package
+      ;; present"
+      )
+    (when (and candidates (plusp (length candidates)))
+      (find-if (lambda (in-package-node)
+                 (< (node-end in-package-node) position))))))
+
+
 
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
