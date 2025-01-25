@@ -351,6 +351,9 @@ corresponding commands in emacs."
 
 ;; TODO breeze-not-initialized-hook
 
+;; TODO would be nice to restore the stubs if the inferior lisp is
+;; closed.
+
 (defun breeze--stub (name)
   "A dummy command that is used to load breeze the first time a
 command is invoked. breeze-refresh-commands is called, which will
@@ -371,9 +374,32 @@ time will initialize breeze and redefine this command."
   (interactive)
   (breeze--stub "quickfix"))
 
+
+;;; Completion at point -- NOT IMPLEMENTED, this is just a stub for now
 
-;; TODO would be nice to restore the stubs if the inferior lisp is
-;; closed.
+(defun breeze-completions-at-point ()
+  "A stub for the breeze command \"completions-at-point\". Calling
+it before breeze is initialize will do nothing.")
+
+(defun breeze-completion-at-point ()
+  ;; #'breeze-completions would be called with one argument: the
+  ;; string to complete, it can return a list of string.
+  ;; (list start end (completion-table-dynamic #'breeze-completions))
+  nil)
+
+(defun breeze-enable-completion-at-point ()
+  "Add breeze-completion-at-point in the list of
+completion-at-point-functions, if it wasn't already there."
+  (interactive)
+  (cl-pushnew 'breeze-completion-at-point completion-at-point-functions))
+
+(defun breeze-disable-completion-at-point ()
+  "Remove breeze-completion-at-point in the list of
+completion-at-point-functions, if it was present."
+  (when (memq 'breeze-completion-at-point completion-at-point-functions)
+    (setq completion-at-point-functions
+          (delq 'breeze-completion-at-point completion-at-point-functions))))
+
 
 ;;; Initializations
 
@@ -703,9 +729,13 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
   :lighter " brz"
   :keymap breeze-minor-mode-map
   :interactive (lisp-mode)
-  (when breeze-minor-mode
+  (cond
+   (breeze-minor-mode
     ;; TODO What if dabbrev-abbrev-skip-leading-regexp is already customized?
-    (setf dabbrev-abbrev-skip-leading-regexp "\\(#?:\\)\\|+")))
+    (setf dabbrev-abbrev-skip-leading-regexp "\\(#?:\\)\\|+")
+    (breeze-enable-completion-at-point))
+   (t
+    (breeze-disable-completion-at-point))))
 
 ;; Analogous to org-insert-structure-template
 ;; (define-key breeze-minor-mode-map (kbd "C-c C-,") 'breeze-insert)
