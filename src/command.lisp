@@ -41,6 +41,7 @@
    #:message
    #:find-file
    #:ask-y-or-n-p
+   #:return-value-from-command
    ;; Utilities to create commands
    #:return-from-command
    #:define-command
@@ -572,6 +573,9 @@ resulting string to the editor."
         :for i :below 3 ; guard against infinite loop
         :while (not valid-p)
         :finally (return (string-equal "y" answer))))
+
+(defun return-value-from-command (value)
+  (send "return" value))
 
 
 ;;; Utilities to help creating commands less painful.
