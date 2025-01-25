@@ -253,6 +253,8 @@ receiving the data it requested."
      (breeze-message "%s" (cl-second request)))
     ("find-file"
      (find-file (cl-second request)))
+    ("return"
+     (throw 'breeze-run-command (cl-second request)))
     (_ (breeze-debug "Unknown request: %S" request) )))
 
 
@@ -260,37 +262,35 @@ receiving the data it requested."
   "Runs a \"breeze command\". TODO Improve this docstring."
   (interactive)
   (breeze-debug "breeze-run-command")
-  ;; TODO Do I really want to initialize breeze here?
-  ;; (breeze-ensure)
-  ;; TODO extra-args
-  (let ((id (breeze-command-start name extra-args)))
-    (condition-case condition
-        (cl-loop
-         ;; guards against infinite loop
-         for i below 1000
-         for
-         ;; Get the first request from the command
-         request = (breeze-command-continue id nil nil)
-         ;; Continue the command
-         then (breeze-command-continue id response send-response-p)
-         ;; "Request" might be nil, if it is, we're done
-         while (and request
-                    (not (string= "done" (car request))))
-         ;; Whether or not we need to send arguments to the next callback.
-         for send-response-p = (member (car request)
-                                       '("choose" "read-string"))
-         ;; Process the command's request
-         for response = (breeze-command-process-request request)
-         ;; Log request and response (for debugging)
-         do (breeze-debug "Breeze: request received: %S response to send %S"
-                          request
-                          response))
-      (quit
-       (breeze-debug "Breeze run command: (%S) " id condition)
-       (breeze-command-cancel id "User-cancelled"))
-      (t
-       (breeze-debug "Breeze run command: (%S) got the condition %s" id condition)
-       (breeze-command-cancel id "Elisp condition")))))
+  (catch 'breeze-run-command
+    (let ((id (breeze-command-start name extra-args)))
+      (condition-case condition
+          (cl-loop
+           ;; guards against infinite loop
+           for i below 1000
+           for
+           ;; Get the first request from the command
+           request = (breeze-command-continue id nil nil)
+           ;; Continue the command
+           then (breeze-command-continue id response send-response-p)
+           ;; "Request" might be nil, if it is, we're done
+           while (and request
+                      (not (string= "done" (car request))))
+           ;; Whether or not we need to send arguments to the next callback.
+           for send-response-p = (member (car request)
+                                         '("choose" "read-string"))
+           ;; Process the command's request
+           for response = (breeze-command-process-request request)
+           ;; Log request and response (for debugging)
+           do (breeze-debug "Breeze: request received: %S response to send %S"
+                            request
+                            response))
+        (quit
+         (breeze-debug "Breeze run command: (%S) " id condition)
+         (breeze-command-cancel id "User-cancelled"))
+        (t
+         (breeze-debug "Breeze run command: (%S) got the condition %s" id condition)
+         (breeze-command-cancel id "Elisp condition"))))))
 
 
 ;;; Dynamically define interactive (cl-driven) commands in emacs
