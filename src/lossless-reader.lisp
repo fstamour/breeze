@@ -30,7 +30,8 @@ common lisp.")
            #:pos
            #:tree
            #:make-state
-           #:source-substring)
+           #:source-substring
+           #:top-level-in-package)
   ;; Nodes
   (:export #:+end+
            #:range
@@ -212,7 +213,13 @@ common lisp.")
     :initform 0
     :initarg :pos
     :accessor tree
-    :documentation "The parsed nodes."))
+    :documentation "The parsed nodes.")
+   ;; TODO perhaps add this into the "buffer" instead of in the
+   ;; parser's state
+   (top-level-in-package
+    :initform nil
+    :accessor top-level-in-package
+    :documentation "Index of the top-level (in-package ...) forms found."))
   ;; TODO More state:
   ;; - current package
   ;; - readtable case (is it case converting)
