@@ -38,6 +38,7 @@
    #:insert-in-package-cl-user
    #:insert-asdf
    #:insert-defclass
+   #:insert-class-slot
    #:insert-defgeneric
    #:insert-defmethod
    #:insert-print-unreadable-object-boilerplate
@@ -235,6 +236,16 @@ defun."
    ~%    :accessor ~@*~a-slot))~
    ~%  (:documentation \"\"))"))
 
+(define-command insert-class-slot ()
+  "Insert a defclass slot form."
+  (read-string-then-insert
+   "Name of the slot: "
+   "~%  (~a~
+   ~%    :initform nil~
+   ~%    :initarg :~@*~a~
+   ~%    :accessor ~@*~a~
+   ~%    :documentation \"\")"))
+
 (define-command insert-defgeneric ()
   "Insert a defgeneric form."
   (let ((name (read-string
@@ -338,6 +349,7 @@ defun."
     insert-defvar
     insert-defparameter
     insert-defclass
+    insert-class-slot
     insert-defgeneric
     insert-defmethod
     insert-print-unreadable-object-boilerplate
