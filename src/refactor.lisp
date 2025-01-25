@@ -46,7 +46,9 @@
    #:insert-lambda
    ;; Other commands
    #:quickfix
-   #| WIP |# #++ #:other-file))
+   #| WIP commands |#
+   #++ #:other-file
+   #:completions-at-point))
 
 (in-package #:breeze.refactor)
 
@@ -598,3 +600,15 @@ TODO there's some different kind of "quickfixes":
 #++
 (if-let ((vc-root (indirect (find-version-control-root path))))
   (directory-name vc-root))
+
+
+
+;;; Completion-at-point
+
+
+
+(define-command completions-at-point ()
+  ""
+  (let ((node-iterator (node-iterator)))
+    (break)
+    (return-from-command '("asfd" "qwer" "uiop"))))
