@@ -371,6 +371,9 @@ time will initialize breeze and redefine this command."
   (interactive)
   (breeze--stub "quickfix"))
 
+
+;; TODO would be nice to restore the stubs if the inferior lisp is
+;; closed.
 
 ;;; Initializations
 

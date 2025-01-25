@@ -106,6 +106,8 @@ save this function's return value."))
 (defgeneric value (iterator)
   (:documentation "Get the current value of the iterator"))
 
+;; TODO generic copy-iterator
+
 
 ;;; vector-iterator
 
