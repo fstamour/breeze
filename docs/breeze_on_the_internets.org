@@ -4,6 +4,7 @@
 #+title: Breeze on the internets
 
 Keeping track of public discussions about breeze.
+
 * Breeze on the internets
 
 ** Lisp project of the day

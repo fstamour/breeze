@@ -3,5 +3,12 @@
 :END:
 #+title: Emacs' eglot
 
+Included in emacs since version 29.
+
 - =eglot--propose-changes-as-diff=
 - =eglot-forget-pending-continuations=
+
+* Related notes
+
+- [[id:9d5bc298-56d4-40c4-af2e-5b127d5914bf][Language Server Protocol]]
+- [[id:44f1edb0-d65f-4e6c-bd87-5bed4fc07376][Debug Adapter Protocol]]

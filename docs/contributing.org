@@ -5,8 +5,8 @@
 
 * Contributing
 
-Start by forking and cloning this repository into quicklisp's
-local-projects directory.
+Start by forking and cloning this repository (e.g. into quicklisp's
+local-projects directory).
 
 Setup the pre-commit hook
 
@@ -23,3 +23,8 @@ rg -i todo
 #+end_src
 
 Explore the documentation.
+
+* Related notes
+
+- [[id:14d42b3a-0a2f-4a3b-8937-7175e621c6ec][Design Decisions]]
+- [[id:11dd9906-75ff-4abc-82a5-b7dda0936f06][Roadmap]]

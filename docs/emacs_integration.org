@@ -25,3 +25,10 @@
 | breeze-quickfix         | Choose from a list of commands applicable to the current context.                             | `C-.`       |
 | breeze-capture          | Quickly create a lisp file in a pre-determined directory.                                     |             |
 | breeze-scaffold-project | Interactively create a project in `quicklisp`'s `local-projects` folder using `quickproject`. |             |
+
+* Related notes
+
+- [[id:3976965c-cb83-4901-9587-3897cc207682][Getting started with Emacs]]
+- [[id:5b8f3aee-0ea4-4688-8de7-e0b3ac140405][Flymake]]
+- [[id:38d6dbd7-0580-4701-bd52-ee97174a0535][Emacs' eglot]]
+- [[id:1af469ee-d6ec-46fe-a335-b044e142eb7d][Emacs eat - Emulate a terminal]]

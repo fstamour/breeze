@@ -3,4 +3,13 @@
 :END:
 #+title: Visual Studio Code integration
 
-TODO
+NOT IMPLEMENTED, this is a design document (for the moment)
+
+* Existing vscode extension for Common Lisp
+
+** TODO ALIVE
+
+* Related notes
+
+- [[id:6bd2b06d-0a3c-4d32-9a1e-4f6f36e1003d][Emacs integration]]
+- [[id:f3a9c9a2-8180-43a8-9424-e66fd6190caa][Vim and Neovim integration]]

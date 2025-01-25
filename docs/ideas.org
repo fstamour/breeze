@@ -2,6 +2,17 @@
 :ID:       e2ff6189-1fd8-4d3c-9b7d-3d3ddbf2b0aa
 :END:
 #+title: Ideas
+
+* Related notes
+
+- [[id:69ab6084-2e41-4893-82b8-85ac04b1b1ca][Programming with holes]]
+- [[id:9cb1f9d0-572f-4b8c-bbc8-4c1bb9a54eb4][Reader macros]]
+- [[id:b139c21c-3a35-4b69-acd5-00b9d71090ce][Helping with setting up slime for remote sessions]]
+- [[id:a9a98f8e-b097-4e8c-a2d1-92d8b8a26707][Support for tests]]
+- [[id:1bfee55a-11ef-47d6-924b-2ce1a9b39f3b][Support for bug reports]]
+- [[id:9dbbf418-de72-4d31-8347-19e3dc7d8df1][Improve CL docstring's at runtime]]
+- [[id:54e6cd55-803b-4e15-82bc-a332130d020e][Sly/Slime integration]]
+
 * Random ideas
 
 ** A command to insert compiler notes (at point) as a comment

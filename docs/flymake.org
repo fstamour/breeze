@@ -11,3 +11,11 @@ next-error-function
 - https://www.gnu.org/software/emacs/manual/html_node/flymake/Troubleshooting.html
 - https://www.gnu.org/software/emacs/manual/html_node/flymake/Backend-functions.html
 - https://www.gnu.org/software/emacs/manual/html_node/flymake/An-annotated-example-backend.html
+
+* Troubleshooting
+
+use =C-u M-x flymake-start= to reset the disabled backends
+
+* Related notes
+
+- [[id:f8811c6f-9813-418f-a745-72be32add601][Syntax checking and linting in neovim]]

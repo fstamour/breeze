@@ -7,6 +7,8 @@ This is useful for breeze's development, to figure out the pain
 points. Ideally, this should go somewhere else, like in tutorial, a
 cookbook or some kind of reference (like [[https://github.com/fstamour/lisp-docs.github.io][lisp-docs.github.io]]).
 
+See also GitHub issue: https://github.com/fstamour/breeze/issues/35
+
 * FAQ from newbies about common lisp
 
 ** What's the difference between load and require?
@@ -77,3 +79,7 @@ https://flownet.com/ron/packages.pdf
 
 - Use the functions that operate on sequences.
 - Use libraries, like alexandria, split-sequences, serapeum, etc.
+
+* Related notes
+
+- [[id:b139c21c-3a35-4b69-acd5-00b9d71090ce][Helping with setting up slime for remote sessions]]

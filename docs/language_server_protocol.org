@@ -2,6 +2,7 @@
 :ID:       9d5bc298-56d4-40c4-af2e-5b127d5914bf
 :END:
 #+title: Language Server Protocol
+
 * TODO An implementation of the Language Server Protocol for Common Lisp :editor:
 
 - https://github.com/cxxxr/cl-lsp

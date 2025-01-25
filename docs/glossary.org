@@ -35,3 +35,11 @@ See [[id:32155195-1bc4-4f2d-8f6a-12fb0bd68ecc][E-graphs]].
 
 
 ** TODO Package-local nicknames (PLN)
+
+** TODO Buffer
+
+** TODO Point
+
+** TODO Issues
+
+as in "linter" issue

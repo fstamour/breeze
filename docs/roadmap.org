@@ -7,13 +7,23 @@
 
 This roadmap serves as a rule of thumb for priorisation.
 
-1. Improve the reader, add tests
-2. Make commands more declarative (see [[file:src/pattern.lisp][pattern.lisp]])
-3. Improve the documentation
-4. Implement better refactor commands
-5. Improve breeze-eval function, add tests
-6. Reduce breeze's dependencies
+1. Make the reader and linting incremental
+2. Make a CLI that can be used
+   - in the CI to generate a "code quality
+     report"
+   - from an editor for linting and fixing
+3. Make commands more declarative (see [[file:src/pattern.lisp][pattern.lisp]])
+4. Improve the documentation
+5. Implement better refactor commands
+6. Improve breeze-eval function, add tests
 7. Add support for other editors
+   - this should help improving the internals
+8. Reduce breeze's dependencies
+   - break the "breeze" system in smaller systems, these could have
+     more dependencies as needed
+   - vendor alexandria
+   - maybe vendor bordeaux-threads and/or chanl
+   - this might not be necessary if breeze could be 100% out-of-image
 
 ** Status of the roadmap
 

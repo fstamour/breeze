@@ -5,20 +5,26 @@
 
 * Clone
 
-Clone this repository in quicklisp's local-projects folder.
+Clone this repository, for example, in quicklisp's local-projects
+folder.
 
 #+begin_src shell
 git clone git@gitlab.com:fstamour/breeze.git ~/quicklisp/local-projects/breeze
 #+end_src
 
-* Load in emacs
+* Getting started with Emacs
+:PROPERTIES:
+:ID:       3976965c-cb83-4901-9587-3897cc207682
+:END:
+
+** Load in emacs
 
 #+begin_src emacs-lisp
 (add-to-list 'load-path "~/quicklisp/local-projects/breeze/src/")
 (require 'breeze)
 #+end_src
 
-* Configure emacs to use breeze-minor-mode
+** Configure emacs to use breeze-minor-mode
 
 Add a hook to enable breeze's minor mode in =lisp-mode= automatically:
 
@@ -42,3 +48,9 @@ breeze.
 ;; See https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc for a fancier solution
 (setf eldoc-documentation-strategy 'eldoc-documentation-compose)
 #+end_src
+
+* See also
+
+- [[id:279c4ea6-2004-4a7a-a2c9-905f27fae42c][Contributing]]
+- [[id:bb5c6ad4-0f89-48aa-9295-13e5e248a897][Glossary]]
+- [[id:31236780-159e-4a58-9019-37f57f5b4997][FAQ from newbies about common lisp]]
