@@ -196,3 +196,22 @@ Design decision(s):
 
 
 (defmethod find-test-directory ((namestring string)))
+
+
+#++
+(defun check-in-package ()
+  "Make sure the previous in-package form desginates a package that can
+be found. If it's not the case (e.g. because the user forgot to define
+a package and/or evaluate the form that defines the package) they show
+a message and stop the current command."
+  (let+ctx (nodes
+            outer-node
+            ;; Check if the closest defpackage was evaluated once
+            (invalid-in-package
+             (and nodes
+                  outer-node
+                  (validate-nearest-in-package nodes outer-node))))
+    (when invalid-in-package
+      (message "The nearest in-package form designates a package that doesn't exists: ~s"
+               invalid-in-package)
+      (return-from-command))))

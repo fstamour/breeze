@@ -201,6 +201,17 @@ N.B. This doesn't guarantee that it's a valid node."
                  (< (node-end in-package-node) position))))))
 
 
+#|
+
+TODO
+
+- loop-form-p
+- mapcar-form-p
+- defpackage-form-p
+- uiop/package--define-package-form-p
+
+|#
+
 
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
