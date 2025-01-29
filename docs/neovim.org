@@ -1,0 +1,37 @@
+:PROPERTIES:
+:ID:       f3a9c9a2-8180-43a8-9424-e66fd6190caa
+:END:
+#+title: Vim and Neovim integration
+
+NOT IMPLEMENTED, this is a design document (for the moment)
+
+* Syntax checking and linting in neovim
+:PROPERTIES:
+:ID:       f8811c6f-9813-418f-a745-72be32add601
+:END:
+
+** [[https://github.com/vim-syntastic/syntastic][syntastic]] - deprecated in september 2023, they suggests using [[https://github.com/dense-analysis/ale][ALE]] instead
+
+** ALE - Asynchronous Lint Engine
+
+- AFAIK, it can either run an exectutable or connect to a language
+  server.
+- async
+- also supports fixing (not just linting) using an executable
+- offers many more features than linting and fixing when using a
+  laguage server.
+
+* Existing vim plugins for Common Lisp
+:PROPERTIES:
+:ID:       f66155a2-d4fd-4aef-8336-8210cd472735
+:END:
+
+** TODO vlime
+
+** TODO slimv
+
+
+* Related notes
+
+- [[id:6bd2b06d-0a3c-4d32-9a1e-4f6f36e1003d][Emacs integration]]
+- [[id:086c7705-e5ec-4dc0-852d-211c055eb145][Visual Studio Code integration]]
