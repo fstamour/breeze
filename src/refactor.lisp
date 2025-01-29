@@ -419,43 +419,48 @@ For debugging purposes ONLY.")
 
 (defun suggest-defpackage ()
   "When the buffer is empty, or only contains comments and whitespaces."
-  (let+ctx (nodes)
-    (cond
-      ((null nodes) 'insert-defpackage)
-      ((and nodes
-            (nodes-emptyp nodes))
-       ;; TODO Add a configuration to decide whether to shortcircuit or
-       ;; not. Because suggesting to insert a "defpackage" form when in
-       ;; an empty file is pretty much just my personal preference.
-       #++
-       (shortcircuit 'insert-defpackage)
-       'insert-defpackage))))
+  nil
+  #++
+  (cond
+    ((null nodes) 'insert-defpackage)
+    ((and nodes
+          (nodes-emptyp nodes))
+     ;; TODO Add a configuration to decide whether to shortcircuit or
+     ;; not. Because suggesting to insert a "defpackage" form when in
+     ;; an empty file is pretty much just my personal preference.
+     #++
+     (shortcircuit 'insert-defpackage)
+     'insert-defpackage)))
 
 (defun suggest-system-definition ()
   "When in an .asd file"
-  (when (ends-with-subseq ".asd" (buffer-name)
+  (when (ends-with-subseq ".asd" (current-buffer-name)
                           :test #'string-equal)
     'insert-asdf))
 
 (defun suggest-lambda ()
   "When inside a higher-order function, like mapcar."
-  (let+ctx (inner-node)
+  (let* ((buffer (current-buffer))
+         #++
+         (node-iterator (node-iterator buffer)))
     ;; TODO Use breeze.cl:higher-order-function-p
     ;; TODO Must extract the symbol from the parent-node first
     ;; Higher-order functions
-    (when (and inner-node
-               (mapcar-form-p inner-node))
+    #++
+    (when (and node-iterator
+               (mapcar-form-p node-iterator))
       (shortcircuit 'insert-lambda))))
 
 (defun suggest-loop-clauses ()
   "When inside a loop form."
-  (let+ctx (inner-node)
-    (when (and inner-node
-               (loop-form-p inner-node))
-      (shortcircuit *commands-applicable-in-a-loop-form*))))
+  nil #++
+  (when (and inner-node
+             (loop-form-p inner-node))
+    (shortcircuit *commands-applicable-in-a-loop-form*)))
 
 (defun suggest-defpackage-clauses ()
   "When inside a defpackage form."
+  nil #++
   (let+ctx (inner-node)
     (when (and inner-node
                (or (defpackage-form-p inner-node)
@@ -464,26 +469,25 @@ For debugging purposes ONLY.")
 
 (defun suggest-other ()
   "Otherwise"
-  (let+ctx (point outer-node)
-    (append *commands-applicable-at-toplevel*
-            *commands-applicable-inside-another-form-or-at-toplevel*
-            *commands-applicable-in-a-loop-form*)
-    #++(if
-        ;; if "at top-level"
-        (and outer-node
-             (or
-              ;; in-between forms
-              (null outer-node)
-              ;; just at the start or end of a form
-              (= point (node-start outer-node))
-              (= point (node-end outer-node))
-              ;; inside a comment (or a form disabled by a
-              ;; feature-expression)
-              #++
-              (typep outer-node
-                     'breeze.reader:skipped-node)))
-        *commands-applicable-at-toplevel*
-        *commands-applicable-inside-another-form-or-at-toplevel*)))
+  (append *commands-applicable-at-toplevel*
+          *commands-applicable-inside-another-form-or-at-toplevel*
+          *commands-applicable-in-a-loop-form*)
+  #++(if
+      ;; if "at top-level"
+      (and outer-node
+           (or
+            ;; in-between forms
+            (null outer-node)
+            ;; just at the start or end of a form
+            (= point (node-start outer-node))
+            (= point (node-end outer-node))
+            ;; inside a comment (or a form disabled by a
+            ;; feature-expression)
+            #++
+            (typep outer-node
+                   'breeze.reader:skipped-node)))
+      *commands-applicable-at-toplevel*
+      *commands-applicable-inside-another-form-or-at-toplevel*))
 
 
 (defun compute-suggestions ()
@@ -501,24 +505,6 @@ commands that the user might want to run."
 
 
 
-(defun check-in-package ()
-  "Make sure the previous in-package form desginates a package that can
-be found. If it's not the case (e.g. because the user forgot to define
-a package and/or evaluate the form that defines the package) they show
-a message and stop the current command."
-  (let+ctx (nodes
-            outer-node
-            ;; Check if the closest defpackage was evaluated once
-            (invalid-in-package
-             (and nodes
-                  outer-node
-                  (validate-nearest-in-package nodes outer-node))))
-    (when invalid-in-package
-      (message "The nearest in-package form designates a package that doesn't exists: ~s"
-               invalid-in-package)
-      (return-from-command))))
-
-
 (defun maybe-ask-to-load-system ()
   (if-let ((filename (current-buffer-filename)))
     (multiple-value-bind (status system)
@@ -534,9 +520,11 @@ a message and stop the current command."
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (ignore-errors (maybe-ask-to-load-system))
-  (check-in-package)
+  #++ (check-in-package)
   ;; TODO try to fix only the "current" block and/or iterate
   (multiple-value-bind (fixed fixed-anything-p)
+      (values nil nil)
+      #++
       (breeze.analysis:fix :buffer-string (buffer-string)
                            :point-max (point-max))
     (if fixed-anything-p
