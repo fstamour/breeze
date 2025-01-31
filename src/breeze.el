@@ -194,6 +194,10 @@ calls the continuation CONT with the resulting value."
 ;;                          (lambda ()
 ;;                            (insert " hola\n \n- hi\n+ world\n")))
 
+(defun breeze-with-face (string &rest face-plist)
+  "Add the 'face property to STRING."
+  (propertize string 'face face-plist))
+
 
 ;;; Common lisp driven interactive commands
 
