@@ -256,6 +256,7 @@ receiving the data it requested."
 
 
 ;; TODO maybe add a "narrow" request type?
+;; TODO use "inhibit-modification-hooks" where necessary...
 (defun breeze-command-process-request (request)
   "Dispatch REQUESTs from a command."
   (pcase (car request)
@@ -292,8 +293,9 @@ receiving the data it requested."
      (find-file (cl-second request)))
     ("return"
      (throw 'breeze-run-command (cl-second request)))
+    ("buffer-string"
+     (buffer-substring-no-properties (point-min) (point-max)))
     (_ (breeze-debug "Unknown request: %S" request) )))
-
 
 (defun breeze-run-command (name &rest extra-args)
   "Runs a \"breeze command\". TODO Improve this docstring."
@@ -315,7 +317,7 @@ receiving the data it requested."
                       (not (string= "done" (car request))))
            ;; Whether or not we need to send arguments to the next callback.
            for send-response-p = (member (car request)
-                                         '("choose" "read-string"))
+                                         '("choose" "read-string" "buffer-string"))
            ;; Process the command's request
            for response = (breeze-command-process-request request)
            ;; Log request and response (for debugging)
