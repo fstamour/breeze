@@ -171,6 +171,29 @@ calls the continuation CONT with the resulting value."
       (breeze-debug "switching to %s" mode)
       (funcall mode))))
 
+(defun breeze-show-temp-buffer (buffer-name mode callback)
+  (with-current-buffer (get-buffer-create buffer-name)
+    (fundamental-mode)
+    (setq buffer-read-only t
+          buffer-file-name nil)
+    (buffer-disable-undo)
+    (let ((inhibit-read-only t)
+          (inhibit-modification-hooks t))
+      (erase-buffer)
+      (delete-all-overlays)
+      (insert "- hi\n+ world\n")
+      (with-temp-buffer-window buffer-name
+          'display-buffer-pop-up-window
+          nil
+        (breeze-ensure-mode mode)
+        (funcall callback)))))
+
+;; Example:
+;; (breeze-show-temp-buffer "*breeze-show*"
+;;                          'diff-mode
+;;                          (lambda ()
+;;                            (insert " hola\n \n- hi\n+ world\n")))
+
 
 ;;; Common lisp driven interactive commands
 
