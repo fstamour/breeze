@@ -9,7 +9,8 @@
                 #:is
                 #:true
                 #:false
-                #:of-type))
+                #:of-type
+                #:finish))
 
 (in-package #:breeze.test.workspace)
 
@@ -27,3 +28,26 @@
             #p"/home/nobody/projects/foobar/"))
         (infer-project-name "some path"))
       "infer-project-name should return the name of the version control root directory when it is found"))
+
+(define-test add-to-workspace
+  (finish
+   (let ((*workspace* (make-instance 'workspace)))
+     (loop
+       :with root = (breeze.utils:breeze-relative-pathname "")
+       :for file :in (breeze.asdf:system-files 'breeze)
+       :for name = (enough-namestring file root)
+       :for content = (alexandria:read-file-into-string file)
+       :for buffer = (add-to-workspace `( :buffer-name ,name
+                                          :buffer-string ,content
+                                          :point 1))
+       :for node-iterator = (parse-tree buffer)
+       :do
+          (breeze.logging:log-info "Going through ~s" name)
+          (loop
+            :with length = (length content)
+            :for i :below length
+                :for percent = (/ i length)
+                :do
+                   (breeze.logging:log-info "Going through ~s: ~D/~D" name i length)
+                   (breeze.lossless-reader:goto-position node-iterator i)))
+     *workspace*)))

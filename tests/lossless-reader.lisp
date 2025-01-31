@@ -1200,7 +1200,7 @@ reaally?")
 
 ;; TODO make it easier to pin-point errors here...
 (define-test+run round-trip-breeze
-  (loop :for file :in (breeze.asdf:system-files 'breeze)
+  (loop :for file :in (breeze.asdf:find-all-related-files 'breeze)
         :for content = (alexandria:read-file-into-string file)
         :do (let* ((state (parse content))
                    (last-node (last-node (tree state)))

@@ -168,6 +168,7 @@
   "Signal a condition of type STOP to stop a command."
   (signal 'stop))
 
+;; TODO maybe merge with cancel-command-on-error
 (defun call-with-command-signal-handler (fn)
   "Establishes a throw tag named STOP to non-locally stop a command. Also
 installs a condition handler for conditions of type STOP, the handler
@@ -276,6 +277,12 @@ uses the throw tag to stop the command immediately."
       ;; "Command is considered done because it is null."
       t))
 
+;; TODO maybe merge with call-with-command-signal-handler
+;;
+;; TODO add some kind of per-command circuit-breaker, because when
+;; something well integrated breaks (e.g. hooks on edits, on-the-fly
+;; linter, etc) the editor becomes unusable. Will need to add an
+;; argument `command-function'
 (defun cancel-command-on-error (id thunk)
   (tagbody
    :retry
@@ -383,15 +390,26 @@ uses the throw tag to stop the command immediately."
        (cancel-command-on-error
         (id command)
         (lambda ()
-          (check-special-variables)
-          (wait-for-sync command)
-          (send-started-message command)
-          (apply fn extra-args)))))
+          (call-with-command-signal-handler
+           (lambda ()
+             (check-special-variables)
+             (wait-for-sync command)
+             (send-started-message command)
+             ;; TODO not all commands would require the buffer's content,
+             ;; move this in a function that can be called on demand.
+             ;;
+             ;; TODO this assumes we have incremental parsing, which we
+             ;; don't...
+             (when (and buffer
+                        (not (parse-tree buffer)))
+               (send "buffer-string")
+               (let ((buffer-string (recv1)))
+                 (update-buffer-content buffer buffer-string)))
+             (apply fn extra-args)))))))
     (send-sync command)
     (wait-for-started-message command)
     (log-debug "Command started.")
     (id command)))
-
 
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
 (defun continue-command (id &rest response)
@@ -617,9 +635,7 @@ Example:
          ;; Add the users' declarations
          ,@declarations
          ,docstring
-         (call-with-command-signal-handler
-          (lambda ()
-            (progn ,@remaining-forms)
-            (send "done"))))
+         (progn ,@remaining-forms)
+         (send "done"))
        ;; Add a flag into the symbol's plist
        (setf (get ',name 'commandp) ',(or lambda-list t)))))

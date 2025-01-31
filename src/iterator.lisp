@@ -25,7 +25,8 @@ generalization of that first iteration (ha!).
            #:reset
            #:copy-vector)
   ;; Classes and Constructors
-  (:export #:proxy-iterator-mixin
+  (:export #:iterator
+           #:proxy-iterator-mixin
            #:selector
            #:make-selector
            #:vector-iterator
@@ -114,12 +115,14 @@ save this function's return value."))
 (defgeneric copy-iterator (iterator)
   (:documentation "Copy an iterator."))
 
-;; TODO generic copy-iterator
+
+(defclass iterator () ()
+  (:documentation "An abstract iterator."))
 
 
 ;;; vector-iterator
 
-(defclass vector-iterator ()
+(defclass vector-iterator (iterator)
   ((vector
     :initform (error "Must provide a vector to iterate over.")
     :initarg :vector
@@ -177,7 +180,7 @@ save this function's return value."))
 
 ;;; Iterators that encapsulate other iterators
 
-(defclass proxy-iterator-mixin ()
+(defclass proxy-iterator-mixin (iterator)
   ((child-iterator
     :initform nil
     :initarg :iterator
@@ -252,7 +255,7 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 ;;; iterator for nested vectors
 
-(defclass nested-vector-iterator ()
+(defclass nested-vector-iterator (iterator)
   ((vectors
     :initform (make-array '(0)
                           :element-type 'vector
@@ -346,7 +349,8 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 ;; TODO add tests
 (defmethod parent-value ((iterator nested-vector-iterator))
-  (value-at-depth iterator (1- (depth iterator))))
+  (when (plusp (depth iterator))
+    (value-at-depth iterator (1- (depth iterator)))))
 
 ;; TODO add tests
 (defmethod root-value ((iterator nested-vector-iterator))

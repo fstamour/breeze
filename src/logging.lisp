@@ -2,6 +2,7 @@
   (:documentation "Utilities for logging.")
   (:use #:cl)
   (:export
+   #:*log-level*
    #:log-message
    #:log-critical
    #:log-error

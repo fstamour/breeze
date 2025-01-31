@@ -2,12 +2,14 @@
 (uiop:define-package #:breeze.analysis
     (:documentation "Linter, formatter, and maybe more.")
   (:use #:cl)
-  (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
+  (:use-reexport #:breeze.lossless-reader #:breeze.pattern #:breeze.workspace)
+  (:import-from #:alexandria
+                #:when-let)
   ;; Tree/Form predicate
   (:export
-   #:in-package-node-p)
-  (:export
    #:in-package-node-p
+   #:child-of-mapcar-node-p)
+  (:export
    #:lint
    #:fix
    #:after-change-function))
@@ -20,35 +22,31 @@
 (defun node-length (node)
   "Returns the number of children of NODE, or nil if it doesn't have any
 children nodes."
-  (let ((children (node-children node)))
-    (when (nodesp children)
-      (length children))))
+  (etypecase node
+    (node
+     (let ((children (node-children node)))
+       (when (nodesp children)
+         (length children))))
+    (node-iterator (node-length (value node)))))
 
-(defun node-string= (state node string)
-  (string= (source state) string
-           :start1 (node-start node)
-           :end1 (node-end node)))
+(defun node-string= (node-iterator string)
+  (when node-iterator
+    (string= (source node-iterator) string
+             :start1 (start node-iterator)
+             :end1 (end node-iterator))))
 
-(defun node-string-equal (state node string)
-  (string-equal (source state) string
-                :start1 (node-start node)
-                :end1 (node-end node)))
-
+(defun node-string= (node-iterator string)
+  (when node-iterator
+    (string-equal (source node-iterator) string
+             :start1 (start node-iterator)
+             :end1 (end node-iterator))))
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
-(defparameter *state* nil
-  "The parser state associated with the node currently being matched.")
-
 ;; (defpattern in-package package-designator)
 
-(defun match-node (pattern state node)
-  (let ((*state* state))
-    (match pattern node)))
-
 (defun match-parser-state (pattern state)
-  (let* ((*state* state))
-    (match pattern (tree state))))
+  (match pattern (make-node-iterator state)))
 
 (defmethod match (pattern (state state))
   (match-parser-state pattern state))
@@ -57,7 +55,7 @@ children nodes."
 (defun plusp* (x)
   (and (numberp x) (plusp x)))
 
-(defun match-symbol-to-token (symbol token-node &aux (state *state*))
+(defun match-symbol-to-token (symbol state token-node)
   (and
    (symbolp symbol)
    (token-node-p token-node)
@@ -92,26 +90,22 @@ children nodes."
 
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.
-(defmethod match ((pattern symbol) (node node))
-  (match-symbol-to-token pattern node))
+(defmethod match ((pattern symbol) (node-iterator node-iterator))
+  (match-symbol-to-token pattern
+                         (state node-iterator)
+                         (value node-iterator)))
 
 (defmethod match ((pattern null) (node node))
-  (match-symbol-to-token pattern node))
+  (match-symbol-to-token pattern
+                         (state node-iterator)
+                         (value node-iterator)))
 
 (defmethod match ((pattern term) (state state))
   (match-parser-state pattern state))
 
 ;; TODO package-local-nicknames
 
-
 ;; TODO One method per type of node
-
-(defmethod match (pattern (node node))
-  (case (node-type node)
-    ;; Recurse into nodes of type "parens"
-    (parens (match pattern (node-children node)))
-    (t (call-next-method))))
-
 #++
 (progn
   whitespace
@@ -187,6 +181,7 @@ N.B. This doesn't guarantee that it's a valid node."
 
 
 ;; WIP this is where I left off last time
+#++
 (defun find-nearest-in-package (buffer)
   (let* ((position (point buffer))
          (parse-tree (parse-tree buffer))
@@ -211,6 +206,14 @@ TODO
 - uiop/package--define-package-form-p
 
 |#
+
+
+(defun child-of-mapcar-node-p (node-iterator)
+  ;; TODO this is not exactly right (it won't detect "cl:mapcar"), but
+  ;; this will do for now™
+  (node-string-equal (state node-iterator)
+                     (first-node (parent-node node-iterator))
+                     "mapcar"))
 
 
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
@@ -568,7 +571,11 @@ simple-condition-format-control, simple-condition-format-arguments
                                                 buffer-file-name
                                                 insertion
                                               &allow-other-keys)
-  (declare (ignorable start stop length rest buffer-name buffer-file-name insertion)) ; yea, you heard me
+  (declare (ignorable start stop length rest buffer-file-name insertion)) ; yea, you heard me
+  ;; TODO the following form is just a hack to keep the breeze's
+  ;; buffers in sync with the editor's buffers
+  (when-let ((buffer (find-buffer buffer-name)))
+    (setf (parse-tree buffer) nil))
   ;; consider ignore-error + logs, because if something goes wrong in
   ;; this function, editing is going to be funked.
   (push-edit
