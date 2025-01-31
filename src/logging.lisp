@@ -14,10 +14,10 @@
 ;; TODO These could probably profit from being methods instead of
 ;; plain functions.
 
-(defun log-level ()
-  "Get the current log level."
-  ;; TODO This is just the minimal thing I could do to make it work
-  :info)
+(defparameter *log-level* :info
+  "The current log level")
+
+(defun log-level () "Get the current log level." *log-level*)
 
 (defun log-stream ()
   "Get the current log output stream."
