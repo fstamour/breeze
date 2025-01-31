@@ -21,7 +21,9 @@ generalization of that first iteration (ha!).
   ;; Generics
   (:export #:donep
            #:next
-           #:value)
+           #:value
+           #:reset
+           #:copy-vector)
   ;; Classes and Constructors
   (:export #:proxy-iterator-mixin
            #:selector
@@ -104,7 +106,13 @@ I could also define an iterator that uses another one and skip values. So the "b
 save this function's return value."))
 
 (defgeneric value (iterator)
-  (:documentation "Get the current value of the iterator"))
+  (:documentation "Get the current value of the iterator."))
+
+(defgeneric reset (iterator)
+  (:documentation "Move the iterator to the beginning."))
+
+(defgeneric copy-iterator (iterator)
+  (:documentation "Copy an iterator."))
 
 ;; TODO generic copy-iterator
 
@@ -139,8 +147,17 @@ save this function's return value."))
   (incf (pos iterator)))
 
 (defmethod value ((iterator vector-iterator))
-  (when (donep iterator) (error "No more values in this iterator."))
+  (when (donep iterator) (error "No more values in this iterator. (pos: ~s)"
+                                (pos iterator)))
   (aref (vec iterator) (pos iterator)))
+
+;; TODO test
+(defmethod reset ((iterator vector-iterator))
+  (setf (pos iterator) 0))
+
+;; TODO test
+(defmethod copy-iterator ((iterator vector-iterator))
+  (make-vector-iterator (vec iterator) :position (pos iterator)))
 
 
 ;;; Other methods on vector-iterator
@@ -151,11 +168,11 @@ save this function's return value."))
 
 (defmethod lastp ((iterator vector-iterator))
   "Is the current value the last one in the vector?"
-  (= (pos iterator) (length (vec iterator))))
+  (= (pos iterator) (1- (length (vec iterator)))))
 
 (defmethod before-last-p ((iterator vector-iterator))
   "Is the current value the penultimate one in the vector?"
-  (= (pos iterator) (1- (length (vec iterator)))))
+  (= (pos iterator) (- (length (vec iterator)) 2)))
 
 
 ;;; Iterators that encapsulate other iterators
@@ -175,6 +192,10 @@ save this function's return value."))
 
 (defmethod value ((iterator proxy-iterator-mixin))
   (value (child-iterator iterator)))
+
+;; TODO test
+(defmethod reset ((iterator proxy-iterator-mixin))
+  (reset (child-iterator iterator)))
 
 (defmethod leaf-iterator (iterator) iterator)
 
@@ -253,12 +274,10 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
     :accessor positions))
   (:documentation "An iterator for nested vectors."))
 
-(defun make-nested-vector-iterator (vector &key (position 0))
+(defun make-nested-vector-iterator (vector)
   "Create a new depth-first iterator on VECTOR."
   (check-type vector vector)
-  (push-vector (make-instance 'nested-vector-iterator)
-               vector
-               :position position))
+  (push-vector (make-instance 'nested-vector-iterator) vector))
 
 (defmethod vec ((iterator nested-vector-iterator))
   (aref (vectors iterator) (depth iterator)))
@@ -279,8 +298,32 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 ;; same implementation as vector-iterator's
 (defmethod value ((iterator nested-vector-iterator))
-  (when (donep iterator) (error "No more values in this iterator."))
+  (when (donep iterator)
+    (error "No more values in this iterator. (depth: ~s pos: ~s)"
+           (depth iterator)
+           (pos iterator)))
   (aref (vec iterator) (pos iterator)))
+
+;; TODO test
+(defmethod reset ((iterator nested-vector-iterator))
+  (setf (depth iterator) 0
+        (pos iterator) 0
+        (fill-pointer (vectors iterator)) 1
+        (fill-pointer (positions iterator)) 1))
+
+;; TODO test
+(defmethod copy-iterator ((iterator nested-vector-iterator))
+  (flet ((copy-vec (vec)
+            (make-array (length vec)
+                     :element-type (array-element-type vec)
+                     :adjustable t
+                     :fill-pointer (fill-pointer vec)
+                     :initial-contents vec)))
+    (make-instance
+     'nested-vector-iterator
+     :vectors (copy-vec (vectors iterator))
+     :positions (copy-vec (positions iterator))
+     :depth (depth iterator))))
 
 (defmethod push-vector ((iterator nested-vector-iterator)
                         vector &key (position 0))
@@ -303,11 +346,11 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 ;; TODO add tests
 (defmethod parent-value ((iterator nested-vector-iterator))
-  (value-at-depth (1- (depth iterator))))
+  (value-at-depth iterator (1- (depth iterator))))
 
 ;; TODO add tests
 (defmethod root-value ((iterator nested-vector-iterator))
-  (value-at-depth 0))
+  (value-at-depth iterator 0))
 
 
 ;;; Depth-first iterator
@@ -408,17 +451,14 @@ ITERATOR unchanged."
 
 
 
-(defun collect (iterator &key (limit))
-  (if limit
-      (loop
-        repeat limit
-        until (donep iterator)
-        collect (value iterator)
-        do (next iterator))
-      (loop
-        until (donep iterator)
-        collect (value iterator)
-        do (next iterator))))
+(defun collect (iterator &rest rest &key (limit) &allow-other-keys)
+  (let ((next-extra-args (alexandria:remove-from-plist rest :limit)))
+    (loop
+      with i = 0
+      while (or (null limit) (<= (incf i) limit))
+      until (donep iterator)
+      collect (value iterator)
+      do (apply #'next iterator next-extra-args))))
 
 (defun map-iterator (fn iterator &key (limit))
   (if limit

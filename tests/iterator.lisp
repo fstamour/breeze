@@ -19,7 +19,21 @@
   (let* ((vector #(1 2 3))
          (iterator (make-vector-iterator vector)))
     (is eq vector (vec iterator))
-    (is = 0 (pos iterator)))
+    (is = 0 (pos iterator))
+    (progn
+      (true (firstp iterator))
+      (false (before-last-p iterator))
+      (false (lastp iterator)))
+    (progn
+      (next iterator)
+      (false (firstp iterator))
+      (true  (before-last-p iterator))
+      (false (lastp iterator)))
+    (progn
+      (next iterator)
+      (false (firstp iterator))
+      (false  (before-last-p iterator))
+      (true (lastp iterator))))
   (let* ((vector #(1 2 3))
          (iterator (make-vector-iterator vector :position 2)))
     (is eq vector (vec iterator))
@@ -48,15 +62,7 @@
          (iterator (make-nested-vector-iterator vector)))
     (is eq vector (vec iterator))
     (is = 0 (pos iterator)))
-  (let* ((vector #(1 2 3))
-         (iterator (make-nested-vector-iterator vector :position 2)))
-    (is eq vector (vec iterator))
-    (is = 2 (pos iterator)))
-  (is equal (list 2 3)
-      (collect (make-nested-vector-iterator #(1 2 3) :position 1)))
-  (false
-   (collect (make-nested-vector-iterator #(1 2 3) :position 10)))
-  ;; Testing push-vector and pop-vector
+    ;; Testing push-vector and pop-vector
   (is equal '(1 2 3 4)
       (let ((iterator (make-nested-vector-iterator #(1 #(2 3) 4))))
         (list (prog1 (value iterator) (next iterator))
@@ -66,12 +72,6 @@
                      (value iterator))
               (progn (pop-vector iterator) (next iterator)
                      (value iterator))))))
-
-#++
-(defun dig-into-even-length-vector (iterator)
-  (let ((x (value iterator)))
-    (and (vectorp x)
-         (evenp (length x)))))
 
 (define-test+run recursive-iterator+flatten
   (is equal '(1 2 3 4)
@@ -94,6 +94,7 @@
               #(a b #(c d #(e f) g))
               #'vectorp)
              (lambda (iterator)
+               (declare (ignore iterator))
                (prog1 (oddp i) (incf i)))
              :apply-filter-to-iterator-p t)))
       "Should flatten the nested vectors and keep only the odd positions."))
@@ -125,6 +126,7 @@
              (make-recursive-iterator #(a b #(c d #(e f) g)) #'vectorp
                                       :order :root-then-subtree)
              (lambda (iterator)
+               (declare (ignore iterator))
                (prog1 (oddp i) (incf i)))
              :apply-filter-to-iterator-p t)))
       "Should iterate on both the vectors and their elements and keep only the odd positions."))
@@ -137,3 +139,8 @@
       (make-vector-iterator #(1 2 3))
       (make-vector-iterator #(a b c))))
   :limit 10)
+
+#++
+(let ((it (make-nested-vector-iterator
+          #(a b #(c) #(d #(e))))))
+  (collect it :limit 2))
