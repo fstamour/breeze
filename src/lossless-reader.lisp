@@ -3,24 +3,12 @@
 (uiop:define-package #:breeze.lossless-reader
     (:documentation "A fast, lossless, robust and superficial reader for a superset of
 common lisp.")
-  (:use #:cl)
+  (:use #:cl #:breeze.logging)
+  (:use-reexport #:breeze.iterator)
   (:import-from #:breeze.string
                 #:subseq-displaced
                 #:+whitespaces+
                 #:whitespacep)
-  (:import-from #:breeze.iterator
-                #:vector-iterator
-                #:make-vector-iterator
-                #:make-nested-vector-iterator
-                #:make-recursive-iterator
-                #:pos
-                #:depth
-                #:donep
-                #:next
-                #:value
-                #:recursive-iterator
-                #:push-vector
-                #:collect)
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
@@ -183,8 +171,7 @@ common lisp.")
            #:read-token
            #:read-whitespaces
            #:read-block-comment)
-  (:export
-   #:token-symbol-node
+  (:export #:token-symbol-node
    #:node-contains-position-p
    #:make-node-iterator
    #:node-iterator
@@ -1143,7 +1130,7 @@ Returns a new node with one of these types:
       ,(breeze.string:around string pos))))
 
 
-;; don't forget to handle dotted lists
+;; TODO don't forget to handle dotted lists
 (defreader read-parens ()
   (when (read-char* state #\()
     ;; Read while read-any != nil && char != )
@@ -1299,34 +1286,56 @@ Returns a new node with one of these types:
 (defun node-contains-position-p (node position)
   (let ((start (node-start node))
         (end (node-end node)))
-    (and (<= start end) (< position end))))
+    (and (<= start position)
+         (or (no-end-p node)
+             (< position end)))))
 
 ;; TODO add tests
 (defmethod goto-position ((iterator node-iterator) position)
   ;; TODO this might not be necessary, as an optimization, when can
   ;; check if the current node contains the position. If yes, check if
   ;; there are children, if not, check the parent.
+  ;;
   ;; TODO use binary search
-  (setf (depth iterator) 0
-        (pos iterator) 0)
+  (reset iterator)
   (unless (donep iterator) ; the parse tree is empty... it _shouldn't_ happen...
     (loop
       :until (donep iterator)
       :for node = (value iterator)
-      :do (if (node-contains-position-p node position)
-              (if (node-children node)
-                  (next iterator) ; this will recurse into the node's children
-                  (return node))
-              (next iterator :dont-recurse-p t))))
+      :do
+      #++ (log-debug "~&depth: ~d positions: ~s donep: ~s node: ~s"
+                     (depth iterator)
+                     (positions iterator)
+                     (donep iterator)
+                     node)
+          (cond
+            ((= (node-start node) position)
+             #++ (log-debug "~&stop: right at the start of a node")
+             (return))
+            ((node-contains-position-p node position)
+             (when (node-children node)
+               #++ (log-debug "~&  (node-end (last-node (node-children node))): ~d"
+                              (node-end (last-node (node-children node))))
+               (if (and (not (no-end-p node))
+                        (<= (node-end (last-node (node-children node))) position))
+                   (progn
+                     #++ (log-debug "~&stop: no need to recurse")
+                     (return))
+                   ;; this will recurse into the node's children
+                   (next iterator))))
+            ((< position (node-end node))
+             #++ (log-debug "~&stop: went too far! position: ~d node-end: ~d"
+                            position (node-end node))
+             (return))
+            (t (next iterator :dont-recurse-p t)))))
   iterator)
 
-#++
-(let* ((input "a (b c)")
-       (state (parse input))
-       (it (make-node-iterator state)))
-  (loop :for i :below (1- (length input))
-        :do (goto-position it i)
-        :collect (node-content state (value it))))
+
+(defmethod parent-node ((iterator node-iterator))
+  (parent-value iterator))
+
+(defmethod root-node ((iterator node-iterator))
+  (root-value iterator))
 
 
 ;;; Unparse (not exported, only used to test the parser!)

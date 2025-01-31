@@ -1237,36 +1237,37 @@ reaally?")
 
 
 
-#++ ;; TODO convert to tests on node-iterator and goto-position
-(define-test find-node
-  (is equal
-      '((whitespace . 0) (parens . 1) (parens . 1) (parens . 1) (parens . 1)
-        (parens . 1) (parens . 1) (parens . 1) (parens . 1) (whitespace . 2))
-      (loop :with input = " ( loop ) "
-            :with state = (parse input)
-            :for i :from 0 :below (length input)
-            :for path = (find-node i (tree state))
-            :collect (cons (node-type (car path)) (cdr path)))))
+(defun goto-position/all (input)
+  (let* ((state (parse input))
+         (it (make-node-iterator state)))
+    (loop :for i :below (length input)
+          :do (goto-position it i)
+          :collect (list i (unless (donep it) (node-content state (value it)))))))
 
-#++ ;; TODO convert to tests on node-iterator and goto-position
-(define-test+run find-path-to-position
-  (is equalp
-      '((whitespace)
-        (parens whitespace)
-        (parens whitespace)
-        (parens token)
-        (parens token)
-        (parens token)
-        (parens token)
-        (parens whitespace)
-        (parens)
-        (whitespace))
-      (loop :with input = " ( loop ) "
-            :with state = (parse input)
-            :for i :from 0 :below (length input)
-            :for path = (find-path-to-position state i)
-            :collect
-            (mapcar (lambda (path)
-                      (node-type (car path)))
-                    path)
-            #++(list i (length path)))))
+(define-test+run goto-position
+  (is equal '((0 "a")
+              (1 " ")
+              (2 "(b c (d))")
+              (3 "b")
+              (4 " ")
+              (5 "c")
+              (6 " ")
+              (7 "(d)")
+              (8 "d")
+              (9 "(d)")
+              (10 "(b c (d))")
+              (11 "e"))
+      (goto-position/all "a (b c (d))e"))
+  (is equal '((0 "a")
+              (1 " ")
+              (2 "(b c (d))")
+              (3 "b")
+              (4 " ")
+              (5 "c")
+              (6 " ")
+              (7 "(d)")
+              (8 "d")
+              (9 "(d)")
+              (10 "(b c (d))")
+              (11 "e"))
+      (goto-position/all "a (b c (d))e")))
