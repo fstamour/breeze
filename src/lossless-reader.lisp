@@ -26,6 +26,8 @@ common lisp.")
            #:node
            #:node-start
            #:node-end
+           #:start
+           #:end
            #:node-type
            #:node-children
            #:copy-node
@@ -145,6 +147,8 @@ common lisp.")
            #:sharp-reference-node-p
            #:sharp-unknown-node-p)
   ;; State utilities
+  #++ ;; not exporting, those are somewhat internals...
+  ;; TODO split this package
   (:export #:at
            #:at=
            #:current-char
@@ -172,10 +176,12 @@ common lisp.")
            #:read-whitespaces
            #:read-block-comment)
   (:export #:token-symbol-node
-   #:node-contains-position-p
-   #:make-node-iterator
-   #:node-iterator
-   #:goto-position)
+           #:node-contains-position-p
+           #:make-node-iterator
+           #:node-iterator
+           #:goto-position
+           #:parent-node
+           #:root-node)
   (:export
    ;; top-level parsing
    #:parse))
@@ -294,8 +300,10 @@ common lisp.")
   (vectorp x))
 
 (defun nth-node (nodes n)
-  (when nodes
-    (aref nodes n)))
+  (etypecase nodes
+    (null nil)
+    (node (last-node (node-children nodes)))
+    (vector (aref nodes (if (minusp n) (+ n (length nodes)) n)))))
 
 (defun first-node (nodes)
   (nth-node nodes 0))
@@ -304,7 +312,7 @@ common lisp.")
   (nth-node nodes 1))
 
 (defun last-node (nodes)
-  (nth-node nodes (1- (length nodes))))
+  (nth-node nodes -1))
 
 (defun node (type start end &optional child &rest children)
   #++ (when (= +end+ end)
@@ -1271,6 +1279,9 @@ Returns a new node with one of these types:
 (defmethod make-node-iterator ((string string))
   (make-node-iterator (parse string)))
 
+(defmethod source ((node-iterator node-iterator))
+  (source (state node-iterator)))
+
 #++
 (list (collect
           (make-node-iterator
@@ -1300,9 +1311,13 @@ Returns a new node with one of these types:
   (reset iterator)
   (unless (donep iterator) ; the parse tree is empty... it _shouldn't_ happen...
     (loop
+      :for i :from 0 ; infinite loop guard
       :until (donep iterator)
       :for node = (value iterator)
       :do
+         (unless (< i 100000)
+           (log-error "goto-position seems to be stuck in a loop")
+           (return))
       #++ (log-debug "~&depth: ~d positions: ~s donep: ~s node: ~s"
                      (depth iterator)
                      (positions iterator)
@@ -1336,6 +1351,41 @@ Returns a new node with one of these types:
 
 (defmethod root-node ((iterator node-iterator))
   (root-value iterator))
+
+(defmethod start ((node-iterator node-iterator))
+  "Get the start position of the current node."
+  (start (value node-iterator)))
+
+(defmethod end ((node-iterator node-iterator))
+  "Get the end position of the current node."
+  (end (value node-iterator)))
+
+#++
+(defmethod crumbs ((iterator node-iterator))
+  (loop :for i :from 0 :upto (depth iterator)
+        :for node-at-depth = (value-at-depth iterator i)
+        :for crumb-node = (or (first-node (node-children node-at-depth)) node-at-depth)
+        :collect (if (= i (depth iterator))
+                     (node-content (state iterator) node-at-depth)
+                     (when crumb-node
+                       (node-content (state iterator) crumb-node)))))
+
+#++
+(defmethod crumbs ((iterator node-iterator))
+  (loop :for i :from 0 :below (depth iterator)
+        :for node-at-depth = (value-at-depth iterator i)
+        :for crumb-node = (or (first-node (node-children node-at-depth))
+                              node-at-depth)
+        :collect (when crumb-node
+                   (node-content (state iterator) crumb-node))))
+
+#++
+(let* ((input "a (b c (d (e g)))")
+       (state (parse input))
+       (it (make-node-iterator state)))
+  (loop :for i :below (length input)
+        :do (goto-position it i)
+        :collect (crumbs it)))
 
 
 ;;; Unparse (not exported, only used to test the parser!)

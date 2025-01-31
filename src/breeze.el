@@ -228,7 +228,7 @@ running command."
   (let ((id (breeze-eval
              (format "(breeze.command:start-command '%s '(%s) '%S)"
                      name
-                     (breeze-compute-buffer-args)
+                     (breeze-compute-buffer-args :include-buffer-content-p nil)
                      extra-args
                      nil))))
     (breeze-debug "Breeze: start-command %S returned %s" name id)
@@ -413,6 +413,11 @@ time will initialize breeze and redefine this command."
   (interactive)
   (breeze--stub "quickfix"))
 
+(defun breeze-header-line ()
+  "A stub for the breeze command \"breeze-header-line\""
+  (interactive)
+  "Breeze not initialzed.")
+
 
 ;;; Completion at point -- NOT IMPLEMENTED, this is just a stub for now
 
@@ -568,6 +573,9 @@ with which arguments."
 
 
 ;;; Incremental parsing
+
+(defun breeze-after-change-function (start stop length)
+  nil)
 
 (defun breeze-after-change-function (start stop length)
   (breeze-ensure
@@ -772,9 +780,11 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
    (breeze-minor-mode
     ;; TODO What if dabbrev-abbrev-skip-leading-regexp is already customized?
     (setf dabbrev-abbrev-skip-leading-regexp "\\(#?:\\)\\|+")
-    (breeze-enable-completion-at-point))
+    (breeze-enable-completion-at-point)
+    (setq header-line-format '(:eval (breeze-header-line))))
    (t
-    (breeze-disable-completion-at-point))))
+    (breeze-disable-completion-at-point)
+    (setq header-line-format nil))))
 
 ;; Analogous to org-insert-structure-template
 ;; (define-key breeze-minor-mode-map (kbd "C-c C-,") 'breeze-insert)

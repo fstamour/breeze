@@ -4,16 +4,17 @@
 
 (uiop:define-package #:breeze.refactor
     (:documentation "Snippets and refactoring commands")
-  (:use #:cl #:breeze.command #:breeze.workspace)
+  (:use #:cl #:breeze.command #:breeze.analysis)
   (:import-from #:alexandria
                 #:ends-with-subseq
                 #:if-let
+                #:when-let
                 #:symbolicate
                 #:lastcar)
   (:import-from #:breeze.string
+                #:symbol-package-qualified-name
                 #:ensure-circumfix)
   (:import-from #:breeze.utils
-                #:symbol-package-qualified-name
                 #:before-last)
   (:import-from #:breeze.indirection
                 #:indirect)
@@ -441,14 +442,11 @@ For debugging purposes ONLY.")
 (defun suggest-lambda ()
   "When inside a higher-order function, like mapcar."
   (let* ((buffer (current-buffer))
-         #++
-         (node-iterator (node-iterator buffer)))
+         (node-iterator (parse-tree buffer)))
     ;; TODO Use breeze.cl:higher-order-function-p
-    ;; TODO Must extract the symbol from the parent-node first
     ;; Higher-order functions
-    #++
     (when (and node-iterator
-               (mapcar-form-p node-iterator))
+               (child-of-mapcar-node-p node-iterator))
       (shortcircuit 'insert-lambda))))
 
 (defun suggest-loop-clauses ()
@@ -506,7 +504,7 @@ commands that the user might want to run."
 
 
 (defun maybe-ask-to-load-system ()
-  (if-let ((filename (current-buffer-filename)))
+  (when-let ((filename (current-buffer-filename)))
     (multiple-value-bind (status system)
         (breeze.asdf:loadedp filename)
       (when (eq :not-loaded status)
@@ -519,7 +517,7 @@ commands that the user might want to run."
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
-  (ignore-errors (maybe-ask-to-load-system))
+  (maybe-ask-to-load-system)
   #++ (check-in-package)
   ;; TODO try to fix only the "current" block and/or iterate
   (multiple-value-bind (fixed fixed-anything-p)
@@ -528,7 +526,8 @@ commands that the user might want to run."
       (breeze.analysis:fix :buffer-string (buffer-string)
                            :point-max (point-max))
     (if fixed-anything-p
-        (replace-region (point-min) (point-max) fixed)
+        ;; TODO this is utter 💩, for _any_ fix, it replaces the whole buffer 🤣
+        (replace-region (current-point-min) (current-point-max) fixed)
         (let* (;; Compute the applicable commands
                (commands (sanitize-list-of-commands (compute-suggestions)))
                ;; TODO What if there are no suggestions?
@@ -576,6 +575,17 @@ TODO there's some different kind of "quickfixes":
   "Find the alternative file for the current file."
   (message (buffer-file-name)))
 
+#++
+(when path
+    (if-let ((vc-root (indirect (find-version-control-root path))))
+      (mapcar )))
+
+#++
+(let ((vc-root (find-version-control-root (breeze.utils:breeze-relative-pathname "."))))
+  (mapcar (lambda (directory)
+            (merge-pathnames directory vc-root))
+          '("" "src/" "source/" "sources/")))
+
 ;; 1. generate dirs from "vc-root" '("src" "t" "test" "tests")
 ;; 2. find in which directory is the current file
 ;; 3. find which alternative directory exists
@@ -599,4 +609,26 @@ TODO there's some different kind of "quickfixes":
   ""
   (let ((node-iterator (node-iterator)))
     (break)
-    (return-from-command '("asfd" "qwer" "uiop"))))
+    (return-value-from-command '("asfd" "qwer" "uiop"))))
+
+
+;;; Emacs header-line
+
+;; "this won't introduce any latency /s"
+#++
+(progn
+  (define-command header-line ()
+    "Compute a string to show in emacs' header-line."
+    (return-value-from-command
+     (or (handler-case
+             (format nil "~a ~a" (current-point)
+                     (let ((node-iterator (current-parse-tree)))
+                       (if node-iterator
+                           (let* ((state (breeze.lossless-reader:state node-iterator))
+                                  (node (breeze.iterator:value node-iterator)))
+                             (breeze.lossless-reader:node-content state node))
+                           "NODE-ITERATOR is nil")))
+           (error (condition) (apply #'format nil (simple-condition-format-control condition)
+                                     (simple-condition-format-arguments condition))))
+         "An error occured when calling breeze-header-line")))
+  (export 'header-line))

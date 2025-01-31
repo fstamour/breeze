@@ -1,6 +1,6 @@
 (defpackage #:breeze.test.pattern
   (:documentation "Test package for breeze.pattern.")
-  (:use #:cl #:breeze.pattern)
+  (:use #:cl #:breeze.pattern #:breeze.iterator)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -44,18 +44,8 @@
                 #:ref-pattern
                 #:defpattern
                 ;; Iterator
-                #:make-iterator
-                #:iterator-vector
-                #:iterator-position
-                #:iterator-step
-                #:iterator-parent
-                #:iterator-done-p
-                #:iterator-push
-                #:iterator-maybe-push
-                #:iterator-maybe-pop
-                #:iterate
-                #:iterator-next
-                #:iterator-value
+                #:pattern-iterator
+                #:make-pattern-iterator
                 ;; Match
                 #:make-binding
                 #:merge-bindings
@@ -200,22 +190,22 @@
   (is = 1 (iterator-step iterator)
       "The iterator's step was not correctly initialized to 1.")
   (when donep
-    (true (iterator-done-p iterator)))
+    (true (donep iterator)))
   (when value
-    (is pattern= value (iterator-value iterator))))
+    (is pattern= value (value iterator))))
 
 (define-test make-iterator
   (let* ((vector #(1 2 3))
          (iterator (make-iterator :vector vector)))
     (test-iterator iterator vector)))
 
-(define-test iterator-done-p
-  (true (iterator-done-p (make-iterator :vector #())))
-  (true (iterator-done-p (make-iterator :vector #() :position -1)))
-  (true (iterator-done-p (make-iterator :vector #() :position 1)))
-  (false (iterator-done-p (make-iterator :vector #(1))))
-  (false (iterator-done-p (make-iterator :vector #(1 2 3))))
-  (true (iterator-done-p (make-iterator :vector #(1 2 3) :position 10))))
+(define-test donep
+  (true (donep (make-iterator :vector #())))
+  (true (donep (make-iterator :vector #() :position -1)))
+  (true (donep (make-iterator :vector #() :position 1)))
+  (false (donep (make-iterator :vector #(1))))
+  (false (donep (make-iterator :vector #(1 2 3))))
+  (true (donep (make-iterator :vector #(1 2 3) :position 10))))
 
 (define-test iterator-push
   (let* ((vector1 #(1 2 3))
@@ -241,23 +231,23 @@
          (iterator (iterator-maybe-push root-iterator)))
     (isnt eq root-iterator iterator)
     (test-iterator iterator (ref-pattern ref))
-    (is pattern= 'a (iterator-value iterator))))
+    (is pattern= 'a (value iterator))))
 
 ;; This also tests iterator-maybe-{push,pop}
-(define-test iterator-next
+(define-test next
   ;; empty case, so the iterator is donep from the start
   (let* ((vector #())
          (iterator (iterate vector)))
     (test-iterator iterator vector :pos 0 :donep t)
-    (parachute:fail (iterator-value iterator))
-    (iterator-next iterator)
+    (parachute:fail (value iterator))
+    (next iterator)
     (test-iterator iterator vector :pos 1 :donep t)
-    (fail (iterator-value iterator)))
+    (fail (value iterator)))
   ;; non-empty, no ref
   (let* ((vector #(1 2 3))
          (iterator (iterate vector)))
     (test-iterator iterator vector :pos 0 :value 1)
-    (iterator-next iterator)
+    (next iterator)
     (test-iterator iterator vector :pos 1 :value 2))
   ;; starts with a ref
   (let* ((ref (ref 'a))
@@ -270,27 +260,27 @@
     ;; check the first value
     (test-iterator iterator (ref-pattern ref) :pos 0 :value 'a)
     ;; advance the iterator
-    (setf iterator (iterator-next iterator)) ; maybe a macro for this? (nextf iterator)
+    (setf iterator (next iterator)) ; maybe a macro for this? (nextf iterator)
     ;; check the second value
     (test-iterator iterator (ref-pattern ref) :pos 1 :value #S(term :name ?a))
-    ;; (is pattern= #S(term :name ?a) (iterator-value iterator))
+    ;; (is pattern= #S(term :name ?a) (value iterator))
     ;; advance the iterator
-    (let ((iterator2 (iterator-next iterator)))
+    (let ((iterator2 (next iterator)))
       (test-iterator iterator (ref-pattern ref) :pos 2 :donep t)
-      (isnt eq iterator iterator2 "iterator-next should have returned a different iterator.")
-      (is eq root-iterator iterator2 "iterator-next should have returned the root iterator.")
+      (isnt eq iterator iterator2 "next should have returned a different iterator.")
+      (is eq root-iterator iterator2 "next should have returned the root iterator.")
       (test-iterator iterator2 vector :pos 1 :donep t)
-      (fail (iterator-value iterator2)))))
+      (fail (value iterator2)))))
 
 ;; TODO This _could_ be renamed "flatten pattern" ?
 (defun test-iterator* (vector)
   (loop
     :for i :from 0
-    :for iterator := (iterate vector) :then (iterator-next iterator)
-    :until (prog1 (iterator-done-p iterator)
+    :for iterator := (iterate vector) :then (next iterator)
+    :until (prog1 (donep iterator)
              ;; (format *debug-io* "~%~%~d: ~S" i iterator)
              )
-    :for value = (iterator-value iterator)
+    :for value = (value iterator)
     ;; :do (format *debug-io* "~&~d: ~S~%~%" i value)
     :collect value))
 

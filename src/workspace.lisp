@@ -12,13 +12,19 @@
                 #:indirect)
   (:import-from #:breeze.utils
                 #:find-version-control-root)
+  ;; TODO circular dependency... should be fixable if we put "buffer"
+  ;; either in its own package, or if it's moved into the reader's
+  ;; package.
   (:import-from #:breeze.lossless-reader
                 #:node-iterator
                 #:make-node-iterator
                 #:state
                 #:source
                 #:goto-position)
-  (:export #:add-to-workspace
+  (:export #:*workspace*
+           #:workspace
+           #:update-buffer-content
+           #:add-to-workspace
            #:find-buffer
            #:name
            #:filename
@@ -121,32 +127,35 @@ Design decision(s):
 (defvar *workspace* (make-instance 'workspace)
   "The workspace.")
 
+(defmethod update-buffer-content ((buffer buffer) new-content)
+  "Update the workspace's buffer BUFFER-NAME's content"
+  (when new-content
+    (if-let ((old-node-iterator (parse-tree buffer)))
+      (unless (string= (source (state old-node-iterator)) new-content)
+        (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
+        (setf (parse-tree buffer) (make-node-iterator new-content)))
+      (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
+             (setf (parse-tree buffer) (make-node-iterator new-content))))))
+
 ;; (untrace add-to-workspace)
 (defmethod add-to-workspace ((context-plist cons))
-  ;; TODO check that the context contains enough stuff to make a
-  ;; buffer object that is not completly useless.
-  ;; TODO check if the buffer is not already in the workspace
-  (breeze.logging:log-info "Adding the file ~s to the workspace"
-                           (getf context-plist :buffer-file-name))
   (when-let* ((name (getf context-plist :buffer-name))
               (buffer (ensure-buffer name)))
-    (setf (filename buffer) (getf context-plist :buffer-file-name)
-          (point buffer) (getf context-plist :point)
-          (point-min buffer) (getf context-plist :point-min)
-          (point-max buffer) (getf context-plist :point-max))
-    ;; Update the content of the buffer
-    (when-let ((new-content (getf context-plist :buffer-string)))
-      (if-let ((old-node-iterator (parse-tree buffer)))
-        (unless (string= (source (state old-node-iterator)) new-content)
-          (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" name)
-          (setf (parse-tree buffer) (make-node-iterator new-content)))
-        (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" name)
-               (setf (parse-tree buffer) (make-node-iterator new-content)))))
-    ;; Update the position (point)
+    (breeze.logging:log-debug "add-to-workspace buffer ~s" (getf context-plist :buffer-file-name))
+    (when-let ((buffer-file-name (breeze.utils:breeze-relative-pathname "")))
+      (setf (filename buffer) buffer-file-name))
     (when-let ((point (getf context-plist :point)))
-      (unless (= point (point buffer))
-        (setf (point buffer) point)
-        (goto-position (parse-tree buffer) point)))
+      (setf (point buffer) (1- point)))
+    (when-let ((point-min (getf context-plist :point-min)))
+      (setf (point-min buffer) (1- point-min)))
+    (when-let ((point-max (getf context-plist :point-max)))
+      (setf (point-max buffer) (1- point-max)))
+    (when-let ((new-content (getf context-plist :buffer-string)))
+      (update-buffer-content buffer new-content))
+    ;; update the node-iterator's position
+    (when-let ((parse-tree (parse-tree buffer))
+               (point (point buffer)))
+      (goto-position parse-tree point))
     ;; return the buffer
     buffer))
 

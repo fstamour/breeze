@@ -6,6 +6,22 @@
   (:use #:cl #:breeze.lossless-reader)
   ;; Importing non-exported symbols
   (:import-from #:breeze.lossless-reader
+                #:at
+                #:at=
+                #:valid-position-p
+                #:read-char*
+                #:read-string
+                #:read-string*
+                #:read-parens
+                #:find-all
+                #:read-token
+                #:read-whitespaces
+                #:read-line-comment
+                #:read-sharpsign-dispatching-reader-macro
+                #:read-punctuation
+                #:read-block-comment
+                #:read-quoted-string
+                #:not-terminatingp
                 #:*state-control-string*
                 #:state-context
                 #:%nodes
@@ -119,8 +135,8 @@
                            (format stream "Continue to the next test.")))
                (remove-and-continue ()
                  :report (lambda (stream)
-                           (format stream "Remove ~s from *test-strings* and continue to the next test." string))
-                 (remhash string *test-strings*))))))
+                           (format stream "Remove ~s from *test-strings* and continue to the next test." input))
+                 (remhash input *test-strings*))))))
 
 (defmacro ∀ ((n &rest vars) &body body)
   (if vars

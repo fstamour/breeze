@@ -249,6 +249,14 @@
   ;; (is equal "x" (test-in-package-node-p "('|CL|::|IN-PACKAGE| x)"))
   (null (test-in-package-node-p "(cl:)")))
 
+
+#++ ;; TODO WIP
+(let* ((input "(mapcar )")
+       (node-iterator (make-node-iterator input)))
+  (loop :for i :below (length input)
+        :do (goto-position node-iterator i)
+        :collect (child-of-mapcar-node-p node-iterator)))
+
 (defun test-malformed-if-node-p (string)
   (let* ((state (parse string))
          (node (first (tree state))))

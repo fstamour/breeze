@@ -2,7 +2,7 @@
 
 (defpackage #:breeze.pattern
   (:documentation "Pattern matching")
-  (:use #:cl)
+  (:use #:cl #:breeze.iterator)
   (:export #:compile-pattern)
   (:export #:defpattern
            #:match
@@ -10,9 +10,6 @@
            #:term
            #:maybe
            #:*match-skip*)
-  (:export #:iterate
-           #:iterator-done-p
-           #:iterator-value)
   ;; Working with match results
   (:export #:merge-sets-of-bindings
            #:find-binding
@@ -234,113 +231,6 @@ compile-pattern is called, a new one is created."
       (error "Failed to find the pattern ~S." (ref-name pattern))))
 
 
-;;; TODO (important!) replace by iterator.lisp's iterators
-;;;
-;;; Iterator:
-;;;  - takes care of "recursing" into referenced patterns
-;;;  - conditionally skips inputs
-;;;  - works on vectors only, for my sanity
-;;;  - I want to make it possible to iterate backward, hence the "step"
-
-;; Will I regret implemeting this?
-
-(defstruct iterator
-  ;; The vector being iterated on
-  vector
-  ;; The current position in the vector
-  (position 0)
-  ;; How much to advance the position per iteration
-  (step 1)
-  ;; The iterator to return when the current one is done
-  parent)
-
-#++
-(defun iterator-depth (iterator)
-  (if (null (iterator-parent iterator))
-      0
-      (1+ (iterator-depth (iterator-parent iterator)))))
-
-(defun iterator-done-p (iterator)
-  "Check if there's any values left to iterator over."
-  (check-type iterator iterator)
-  ;; Simply check if "position" is out of bound.
-  (not (< -1
-          (iterator-position iterator)
-          (length (iterator-vector iterator)))))
-
-(defun iterator-push (iterator vector)
-  "Create a new iterator on VECTOR, with ITERATOR as parent. Returns the
-new iterator."
-  (check-type iterator iterator)
-  (check-type vector vector)
-  (make-iterator :vector vector :parent iterator))
-
-(defun iterator-maybe-push (iterator)
-  "If ITERATOR is not done and the current value is a reference, \"push\"
-a new iterator."
-  (if (iterator-done-p iterator)
-      iterator
-      (let ((value (iterator-value iterator)))
-        (if (refp value)
-            (iterator-maybe-push (iterator-push iterator (ref-pattern value)))
-            iterator))))
-
-(defun iterator-maybe-pop (iterator)
-  "If ITERATOR is done and has a parent, return the next parent."
-  (check-type iterator iterator)
-  (if (and (iterator-done-p iterator)
-           (iterator-parent iterator))
-      (let ((parent (iterator-parent iterator)))
-        ;; Advance the position
-        (incf (iterator-position parent)
-              (iterator-step parent))
-        ;; return the parent
-        (iterator-maybe-pop parent))
-      iterator))
-
-(defun iterate (vector &key (step 1))
-  "Create a new iterator."
-  (check-type vector vector)
-  (let ((iterator
-          (iterator-maybe-push
-           (make-iterator :vector vector :step step))))
-    (if (iterator-skip-p iterator)
-        (iterator-next iterator)
-        iterator)))
-
-(defvar *match-skip* nil
-  "Controls wheter to skip a value when iterating.")
-
-(defun iterator-skip-p (iterator &optional (match-skip *match-skip*))
-  (when (and match-skip (not (iterator-done-p iterator)))
-    (funcall match-skip (iterator-value iterator))))
-
-(defun %iterator-next (iterator)
-  "Advance the iterator exactly once. Might return a whole new iterator."
-  (check-type iterator iterator)
-  ;; Advance the position
-  (incf (iterator-position iterator)
-        (iterator-step iterator))
-  (iterator-maybe-push (iterator-maybe-pop iterator)))
-
-(defun iterator-next (iterator)
-  "Advance the iterator, conditionally skipping some values. Might return
-a whole new iterator."
-  (check-type iterator iterator)
-  (loop :for new-iterator = (%iterator-next iterator)
-          :then (%iterator-next new-iterator)
-        :while (iterator-skip-p new-iterator)
-        :finally (return new-iterator)))
-
-(defun iterator-value (iterator)
-  "Get the value at the current ITERATOR's position."
-  (check-type iterator iterator)
-  (when (iterator-done-p iterator)
-    (error "No more values in this iterator."))
-  (aref (iterator-vector iterator)
-        (iterator-position iterator)))
-
-
 ;;; Bindings (e.g. the result of a successful match)
 
 (defun make-empty-bindings () t)
@@ -432,22 +322,27 @@ bindings and keeping only those that have not conflicting bindings."
   nil)
 
 
+;;; Iterators
+
+(defclass pattern-iterator (recursive-iterator)
+  ())
+
+(defmethod make-pattern-iterator ((pattern vector))
+  (make-instance 'pattern-iterator pattern))
+
+
 ;;; Matching sequences
 
 (defmethod match ((pattern iterator) (input iterator))
   (loop
     :with bindings = (make-empty-bindings)
-    ;; Iterate over the pattern
-    :for pattern-iterator := pattern
-      :then (iterator-next pattern-iterator)
-    ;; Iterate over the input
-    :for input-iterator := input
-      :then (iterator-next input-iterator)
-    :until (or (iterator-done-p pattern-iterator)
-               (iterator-done-p input-iterator))
+    :for pattern-iterator := pattern :then (next pattern-iterator)
+    :for input-iterator := input :then (next input-iterator)
+    :until (or (donep pattern-iterator)
+               (donep input-iterator))
     :for new-bindings = (match
-                            (iterator-value pattern-iterator)
-                          (iterator-value input-iterator))
+                            (value pattern-iterator)
+                          (value input-iterator))
     :if new-bindings
       ;; collect all the bindings
       :do
@@ -461,15 +356,15 @@ bindings and keeping only those that have not conflicting bindings."
     :finally
        ;; We advance the input iterator to see if there are still
        ;; values left that would not be skipped.
-       (when (and (not (iterator-done-p input-iterator))
+       (when (and (not (donep input-iterator))
                   (iterator-skip-p input-iterator))
-         (setf input-iterator (iterator-next input-iterator)))
+         (setf input-iterator (next input-iterator)))
        (return
          ;; We want to match the whole pattern, but wheter we
          ;; want to match the whole input is up to the caller.
-         (when (iterator-done-p pattern-iterator)
+         (when (donep pattern-iterator)
            (values (or bindings t)
-                   (if (iterator-done-p input-iterator)
+                   (if (donep input-iterator)
                        nil
                        input-iterator))))))
 
