@@ -162,6 +162,16 @@ calls the continuation CONT with the resulting value."
    package))
 
 
+;;; Generic utilities
+
+(defun breeze-ensure-mode (mode)
+  (if (derived-mode-p mode)
+      (breeze-debug "already in %s (%s)" major-mode mode)
+    (progn
+      (breeze-debug "switching to %s" mode)
+      (funcall mode))))
+
+
 ;;; Common lisp driven interactive commands
 
 (cl-defun breeze-compute-buffer-args (&key (include-buffer-content-p t))
