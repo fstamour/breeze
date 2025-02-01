@@ -53,36 +53,36 @@
 
 (in-package #:breeze.test.pattern)
 
-(define-test ref
+(define-test+run ref
   (let ((ref (ref :x)))
     (of-type ref ref)
     (true (refp ref))
     (is eq :x (ref-name ref))))
 
-(define-test ref=
+(define-test+run ref=
   (true (ref= (ref :x) (ref :x)))
   (false (ref= (ref :y) (ref :x)))
   (false (ref= (ref :y) 42)))
 
-(define-test term
+(define-test+run term
   (let ((term (term :x)))
     (of-type term term)
     (true (termp term))
     (is eq :x (term-name term))))
 
-(define-test term=
+(define-test+run term=
   (true (term= (term :x) (term :x)))
   (false (term= (term :y) (term :x)))
   (false (term= (term :y) 42)))
 
-(define-test typed-term
+(define-test+run typed-term
   (let ((typed-term (typed-term 'symbol :x)))
     (of-type typed-term typed-term)
     (true (typed-term-p typed-term))
     (is eq :x (typed-term-name typed-term))
     (is eq 'symbol (typed-term-type typed-term))))
 
-(define-test typed-term=
+(define-test+run typed-term=
   (is typed-term= (term :x) (term :x))
   (isnt typed-term= (term :x) (term :y))
   (let ((expected (typed-term 'symbol :x)))
@@ -91,19 +91,19 @@
     (isnt typed-term= expected (typed-term 'keyword :x))
     (isnt typed-term= expected (typed-term 'keyword :y))))
 
-(define-test maybe
+(define-test+run maybe
   (let ((maybe (maybe :x)))
     (of-type repetition maybe)
     ;; TODO check repetition-{min,max}
     (is eq :x (repetition-pattern maybe))))
 
-(define-test zero-or-more
+(define-test+run zero-or-more
   (let ((zero-or-more (zero-or-more :x)))
     (of-type repetition zero-or-more)
     ;; TODO check repetition-{min,max}
     (is eq :x (repetition-pattern zero-or-more))))
 
-(define-test alternation
+(define-test+run alternation
   (let ((alternation (alternation :x)))
     (of-type alternation alternation)
     (true (alternationp alternation))
@@ -111,7 +111,7 @@
 
 ;; TODO alternation=
 
-(define-test pattern=
+(define-test+run pattern=
   (is pattern= 'x 'x)
   (is pattern= '(x) '(x))
   (is pattern= (ref 'x) (ref 'x))
@@ -130,18 +130,18 @@
 
 
 
-(define-test term-symbol-p
+(define-test+run term-symbol-p
   (true (term-symbol-p :?x))
   (false (term-symbol-p 'x))
   (false (term-symbol-p "?x")))
 
 #++
-(define-test ref-symbol-p
+(define-test+run ref-symbol-p
   (true (ref-symbol-p :$x))
   (false (ref-symbol-p 'x))
   (false (ref-symbol-p "$x")))
 
-(define-test compile-pattern
+(define-test+run compile-pattern
   (is pattern= :x (compile-pattern :x))
   (is pattern= 42 (compile-pattern 42))
   (is pattern= (term :?x) (compile-pattern :?x))
@@ -168,9 +168,6 @@
 
 
 ;;; Pattern iterators...
-;;; TODO (important!) replace by iterator.lisp's iterators
-
-;;; Imagine I have a structure that looks like this:
 
 ;; `(defun <ws> foo <ws> (x <ws> y) <nl> <ws> (+ <ws> x <ws> y))
 ;; where <ws> stands for whitespaces and <nl> for newlines
@@ -181,118 +178,23 @@
 
 ;; I _cannot_ iterate over both in at the same speed.
 
-(defun test-iterator (iterator vector
-                      &key (pos 0) donep value)
-  (is eq vector (iterator-vector iterator)
-      "The iterator was not intialized with the right vector.")
-  (is = pos (iterator-position iterator)
-      "The iterator's position was not correctly initialized to ~s." pos)
-  (is = 1 (iterator-step iterator)
-      "The iterator's step was not correctly initialized to 1.")
-  (when donep
-    (true (donep iterator)))
-  (when value
-    (is pattern= value (value iterator))))
-
-(define-test make-iterator
-  (let* ((vector #(1 2 3))
-         (iterator (make-iterator :vector vector)))
-    (test-iterator iterator vector)))
-
-(define-test donep
-  (true (donep (make-iterator :vector #())))
-  (true (donep (make-iterator :vector #() :position -1)))
-  (true (donep (make-iterator :vector #() :position 1)))
-  (false (donep (make-iterator :vector #(1))))
-  (false (donep (make-iterator :vector #(1 2 3))))
-  (true (donep (make-iterator :vector #(1 2 3) :position 10))))
-
-(define-test iterator-push
-  (let* ((vector1 #(1 2 3))
-         (vector2 #(a b c d e f))
-         (iterator (iterator-push
-                    (make-iterator :vector vector1)
-                    vector2)))
-    (test-iterator iterator vector2)))
-
-(define-test iterator-maybe-push
-  ;; empty case, so the iterator is donep from the start
-  (let* ((vector #())
-         (iterator (iterator-maybe-push (make-iterator :vector vector))))
-    (test-iterator iterator vector))
-  ;; non-empty, no ref
-  (let* ((vector #(1 2 3))
-         (iterator (iterator-maybe-push (make-iterator :vector vector))))
-    (test-iterator iterator vector))
-  ;; starts with a ref
-  (let* ((ref (ref 'a))
-         (vector `#(,ref))
-         (root-iterator (make-iterator :vector vector))
-         (iterator (iterator-maybe-push root-iterator)))
-    (isnt eq root-iterator iterator)
-    (test-iterator iterator (ref-pattern ref))
-    (is pattern= 'a (value iterator))))
-
-;; This also tests iterator-maybe-{push,pop}
-(define-test next
-  ;; empty case, so the iterator is donep from the start
-  (let* ((vector #())
-         (iterator (iterate vector)))
-    (test-iterator iterator vector :pos 0 :donep t)
-    (parachute:fail (value iterator))
-    (next iterator)
-    (test-iterator iterator vector :pos 1 :donep t)
-    (fail (value iterator)))
-  ;; non-empty, no ref
-  (let* ((vector #(1 2 3))
-         (iterator (iterate vector)))
-    (test-iterator iterator vector :pos 0 :value 1)
-    (next iterator)
-    (test-iterator iterator vector :pos 1 :value 2))
-  ;; starts with a ref
-  (let* ((ref (ref 'a))
-         (vector `#(,ref))
-         (root-iterator (make-iterator :vector vector))
-         (iterator (iterator-maybe-push root-iterator)))
-    (isnt eq root-iterator iterator)
-    (test-iterator root-iterator vector)
-    ;;; We're referencing the pattern '(a ?a)
-    ;; check the first value
-    (test-iterator iterator (ref-pattern ref) :pos 0 :value 'a)
-    ;; advance the iterator
-    (setf iterator (next iterator)) ; maybe a macro for this? (nextf iterator)
-    ;; check the second value
-    (test-iterator iterator (ref-pattern ref) :pos 1 :value #S(term :name ?a))
-    ;; (is pattern= #S(term :name ?a) (value iterator))
-    ;; advance the iterator
-    (let ((iterator2 (next iterator)))
-      (test-iterator iterator (ref-pattern ref) :pos 2 :donep t)
-      (isnt eq iterator iterator2 "next should have returned a different iterator.")
-      (is eq root-iterator iterator2 "next should have returned the root iterator.")
-      (test-iterator iterator2 vector :pos 1 :donep t)
-      (fail (value iterator2)))))
-
-;; TODO This _could_ be renamed "flatten pattern" ?
-(defun test-iterator* (vector)
-  (loop
-    :for i :from 0
-    :for iterator := (iterate vector) :then (next iterator)
-    :until (prog1 (donep iterator)
-             ;; (format *debug-io* "~%~%~d: ~S" i iterator)
-             )
-    :for value = (value iterator)
-    ;; :do (format *debug-io* "~&~d: ~S~%~%" i value)
-    :collect value))
-
-(define-test iterator
-  (is equalp '(a #s(term :name ?a))
-      (test-iterator* `#(,(ref 'a))))
-  (is equalp '(a #s(term :name ?a) a #s(term :name ?a))
-      (test-iterator* `#(,(ref 'b)))))
+(define-test+run pattern-iterator
+  (false (collect (make-pattern-iterator #())))
+  (is equalp '(a) (collect (make-pattern-iterator #(a))))
+  (is equalp
+      '(a #s(term :name ?a))
+      ;; == (coerce (ref-pattern 'a) 'list)
+      (collect (make-pattern-iterator `#(,(ref 'a)))))
+  (is equalp
+      '(a #s(term :name ?a) a #s(term :name ?a))
+      (collect (make-pattern-iterator `#(,(ref 'b)))))
+  (is equalp
+      `(b ,@(coerce (ref-pattern 'a) 'list) c)
+      (collect (make-pattern-iterator `#(b ,(ref 'a) c)))))
 
 
 
-(define-test merge-bindings
+(define-test+run merge-bindings
   (false (merge-bindings nil nil))
   (false (merge-bindings nil t))
   (false (merge-bindings t nil))
@@ -309,7 +211,7 @@
 (defun test-match (pattern input)
   (match (compile-pattern pattern) input))
 
-(define-test "match basic patterns"
+(define-test+run "match basic patterns"
   (true (match nil nil))
   (false (match nil t))
   (false (match t nil))
@@ -321,7 +223,7 @@
   (false (match 'x 'y)))
 
 ;;; TODO check the actual return values
-(define-test "match terms"
+(define-test+run "match terms"
   (true (match (term :?x) nil))
   (true (match (term :?x) 1))
   (true (match (term :?x) 'x))
@@ -331,7 +233,7 @@
   (true (match `#(,(term :?x)) (list 42))))
 
 ;;; TODO check the actual return values
-(define-test "match typed-terms"
+(define-test+run "match typed-terms"
   (true (match (typed-term 'null :?x) nil))
   (false (match (typed-term 'null :?x) t))
   (true (match (typed-term 'number :?x) 1))
@@ -356,7 +258,7 @@
 ;;; test :maybe :zero-or-more and :alternation
 
 #++ ;; TODO
-(define-test "match maybe"
+(define-test+run "match maybe"
   (is eq t (match (maybe 'a) 'a))
   (is eq t (match (maybe 'a) nil))
   (is eq t (match (maybe 'a :?x) nil))
@@ -367,7 +269,7 @@
   (is equalp `(,(term :name '?x) nil) (match (maybe (term '?x)) nil)))
 
 #++ ;; TODO
-(define-test "match alternations"
+(define-test+run "match alternations"
   (is eq t (test-match '(:alternation a b) 'a))
   (is eq t (test-match '(:alternation a b) 'b))
   (false (test-match '(:alternation a b) 'c))

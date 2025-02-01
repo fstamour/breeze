@@ -8,8 +8,7 @@
            #:match
            #:ref
            #:term
-           #:maybe
-           #:*match-skip*)
+           #:maybe)
   ;; Working with match results
   (:export #:merge-sets-of-bindings
            #:find-binding
@@ -225,9 +224,11 @@ compile-pattern is called, a new one is created."
                 (first body)))))
 
 (defun ref-pattern (pattern)
-  (check-type pattern ref)
+  (check-type pattern (or ref symbol))
   ;; TODO rename terms????
-  (or (gethash (ref-name pattern) *patterns*)
+  (or (typecase pattern
+        (symbol (gethash pattern *patterns*))
+        (ref (gethash (ref-name pattern) *patterns*)))
       (error "Failed to find the pattern ~S." (ref-name pattern))))
 
 
@@ -328,21 +329,22 @@ bindings and keeping only those that have not conflicting bindings."
   ())
 
 (defmethod make-pattern-iterator ((pattern vector))
-  (make-instance 'pattern-iterator pattern))
+  (make-recursive-iterator
+   pattern
+   (lambda (pattern)
+     (and (refp pattern)
+          (ref-pattern pattern)))
+   :class 'pattern-iterator))
 
 
 ;;; Matching sequences
 
-(defmethod match ((pattern iterator) (input iterator))
+(defmethod match (($pattern pattern-iterator) ($input iterator))
   (loop
     :with bindings = (make-empty-bindings)
-    :for pattern-iterator := pattern :then (next pattern-iterator)
-    :for input-iterator := input :then (next input-iterator)
-    :until (or (donep pattern-iterator)
-               (donep input-iterator))
-    :for new-bindings = (match
-                            (value pattern-iterator)
-                          (value input-iterator))
+    :until (or (donep $pattern) (donep $input))
+    :for new-bindings = (match (value $pattern) (value $input))
+    :do (next $pattern) (next $input)
     :if new-bindings
       ;; collect all the bindings
       :do
@@ -356,27 +358,26 @@ bindings and keeping only those that have not conflicting bindings."
     :finally
        ;; We advance the input iterator to see if there are still
        ;; values left that would not be skipped.
-       (when (and (not (donep input-iterator))
-                  (iterator-skip-p input-iterator))
-         (setf input-iterator (next input-iterator)))
+       #++
+       (when (and (not (donep $input))
+                  (iterator-skip-p $input))
+         (setf $input (next $input)))
        (return
          ;; We want to match the whole pattern, but wheter we
          ;; want to match the whole input is up to the caller.
-         (when (donep pattern-iterator)
+         (when (donep $pattern)
            (values (or bindings t)
-                   (if (donep input-iterator)
-                       nil
-                       input-iterator))))))
+                   (unless (donep $input) $input))))))
 
 (defmethod match ((pattern term) (input iterator))
   (multiple-value-bind (bindings input-remaining-p)
-      (match (iterate (vector pattern)) input)
+      (match (make-pattern-iterator (vector pattern)) input)
     (unless input-remaining-p
       bindings)))
 
 (defmethod match ((pattern vector) (input vector))
   (multiple-value-bind (bindings input-remaining-p)
-      (match (iterate pattern) (iterate input))
+      (match (make-pattern-iterator pattern) (make-vector-iterator input))
     (unless input-remaining-p
       bindings)))
 
@@ -390,26 +391,14 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Matching repetitions
 
-#++
-(defmethod match ((pattern maybe) input)
-  (or (alexandria:when-let ((bindings (match (maybe-pattern pattern) input)))
-        (if (maybe-name pattern)
-            (merge-bindings bindings (make-binding pattern input))
-            bindings))
-      (not input)))
-
-#++
-(defmethod match ((pattern zero-or-more) (input null))
-  t)
-
 (defmethod match ((pattern repetition) (input vector))
   (loop
     :with bindings = (make-empty-bindings)
     :with pat = (repetition-pattern pattern)
-    :with input-iterator := (iterate input)
+    :with input-iterator := (make-vector-iterator input)
     :for i :from 0
     :do (multiple-value-bind (new-bindings new-input-iterator)
-            (match (iterate pat) input-iterator)
+            (match (make-pattern-iterator pat) input-iterator)
           ;; (break)
           (if new-bindings
               ;; collect all the bindings (setf bindings
@@ -436,14 +425,13 @@ bindings and keeping only those that have not conflicting bindings."
 ;;; Convenience automatic coercions
 
 (defmethod match ((pattern vector) (input iterator))
-  (match (iterate pattern) input))
+  (match (make-pattern-iterator pattern) input))
 
 (defmethod match ((pattern vector) (input sequence))
   (match pattern (coerce input 'vector)))
 
 (defmethod match ((pattern repetition) (input sequence))
   (match pattern (coerce input 'vector)))
-
 
 
 ;;; Match substitution

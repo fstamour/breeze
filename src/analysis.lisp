@@ -157,7 +157,7 @@ children nodes."
   `(defun ,name (state node)
      ,(format nil "Does NODE match ~s?" pattern)
      (let* ((*state* state)
-            (*match-skip* #'whitespace-or-comment-node-p)
+            ;; (*match-skip* #'whitespace-or-comment-node-p)
             (bindings (match (compile-pattern ,pattern) node)))
        ,@body)))
 
@@ -174,7 +174,6 @@ children nodes."
   "Is NODE a cl:in-package node?
 N.B. This doesn't guarantee that it's a valid node."
   (let* ((*state* state)
-         (*match-skip* #'whitespace-or-comment-node-p)
          (bindings (match #.(compile-pattern `(in-package :?package)) node))
          (package-designator-node (cdr (find-binding bindings :?package))))
     package-designator-node))

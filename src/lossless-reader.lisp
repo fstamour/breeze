@@ -1267,13 +1267,13 @@ Returns a new node with one of these types:
 (defmethod make-node-iterator ((state state))
   (when (null (tree state))
     (error "Can't iterate on an empty parse tree."))
-  (push-vector
-   (make-instance 'node-iterator
-                  :state state
-                  :recurse-into (lambda (iterator)
-                                  (node-children (value iterator)))
-                  :order :root-then-subtree)
-   (tree state)))
+  (make-recursive-iterator
+   (tree state)
+   (lambda (node)
+     (node-children node))
+   :state state
+   :class 'node-iterator
+   :order :root-then-subtree))
 
 ;; TODO add tests
 (defmethod make-node-iterator ((string string))
