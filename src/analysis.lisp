@@ -35,7 +35,7 @@ children nodes."
              :start1 (start node-iterator)
              :end1 (end node-iterator))))
 
-(defun node-string= (node-iterator string)
+(defun node-string-equal (node-iterator string)
   (when node-iterator
     (string-equal (source node-iterator) string
              :start1 (start node-iterator)
