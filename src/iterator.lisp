@@ -374,30 +374,41 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 orders exists, but they're not needed by breeze for now."))
   (:documentation "Iterator for nested vectors that automatically recurse into subtrees."))
 
-(defun make-recursive-iterator (vector recurse-into &key apply-recurse-into-to-iterator-p order)
-  (push-vector
-   (make-instance 'recursive-iterator
-                  :recurse-into (if apply-recurse-into-to-iterator-p
-                                    recurse-into
-                                    (lambda (iterator)
-                                      (funcall recurse-into (value iterator))))
-                  :order (ecase order
-                           (:root-then-subtree order)
-                           ;; default
-                           ((nil :subtree-only) :subtree-only)))
-
-   vector))
+(defun make-recursive-iterator (vector recurse-into
+                                &rest rest
+                                &key
+                                  apply-recurse-into-to-iterator-p
+                                  order
+                                  (class 'recursive-iterator)
+                                &allow-other-keys)
+  (let ((iterator (apply #'make-instance
+                         class
+                         :recurse-into (if apply-recurse-into-to-iterator-p
+                                           recurse-into
+                                           (lambda (iterator)
+                                             (funcall recurse-into (value iterator))))
+                         :order (ecase order
+                                  (:root-then-subtree order)
+                                  ;; default
+                                  ((nil :subtree-only) :subtree-only))
+                         (alexandria:remove-from-plist rest :class :order :apply-recurse-into-to-iterator-p))))
+    (push-vector iterator vector)
+    (when (eq (order iterator) :subtree-only)
+      (maybe-dig-in iterator))
+    iterator))
 
 
 (defmethod maybe-dig-in ((iterator recursive-iterator))
   (unless (donep iterator)
-    (let ((value-to-dig-in (funcall (recurse-into iterator) iterator)))
-      (when value-to-dig-in
-        (push-vector iterator
-                     (if (eq t value-to-dig-in)
-                         (value iterator)
-                         value-to-dig-in))
-        t))))
+    (let ((digged-in-p nil))
+      (loop :for value-to-dig-in = (funcall (recurse-into iterator) iterator)
+            :while value-to-dig-in
+            :do (setf digged-in-p t)
+                (push-vector iterator
+                             (if (eq t value-to-dig-in)
+                                 (value iterator)
+                                 value-to-dig-in)))
+      digged-in-p)))
 
 (defmethod maybe-dig-out ((iterator recursive-iterator))
   ;; TODO this docstring is not exactly right, it's still written as
