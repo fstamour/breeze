@@ -1270,4 +1270,51 @@ reaally?")
               (9 "(d)")
               (10 "(b c (d))")
               (11 "e"))
-      (goto-position/all "a (b c (d))e")))
+      (goto-position/all "a (b c (d))e"))
+  (is equal
+      '((0 "#:x") (1 "#:x") (2 "x"))
+      (goto-position/all "#:x"))
+  (is equal
+      '((0 ";; #:x") (1 ";; #:x") (2 ";; #:x") (3 ";; #:x") (4 ";; #:x") (5 ";; #:x"))
+      (goto-position/all ";; #:x"))
+  (is equal
+      '((0 "#=3") (1 "#=3") (2 "3"))
+      (goto-position/all "#=3")))
+
+#++
+(progn
+  (breeze.lossless-reader:node-children-contains-position-p
+   (first-node (tree (parse "#:x")))
+   3)
+
+  (let* ((state (parse "#:x"))
+         (it (make-node-iterator state)))
+    (goto-position it 2)
+    (node-content state (value it)))
+
+
+  (let* ((state (parse ";;;; System definitions for breeze and auxiliary systems
+
+
+;;; breeze.asd package
+
+"))
+         (it (make-node-iterator state)))
+    (goto-position it 1)
+    (node-content state (value it)))
+
+  #((sharp-uninterned 0 3 (token 2 3)))
+
+  (trace breeze.lossless-reader::node-children-contains-position-p)
+  (trace node-children)
+  (trace next)
+
+  (untrace)
+
+
+  (goto-position/all ";;;; System definitions for breeze and auxiliary systems
+
+
+;;; breeze.asd package
+
+"))

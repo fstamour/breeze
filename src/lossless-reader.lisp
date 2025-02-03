@@ -302,7 +302,7 @@ common lisp.")
 (defun nth-node (nodes n)
   (etypecase nodes
     (null nil)
-    (node (last-node (node-children nodes)))
+    (node (nth-node (node-children nodes) n))
     (vector (aref nodes (if (minusp n) (+ n (length nodes)) n)))))
 
 (defun first-node (nodes)
@@ -312,7 +312,10 @@ common lisp.")
   (nth-node nodes 1))
 
 (defun last-node (nodes)
-  (nth-node nodes -1))
+  (etypecase nodes
+    (null nil)
+    (node nodes)
+    (vector (nth-node nodes -1))))
 
 (defun node (type start end &optional child &rest children)
   #++ (when (= +end+ end)
@@ -1269,8 +1272,14 @@ Returns a new node with one of these types:
     (error "Can't iterate on an empty parse tree."))
   (make-recursive-iterator
    (tree state)
+   ;; #'node-children
    (lambda (node)
-     (node-children node))
+     (when-let ((children (node-children node)))
+       (if (vectorp children)
+           children
+           (when (nodep children)
+             ;; TODO don't cons for this... :/
+             (vector children)))))
    :state state
    :class 'node-iterator
    :order :root-then-subtree))
@@ -1301,6 +1310,17 @@ Returns a new node with one of these types:
          (or (no-end-p node)
              (< position end)))))
 
+(defun node-children-contains-position-p (node position)
+  (when-let* ((children (node-children node)))
+    (when (typep children '(or vector node))
+      (let ((first (if (vectorp children) (aref children 0) children))
+            (last (if (vectorp children) (aref children (1- (length children))) children)))
+        (let ((start (start first))
+              (end (end last)))
+          (and (<= start position)
+               (or (no-end-p last)
+                   (< position end))))))))
+
 ;; TODO add tests
 (defmethod goto-position ((iterator node-iterator) position)
   ;; TODO this might not be necessary, as an optimization, when can
@@ -1316,30 +1336,34 @@ Returns a new node with one of these types:
       :for node = (value iterator)
       :do
          (unless (< i 100000)
-           (log-error "goto-position seems to be stuck in a loop")
+           (log-error "goto-position seems to be stuck in a loop (trying to get at position ~D)" position)
            (return))
-      #++ (log-debug "~&depth: ~d positions: ~s donep: ~s node: ~s"
+      #++ (log-debug "depth: ~d positions: ~s donep: ~s node: ~s"
                      (depth iterator)
                      (positions iterator)
                      (donep iterator)
                      node)
           (cond
-            ((= (node-start node) position)
-             #++ (log-debug "~&stop: right at the start of a node")
+            ((= (start node) position)
+             #++ (log-debug "stop: right at the start of a node")
              (return))
             ((node-contains-position-p node position)
-             (when (node-children node)
-               #++ (log-debug "~&  (node-end (last-node (node-children node))): ~d"
-                              (node-end (last-node (node-children node))))
-               (if (and (not (no-end-p node))
-                        (<= (node-end (last-node (node-children node))) position))
-                   (progn
-                     #++ (log-debug "~&stop: no need to recurse")
-                     (return))
-                   ;; this will recurse into the node's children
-                   (next iterator))))
+             #++ (log-debug "node-contains-position-p ~a" node)
+             (if (node-children node)
+                 (progn
+                   #++(log-debug "  (node-end (last-node (node-children node))): ~d"
+                              (end (last-node (node-children node))))
+                   (if (not (node-children-contains-position-p node position))
+                       (progn
+                         #++ (log-debug "stop: no need to recurse")
+                         (return))
+                       ;; this will recurse into the node's children
+                       (next iterator)))
+                 (progn
+                   #++ (log-debug "stop: done!")
+                   (return))))
             ((< position (node-end node))
-             #++ (log-debug "~&stop: went too far! position: ~d node-end: ~d"
+             #++ (log-debug "stop: went too far! position: ~d node-end: ~d"
                             position (node-end node))
              (return))
             (t (next iterator :dont-recurse-p t)))))

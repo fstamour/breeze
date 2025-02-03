@@ -42,7 +42,7 @@
                                           :point 1))
        :for node-iterator = (parse-tree buffer)
        :do
-          (breeze.logging:log-info "Going through ~s" name)
+          ;; (breeze.logging:log-info "Going through ~s" name)
           (loop
             :with length = (length content)
             :for i :below length
