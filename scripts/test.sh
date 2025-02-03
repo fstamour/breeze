@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# This script is used to run the tests
+# This script is used to run the tests with sbcl
 #
 
 set -e

@@ -43,7 +43,7 @@
         (stream (log-stream)))
     (when (compare-level #'>= level current-level)
       ;; TODO maybe print the time too?
-      (format stream "~&~a ~?" level control-string args))))
+      (format stream "~&~a ~?~%" level control-string args))))
 
 
 (macrolet ((def (level)
