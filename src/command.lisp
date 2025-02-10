@@ -616,7 +616,6 @@ resulting string to the editor."
                                    (documentation symbol 'function))
                              symbol))))
 
-
 (defmacro define-command (name lambda-list
                           &body body)
   "Macro to define a command.
@@ -628,14 +627,29 @@ Example:
 "
   (multiple-value-bind (remaining-forms declarations docstring)
       (alexandria:parse-body body :documentation t)
-    ;; Docstring are mandatory for commands
-    (check-type docstring string)
-    `(progn
-       (defun ,name ,lambda-list
-         ;; Add the users' declarations
-         ,@declarations
-         ,docstring
-         (progn ,@remaining-forms)
-         (send "done"))
-       ;; Add a flag into the symbol's plist
-       (setf (get ',name 'commandp) ',(or lambda-list t)))))
+    (check-type docstring string
+                "Docstring are mandatory for commands")
+    (multiple-value-bind (command-declarations cl-declarations)
+        (loop :for (_ specifier) :in declarations
+              :for identifier = (car specifier)
+              :if (member identifier '(context))
+                :collect specifier :into command-declarations
+              :else
+                :collect specifier :into cl-declarations
+              :finally (return (values command-declarations cl-declarations)))
+      `(values (prog1
+                   (defun ,name ,lambda-list
+                     ;; Add the users' declarations
+                     ,@cl-declarations
+                     ,docstring
+                     (progn ,@remaining-forms)
+                     (send "done"))
+                 ;; Add flags into the symbol's plist
+                 (setf (get ',name 'commandp) ',(or lambda-list t))
+                 ,@(loop :for (identifier . rest) :in command-declarations
+                         :for args = (cond
+                                       ((null rest) t)
+                                       ((null (cdr rest)) (car rest))
+                                       (t rest))
+                         :collect `(setf (get ',name ',identifier) ',args)))
+               ',command-declarations))))
