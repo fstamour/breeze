@@ -2,7 +2,7 @@
   (:documentation "Utilities for logging.")
   (:use #:cl)
   (:export
-   #:*log-level*
+   #:log-level
    #:log-message
    #:log-critical
    #:log-error
@@ -12,13 +12,14 @@
 
 (in-package #:breeze.logging)
 
-;; TODO These could probably profit from being methods instead of
-;; plain functions.
-
 (defparameter *log-level* :info
   "The current log level")
 
 (defun log-level () "Get the current log level." *log-level*)
+
+(defun (setf log-level) (new-value)
+  (check-type new-value (member :critical :error :warning :info :debug))
+  (setf *log-level* new-value))
 
 (defun log-stream ()
   "Get the current log output stream."
@@ -31,12 +32,6 @@
   (funcall cmp
            (length (member level1 #1='(:critical :error :warning :info :debug)))
            (length (member level2 #1#))))
-
-#++
-(list
- (compare-level #'< :debug :debug)
- (compare-level #'< :debug :critical)
- (compare-level #'< :critical :debug))
 
 (defun log-message (level control-string &rest args)
   (let ((current-level (log-level))
