@@ -194,6 +194,28 @@ calls the continuation CONT with the resulting value."
 ;;                          (lambda ()
 ;;                            (insert " hola\n \n- hi\n+ world\n")))
 
+;; (defun %%%breeze-fake-diff (file-before file-after hunks)
+;;   (with-output-to-string
+;;     (princ (format "--- %s\n+++ %s\n" file-before file-after))
+;;     (cl-loop for (range-before range-after diff) in hunks
+;;              do (princ (format "@@ -%s,%s +%s,%s @@\n%s\n"
+;;                                (car range-before)
+;;                                (cdr range-before)
+;;                                (car range-after)
+;;                                (cdr range-after)
+;;                                diff)))))
+
+;; (breeze-show-temp-buffer "*breeze-show*"
+;;                          'diff-mode
+;;                          (lambda ()
+;;                            (insert (%%%breeze-fake-diff "a.lisp" "a.lisp"
+;;                                                         `(((3 . 4) (3 . 4)
+;;                                                            " previously...\n- holla\n+ holla world\n"))))
+;;                            (diff-fixup-modifs (point-min) (point-max))))
+;;
+;; ...Or use the faces `diff-removed', `diff-added', etc (instead of
+;; trying to use diff-mode)
+
 (defun breeze-with-face (string &rest face-plist)
   "Add the 'face property to STRING."
   (propertize string 'face face-plist))
