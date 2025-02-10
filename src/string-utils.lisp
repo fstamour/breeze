@@ -21,8 +21,11 @@
    #:whitespacep
    #:symbol-package-qualified-name
    #:ensure-prefix
+   #:ensure-prefixes
    #:ensure-suffix
-   #:ensure-circumfix))
+   #:ensure-suffixes
+   #:ensure-circumfix
+   #:ensure-circumfixes))
 
 (in-package #:breeze.string)
 
@@ -290,33 +293,56 @@ AROUND. Add elipseses before and after if necessary."
         (*package* (find-package "KEYWORD")))
     (prin1-to-string symbol)))
 
-
 (defun ensure-prefix (prefix string)
-  (if (alexandria:starts-with-subseq prefix string)
-      string
-      (concatenate 'string prefix string)))
+  (etypecase prefix
+    (null string)
+    (character
+     (if (alexandria:starts-with prefix string)
+         string
+         (concatenate 'string (string prefix) string)))
+    (string
+     (if (alexandria:starts-with-subseq prefix string)
+         string
+         (concatenate 'string prefix string)))))
 
-#++
-(and (equal
-      "*a"
-      (ensure-prefix "*" "a"))
-     (equal (ensure-prefix "*" "a")
-            (ensure-prefix "*" "*a")))
+(defun ensure-prefixes (prefixes string)
+  (if prefixes
+      (let* ((prefixes (mapcar #'string (alexandria:ensure-list prefixes)))
+             (result (make-array (length string)
+                                :element-type (array-element-type string)
+                                :adjustable t
+                                :fill-pointer 0)))
+        (with-output-to-string (output result)
+          (flet ((trim (str prefix)
+                   (multiple-value-bind (starts-with-p new-suffix)
+                       (alexandria:starts-with-subseq prefix str :return-suffix t)
+                     (cons starts-with-p
+                           (if starts-with-p
+                               new-suffix
+                               str)))))
+            (loop
+              :for prefix :in prefixes
+              :for (starts-with-p . suffix) = (trim string prefix) :then (trim suffix prefix)
+              :do (write-string prefix output)
+              :finally (write-string suffix output))))
+        result)
+      string))
 
 (defun ensure-suffix (suffix string)
   (if (alexandria:ends-with-subseq suffix string)
       string
       (concatenate 'string string suffix)))
 
-#++
-(and (equal
-      "a*"
-      (ensure-suffix "*" "a"))
-     (equal (ensure-suffix "*" "a")
-            (ensure-suffix "*" "a*")))
+(defun ensure-suffixes (suffixes string)
+  (reverse
+   (ensure-prefixes (reverse
+                     (mapcar #'reverse
+                             (mapcar #'string
+                                     (alexandria:ensure-list suffixes))))
+                    (reverse string))))
 
-(defun ensure-circumfix (circumfix string)
-  (ensure-suffix circumfix (ensure-prefix circumfix string)))
+(defun ensure-circumfix (circumfix string &optional (suffix circumfix))
+  (ensure-suffix suffix (ensure-prefix circumfix string)))
 
-#++
-(equal "*a*" (ensure-circumfix "*" "a"))
+(defun ensure-circumfixes (prefixes string suffixes)
+  (ensure-prefixes prefixes (ensure-suffixes suffixes string)))
