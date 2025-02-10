@@ -13,7 +13,10 @@
                 #:lastcar)
   (:import-from #:breeze.string
                 #:symbol-package-qualified-name
-                #:ensure-circumfix)
+                #:symbol-starts-with
+                #:trim-whitespace
+                #:ensure-circumfix
+                #:ensure-circumfixes)
   (:import-from #:breeze.utils
                 #:before-last)
   (:import-from #:breeze.indirection
@@ -34,6 +37,7 @@
    #:insert-define-constant
    #:insert-defun-shaped
    #:insert-defun
+   #:insert-setf-defun
    #:insert-defmacro
    #:insert-defpackage
    #:insert-in-package-cl-user
@@ -55,6 +59,12 @@
 
 #++
 (define-node-form-predicates (uiop:define-package))
+
+(defun normalize-docstring (string)
+  (ensure-circumfix "\"" (trim-whitespace string)))
+
+(defun normalize-lambda-list (string)
+  (ensure-circumfix "(" (trim-whitespace string) ")"))
 
 
 ;;; Insertion commands
@@ -134,8 +144,7 @@ defvar."
                              (ensure-circumfix circumfix name)))
   (read-string-then-insert "Initial value: " "~a~%")
   (read-string-then-insert "Documentation string " "~a)"
-                           (lambda (name)
-                             (ensure-circumfix "\"" name))))
+                           #'normalize-docstring))
 
 (define-command insert-defvar ()
   "Insert a defvar form."
@@ -158,19 +167,40 @@ defvar."
   (declare (context :top-level))
   (insert-defvar-shaped "define-constant"))
 
-(defun insert-defun-shaped (form-name)
+(defun insert-defun-shaped (form-name &optional
+                                        (name-callback #'identity)
+                                        (arguments-callback #'identity))
   "Start a command to insert a form that has the same shape as a
 defun."
   (insert "(~a " form-name)
-  (read-string-then-insert "Name: " "~a (")
+  (read-string-then-insert "Name: " "~a " name-callback)
   (read-string-then-insert
    ;; Who needs to loop...?
-   "Enter the arguments: " "~a)~%)"))
+   "Enter the arguments: " "~a)~%"
+   (alexandria:compose #'normalize-lambda-list arguments-callback))
+  #++ ;; TODO
+  (read-string-then-insert
+   "Documentation string: " "  ~a)"
+   #'normalize-docstring))
 
 (define-command insert-defun ()
   "Insert a defun form."
   (declare (context :top-level))
   (insert-defun-shaped "defun"))
+
+(define-command insert-setf-defun ()
+  "Insert a setf function form e.g. (defun (setf ...) ...)"
+  (declare (context :top-level))
+  (insert-defun-shaped
+   "defun"
+   (lambda (name)
+     (ensure-circumfixes '("(" "setf" " ") name ")"))
+   (lambda (arguments)
+     (if (string= "" arguments)
+         "(new-value)"
+         (ensure-circumfixes '("(" "new-value" " ")
+                             (trim-whitespace arguments)
+                             ")")))))
 
 (define-command insert-defmacro ()
   "Insert a defmacro form."
@@ -336,7 +366,7 @@ defun."
   (declare (context :top-level))
   (insert "(define-test+run ")
   (read-string-then-insert "Name of the test: "
-                           "~a~%)~%"))
+                           "~a)~%"))
 
 
 ;;;

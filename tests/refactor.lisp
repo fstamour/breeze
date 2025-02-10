@@ -273,7 +273,7 @@ newline in the expected result."
     (destructuring-bind (input request) (third trace)
       (is equal '"real-fun" input)
       (is string= "insert" (first request))
-      (is string= "real-fun (" (second request)))
+      (is string= "real-fun " (second request)))
     (destructuring-bind (input request) (fourth trace)
       (is string= "read-string" (first request))
       (is string= "Enter the arguments: " (second request))
@@ -282,10 +282,9 @@ newline in the expected result."
       (is equal '"a &optional b" input)
       (is string= "insert" (first request))
       (is equal
-          '("a &optional b)"
-            ")")
+          '("(a &optional b))"
+            "")
           (split-by-newline (second request))))))
-
 
 (define-test insert-defvar
   (let* ((trace (drive-command #'insert-defvar
@@ -344,7 +343,7 @@ newline in the expected result."
             "  (:documentation \"\"))")
           (split-by-newline (second request))))))
 
-(define-test insert-defmacro
+(define-test+run insert-defmacro
   (let* ((trace (drive-command #'insert-defmacro
                                :inputs '("mac" "(x) &body body")
                                :context '())))
@@ -359,7 +358,7 @@ newline in the expected result."
     (destructuring-bind (input request) (third trace)
       (is equal '"mac" input)
       (is string= "insert" (first request))
-      (is string= "mac (" (second request)))
+      (is string= "mac " (second request)))
     (destructuring-bind (input request) (fourth trace)
       (is string= "read-string" (first request))
       (is string= "Enter the arguments: " (second request))
@@ -368,8 +367,8 @@ newline in the expected result."
       (is equal '"(x) &body body" input)
       (is string= "insert" (first request))
       (is equal
-          '("(x) &body body)"
-            ")")
+          '("(x) &body body))"
+            "")
           (split-by-newline (second request))))))
 
 (define-test+run insert-defgeneric
@@ -648,7 +647,7 @@ newline in the expected result."
           (split-by-newline (second request))))))
 
 ;; TODO
-(define-test+run insert-parachute-define-test)
+;; (define-test+run insert-parachute-define-test)
 
 
 
