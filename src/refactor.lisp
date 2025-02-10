@@ -377,27 +377,6 @@ defun."
 
 ;;; Quickfix
 
-;; TODO move to command.lisp
-(defgeneric describe-command (command)
-  (:documentation "Give a user-friendly description for a command.")
-  (:method ((command symbol))
-    (symbol-package-qualified-name command)))
-
-;; TODO move to command.lisp
-(defun command-docstring (function)
-  "Return the function's docstring, signals an error if it's nil."
-  (let ((doc (documentation function 'function)))
-    (unless doc
-      (error
-       "Function ~s does not have a documentation string.~
-                  Is it defined?"
-       function))
-    doc))
-
-(defun command-description (function)
-  "Return a list of 2 elements: (FUNCTION its-docstring)"
-  (list function (command-docstring function)))
-
 (defun commands-applicable-at-toplevel ()
   "Create a list of all the commands applicable in the TOP-LEVEL context."
   (remove-if-not (lambda (command)

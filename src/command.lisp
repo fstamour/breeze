@@ -12,6 +12,8 @@
                 #:when-let*)
   (:import-from #:breeze.utils
                 #:before-last)
+  (:import-from #:breeze.string
+                #:symbol-package-qualified-name)
   (:import-from #:breeze.indirection
                 #:indirection)
   (:export
@@ -42,11 +44,15 @@
    #:find-file
    #:ask-y-or-n-p
    #:return-value-from-command
-   ;; Utilities to create commands
    #:return-from-command
-   #:define-command
+   ;; Command discovery and documentation
    #:commandp
-   #:list-all-commands))
+   #:list-all-commands
+   #:describe-command
+   #:command-docstring
+   #:command-description
+   ;; Utilities to create commands
+   #:define-command))
 
 (in-package #:breeze.command)
 
@@ -596,7 +602,7 @@ resulting string to the editor."
   (send "return" value))
 
 
-;;; Utilities to help creating commands less painful.
+;;; Command discovery and documentation
 
 (defun commandp (symbol)
   (get symbol 'breeze.command::commandp))
@@ -615,6 +621,28 @@ resulting string to the editor."
                                               lambda-list-or-t)
                                    (documentation symbol 'function))
                              symbol))))
+
+(defgeneric describe-command (command)
+  (:documentation "Give a user-friendly description for a command.")
+  (:method ((command symbol))
+    (symbol-package-qualified-name command)))
+
+(defun command-docstring (function)
+  "Return the function's docstring, signals an error if it's nil."
+  (let ((doc (documentation function 'function)))
+    (unless doc
+      (error
+       "Function ~s does not have a documentation string.~
+                  Is it defined?"
+       function))
+    doc))
+
+(defun command-description (function)
+  "Return a list of 2 elements: (FUNCTION its-docstring)"
+  (list function (command-docstring function)))
+
+
+;;; Utilities to help creating commands less painful.
 
 (defmacro define-command (name lambda-list
                           &body body)
