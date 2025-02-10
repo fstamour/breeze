@@ -3,6 +3,8 @@
 (defpackage #:breeze.pattern
   (:documentation "Pattern matching")
   (:use #:cl #:breeze.iterator)
+  (:import-from #:breeze.string
+                #:symbol-starts-with)
   (:export #:compile-pattern)
   (:export #:defpattern
            #:match
@@ -147,10 +149,6 @@
 
 
 ;;; Pattern compilation from lists and symbols to vectors and structs
-
-(defun symbol-starts-with (symbol char)
-  (and (symbolp symbol)
-       (char= char (char (symbol-name symbol) 0))))
 
 (defun term-symbol-p (x)
   (symbol-starts-with x #\?))
