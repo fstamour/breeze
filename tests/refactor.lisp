@@ -46,10 +46,7 @@
 (defun missing-tests ()
   (set-difference
    ;; List all commands
-   (append
-    breeze.refactor::*commands-applicable-at-toplevel*
-    breeze.refactor::*commands-applicable-in-a-loop-form*
-    breeze.refactor::*commands-applicable-inside-another-form-or-at-toplevel*)
+   (breeze.command:list-all-commands)
    ;; List relevant tests
    (remove-if-not #'symbolp
                   (mapcar #'parachute:name (parachute:package-tests *package*)))
