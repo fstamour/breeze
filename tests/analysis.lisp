@@ -307,7 +307,10 @@
   (is equalp
       '((3 4 :warning "Extraneous trailing whitespaces.")
         (1 2 :warning "Extraneous leading whitespaces."))
-      (test-lint "( x )")))
+      (test-lint "( x )"))
+  (is equalp
+      '((3 4 :warning "Missing internal whitespace(s)."))
+      (test-lint "(\"a\"x)")))
 
 #++ ;; TODO other cases of extraneous whitespaces:
 "
@@ -430,7 +433,9 @@
     (is equal '("(in-package #:x)" t) (test-fix "(in-package 'x)"))
     (is equal '("(trace x)" t) (test-fix "(trace 'x)"))
     (is equal '("(block x)" t) (test-fix "(block 'x)"))
-    (is equal '("(return-from x)" t) (test-fix "(return-from 'x)"))))
+    (is equal '("(return-from x)" t) (test-fix "(return-from 'x)")))
+  ;; "\"a\"'(\"b\"c)" => "\"a\" '(\"b\" c)"
+  )
 
 
 #++ ;; TODO this crashes because it tries to call (read "#)") inside
