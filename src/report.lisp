@@ -20,7 +20,9 @@ TODO Split comment/paragraphs when the line starts with "TODO"
 
 (defpackage #:breeze.report
   (:documentation "Using breeze's code to generate report to improve breeze.")
-  (:use #:cl #:breeze.lossless-reader))
+  (:use #:cl #:breeze.lossless-reader)
+  (:import-from #:breeze.utils
+                #:nrun))
 
 (in-package #:breeze.report)
 
@@ -124,54 +126,6 @@ breeze project (system)."
 
 #++
 (parse-system)
-
-
-
-;; TODO move to utils; add tests...
-(defun nrun (list predicate)
-  "Destructively extract the first run of elements that satisfies
-PREDICATE, if the first element of LIST satisfies PREDICATE, . Returns
-the run and update LIST's first cons to point to the last element of
-the run."
-  (when (and list
-             ;; I didn't want to think about the case where there is
-             ;; no first run.
-             (funcall predicate (first list)))
-    (loop
-      ;; keep track of the last "head of list", so we can 1: return
-      ;; the last element for which PREDICATE was true and 2: set its
-      ;; cdr to nil to make the list end there.
-      :for last-cons = nil :then cons
-      ;; iterate cons by cons
-      :for cons :on list
-      ;; extract the next element to check
-      :for el = (first cons)
-      ;; does the new element pass the test?
-      :while (funcall predicate el)
-      ;; once we find an element that doesn't pass the test, we
-      ;; <strong>update</strong> LIST so that the first element is now
-      ;; the <em>last</em> element that did pass the test. That way
-      ;; the caller can easily access the first and last element of
-      ;; the run; and it happens that it plays very well with (loop
-      ;; :for :on), because that construct would skip the next
-      ;; element...
-      :finally
-         (let (;; Copy the original first cons of the list
-               (run (cons (car list) (cdr list))))
-           (setf
-            ;; sever the link between the run and the rest of the list
-            (cdr last-cons) nil
-            ;; update the first element of the list
-            (car list) (car last-cons)
-            ;; update the rest of the list
-            (cdr list) cons)
-           (return run)))))
-
-#++ ;; Demonstrate that nrun modifies the list
-(let ((list (copy-seq '(1 3 4 5))))
-  (values (nrun list #'oddp)
-          list))
-;; => (1 3), (3 4 5)
 
 
 
