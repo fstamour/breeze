@@ -25,6 +25,12 @@
 ;; Kill all currently running breeze-commands
 (kill-threads-by-name "breeze command handler")
 
+
+
+(setf (breeze.logging:log-level) :debug)
+(setf (breeze.logging:log-level) :info)
+
+
 
 (defvar *default-trace-report-default* sb-debug:*trace-report-default*)
 
