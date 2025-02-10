@@ -62,6 +62,7 @@
 ;; Dogfood'ing to the max!
 (define-command insert-breeze-define-command ()
   "Insert a breeze:define-command form."
+  (declare (context :top-level))
   (let ((name (read-string "Name of the command (symbol): ")))
     (insert
      "(define-command ~a ()~
@@ -76,6 +77,7 @@
 
 (define-command insert-handler-case-form ()
   "Insert handler case form."
+  (declare (context :expression))
   (insert
    "(handler-case~
   ~%  (frobnicate)~
@@ -84,6 +86,7 @@
 
 (define-command insert-handler-bind-form ()
   "Insert handler bind form."
+  (declare (context :expression))
   (insert
    "(handler-bind~
   ~%  ((error (lambda (condition)~
@@ -92,6 +95,7 @@
 
 (define-command insert-loop-clause-for-on-list ()
   "Insert a loop clause to iterate on a list."
+  (declare (context cl:loop))
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :on ")
@@ -100,6 +104,7 @@
 
 (define-command insert-loop-clause-for-in-list ()
   "Insert a loop clause to iterate in a list."
+  (declare (context cl:loop))
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :in ")
@@ -108,6 +113,7 @@
 
 (define-command insert-loop-clause-for-hash ()
   "Insert a loop clause to iterate on a hash-table."
+  (declare (context cl:loop))
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the key: "
@@ -133,19 +139,23 @@ defvar."
 
 (define-command insert-defvar ()
   "Insert a defvar form."
+  (declare (context :top-level))
   (insert-defvar-shaped "defvar" "*"))
 
 (define-command insert-defparameter ()
   "Insert a defparameter form."
+  (declare (context :top-level))
   (insert-defvar-shaped "defparameter" "*"))
 
 (define-command insert-defconstant ()
   "Insert a defconstant form."
+  (declare (context :top-level))
   (insert-defvar-shaped "defconstant" "+"))
 
 ;; TODO Add "alexandria" when the symbol is not interned
 (define-command insert-define-constant ()
   "Insert a alexandria:define-constant form."
+  (declare (context :top-level))
   (insert-defvar-shaped "define-constant"))
 
 (defun insert-defun-shaped (form-name)
@@ -159,14 +169,17 @@ defun."
 
 (define-command insert-defun ()
   "Insert a defun form."
+  (declare (context :top-level))
   (insert-defun-shaped "defun"))
 
 (define-command insert-defmacro ()
   "Insert a defmacro form."
+  (declare (context :top-level))
   (insert-defun-shaped "defmacro"))
 
 (define-command insert-defpackage ()
   "Insert a defpackage form."
+  (declare (context :top-level))
   (let ((package-name
           (read-string
            "Name of the package: "
@@ -188,6 +201,7 @@ defun."
 
 (define-command insert-local-nicknames ()
   "Insert local nicknames."
+  (declare (context (:child-of :package-definition))) ; TODO
   (insert
    "(:local-nicknames ~{~a~^~%~})"
    (loop :for name = (read-string "Name of the package to alias: ")
@@ -197,12 +211,15 @@ defun."
 
 (define-command insert-in-package-cl-user ()
   "Insert (cl:in-package #:cl-user)"
+  (declare (context :top-level))
   (insert "(cl:in-package #:cl-user)"))
 
 ;; TODO insert-let (need to loop probably)
 
 (define-command insert-asdf ()
   "Insert an asdf system definition form."
+  (declare (context :top-level
+                    :extension ".asd"))
   (let ((system-name (read-string "Name of the system: "))
         ;; TODO Add *default-author*
         (author (read-string "Author: "))
@@ -230,6 +247,7 @@ defun."
 ;; TODO How could I re-use an hypothetical "add-slot" command?
 (define-command insert-defclass ()
   "Insert a defclass form."
+  (declare (context :top-level))
   (read-string-then-insert
    "Name of the class: "
    "(defclass ~a ()~
@@ -241,6 +259,7 @@ defun."
 
 (define-command insert-class-slot ()
   "Insert a defclass slot form."
+  (declare (context cl:defclass :slot-specifier))
   (read-string-then-insert
    "Name of the slot: "
    "~%  (~a~
@@ -251,6 +270,7 @@ defun."
 
 (define-command insert-defgeneric ()
   "Insert a defgeneric form."
+  (declare (context :top-level))
   (let ((name (read-string
                "Name of the generic function: ")))
     (insert
@@ -262,6 +282,7 @@ defun."
 
 (define-command insert-defmethod ()
   "Insert a defmethod form."
+  (declare (context :top-level))
   (let ((name (read-string
                "Name of the method: ")))
     (insert
@@ -271,6 +292,7 @@ defun."
 
 (define-command insert-print-unreadable-object-boilerplate ()
   "Insert a print-object method form."
+  (declare (context :top-level))
   (let ((name (read-string
                "Name of the object (parameter name of the method): "))
         (type (read-string
@@ -286,6 +308,7 @@ defun."
 
 (define-command insert-make-load-form-boilerplate ()
   "Insert a make-load-form method form."
+  (declare (context :top-level))
   (let ((name (read-string
                "Name of the object (parameter name of the method): "))
         (type (read-string
@@ -303,12 +326,14 @@ defun."
 
 (define-command insert-lambda ()
   "Insert a lambda form."
+  (declare (context :expression))
   (insert "(lambda ())"))
 
 ;; TODO quick-insert (format *debug-io* "~&")
 
 (define-command insert-parachute-define-test ()
   "Insert a parachute:define-test form"
+  (declare (context :top-level))
   (insert "(define-test+run ")
   (read-string-then-insert "Name of the test: "
                            "~a~%)~%"))
@@ -343,33 +368,26 @@ defun."
   "Return a list of 2 elements: (FUNCTION its-docstring)"
   (list function (command-docstring function)))
 
-(defparameter *commands-applicable-at-toplevel*
-  '(insert-asdf
-    insert-defun
-    insert-defmacro
-    insert-defpackage
-    insert-in-package-cl-user
-    insert-defvar
-    insert-defparameter
-    insert-defclass
-    insert-class-slot
-    insert-defgeneric
-    insert-defmethod
-    insert-print-unreadable-object-boilerplate
-    ;; not specfic to cl
-    insert-breeze-define-command
-    insert-parachute-define-test))
+(defun commands-applicable-at-toplevel ()
+  "Create a list of all the commands applicable in the TOP-LEVEL context."
+  (remove-if-not (lambda (command)
+                   (eq (get command 'context) :top-level))
+                 (list-all-commands)))
 
-(defparameter *commands-applicable-in-a-loop-form*
-  '(insert-loop-clause-for-in-list
-    insert-loop-clause-for-on-list
-    insert-loop-clause-for-hash))
+(defun commands-applicable-in-a-loop-form ()
+  "Create a list of all the commands applicable directly under a \"loop\" clause."
+  (remove-if-not (lambda (command)
+                   (eq (get command 'context) 'cl:loop))
+                 (list-all-commands)))
 
 ;; That's some Java-level variable name
-(defparameter *commands-applicable-inside-another-form-or-at-toplevel*
-  '(insert-handler-bind-form
-    insert-handler-case-form
-    insert-lambda))
+(defun commands-applicable-in-expression-context ()
+  "Create a list of all the commands applicable where an expression would be expected.
+
+TODO maybe find a better nomenclature?"
+  (remove-if-not (lambda (command)
+                   (eq (get command 'context) :expression))
+                 (list-all-commands)))
 
 ;; TODO use a node-iterator instead
 (defun validate-nearest-in-package (nodes outer-node)
@@ -454,7 +472,7 @@ For debugging purposes ONLY.")
   nil #++
   (when (and inner-node
              (loop-form-p inner-node))
-    (shortcircuit *commands-applicable-in-a-loop-form*)))
+    (shortcircuit (commands-applicable-in-a-loop-form))))
 
 (defun suggest-defpackage-clauses ()
   "When inside a defpackage form."
@@ -467,9 +485,7 @@ For debugging purposes ONLY.")
 
 (defun suggest-other ()
   "Otherwise"
-  (append *commands-applicable-at-toplevel*
-          *commands-applicable-inside-another-form-or-at-toplevel*
-          *commands-applicable-in-a-loop-form*)
+  (list-all-commands)
   #++(if
       ;; if "at top-level"
       (and outer-node
@@ -484,8 +500,8 @@ For debugging purposes ONLY.")
             #++
             (typep outer-node
                    'breeze.reader:skipped-node)))
-      *commands-applicable-at-toplevel*
-      *commands-applicable-inside-another-form-or-at-toplevel*))
+      (commands-applicable-at-toplevel)
+      (commands-applicable-in-expression-context)))
 
 
 (defun compute-suggestions ()
