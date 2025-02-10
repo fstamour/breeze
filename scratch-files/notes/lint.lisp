@@ -461,3 +461,12 @@ See also:
 - check for things that are not exported and are not used
 
 |#
+
+
+;; 'char is not a type specifier, you probably mean 'character
+
+;; don't quote strings
+(let ((s "a"))
+  (eq (eval `(quote ,s))
+      (eval s)))
+;; => T

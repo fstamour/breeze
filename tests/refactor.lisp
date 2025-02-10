@@ -803,3 +803,12 @@ strings get concatenated."
               "      (node stream :type t :identity nil)"
               "    (format stream \"~s\" (node-something node))))")
             (split-by-newline (second request))))))
+
+
+
+;;; Completion at point
+
+;; Should suggest valid type specifier in check-type, etypecase, etc.
+;;
+;; Should suggest symbols that are not imported, and automatically
+;; import them (e.g. add them to the right defpackage.

@@ -306,3 +306,7 @@ Name: transpose-chars
 =-=
 (|)
 =-=
+
+
+;; TODO transpose loop-clause
+;; TODO transpose setf pairs
