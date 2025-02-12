@@ -81,7 +81,7 @@
      name
      (substitute #\Space #\- name))))
 
-#++ ;; snippet draft:
+#++ ;; TODO snippet draft:
 `(define-command (:the symbol ?name) () \n
    (fmt "\"~@(~a~).\"" ?name))
 
@@ -398,6 +398,8 @@ TODO maybe find a better nomenclature?"
                    (eq (get command 'context) :expression))
                  (list-all-commands)))
 
+
+
 ;; TODO use a node-iterator instead
 (defun validate-nearest-in-package (nodes outer-node)
   "Find the lastest \"in-package\" form, test if the packages can be
@@ -483,8 +485,8 @@ For debugging purposes ONLY.")
              (loop-form-p inner-node))
     (shortcircuit (commands-applicable-in-a-loop-form))))
 
-(defun suggest-defpackage-clauses ()
-  "When inside a defpackage form."
+(defun suggest-package-definition-clauses ()
+  "When inside a package definition form."
   nil #++
   (let+ctx (inner-node)
     (when (and inner-node
