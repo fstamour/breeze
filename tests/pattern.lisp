@@ -5,11 +5,13 @@
                 #:define-test
                 #:define-test+run
                 #:is
+                #:is-values
                 #:isnt
                 #:true
                 #:false
                 #:of-type
-                #:fail)
+                #:fail
+                #:finish)
   (:import-from #:breeze.pattern
                 ;; Structures
                 #:ref
@@ -48,6 +50,15 @@
                 #:make-pattern-iterator
                 ;; Match
                 #:make-binding
+                #:from
+                #:to
+                #:bindings
+                #:make-binding-set
+                #:copy-binding-set
+                #:find-binding
+                #:set-binding
+                #:add-binding
+                #:emptyp
                 #:merge-bindings
                 #:match))
 
@@ -194,19 +205,122 @@
 
 
 
+(define-test+run make-binding
+  ;; TODO export 'binding, maybe
+  (is eq
+      (find-class 'breeze.pattern::binding)
+      (class-of (make-binding :?x "a"))
+      "Make binding should retun an instance of the class \"binding\".")
+  (is equal "#<BREEZE.PATTERN::BINDING :?X → A>"
+      (prin1-to-string
+       (make-binding :?x 'a))
+      "The specialized print-object method on the class \"binding\" should print the slots \"from\" and \"to\"."))
+
+(defun bindings-alist (binding-set)
+  (etypecase binding-set
+      ((eql t) t)
+      (null nil)
+      (breeze.pattern::binding-set
+       (sort
+        (mapcar (lambda (binding)
+                  (cons (from binding) (to binding)))
+                (alexandria:hash-table-values (bindings binding-set)))
+        #'string<
+        :key (lambda (binding-cons)
+               (symbol-name (car binding-cons)))))))
+
+(define-test+run binding-set
+  (is eq
+      (find-class 'breeze.pattern::binding-set)
+      (class-of (make-binding-set))
+      "make-binding-set should return an instance of the class \"binding-set\".")
+  (true (emptyp (make-binding-set))
+        "make-binding-set should return an empty set of bindings.")
+  (is equal
+      "#<BREEZE.PATTERN::BINDING-SET (empty)>"
+      (prin1-to-string (make-binding-set))
+      "The print-object method specialized on the class \"binding-set\" should print it when the binding set is empty.")
+  (is equal
+      "#<BREEZE.PATTERN::BINDING-SET ((:?X . #<BREEZE.PATTERN::BINDING :?X → A>))>"
+      (prin1-to-string (merge-bindings (make-binding-set)
+                                       (make-binding :?x 'a)))
+      "The print-object method specialized on the class \"binding-set\" should print the binding when there's only 1.")
+  (is equal
+      "#<BREEZE.PATTERN::BINDING-SET (2 bindings)>"
+      (prin1-to-string
+       (merge-bindings (make-binding-set)
+                       (merge-bindings (make-binding :?x 'a)
+                                       (make-binding :?y 'b))))
+      "The print-object method specialized on the class \"binding-set\" should print the number of bindings when there's more than 1.")
+  (false
+   (let* ((b1 (make-binding-set))
+          (b2 (copy-binding-set b1)))
+     (eq (bindings b1) (bindings b2)))
+   "Copying a bindind-set should create a different hash-table")
+  (is-values (find-binding (make-binding-set) :?x)
+    (eq nil)
+    (eq nil)
+    "Should not find a binding in an empty binding-set")
+  (is equal '(:?x a)
+      (let* ((bs (make-binding-set)))
+        (set-binding bs (make-binding :?x 'a))
+        (let ((binding (find-binding bs :?x)))
+          (list (from binding) (to binding))))
+      "Should find the right binding")
+  (let* ((bs (make-binding-set)))
+    (is eq bs (add-binding bs (make-binding :?x 'a))
+        "Adding first bindings should return the binding-set")
+    (is eq bs (add-binding bs (make-binding :?y 'b))
+        "Adding unrelated bindings should return the binding-set"))
+  (let* ((bs (make-binding-set)))
+    (add-binding bs (make-binding :?x 'a))
+    (is eq bs (add-binding bs (make-binding :?x 'a))
+        "Adding the same binding twice should return the binding-set"))
+  (let* ((bs (make-binding-set)))
+    (add-binding bs (make-binding :?x 'a))
+    (false (add-binding bs (make-binding :?x 'b))
+           "Adding conflicting bindings should return nil"))
+  (is equal '((:?x . a))
+      (let* ((bs (make-binding-set)))
+        (add-binding bs (make-binding :?x 'a))
+        (add-binding bs (make-binding :?x 'b))
+        (bindings-alist bs))
+      "Adding conflicting bindings should not modify the binding-set"))
+
+
 (define-test+run merge-bindings
-  (false (merge-bindings nil nil))
-  (false (merge-bindings nil t))
-  (false (merge-bindings t nil))
-  (true (merge-bindings t t))
-  (false (merge-bindings (make-binding :?x 'a) nil))
-  (false (merge-bindings nil (make-binding :?x 'a)))
-  (is equal '((:?x . a)) (merge-bindings (make-binding :?x 'a) t))
-  (is equal '((:?x . a)) (merge-bindings t (make-binding :?x 'a)))
-  (is equal '((:?x . a) (:?y . b)) (merge-bindings (make-binding :?x 'a) (make-binding :?y 'b)))
-  (let ((term (term 'a)))
-    (is equal `((,term . 42))
-        (merge-bindings `((,term . 42)) `((,term . 42))))))
+  ;; merging nil and t
+  (progn
+    (false (merge-bindings nil nil))
+    (false (merge-bindings nil t))
+    (false (merge-bindings t nil))
+    (true (merge-bindings t t)))
+  ;; merging with nil
+  (progn
+    (false (merge-bindings (make-binding :?x 'a) nil)
+           "merging with nil should fail")
+    (false (merge-bindings nil (make-binding :?x 'a))
+           "merging with nil should fail"))
+  ;; merging with t
+  (progn
+    (true (merge-bindings (make-binding :?x 'a) t))
+    (true (merge-bindings t (make-binding :?x 'a)))
+    (is equal '((:?x . a))
+        (bindings-alist (merge-bindings (make-binding :?x 'a) t)))
+    (is equal '((:?x . a))
+        (bindings-alist (merge-bindings t (make-binding :?x 'a)))))
+  (is equal '((:?x . a) (:?y . b))
+      (bindings-alist (merge-bindings (make-binding :?x 'a) (make-binding :?y 'b))))
+  (finish
+   (let ((term (term 'a))
+         (bs (make-binding-set)))
+     (add-binding bs (make-binding term 42))
+     (is eq bs (merge-bindings bs (make-binding term 42)))))
+  (finish
+   (let ((term (term 'a))
+         (bs (make-binding-set)))
+     (add-binding bs (make-binding term 42))
+     (is eq bs (merge-bindings bs (make-binding term 42))))))
 
 (defun test-match (pattern input)
   (match (compile-pattern pattern) input))
@@ -357,17 +471,18 @@
 
 
 (defun test-match-ref (pattern input &key bindings)
-  (let ((result (match pattern input)))
-    (if bindings
-        (is equalp bindings (if (listp result)
+  (let* ((binding-set (match pattern input))
+         (bindings-alist (bindings-alist binding-set))
+         (bindings-alist (if (listp bindings-alist)
                                 (mapcar (lambda (x)
                                           (cons (term-name (car x)) (cdr x)))
-                                        result)
-                                result)
-            "Matching the pattern ~s agains the input ~s should have created the bindings ~s but we got ~s instead."
-            pattern input bindings result)
-        (false result))))
-
+                                        bindings-alist)
+                                bindings-alist)))
+    (if bindings
+        (is equalp bindings bindings-alist
+            "Matching the pattern ~s against the input ~s should have created the bindings ~s but we got ~s instead."
+            pattern input bindings bindings-alist)
+        (false bindings-alist))))
 
 (define-test+run "match ref"
   (test-match-ref (ref 'a) '(a 42) :bindings '((?a . 42)))
@@ -379,16 +494,40 @@
   (test-match-ref (ref 'body-parameter) '(&body 42)
                   :bindings '((?var . 42))))
 
-
 
 ;;; Match substitution
 
 (defun test-pattern-substitute (pattern bindings)
   (multiple-value-bind (compiled-pattern term-pool)
       (breeze.pattern:compile-pattern pattern)
-    (let ((actual-bindings
-            (sublis (alexandria:hash-table-alist term-pool) bindings)))
-      (pattern-substitute compiled-pattern actual-bindings))))
+    (values (pattern-substitute compiled-pattern bindings) term-pool)))
+
+(defun make-binding-set* (bindings)
+  (loop
+    :with binding-set = (make-binding-set)
+    :for (from . to) :in bindings
+    :for binding = (make-binding from to)
+    :do (unless (add-binding binding-set binding)
+          (error "Failed to add bindings ~s" binding))
+    :finally (return binding-set)))
+
+;; (make-binding-set* `((:?x . 24)))
+
+(define-test+run pattern-substitute
+  (progn
+    (is eq nil (test-pattern-substitute nil nil))
+    (is eq t (test-pattern-substitute t nil))
+    (is eq 'x (test-pattern-substitute 'x nil)))
+  (progn
+    (is eq nil (test-pattern-substitute nil t))
+    (is eq t (test-pattern-substitute t t))
+    (is eq 'x (test-pattern-substitute 'x t)))
+  (progn
+    (multiple-value-bind (substituted-pattern term-pool)
+        (test-pattern-substitute :?x (make-binding-set* '((:?x . 42))))
+      (is eq (gethash :?x term-pool) substituted-pattern))
+    (is eq t (test-pattern-substitute t t))
+    (is eq 'x (test-pattern-substitute 'x t))))
 
 
 ;;; Rules and rewrites
