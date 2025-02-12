@@ -61,9 +61,13 @@
 (define-node-form-predicates (uiop:define-package))
 
 (defun normalize-docstring (string)
+  "Try to normalize docstring entered by the user into something that can
+be inserted correctly into a buffer."
   (ensure-circumfix "\"" (trim-whitespace string)))
 
 (defun normalize-lambda-list (string)
+  "Try to normalize lambda-list entered by the user into something that can
+be inserted correctly into a buffer."
   (ensure-circumfix "(" (trim-whitespace string) ")"))
 
 
@@ -447,14 +451,12 @@ For debugging purposes ONLY.")
 (defun shortcircuit (x)
   (throw 'shortcircuit x))
 
-(defun suggest-defpackage ()
+(defun suggest-package-definition ()
   "When the buffer is empty, or only contains comments and whitespaces."
-  nil
-  #++
-  (cond
-    ((null nodes) 'insert-defpackage)
-    ((and nodes
-          (nodes-emptyp nodes))
+  (let* ((buffer (current-buffer))
+         (node-iterator (parse-tree buffer)))
+    (when (and node-iterator
+               (every #'whitespace-or-comment-node-p (root-vector node-iterator)))
      ;; TODO Add a configuration to decide whether to shortcircuit or
      ;; not. Because suggesting to insert a "defpackage" form when in
      ;; an empty file is pretty much just my personal preference.
@@ -521,11 +523,11 @@ commands that the user might want to run."
   (alexandria:ensure-list
    (catch 'shortcircuit
      (mapcar #'funcall
-             '(suggest-defpackage
+             '(suggest-package-definition
                suggest-system-definition
                suggest-lambda
                suggest-loop-clauses
-               suggest-defpackage-clauses
+               suggest-package-definition-clauses
                suggest-other)))))
 
 

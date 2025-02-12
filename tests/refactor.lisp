@@ -4,6 +4,7 @@
     (:use :cl #:breeze.refactor)
   ;; Importing non-exported symbols of the "package under test"
   (:import-from #:breeze.refactor
+                #:suggest-package-definition
                 #:infer-project-name)
   ;; Things needed to define new commands
   (:import-from #:breeze.command
@@ -652,6 +653,51 @@ newline in the expected result."
 
 
 ;;; TODO
+
+(defun call-with-fake-file (fn content
+                            &key
+                              (buffer-name "fake-file.lisp")
+                              (buffer-file-name buffer-name)
+                              (point 1)
+                              (point-min 1)
+                              (point-max (1+ (length content))))
+  (let* ((breeze.workspace:*workspace* (make-instance 'breeze.workspace:workspace))
+         (breeze.command::*command* (breeze.command::make-command-handler
+                                     (list
+                                      :buffer-string content
+                                      :buffer-name buffer-name
+                                      :buffer-file-name buffer-file-name
+                                      :point point
+                                      :point-min point-min
+                                      :point-max point-max))))
+    (funcall fn)))
+
+
+(defun test-suggest-package-definition (&rest args)
+  (apply #'call-with-fake-file #'suggest-package-definition args))
+
+(defun should-suggest-to-insert-package-definition-when (when content)
+  (loop :for point :from 1 #| TODO 0 |# :upto (1+ #| TODO remove 1+ |# (length content))
+        :do (is eq 'insert-defpackage (test-suggest-package-definition content :point point)
+                "Should suggest to insert a package defininition when the buffer ~a (point = ~d)."
+                when point)))
+
+(define-test+run suggest-package-definition
+  (should-suggest-to-insert-package-definition-when
+   "is empty"
+   "")
+  (should-suggest-to-insert-package-definition-when
+   "contains only whitespaces"
+   "  ")
+  (should-suggest-to-insert-package-definition-when
+   "contains only line comments"
+   "; a line comment ")
+  (should-suggest-to-insert-package-definition-when
+   "contains only block comments"
+   "#| a block comment |#")
+  (should-suggest-to-insert-package-definition-when
+   "contains only block comments, even if it's not closed properly"
+   "#| a block comment |#"))
 
 ;;; maybe-ask-to-load-system
 ;;; check-in-package
