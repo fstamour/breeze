@@ -317,6 +317,7 @@ prog*
 
 
 (not (null x)) == (and x t)
+(eq nil x) == (null x)  { (eq a b) === (eq b a) }
 
 ;; it's redundent to add a quote before t, nil, or any keywords
 ':ok 'nil 'y

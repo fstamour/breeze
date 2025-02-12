@@ -37,6 +37,7 @@
 ;; tracing is very very useful for debugging, but the default way sbcl
 ;; often prints "way too much" stuff
 (defun trace-report (depth function event stack-frame values)
+  (declare (ignorable stack-frame))
   ;; (pprint-logical-block stream values :prefix ... :suffix ...)
   (let ((*print-pretty* nil)
         (stream *standard-output*))

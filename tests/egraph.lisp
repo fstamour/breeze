@@ -531,7 +531,7 @@ comparison."
               :collect (dump-eclass egraph eclass))
           "when trying to find the roots")
       ;; TODO The following next 2 tests were working because of a bug
-      ;; with how the parents when tracked.
+      ;; with how the parents was tracked.
       #++
       (is equalp
           '((:eclass-id 0 :enodes #(a) :parents (2 5 7 8) := 8)

@@ -144,6 +144,8 @@ Design decision(s):
     (breeze.logging:log-debug "add-to-workspace buffer ~s" (getf context-plist :buffer-file-name))
     (when-let ((buffer-file-name (breeze.utils:breeze-relative-pathname "")))
       (setf (filename buffer) buffer-file-name))
+    ;; TODO remove the =(1- ...)= this is specific to emacs, it should
+    ;; not be the responsibility of this package.
     (when-let ((point (getf context-plist :point)))
       (setf (point buffer) (1- point)))
     (when-let ((point-min (getf context-plist :point-min)))
