@@ -1276,7 +1276,10 @@ Returns a new node with one of these types:
    (lambda (node)
      (when-let ((children (node-children node)))
        (if (vectorp children)
-           children
+           (if (sharp-label-node-p node)
+               ;; TODO don't cons for this... :/
+               (vector (aref children 1))
+               children)
            (when (nodep children)
              ;; TODO don't cons for this... :/
              (vector children)))))
@@ -1310,16 +1313,31 @@ Returns a new node with one of these types:
          (or (no-end-p node)
              (< position end)))))
 
+;; TODO add tests
+(defun node-range-contains-position-p (start-node end-node position)
+  (check-type start-node node)
+  (check-type end-node node)
+  (let ((start (start start-node))
+              (end (end end-node)))
+          (and (<= start position)
+               (or (no-end-p end-node)
+                   (< position end)))))
+
+;; TODO add tests
 (defun node-children-contains-position-p (node position)
   (when-let* ((children (node-children node)))
-    (when (typep children '(or vector node))
-      (let ((first (if (vectorp children) (aref children 0) children))
-            (last (if (vectorp children) (aref children (1- (length children))) children)))
-        (let ((start (start first))
-              (end (end last)))
-          (and (<= start position)
-               (or (no-end-p last)
-                   (< position end))))))))
+    (if (sharp-label-node-p node)
+        ;; special case: the "sharp-label" (#=) nodes have 2 children: 1
+        ;; integer (the label) and one node for the labeled object.
+        (node-contains-position-p (aref children 1) position)
+        (typecase children
+          (vector
+           (node-range-contains-position-p
+            (aref children 0)
+            (aref children (1- (length children)))
+            position))
+          (node
+           (node-contains-position-p children position))))))
 
 ;; TODO add tests
 (defmethod goto-position ((iterator node-iterator) position)
