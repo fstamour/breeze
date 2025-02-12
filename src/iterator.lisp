@@ -47,6 +47,8 @@ generalization of that first iteration (ha!).
    #:positions
    #:push-vector
    #:pop-vector
+   #:vector-at-depth
+   #:root-vector
    #:value-at-depth
    #:parent-value
    #:root-value)
@@ -340,6 +342,13 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
   (decf (fill-pointer (positions iterator)))
   (decf (depth iterator))
   iterator)
+
+;; TODO add tests
+(defmethod vector-at-depth ((iterator nested-vector-iterator) depth)
+  (aref (vectors iterator) depth))
+
+(defmethod root-vector ((iterator nested-vector-iterator))
+  (vector-at-depth iterator 0))
 
 ;; TODO add tests
 (defmethod value-at-depth ((iterator nested-vector-iterator) depth)
