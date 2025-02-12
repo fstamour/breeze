@@ -21,11 +21,8 @@
 
 (in-package #:breeze.pattern)
 
-(defvar *patterns* (make-hash-table :test 'equal)
-  "Stores all the patterns.")
-
 
-;;; Refs and Terms
+;;; Refs
 
 ;; TODO Think about (defstruct hole ...)
 
@@ -41,6 +38,9 @@
        (refp b)
        (eq (ref-name a)
            (ref-name b))))
+
+
+;;; Terms
 
 ;; Decision: I chose "term" and not "variable" to avoid clashes with
 ;; cl:variable
@@ -61,6 +61,9 @@
        (eq (term-name a)
            (term-name b))))
 
+
+;;; Typed-terms
+
 (defstruct (typed-term
             (:constructor typed-term (type name))
             :constructor
@@ -80,6 +83,8 @@
               (typed-term-type b))))
 
 
+;;; Repetitions
+
 (defstruct (repetition
             (:constructor repetition (pattern min max &optional name))
             :constructor
@@ -124,6 +129,7 @@
                  (alternation-pattern b))))
 
 
+;;; Pattern comparison
 
 (defmethod pattern= (a b)
   (equal a b))
@@ -214,6 +220,9 @@ compile-pattern is called, a new one is created."
 
 ;;; Re-usable, named patterns
 
+(defvar *patterns* (make-hash-table :test 'equal)
+  "Stores all the patterns.")
+
 (defmacro defpattern (name &body body)
   `(setf (gethash ',name *patterns*)
          ',(compile-pattern
@@ -232,40 +241,136 @@ compile-pattern is called, a new one is created."
 
 ;;; Bindings (e.g. the result of a successful match)
 
-(defun make-empty-bindings () t)
+(defclass binding ()
+  ((from :initarg :from :reader from)
+   (to :initarg :to :reader to))
+  (:documentation "A binding"))
 
 (defun make-binding (term input)
-  (list (cons term input)))
+  (make-instance 'binding :from term :to input))
+
+(defun bindingp (x)
+  (typep x 'binding))
+
+(defmethod print-object ((binding binding) stream)
+  (print-unreadable-object
+      (binding stream :type t)
+    (format stream "~s → ~s" (from binding) (to binding))))
+
+(defclass binding-set ()
+  ((bindings
+    :initform (make-hash-table)
+    :initarg :bindings
+    :reader bindings))
+  ;; TODO add a union-hash to detect cycles...
+  (:documentation "A set of bindings"))
+
+(defmethod print-object ((binding-set binding-set) stream)
+  (print-unreadable-object
+      (binding-set stream :type t)
+    (let* ((bindings (bindings binding-set))
+           (size (hash-table-count bindings)))
+      (cond
+        ((zerop size) (write-string "(empty)" stream) )
+        ((= 1 size) (prin1 (alexandria:hash-table-alist bindings) stream))
+        (t (format stream "(~d bindings)" size))))))
+
+(defmethod emptyp ((binding-set binding-set))
+  (zerop (hash-table-count (bindings binding-set))))
+
+;; I think using the convention of "T represents an empty binding set,
+;; which represents a successful match without captures" is nice, the
+;; GC might like it too...
+(defmethod emptyp ((binding-set (eql t)))
+  t)
+
+(defmethod emptyp ((binding binding))
+  nil)
+
+(defun make-binding-set (&key bindings)
+  (if bindings
+    (make-instance 'binding-set :bindings bindings)
+    (make-instance 'binding-set)))
+
+(defun copy-binding-set (binding-set)
+  (make-binding-set
+   :bindings (alexandria:copy-hash-table (bindings binding-set))))
+
+(defun find-binding (binding-set from)
+  (gethash from (bindings binding-set)))
+
+#++ ;; old version, for reference
+(defun find-binding (bindings term-or-term-name)
+  (when bindings
+    (if (termp term-or-term-name)
+        (assoc term-or-term-name bindings)
+        (assoc term-or-term-name bindings
+               :key #'term-name))))
+
+;; TODO maybe this could be method?
+(defun set-binding (binding-set binding)
+  (setf (gethash (from binding) (bindings binding-set)) binding))
+
+(defmethod add-binding ((binding-set binding-set) (_ (eql t)))
+  ;; nothing to do
+  t ; success
+  )
+
+(defmethod add-binding ((binding-set binding-set) (_ (eql nil)))
+  ;; nothing to do
+  nil ; failure
+  )
+
+(defmethod add-binding ((binding-set binding-set) (new-binding binding))
+  (let ((old-binding (find-binding binding-set (from new-binding))))
+    (and (if old-binding
+             ;; (error "Conflicting bindings: ~a ~a" a b)
+             (eql (to old-binding) (to new-binding))
+             (set-binding binding-set new-binding))
+         binding-set)))
+
+(defun ensure-binding-set (x)
+  (etypecase x
+    (binding-set x)
+    (binding (let ((binding-set (make-binding-set)))
+               (add-binding binding-set x)
+               binding-set))
+    (null nil)
+    ((eql t) t)))
 
 (defun merge-bindings (bindings1 bindings2)
-  (flet ((name (x)
-           (if (termp x) (term-name x) x)))
-    (cond
-      ((eq t bindings1) bindings2)
-      ((eq t bindings2) bindings1)
-      ((or (eq nil bindings1) (eq nil bindings2)) nil)
-      (t
-       ;; TODO It would be possible to pass the bindings into all "match"
-       ;; functions and methods. It would allow to detect conflicting
-       ;; bindings earlier and stop the matching process earlier.
-       ;;
-       ;; N.B. a disjoint-set data structure could help detect cycles in
-       ;; the bindings.
-       ;;
-       ;; TODO use a hash-table ffs
-       (delete-duplicates
-        (sort (append bindings1 bindings2)
-              (lambda (a b)
-                (let ((na (name (car a)))
-                      (nb (name (car b))))
-                  (if (string= na nb)
-                      (unless (eql (cdr a) (cdr b))
-                        (return-from merge-bindings nil))
-                      ;; (error "Conflicting bindings: ~a ~a" a b)
-                      (string< na nb)))))
-        :key (alexandria:compose #'name #'car)
-        :test #'string=)))))
+  (cond
+    ((or (null bindings1) (null bindings2)) nil)
+    ((and (eq t bindings1) (eq t bindings2)) t)
+    ;; when merging two binding instances instead of binding-sets
+    ((and (bindingp bindings1) (bindingp bindings2))
+     (let ((result (make-binding-set)))
+       (add-binding result bindings1)
+       (when (add-binding result bindings2)
+         result)))
+    ((emptyp bindings1) (ensure-binding-set bindings2))
+    ((emptyp bindings2) (ensure-binding-set bindings1))
+    ;; 1 is instance, 2 is set
+    ((bindingp bindings1)
+     (add-binding bindings2 bindings1))
+    ;; 2 is instance, 1 is set
+    ((bindingp bindings2)
+     (add-binding bindings1 bindings2))
+    (t
+     ;; TODO It would be possible to pass the bindings into all "match"
+     ;; functions and methods. It would allow to detect conflicting
+     ;; bindings earlier and stop the matching process earlier.
+     ;;
+     ;; N.B. a disjoint-set data structure could help detect cycles in
+     ;; the bindings.
+     (let ((result (copy-binding-set bindings1)))
+       (loop :for from2 :being :the :hash-key :of bindings2 :using (hash-value binding2)
+             :for successp = (add-binding result binding2)
+             :unless successp :do (return))
+       result))))
 
+
+;; TODO
 (defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
   "Merge two set of bindings (list of list of bindings), returns a new
 set of bindings.
@@ -280,13 +385,6 @@ bindings and keeping only those that have not conflicting bindings."
                                               bindings1 bindings2)
                       :when merged-bindings
                         :collect merged-bindings)))
-
-(defun find-binding (bindings term-or-term-name)
-  (when bindings
-    (if (termp term-or-term-name)
-        (assoc term-or-term-name bindings)
-        (assoc term-or-term-name bindings
-               :key #'term-name))))
 
 
 ;;; Matching atoms
@@ -339,7 +437,7 @@ bindings and keeping only those that have not conflicting bindings."
 
 (defmethod match (($pattern pattern-iterator) ($input iterator))
   (loop
-    :with bindings = (make-empty-bindings)
+    :with bindings = t ;; (make-binding-set)
     :until (or (donep $pattern) (donep $input))
     :for new-bindings = (match (value $pattern) (value $input))
     :do (next $pattern) (next $input)
@@ -391,7 +489,7 @@ bindings and keeping only those that have not conflicting bindings."
 
 (defmethod match ((pattern repetition) (input vector))
   (loop
-    :with bindings = (make-empty-bindings)
+    :with bindings = (make-binding-set)
     :with pat = (repetition-pattern pattern)
     :with input-iterator := (make-vector-iterator input)
     :for i :from 0
@@ -442,7 +540,7 @@ bindings and keeping only those that have not conflicting bindings."
              (etypecase x
                (term
                 (alexandria:if-let ((binding (find-binding bindings x)))
-                  (cdr binding)
+                  (to binding)
                   ;; TODO this could signal a condition (binding not
                   ;; found)
                   x))
@@ -487,7 +585,7 @@ bindings and keeping only those that have not conflicting bindings."
 
 (defun make-rewrite (pattern template)
   (let ((*term-pool* (make-hash-table)))
-    (cons
+    (cons ;; TODO use a class instead
      (compile-pattern pattern)
      (compile-pattern template))))
 
