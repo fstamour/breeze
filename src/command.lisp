@@ -134,6 +134,15 @@
 (defmethod initialize-instance :after ((command command-handler) &key)
   (register command))
 
+(defun make-command-handler (context-plist)
+  (let* ((buffer (and context-plist
+                      (add-to-workspace context-plist))))
+    (make-instance
+     'command-handler
+     :context (alexandria:alist-hash-table
+               (when buffer
+                 `((:buffer . ,buffer)))))))
+
 (defmethod thread :around ((_ (eql nil))) nil)
 
 
@@ -382,13 +391,8 @@ uses the throw tag to stop the command immediately."
   (log-debug "Starting command...")
   (check-type fn (or function symbol))
   (check-type context-plist (or null cons))
-  (let* ((buffer (and context-plist
-                      (add-to-workspace context-plist)))
-         (command (make-instance
-                   'command-handler
-                   :context (alexandria:alist-hash-table
-                             (when buffer
-                               `((:buffer . ,buffer)))))))
+  (let* ((command (make-command-handler context-plist))
+         (buffer (current-buffer (context command))))
     ;; Create the thread for the command handler
     (make-actor-thread
      command
