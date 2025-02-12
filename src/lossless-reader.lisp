@@ -1326,18 +1326,18 @@ Returns a new node with one of these types:
 ;; TODO add tests
 (defun node-children-contains-position-p (node position)
   (when-let* ((children (node-children node)))
-    (if (sharp-label-node-p node)
-        ;; special case: the "sharp-label" (#=) nodes have 2 children: 1
-        ;; integer (the label) and one node for the labeled object.
-        (node-contains-position-p (aref children 1) position)
-        (typecase children
-          (vector
+    (typecase children
+      (vector
+       (if (sharp-label-node-p node)
+           ;; special case: the "sharp-label" (#=) nodes have 2 children: 1
+           ;; integer (the label) and one node for the labeled object.
+           (node-contains-position-p (aref children 1) position)
            (node-range-contains-position-p
             (aref children 0)
             (aref children (1- (length children)))
-            position))
-          (node
-           (node-contains-position-p children position))))))
+            position)))
+      (node
+       (node-contains-position-p children position)))))
 
 ;; TODO add tests
 (defmethod goto-position ((iterator node-iterator) position)
