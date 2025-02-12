@@ -217,9 +217,9 @@ TODO
 (defun child-of-mapcar-node-p (node-iterator)
   ;; TODO this is not exactly right (it won't detect "cl:mapcar"), but
   ;; this will do for now™
-  (node-string-equal (state node-iterator)
+  (node-string-equal "mapcar"
                      (first-node (parent-node node-iterator))
-                     "mapcar"))
+                     (state node-iterator)))
 
 
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
