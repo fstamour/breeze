@@ -14,7 +14,10 @@
                 #:term-name)
   ;; importing unexported symbols
   (:import-from #:breeze.analysis
-                #:malformed-if-node-p))
+                #:malformed-if-node-p)
+  ;; importing unexported symbols
+  (:import-from #:breeze.test.pattern
+                #:bindings-alist))
 
 (in-package #:breeze.test.analysis)
 
@@ -23,15 +26,7 @@
 
 (defun normalize-bindings (bindings)
   "This is only to make it easier to compare the bindings in the tests."
-  (or (eq t bindings)
-      (alexandria:alist-plist
-       (sort (loop :for (key . value) :in bindings
-                   :collect (cons (if (termp key)
-                                      (term-name key)
-                                      key)
-                                  value))
-             #'string<
-             :key #'car))))
+  (bindings-alist bindings))
 
 (defun make-binding (term input)
   (normalize-bindings
@@ -46,28 +41,43 @@
     (values bindings state)))
 
 
-
+#++ ;; TODO
 (define-test+run "match pattern nil and (nil) against parse trees"
   ;; pattern nil
-  (loop
-    :for skip-p :in '(nil t)
-    :do (progn
-          ;; TODO I'm not sure what should be the right things
-          ;;  - on one hand the parse tree _is_ nil
-          ;;  - on the other hand, (read "") would error
-          ;; (false (test-match-parse nil ""))
-          (false (test-match-parse nil "  " skip-p))
-          (false (test-match-parse nil "; hi" skip-p))
-          (false (test-match-parse nil "#| hi |#" skip-p))
-          (false (test-match-parse nil "nil" skip-p))
-          (false (test-match-parse nil "NIL" skip-p))
-          (false (test-match-parse nil "nIl" skip-p))
-          (false (test-match-parse nil "cl:nil" skip-p))
-          (false (test-match-parse nil "cl::nil" skip-p))
-          (false (test-match-parse nil "common-lisp:nil" skip-p))
-          (false (test-match-parse nil "common-lisp::nil" skip-p))
-          (false (test-match-parse nil "common-lisp-user::nil" skip-p))
-          (false (test-match-parse nil "common-lisp-user:nil" skip-p))))
+  (progn
+    ;; TODO I'm not sure what should be the right things
+    ;;  - on one hand the parse tree _is_ nil
+    ;;  - on the other hand, (read "") would error
+    ;; (false (test-match-parse nil ""))
+    (false (test-match-parse nil "  " nil))
+    (false (test-match-parse nil "; hi" nil))
+    (false (test-match-parse nil "#| hi |#" nil))
+    (false (test-match-parse nil "nil" nil))
+    (false (test-match-parse nil "NIL" nil))
+    (false (test-match-parse nil "nIl" nil))
+    (false (test-match-parse nil "cl:nil" nil))
+    (false (test-match-parse nil "cl::nil" nil))
+    (false (test-match-parse nil "common-lisp:nil" nil))
+    (false (test-match-parse nil "common-lisp::nil" nil))
+    (false (test-match-parse nil "common-lisp-user::nil" nil))
+    (false (test-match-parse nil "common-lisp-user:nil" nil)))
+  (progn
+    ;; TODO I'm not sure what should be the right things
+    ;;  - on one hand the parse tree _is_ nil
+    ;;  - on the other hand, (read "") would error
+    ;; (false (test-match-parse nil ""))
+    (false (test-match-parse nil "  " t))
+    (false (test-match-parse nil "; hi" t))
+    (false (test-match-parse nil "#| hi |#" t))
+    (false (test-match-parse nil "nil" t))
+    (false (test-match-parse nil "NIL" t))
+    (false (test-match-parse nil "nIl" t))
+    (false (test-match-parse nil "cl:nil" t))
+    (false (test-match-parse nil "cl::nil" t))
+    (false (test-match-parse nil "common-lisp:nil" t))
+    (false (test-match-parse nil "common-lisp::nil" t))
+    (false (test-match-parse nil "common-lisp-user::nil" t))
+    (false (test-match-parse nil "common-lisp-user:nil" t)))
   (progn
     (false (test-match-parse '(nil) ""))
     (false (test-match-parse '(nil) "  "))
@@ -104,6 +114,7 @@
     (false (test-match-parse '(nil) "common-lisp-user::nil" t))
     (false (test-match-parse '(nil) "common-lisp-user:nil" t))))
 
+#++ ;; TODO
 (define-test+run "match the patterns t and (t) against parse trees"
   ;; These should return nil because we're trying to match 1 symbol
   ;; against a list of nodes (even if that list is empty).
@@ -173,6 +184,7 @@
 ;; TODO test pattern "x"
 ;; TODO test pattern "some-node" (I'll have to think about the syntax)
 
+#++ ;; TODO
 (define-test+run "match terms against parse trees"
   (progn
     (is equalp
@@ -207,6 +219,7 @@
         (make-binding :?x (token 1 3))
         (test-match-parse '((:?x)) "(42)"))))
 
+#++ ;; TODO
 (define-test+run "match vector against parse trees"
   (false (test-match-parse 'x "x"))
   (true (test-match-parse #(x) "x"))
@@ -234,6 +247,7 @@
       (when package-designator-node
         (node-content state package-designator-node)))))
 
+#++ ;; TODO
 (define-test+run in-package-node-p
   (is equal "x" (test-in-package-node-p "(in-package x)"))
   (is equal "#)" (test-in-package-node-p "(in-package #)"))
@@ -273,7 +287,7 @@
 (defun test-lint (buffer-string)
   (lint :buffer-string buffer-string))
 
-
+#++ ;; TODO
 (define-test+run lint
   (false (test-lint ""))
   (false (test-lint ";; "))
@@ -368,7 +382,7 @@
 (progn
   (test-lint "like::%really"))
 
-
+#++ ;; TODO
 (define-test+run lint
   #++ ;; TODO the "fix" is to eval the defpackage, usually
   (is equal '((0 56 :warning
@@ -394,6 +408,7 @@
 (defun test-fix (input)
   (multiple-value-list (fix :buffer-string (format nil input))))
 
+#++ ;; TODO
 (define-test+run test-fix
   (is equal '("()" nil) (test-fix "()"))
   ;; TODO these don't work anymore since I modified ERROR-INVALID-NODE

@@ -208,8 +208,22 @@
  eclector.parse-result:read-preserving-whitespace
  raw)
 
-;; #+ (or) (sb-profile:report)
+;; #++ (sb-profile:report)
 
+
+;;; iterator.lisp
+
+(in-package #:breeze.iterator)
+
+(trace
+ make-recursive-iterator
+ collect
+ current-depth-done-p
+ donep
+ value
+ next
+ maybe-dig-in
+ maybe-dig-out)
 
 
 ;;; lossless-reader.lisp
@@ -235,16 +249,40 @@
  read-any
  parse)
 
+(trace recurse-into
+       :wherein breeze.test.lossless-reader::goto-position/all)
+
+(trace value next donep
+       :wherein breeze.test.lossless-reader::goto-position/all)
+
+(trace goto-position
+       :wherein breeze.test.lossless-reader::goto-position/all)
+
+(trace breeze.test.lossless-reader::goto-position/all)
+
 (untrace)
 
+
+(sb-profile:profile
+ goto-position
+ recurse-into
+ make-recursive-iterator
+ breeze.iterator:collect
+ breeze.iterator::current-depth-done-p
+ donep
+ value
+ next
+ breeze.iterator::maybe-dig-in
+ breeze.iterator::maybe-dig-out
+)
+
+(sb-profile:report)
+(sb-profile:reset)
+(sb-profile:unprofile)
 
 
 
 (in-package #:breeze.pattern)
-
-(trace iterator-next
-       iterator-maybe-push
-       iterator-maybe-pop)
 
 (trace merge-bindings)
 

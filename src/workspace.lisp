@@ -141,8 +141,8 @@ Design decision(s):
 (defmethod add-to-workspace ((context-plist cons))
   (when-let* ((name (getf context-plist :buffer-name))
               (buffer (ensure-buffer name)))
-    (breeze.logging:log-debug "add-to-workspace buffer ~s" (getf context-plist :buffer-file-name))
-    (when-let ((buffer-file-name (breeze.utils:breeze-relative-pathname "")))
+    (breeze.logging:log-debug "add-to-workspace buffer ~s" name)
+    (when-let ((buffer-file-name (getf context-plist :buffer-file-name)))
       (setf (filename buffer) buffer-file-name))
     ;; TODO remove the =(1- ...)= this is specific to emacs, it should
     ;; not be the responsibility of this package.

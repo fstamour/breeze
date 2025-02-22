@@ -73,58 +73,92 @@
               (progn (pop-vector iterator) (next iterator)
                      (value iterator))))))
 
-(define-test+run recursive-iterator+flatten
+(defun make-leaf (vector)
+  (make-leaf-iterator vector #'vectorp))
+
+(define-test+run leaf-iterator
+  (true (donep (make-leaf #())))
+  (true (donep (make-leaf #(#()))))
+  (true (donep (make-leaf #(#(#())))))
+  (false (donep (make-leaf #(#() 1 #()))))
+  (false (collect (make-leaf #())))
+  (false (collect (make-leaf #(#()))))
+  (is equal '(1)
+      (collect (make-leaf #(1 #()))))
+  (is equal '(1)
+      (collect (make-leaf #(#() 1))))
+  (is equal '(1 2)
+      (collect (make-leaf #(1 #() 2))))
   (is equal '(1 2 3 4)
-      (collect (make-recursive-iterator #(1 #(2 3) 4) #'vectorp))
+      (collect (make-leaf #(1 #(2 3) 4)))
+      "It should have flattened the nested vectors.")
+  (is equal '(1 2 3 4)
+      (collect (make-leaf #(1 #() #(2 3) 4)))
       "It should have flattened the nested vectors.")
   (is equal '(a b c d e f g)
-      (collect (make-recursive-iterator #(a b #(c d #(e f) g)) #'vectorp))
+      (collect (make-leaf #(a b #(c d #(e f) g))))
       "It should have flattened the nested vectors.")
   (is equal '(1 2 3 4 5 6 7 8 9)
       (collect
           (make-selector
-           (make-recursive-iterator #(1 2 #(3 4 #(5 6) 7) 8 9) #'vectorp)
+           (make-leaf #(1 2 #(3 4 #(5 6) 7) 8 9))
            (constantly t)))
       "Selector and recursive-iterator should interact correctly...")
   (is equal '(b d f)
       (let ((i 0))
         (collect
             (make-selector
-             (make-recursive-iterator
-              #(a b #(c d #(e f) g))
-              #'vectorp)
+             (make-leaf #(a b #(c d #(e f) g)))
              (lambda (iterator)
                (declare (ignore iterator))
                (prog1 (oddp i) (incf i)))
              :apply-filter-to-iterator-p t)))
       "Should flatten the nested vectors and keep only the odd positions."))
 
-(define-test+run recursive-iterator+pre-order
+(defun make-pre-order (vector)
+  (make-pre-order-iterator vector #'vectorp))
+
+;; (defparameter *it* (make-pre-order #(#())))
+;; (next *it*)
+
+(define-test+run pre-order-iterator
+  (true (donep (make-pre-order #())))
+  (false (donep (make-pre-order #(#()))))
+  (false (donep (make-pre-order #(#() 1 #()))))
+  (is equalp nil (collect (make-pre-order #())))
+  (is equalp '(#()) (collect (make-pre-order #(#()))))
+  (is equalp '(1 #())
+      (collect (make-pre-order #(1 #()))))
+  (is equalp '(#() 1)
+      (collect (make-pre-order #(#() 1))))
+  (is equalp '(1 #() 2)
+      (collect (make-pre-order #(1 #() 2))))
+  (is equalp '(1 #(2) 2 3)
+      (collect (make-pre-order #(1 #(2) 3))))
   (is equalp '(1 #(2 3) 2 3 4)
       (collect
-          (make-recursive-iterator
-           #(1 #(2 3) 4)
-           #'vectorp
-           :order :root-then-subtree))
+          (make-pre-order
+           #(1 #(2 3) 4)))
       "It should have iterated on both the vectors and their elements.")
   (is equalp '(a b #(c d #(e f) g) c d #(e f) e f g)
       (collect
-          (make-recursive-iterator #(a b #(c d #(e f) g)) #'vectorp
-                                   :order :root-then-subtree))
+          (make-pre-order #(a b #(c d #(e f) g))))
+      "It should have iterated on both the vectors and their elements.")
+  (is equalp '(a #() b c)
+      (collect
+          (make-pre-order #(a #() b c)))
       "It should have iterated on both the vectors and their elements.")
   (is equalp '(1 2 #(3 4 #(5 6) 7) 3 4 #(5 6) 5 6 7 8 9)
       (collect
           (make-selector
-           (make-recursive-iterator #(1 2 #(3 4 #(5 6) 7) 8 9) #'vectorp
-                                    :order :root-then-subtree)
+           (make-pre-order #(1 2 #(3 4 #(5 6) 7) 8 9))
            (constantly t)))
       "Selector and recursive-iterator (pre-order traversal) should interact correctly...")
   (is equalp '(b c #(e f) f)
       (let ((i 0))
         (collect
             (make-selector
-             (make-recursive-iterator #(a b #(c d #(e f) g)) #'vectorp
-                                      :order :root-then-subtree)
+             (make-pre-order #(a b #(c d #(e f) g)))
              (lambda (iterator)
                (declare (ignore iterator))
                (prog1 (oddp i) (incf i)))

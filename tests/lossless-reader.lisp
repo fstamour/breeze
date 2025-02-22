@@ -360,7 +360,7 @@ the function read-sharpsign-dispatching-reader-macro
                                 expected-children)))
     (with-state (input)
       (setf (pos state) starting-position)
-    (let* ((expected (node node-type 0
+      (let* ((expected (node node-type 0
                              expected-end
                              expected-children))
              (got
@@ -375,6 +375,7 @@ the function read-sharpsign-dispatching-reader-macro
                 :form (list sharpsing-reader-function
                             state 0 given-numeric-argument)
                 :expected expected)))
+        ;; Collecting samples for further tests
         (setf (gethash input *sharpsign-reader-test-cases*) expected)
         (when (and got (plusp expected-end))
           (is-equalp
@@ -765,7 +766,7 @@ the function read-sharpsign-dispatching-reader-macro
                          :end 10))
 
 
-;;; #=n
+;;; #n=
 
 (defun test-read-sharpsign-equal (input &key child end)
   (test-read-sharpsign*
@@ -774,21 +775,41 @@ the function read-sharpsign-dispatching-reader-macro
    :input input
    :expected-end end
    :expected-children child
-   :given-numeric-argument (first-node child)))
+   :given-numeric-argument (let ((first-child (first-node child)))
+                             (when (integerp first-child)
+                               first-child))))
 
 (define-test+run read-sharpsign-equal
-  (test-read-sharpsign-equal "#=" :end +end+)
-  (test-read-sharpsign-equal
-   '("#1" "=")
-   :child (nodes 1)
-   :end +end+)
-  (test-read-sharpsign-equal
-   '("#2" "= ")
-   :child (nodes 2 (whitespace 3 4))
-   :end +end+)
-  (test-read-sharpsign-equal
-   '("#3" "=(foo)")
-   :child (nodes 3 (parens 3 8 (token 4 7)))))
+  (progn
+    (test-read-sharpsign-equal
+     "#="
+     :end +end+
+     :child (vector nil nil))
+    (test-read-sharpsign-equal
+     '("#1" "=")
+     :child (vector 1 nil)
+     :end +end+)
+    (test-read-sharpsign-equal
+     '("#2" "= ")
+     :child (vector 2 (nodes (whitespace 3 4)))
+     :end +end+)
+    (test-read-sharpsign-equal
+     '("#3" "=(foo)")
+     :child (vector 3 (nodes (parens 3 8 (token 4 7)))))
+    (test-read-sharpsign-equal
+     '("#4" "= (foo)")
+     :child (vector 3 (nodes (whitespace 3 4) (parens 4 9 (token 5 8))))))
+  (progn
+    (test-read-sharpsign-equal
+     '("#" "=")
+     :child (vector nil nil)
+     :end +end+)
+    (test-read-sharpsign-equal
+     '("#" "=(bar)")
+     :child (vector nil (nodes (parens 2 7 (token 3 6)))))
+    (test-read-sharpsign-equal
+     '("#" "= (bar)")
+     :child (vector nil (nodes (whitespace 2 3) (parens 3 8 (token 4 7)))))))
 
 
 
@@ -1136,7 +1157,7 @@ the function read-sharpsign-dispatching-reader-macro
                 (nodes (node ':extraneous-closing-parens 3 +end+)))))
   (test-parse "#1=#1#"
               (sharp-label 0 6
-                           (nodes 1 (sharp-reference 3 6 1))))
+                           (nodes 1 (nodes (sharp-reference 3 6 1)))))
   (test-parse "(;)" (parens 0 -1 (line-comment 1 3)))
   ;; TODO This is wrong
   (test-parse "#+;;" (sharp-feature 0 4 (nodes (line-comment 2 4))))
@@ -1237,6 +1258,17 @@ reaally?")
 
 
 
+#++
+(list (collect
+          (make-node-iterator
+           (parse "a b c"))
+        :limit 100)
+
+      (collect
+          (make-node-iterator
+           (parse "a (b c)"))
+        :limit 100))
+
 (defun goto-position/all (input)
   (let* ((state (parse input))
          (it (make-node-iterator state)))
@@ -1245,6 +1277,9 @@ reaally?")
           :collect (list i (unless (donep it) (node-content state (value it)))))))
 
 (define-test+run goto-position
+  (is equal '((0 "a")) (goto-position/all "a"))
+  (is equal '((0 "a") (1 " ") (2 "b")) (goto-position/all "a b"))
+  (is equal '((0 "(a)" "a" "(a)")) (goto-position/all "(a)"))
   (is equal '((0 "a")
               (1 " ")
               (2 "(b c (d))")
@@ -1279,7 +1314,10 @@ reaally?")
       (goto-position/all ";; #:x"))
   (is equal
       '((0 "#=3") (1 "#=3") (2 "3"))
-      (goto-position/all "#=3")))
+      (goto-position/all "#=3"))
+  (is equal
+      '((0 "#4=") (1 "#4=") (2 "#4="))
+      (goto-position/all "#4=")))
 
 #++
 (progn
