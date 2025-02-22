@@ -129,3 +129,16 @@ flymake-diagnostic-functions
 
 ;; (zerop length) => insertion
 ;; (if (= start end)) => deletion, (plusp length)
+
+
+
+
+(defun breeze/sldb-show-all-details (&optional on)
+  (interactive)
+  (cl-assert (sldb-frame-number-at-point))
+  (let ((inhibit-read-only t)
+        (inhibit-point-motion-hooks t))
+    (cl-loop for i below 200
+             do
+             (sldb-forward-frame)
+             (sldb-show-frame-details))))

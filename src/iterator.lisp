@@ -35,6 +35,10 @@ generalization of that first iteration (ha!).
            #:make-nested-vector-iterator
            #:recursive-iterator
            #:make-recursive-iterator
+           #:pre-order-iterator
+           #:make-pre-order-iterator
+           #:leaf-iterator
+           #:make-leaf-iterator
            #:concat-iterator
            #:make-concat-iterator)
   ;; Accessors
@@ -128,12 +132,12 @@ save this function's return value."))
   ((vector
     :initform (error "Must provide a vector to iterate over.")
     :initarg :vector
-    :accessor vec
+    :type vector
     :documentation "The vector being iterated over.")
    (position
     :initform 0
     :initarg :position
-    :accessor pos
+    :type integer
     :documentation "Current position of the iterator in the vector."))
   (:documentation "An iterator for vectors."))
 
@@ -146,38 +150,44 @@ save this function's return value."))
                  :position position))
 
 (defmethod donep ((iterator vector-iterator))
-  (not (< -1 (pos iterator) (length (vec iterator)))))
+  (with-slots (position vector) iterator
+    (not (< -1 position (length vector)))))
 
 (defmethod next ((iterator vector-iterator) &key)
-  (incf (pos iterator)))
+  (with-slots (position) iterator
+    (incf iterator)))
 
 (defmethod value ((iterator vector-iterator))
-  (when (donep iterator) (error "No more values in this iterator. (pos: ~s)"
-                                (pos iterator)))
-  (aref (vec iterator) (pos iterator)))
+  (with-slots (position vector) iterator
+    (aref vector position)))
 
 ;; TODO test
 (defmethod reset ((iterator vector-iterator))
-  (setf (pos iterator) 0))
+  (with-slots (position) iterator
+    (setf position 0)))
 
 ;; TODO test
 (defmethod copy-iterator ((iterator vector-iterator))
-  (make-vector-iterator (vec iterator) :position (pos iterator)))
+  (with-slots (position vector) iterator
+    (make-vector-iterator vector :position position)))
 
 
 ;;; Other methods on vector-iterator
 
 (defmethod firstp ((iterator vector-iterator))
   "Is the current value the first one in the vector?"
-  (zerop (pos iterator)))
+  (with-slots (position) iterator
+    (zerop position)))
 
 (defmethod lastp ((iterator vector-iterator))
   "Is the current value the last one in the vector?"
-  (= (pos iterator) (1- (length (vec iterator)))))
+  (with-slots (position vector) iterator
+    (= position (1- (length vector)))))
 
 (defmethod before-last-p ((iterator vector-iterator))
   "Is the current value the penultimate one in the vector?"
-  (= (pos iterator) (- (length (vec iterator)) 2)))
+  (with-slots (position vector) iterator
+    (= position (- (length vector) 2))))
 
 
 ;;; Iterators that encapsulate other iterators
@@ -263,39 +273,69 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
                           :element-type 'vector
                           :adjustable t
                           :fill-pointer t)
-    :initarg :vectors
-    :accessor vectors)
+    :initarg :vectors)
    (depth
-    :initform -1
+    :initform 0
     :initarg :depth
-    :accessor depth)
+    :type fixnum)
    (positions
     :initform (make-array '(1)
-                          :element-type '(integer 0)
+                          :element-type 'fixnum
                           :adjustable t
                           :initial-element 0
                           :fill-pointer 0)
     :initarg :positions
-    :accessor positions))
+    :type (vector fixnum)))
   (:documentation "An iterator for nested vectors."))
+
+(defmethod print-object ((iterator nested-vector-iterator) stream)
+  (print-unreadable-object
+      (iterator stream :type nil :identity t)
+    (with-slots (depth positions) iterator
+        (format stream "nested-vector-iterator depth: ~s pos: ~s" depth positions))))
 
 (defun make-nested-vector-iterator (vector)
   "Create a new depth-first iterator on VECTOR."
   (check-type vector vector)
   (push-vector (make-instance 'nested-vector-iterator) vector))
 
-(defmethod vec ((iterator nested-vector-iterator))
-  (aref (vectors iterator) (depth iterator)))
+(declaim (inline vec))
+(defun vec (iterator)
+  #++ (declare (optimize (speed 3)))
+  #|
+  unable to
+    optimize
+  because:
+    Upgraded element type of array is not known at compile time.
+  |#
+  (with-slots (vectors depth) iterator
+      (aref vectors depth)))
 
-(defmethod pos ((iterator nested-vector-iterator))
-  (aref (positions iterator) (depth iterator)))
+(declaim (inline pos))
+(defun pos (iterator)
+  #++ (declare (optimize (speed 3)))
+  #|
+  unable to
+    optimize
+  because:
+    Upgraded element type of array is not known at compile time.
+  |#
+  (with-slots (positions depth) iterator
+    (aref positions depth)))
 
-(defmethod (setf pos) (new-position (iterator nested-vector-iterator))
-  (setf (aref (positions iterator) (depth iterator)) new-position))
+(defun (setf pos) (new-position iterator)
+  (with-slots (positions depth) iterator
+      (setf (aref positions depth) new-position)))
+
+(declaim (inline current-depth-done-p))
+(defun current-depth-done-p (iterator)
+  (not (< -1 (pos iterator) (length (vec iterator)))))
 
 ;; same implementation as vector-iterator's
 (defmethod donep ((iterator nested-vector-iterator))
-  (not (< -1 (pos iterator) (length (vec iterator)))))
+  (with-slots (depth) iterator
+    (and (zerop depth)
+         (current-depth-done-p iterator))))
 
 ;; same implementation as vector-iterator's
 (defmethod next ((iterator nested-vector-iterator) &key)
@@ -303,63 +343,67 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 ;; same implementation as vector-iterator's
 (defmethod value ((iterator nested-vector-iterator))
-  (when (donep iterator)
-    (error "No more values in this iterator. (depth: ~s pos: ~s)"
-           (depth iterator)
-           (pos iterator)))
   (aref (vec iterator) (pos iterator)))
 
 ;; TODO test
 (defmethod reset ((iterator nested-vector-iterator))
-  (setf (depth iterator) 0
-        (pos iterator) 0
-        (fill-pointer (vectors iterator)) 1
-        (fill-pointer (positions iterator)) 1))
+  (with-slots (depth vectors positions) iterator
+    (setf depth 0
+          (pos iterator) 0
+          (fill-pointer vectors) 1
+          (fill-pointer positions) 1)))
 
 ;; TODO test
 (defmethod copy-iterator ((iterator nested-vector-iterator))
   (flet ((copy-vec (vec)
+           ;; TODO there's something in alexandria for this
             (make-array (length vec)
                      :element-type (array-element-type vec)
                      :adjustable t
                      :fill-pointer (fill-pointer vec)
                      :initial-contents vec)))
-    (make-instance
-     'nested-vector-iterator
-     :vectors (copy-vec (vectors iterator))
-     :positions (copy-vec (positions iterator))
-     :depth (depth iterator))))
+    (with-slots (vectors positions depth) iterator
+      (make-instance
+       'nested-vector-iterator
+       :vectors (copy-vec vectors)
+       :positions (copy-vec positions)
+       :depth depth))))
 
 (defmethod push-vector ((iterator nested-vector-iterator)
                         vector &key (position 0))
-  (vector-push-extend vector (vectors iterator))
-  (vector-push-extend position (positions iterator))
-  (incf (depth iterator))
+  (with-slots (positions depth vectors) iterator
+    (vector-push-extend vector vectors)
+    (vector-push-extend position positions)
+    (setf depth (length positions)))
   iterator)
 
 (defmethod pop-vector ((iterator nested-vector-iterator))
-  (decf (fill-pointer (vectors iterator)))
-  (decf (fill-pointer (positions iterator)))
-  (decf (depth iterator))
+  (with-slots (positions depth vectors) iterator
+    (decf (fill-pointer vectors))
+    (decf (fill-pointer positions))
+    (decf depth))
   iterator)
 
 ;; TODO add tests
 (defmethod vector-at-depth ((iterator nested-vector-iterator) depth)
-  (aref (vectors iterator) depth))
+  (with-slots (vectors) iterator
+    (aref vectors depth)))
 
 (defmethod root-vector ((iterator nested-vector-iterator))
   (vector-at-depth iterator 0))
 
 ;; TODO add tests
 (defmethod value-at-depth ((iterator nested-vector-iterator) depth)
-  (let ((pos (aref (positions iterator) depth))
-        (vec (aref (vectors iterator) depth)))
-    (aref vec pos)))
+  (with-slots (positions vectors) iterator
+    (let ((pos (aref positions depth))
+          (vec (aref vectors depth)))
+      (aref vec pos))))
 
 ;; TODO add tests
 (defmethod parent-value ((iterator nested-vector-iterator))
-  (when (plusp (depth iterator))
-    (value-at-depth iterator (1- (depth iterator)))))
+  (with-slots (depth) iterator
+    (when (plusp depth)
+      (value-at-depth iterator (1- depth)))))
 
 ;; TODO add tests
 (defmethod root-value ((iterator nested-vector-iterator))
@@ -373,77 +417,230 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
     :initform nil
     :initarg :recurse-into
     :accessor recurse-into
-    :documentation "Callback to control which value to recurse into.")
-   (order
-    :initform nil
-    :initarg :order
-    :accessor order
-    :documentation "Defines the \"tree-traversal\" order. Valid values are
-:subtree-only (the default) or :root-then-subtree. Other possible
-orders exists, but they're not needed by breeze for now."))
+    :documentation "Callback to control which value to recurse into."))
   (:documentation "Iterator for nested vectors that automatically recurse into subtrees."))
 
 (defun make-recursive-iterator (vector recurse-into
                                 &rest rest
                                 &key
                                   apply-recurse-into-to-iterator-p
-                                  order
                                   (class 'recursive-iterator)
                                 &allow-other-keys)
-  (let ((iterator (apply #'make-instance
-                         class
-                         :recurse-into (if apply-recurse-into-to-iterator-p
-                                           recurse-into
-                                           (lambda (iterator)
-                                             (funcall recurse-into (value iterator))))
-                         :order (ecase order
-                                  (:root-then-subtree order)
-                                  ;; default
-                                  ((nil :subtree-only) :subtree-only))
-                         (alexandria:remove-from-plist rest :class :order :apply-recurse-into-to-iterator-p))))
+  (let ((iterator
+          (apply
+           #'make-instance
+           class
+           :recurse-into (if apply-recurse-into-to-iterator-p
+                             recurse-into
+                             (lambda (iterator)
+                               ;; TODO I think this =unless= is
+                               ;; unecesary if I fix the function
+                               ;; "maybe-dig-in"
+                               (unless (current-depth-done-p iterator)
+                                 (funcall recurse-into (value iterator)))))
+           (alexandria:remove-from-plist rest :class :apply-recurse-into-to-iterator-p))))
     (push-vector iterator vector)
-    (when (eq (order iterator) :subtree-only)
-      (maybe-dig-in iterator))
     iterator))
 
+
 
-(defmethod maybe-dig-in ((iterator recursive-iterator))
-  (unless (donep iterator)
+(defclass pre-order-iterator (recursive-iterator) ())
+
+(defun make-pre-order-iterator (vector recurse-into
+                                &key apply-recurse-into-to-iterator-p)
+  (make-recursive-iterator
+   vector recurse-into
+   :apply-recurse-into-to-iterator-p apply-recurse-into-to-iterator-p
+   :class 'pre-order-iterator))
+
+
+(defmethod next ((iterator pre-order-iterator) &key dont-recurse-p)
+  (with-slots (positions depth) iterator
+    (breeze.logging:log-debug "next(pre-order): ~s" positions)
+    (labels ((maybe-dig-in (iterator)
+               (unless (current-depth-done-p iterator)
+                 (let ((digged-in-p nil))
+                   (loop :for value-to-dig-in = (funcall (recurse-into iterator) iterator)
+                         :for value = (and value-to-dig-in
+                                           (if (eq t value-to-dig-in)
+                                               (value iterator)
+                                               value-to-dig-in))
+                         :while (and value
+                                     ;; don't "dig-in" if the value-to-dig-in is empty
+                                     (plusp (length value)))
+                         :do
+                            (setf digged-in-p t)
+                            (push-vector iterator value))
+                   digged-in-p)))
+             (maybe-dig-out (iterator)
+               ;; TODO this docstring is not exactly right, it's still written as
+               ;; if iterator was like a linked list (it used to be).
+               "If ITERATOR is done and has a parent, return the next
+parent (i.e. the parent might also be done, in which case the parent's
+parents is returned, and so on and so on). Otherwise, just return
+ITERATOR unchanged."
+               (loop
+                 ;; :with digged-out-p = nil
+                 :while (and (current-depth-done-p iterator) (plusp depth))
+                 :do (pop-vector iterator) (next iterator :dont-recurse-p t)
+                     ;; :finally (when digged-out-p (next iterator))
+                 )))
+      (flet ((++ ()
+               (breeze.logging:log-debug "next: BEFORE ++ ~s" positions)
+               (incf (pos iterator))
+               (breeze.logging:log-debug "next: AFTER ++ ~s" positions))
+             (out ()
+               (progn
+                 (breeze.logging:log-debug "next: BEFORE dig out ~s" positions)
+                 (maybe-dig-out iterator)
+                 (breeze.logging:log-debug "next: AFTER dig out ~s" positions)))
+             (in ()
+               (progn
+                 (breeze.logging:log-debug "next: BEFORE dig in ~s" positions)
+                 (let ((digged-in-p (maybe-dig-in iterator)))
+                   (breeze.logging:log-debug "next: AFTER dig in ~s (digged-in-p: ~s)" positions
+                                             digged-in-p)
+                   digged-in-p))))
+        ;; if the current node is "recursable", then we recurse into it
+        (cond
+          (dont-recurse-p (++) (out))
+          ((not dont-recurse-p)
+           (cond
+             ((in)
+              ;; If we "digged-in", we don't want to increment the current
+              ;; position, or it'll skip the first child of the sequence
+              ;; we're recursed into.
+              nil)
+             (t (++)))
+           ;; "dig out" whether we digged in or not.
+           (out)))))))
+
+
+(defmethod next ((iterator pre-order-iterator) &key dont-recurse-p)
+  (with-slots (depth) iterator
+      (labels ((next-sibling ()
+                 (incf (pos iterator)) (maybe-dig-out)
+                 (values))
+               (maybe-dig-in ()
+                 (unless (current-depth-done-p iterator)
+                   (let ((digged-in-p nil))
+                     (loop :for value-to-dig-in = (funcall (recurse-into iterator) iterator)
+                           :for value = (and value-to-dig-in
+                                             (if (eq t value-to-dig-in)
+                                                 (value iterator)
+                                                 value-to-dig-in))
+                           :while (and value
+                                       ;; don't "dig-in" if the value-to-dig-in is empty
+                                       (plusp (length value)))
+                           :do
+                              (setf digged-in-p t)
+                              (push-vector iterator value))
+                     digged-in-p)))
+               (maybe-dig-out ()
+                 (loop
+                   :while (and (current-depth-done-p iterator) (plusp depth))
+                   :do (pop-vector iterator) (next-sibling))
+                 (values)))
+        ;; if the current node is "recursable", then we recurse into it
+        (if dont-recurse-p
+            (next-sibling)
+            (unless (maybe-dig-in)
+              (incf (pos iterator))))
+        (maybe-dig-out)
+        #++
+        (cond
+          (dont-recurse-p (next-sibling))
+          ((not dont-recurse-p)
+           (cond
+             ((maybe-dig-in)
+              ;; If we "digged-in", we don't want to increment the current
+              ;; position, or it'll skip the first child of the sequence
+              ;; we're recursed into.
+              nil)
+             (t (incf (pos iterator))))
+           ;; "dig out" whether we digged in or not.
+           (maybe-dig-out))))))
+
+
+
+(declaim (inline maybe-dig-in))
+(defun maybe-dig-in (iterator)
+  (unless (current-depth-done-p iterator)
     (let ((digged-in-p nil))
       (loop :for value-to-dig-in = (funcall (recurse-into iterator) iterator)
-            :while value-to-dig-in
+            :for value = (and value-to-dig-in
+                              (if (eq t value-to-dig-in)
+                                  (value iterator)
+                                  value-to-dig-in))
+            :while value
             :do (setf digged-in-p t)
-                (push-vector iterator
-                             (if (eq t value-to-dig-in)
-                                 (value iterator)
-                                 value-to-dig-in)))
+                (push-vector iterator value))
       digged-in-p)))
 
-(defmethod maybe-dig-out ((iterator recursive-iterator))
+(declaim (inline maybe-dig-out))
+(defun maybe-dig-out (iterator)
   ;; TODO this docstring is not exactly right, it's still written as
   ;; if iterator was like a linked list (it used to be).
   "If ITERATOR is done and has a parent, return the next
 parent (i.e. the parent might also be done, in which case the parent's
 parents is returned, and so on and so on). Otherwise, just return
 ITERATOR unchanged."
-  (loop
-    :while (and (donep iterator) (< 0 (depth iterator)))
-    :do (pop-vector iterator) (next iterator :dont-recurse-p t)))
+  (with-slots (depth) iterator
+    (loop
+      ;; :with digged-out-p = nil
+      :while (and (current-depth-done-p iterator) (plusp depth))
+      :do (pop-vector iterator) (next iterator :dont-recurse-p t)
+          ;; :finally (when digged-out-p (next iterator))
+      )))
 
-(defmethod next ((iterator recursive-iterator) &key dont-recurse-p)
-  (ecase (order iterator)
-    (:root-then-subtree
-     ;; if the current node is "recursable", then we recurse into it
-     (unless (unless dont-recurse-p
-               (maybe-dig-in iterator))
-       (call-next-method)
-       (maybe-dig-out iterator)))
-    ;; default
-    ((nil :subtree-only)
-     (call-next-method)
-     (maybe-dig-out iterator)
-     (unless dont-recurse-p
-       (maybe-dig-in iterator)))))
+(defclass leaf-iterator (recursive-iterator) ())
+
+(defun make-leaf-iterator (vector recurse-into
+                                   &key apply-recurse-into-to-iterator-p)
+  (let ((iterator (make-recursive-iterator
+                   vector recurse-into
+                   :apply-recurse-into-to-iterator-p apply-recurse-into-to-iterator-p
+                   :class 'leaf-iterator)))
+    (next-non-empty-subtree iterator)
+    iterator))
+
+(defun next-non-empty-subtree (iterator)
+  (with-slots (positions) iterator
+    (breeze.logging:log-debug "==next-non-empty-subtree==" positions)
+    (flet ((out ()
+             (progn
+               (breeze.logging:log-debug "next-non-empty-subtree: BEFORE dig out ~s" positions)
+               (maybe-dig-out iterator)
+               (breeze.logging:log-debug "next-non-empty-subtree: AFTER dig out ~s" positions)))
+           (in ()
+             (progn
+               (breeze.logging:log-debug "next-non-empty-subtree: BEFORE in ~s" positions)
+               (maybe-dig-in iterator)
+               (breeze.logging:log-debug "next-non-empty-subtree: AFTER in ~s" positions))))
+      ;; the loop is necessary to skip over "deeply empty" trees. For
+      ;; example: #(#(#(#())))
+      (loop :while (in) :do (out)))))
+
+(defmethod next ((iterator leaf-iterator) &key dont-recurse-p)
+  (with-slots (positions) iterator
+    (breeze.logging:log-debug "next(leaf): ~s" positions)
+    (flet ((++ ()
+             (breeze.logging:log-debug "next: BEFORE ++ ~s" positions)
+             (incf (pos iterator))
+             (breeze.logging:log-debug "next: AFTER ++ ~s" positions))
+           (out ()
+             (progn
+               (breeze.logging:log-debug "next: BEFORE dig out ~s" positions)
+               (maybe-dig-out iterator)
+               (breeze.logging:log-debug "next: AFTER dig out ~s" positions)))
+           (in ()
+             (progn
+               (breeze.logging:log-debug "next: BEFORE next-non-empty-subtree ~s" positions)
+               (next-non-empty-subtree iterator)
+               (breeze.logging:log-debug "next: AFTER next-non-empty-subtree ~s" positions))))
+      (++)
+      (out)
+      (unless dont-recurse-p (in)))))
 
 
 ;;; Concat iterator

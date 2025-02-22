@@ -98,14 +98,10 @@ children nodes."
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.
 (defmethod match ((pattern symbol) (node-iterator node-iterator))
-  (match-symbol-to-token pattern
-                         (state node-iterator)
-                         (value node-iterator)))
+  (match-symbol-to-token pattern node-iterator))
 
-(defmethod match ((pattern null) (node node))
-  (match-symbol-to-token pattern
-                         (state node-iterator)
-                         (value node-iterator)))
+(defmethod match ((pattern null) (node-iterator node-iterator))
+  (match-symbol-to-token pattern node-iterator))
 
 (defmethod match ((pattern term) (state state))
   (match-parser-state pattern state))

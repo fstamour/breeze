@@ -9,6 +9,8 @@
 
 (defparameter cl-user::*exit-on-test-failures* nil)
 
+;; (setf parachute:*silence-plain-compilation-errors-p* nil)
+
 (defun run-breeze-tests (&optional exitp)
   "Run breeze's tests."
   (let ((packages (breeze.xref:find-packages-by-prefix "breeze.test")))
