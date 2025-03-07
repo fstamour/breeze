@@ -31,6 +31,35 @@
   (apply #'message string objects)
   (apply #'breeze-debug string objects))
 
+
+;;; Utilities for integrating with other packages that might or might
+;;; not be loaded.
+
+(defun breeze-fbound-p (symbol)
+  "Like `fboundp' but returns SYMBOL instead of `t' when true."
+  (and (fboundp symbol) symbol))
+
+(defun breeze-keep-fbound (symbols)
+  (remove 'nil (mapcar 'breeze-fbound-p symbols)))
+
+(cl-defun breeze-remove-nil (&rest args)
+  (remove 'nil args))
+
+(defun breeze-symbol-value (symbol)
+  (when (boundp symbol)
+    (symbol-value symbol)))
+
+(cl-defun breeze-funcall (symbol &rest args)
+  (when (fboundp symbol)
+    (apply symbol args)))
+
+(defun breeze-add-hook (hook function &optional depth local)
+  (when (boundp hook)
+    (add-hook hook function depth local)))
+
+(defun breeze-remove-hook (hook function &optional local)
+  (when (boundp hook)
+    (remove-hook hook function local)))
 
 
 ;;; Lisp listener state
@@ -55,18 +84,17 @@
 ;; (prefix-slime-repl-input-history
 ;;  (cl-first (prefix-find-slime-repl-buffers)))
 
-
-
-
 (defun breeze-sly-connected-p ()
   "Check if sly loaded and connected."
-  (and (fboundp 'sly-connected-p)
-       (sly-connected-p)))
+  (or
+   (breeze-symbol-value 'sly-dispatching-connection)
+   (breeze-symbol-value 'sly-default-connection)))
 
 (defun breeze-slime-connected-p ()
   "If slime is loaded and connected."
-  (and (fboundp 'slime-connected-p)
-       (slime-connected-p)))
+  (or
+   (breeze-symbol-value 'slime-dispatching-connection)
+   (breeze-symbol-value 'slime-default-connection)))
 
 (cl-defun breeze-listener-connected-p (&optional (errorp t))
   "Check if either sly or slime is loaded and connected."
@@ -77,10 +105,14 @@
 
 (cl-defun breeze-list-loaded-listeners (&optional (errorp t))
   "Returns a list of loaded listeners (sly or slime)."
-  (or (remove 'nil (list (and (fboundp 'slime) 'slime)
-                         (and (fboundp 'sly) 'sly)))
+  (or (breeze-keep-fbound '(slime sly))
       (and errorp
            (error "Please load either slime or sly."))))
+
+(cl-defun breeze-list-connected-listeners ()
+  "Returns a list of connected listeners (sly or slime)."
+  (breeze-remove-nil (and (breeze-sly-connected-p) 'sly)
+                     (and (breeze-slime-connected-p) 'slime)))
 
 (cl-defun breeze-%symbolicate2 (listener &optional suffix)
   "Build up a symbol. Used to refer to sly or slime's functions
@@ -91,17 +123,19 @@ not loaded."
    ((symbolp listener) listener)
    (t (intern listener))))
 
-;; TODO errorp is not used
+(defun breeze-single (list)
+  (when (and list (= (length list) 1))
+    (cl-first list)))
+
 (cl-defun breeze-choose-listener (&optional (errorp t))
   "Interactively ask the user to choose a listener (e.g. sly or
 slime) if multiple listeners are available."
-  (let ((listeners (breeze-list-loaded-listeners errorp)))
-    (when listeners
-      (if (= (length listeners) 1)
-          (cl-first listeners)
-        (breeze-%symbolicate2
-         (completing-read "Choose a lisp listener to start: "
-                          listeners nil t))))))
+  (or (breeze-single (breeze-list-loaded-listeners errorp))
+      (let ((connections (breeze-list-connected-listeners)))
+        (or (breeze-single connections)
+            ;; If both OR neither sly and slime are connected.
+            (intern (completing-read "Choose a lisp listener to start: "
+                                     listeners nil t))))))
 
 (cl-defun breeze-%listener-symbolicate (&optional suffix)
   "Build up a symbol. Used to refer to sly or slime's functions
@@ -317,7 +351,7 @@ receiving the data it requested."
      (throw 'breeze-run-command (cl-second request)))
     ("buffer-string"
      (buffer-substring-no-properties (point-min) (point-max)))
-    (_ (breeze-debug "Unknown request: %S" request) )))
+    (_ (breeze-debug "Unknown request: %S" request))))
 
 (defun breeze-run-command (name &rest extra-args)
   "Runs a \"breeze command\". TODO Improve this docstring."
@@ -573,7 +607,7 @@ with which arguments."
                            slime-cycle-connections-hook
                            slime-connected-hook
                            slime-event-hooks)
-             do (add-hook hook (lambda (&rest args) (breeze-debug "%S: %S" hook args) nil)) )))
+             do (add-hook hook (lambda (&rest args) (breeze-debug "%S: %S" hook args) nil)))))
 
 (defun breeze-connected-hook-function ()
   "Hook to be called when a listener is connected."
@@ -582,16 +616,20 @@ with which arguments."
 (defun breeze-enable-connected-hook ()
   "Configure a hook to initialize breeze when connecting to sly or slime."
   (interactive)
-  (add-hook (breeze-%listener-symbolicate "connected-hook")
-            'breeze-connected-hook-function))
+  (breeze-add-hook 'slime-connected-hook
+                   'breeze-connected-hook-function)
+  (breeze-add-hook 'sly-connected-hook
+                   'breeze-connected-hook-function))
 
 (defun breeze-disable-connected-hook ()
   "Remove 'breeze-connected-hook-function from sly or slime's
 \"connected hook\"."
-  (interactive)
   "Remove the hook to initialize breeze when connecting to sly or slime."
-  (remove-hook (breeze-%listener-symbolicate "connected-hook")
-               'breeze-connected-hook-function))
+  (interactive)
+  (breeze-remove-hook 'slime-connected-hook
+                      'breeze-connected-hook-function)
+  (breeze-remove-hook 'sly-connected-hook
+                      'breeze-connected-hook-function))
 
 
 ;;; Incremental parsing
@@ -607,8 +645,8 @@ with which arguments."
        (let ((base (list 'breeze.analysis:after-change-function
                          start stop length
                          :buffer-name (buffer-name)
-                         :buffer-file-name (buffer-file-name)
-                         )))
+                         :buffer-file-name (buffer-file-name))))
+                         
          (if (zerop length)
              (append base (list :insertion (buffer-substring-no-properties start stop)))
            base)))))))
