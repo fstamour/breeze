@@ -94,7 +94,7 @@ newline or +end+)
 
 (define-test+run donep
   :depends-on (valid-position-p)
-  (with-state*+predicates (:test-form (progn (setf (pos state) pos)
+  (with-state*+predicates (:test-form (progn (setf (current-position state) pos)
                                              (donep state))
                            :extra-args (pos))
     (""  (yes -1) (yes 0) (yes 1))
@@ -209,11 +209,11 @@ newline or +end+)
   :depends-on (current-char)
   (with-state* ()
     (""
-     (test* (list (read-char* state) (pos state)) '(nil 0))
-     (test* (list (read-char* state #\a) (pos state)) '(nil 0)))
+     (test* (list (read-char* state) (current-position state)) '(nil 0))
+     (test* (list (read-char* state #\a) (current-position state)) '(nil 0)))
     ("c"
-     (test* (list (read-char* state) (pos state)) '(#\c 1))
-     (test* (list (read-char* state #\d) (pos state)) '(nil 0)))))
+     (test* (list (read-char* state) (current-position state)) '(#\c 1))
+     (test* (list (read-char* state #\d) (current-position state)) '(nil 0)))))
 
 (define-test+run read-string*
   :depends-on (valid-position-p)
@@ -222,24 +222,24 @@ newline or +end+)
      (test*
       (list
        (read-string* state "")
-       (pos state))
+       (current-position state))
       '(nil 0))
      (test*
       (list
        (read-string* state "#")
-       (pos state))
+       (current-position state))
       '(nil 0)))
     (";"
      (test*
       (list
        (read-string* state ";;")
-       (pos state))
+       (current-position state))
       '(nil 0)))
     (";;"
      (test*
       (list
        (read-string* state ";;")
-       (pos state))
+       (current-position state))
       '((0 2) 2)))))
 
 ;; TODO test read-while
@@ -359,7 +359,7 @@ the function read-sharpsign-dispatching-reader-macro
                                     (first expected-children))
                                 expected-children)))
     (with-state (input)
-      (setf (pos state) starting-position)
+      (setf (current-position state) starting-position)
       (let* ((expected (node node-type 0
                              expected-end
                              expected-children))
@@ -382,7 +382,7 @@ the function read-sharpsign-dispatching-reader-macro
            :input input
            :expected expected-pos
            :form `(pos ,state)
-           :got (pos state)
+           :got (current-position state)
            :description " the state's position after reading is wrong:"))
         got))))
 
@@ -882,7 +882,7 @@ the function read-sharpsign-dispatching-reader-macro
       (when got
         (is-equalp* input
                     expected-pos
-                    (pos state))))))
+                    (current-position state))))))
 
 (define-test+run read-sharpsign-dispatching-reader-macro
   (loop :for input :being

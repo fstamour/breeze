@@ -23,7 +23,8 @@ generalization of that first iteration (ha!).
            #:next
            #:value
            #:reset
-           #:copy-vector)
+           #:copy-vector
+           #:current-position)
   ;; Classes and Constructors
   (:export #:iterator
            #:proxy-iterator-mixin
@@ -121,6 +122,9 @@ save this function's return value."))
 (defgeneric copy-iterator (iterator)
   (:documentation "Copy an iterator."))
 
+(defgeneric current-position (iterator)
+  (:documentation "Current position of the iterator"))
+
 
 (defclass iterator () ()
   (:documentation "An abstract iterator."))
@@ -138,6 +142,7 @@ save this function's return value."))
     :initform 0
     :initarg :position
     :type integer
+    :accessor current-position
     :documentation "Current position of the iterator in the vector."))
   (:documentation "An iterator for vectors."))
 
@@ -155,7 +160,7 @@ save this function's return value."))
 
 (defmethod next ((iterator vector-iterator) &key)
   (with-slots (position) iterator
-    (incf iterator)))
+    (incf position)))
 
 (defmethod value ((iterator vector-iterator))
   (with-slots (position vector) iterator
@@ -325,11 +330,20 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 (defun (setf pos) (new-position iterator)
   (with-slots (positions depth) iterator
-      (setf (aref positions depth) new-position)))
+    (setf (aref positions depth) new-position)))
+
+(defmethod current-position ((iterator nested-vector-iterator))
+  (pos iterator))
+
+(defmethod (setf current-position) (new-position (iterator nested-vector-iterator))
+  (setf (pos iterator) new-position))
 
 (declaim (inline current-depth-done-p))
 (defun current-depth-done-p (iterator)
-  (not (< -1 (pos iterator) (length (vec iterator)))))
+  (or
+   (with-slots (depth vectors) iterator
+       (<= (length vectors) depth))
+   (not (< -1 (pos iterator) (length (vec iterator))))))
 
 ;; same implementation as vector-iterator's
 (defmethod donep ((iterator nested-vector-iterator))

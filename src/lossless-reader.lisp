@@ -234,7 +234,7 @@ common lisp.")
   (print-unreadable-object
       (state stream :type t :identity nil)
     (let ((excerpt (breeze.string:around (source state)
-                                         (pos state))))
+                                         (current-position state))))
       (format stream "~s ~d/~d"
               excerpt
               (length excerpt)
@@ -545,24 +545,11 @@ common lisp.")
 
 ;;; Reader position (in the source string)
 
+(defmethod current-position ((state state))
+  (current-position (iterator state)))
 
-#|
-
-TODO
-
-This is were I left off
-
-I was removing the iterators' accessors
-
-|#
-
-#++
-(defmethod pos ((state state))
-  (pos (iterator state)))
-
-#++
-(defmethod (setf pos) (new-pos (state state))
-  (setf (pos (iterator state)) new-pos))
+(defmethod (setf current-position) (new-pos (state state))
+  (setf (current-position (iterator state)) new-pos))
 
 (defmethod donep ((state state))
   (donep (iterator state)))
@@ -595,26 +582,26 @@ Returns nil if POSITION is invalid."
 (defun current-char (state)
   "Get the character at the current STATE's position, without changing
 the position."
-  (at state (pos state)))
+  (at state (current-position state)))
 
 ;; TODO add tests with case-sensitive-p = nil
 ;; TODO split into current-char= and current-char-equal
 (defun current-char= (state char &optional (case-sensitive-p t))
   "Get the character at the current STATE's position, without changing
 the position."
-  (at= state (pos state) char case-sensitive-p))
+  (at= state (current-position state) char case-sensitive-p))
 
 (defun next-char (state &optional (n 1))
   "Peek at the next character to be read, without changing the
 position."
-  (at state (+ n (pos state))))
+  (at state (+ n (current-position state))))
 
 ;; TODO add tests with case-sensitive-p = nil
 ;; TODO split into next-char= and next-char-equal
 (defun next-char= (state char &optional (n 1) (case-sensitive-p t))
   "Peek at the next character to be read, without changing the
 position."
-  (at= state (+ n (pos state)) char case-sensitive-p))
+  (at= state (+ n (current-position state)) char case-sensitive-p))
 
 
 ;;; Low-level parsing helpers
@@ -628,7 +615,7 @@ position."
               (if case-sensitive-p
                   (char= c char)
                   (char-equal c char)))
-      (incf (pos state))
+      (incf (current-position state))
       c)))
 
 (defun read-string* (state string &optional (advance-position-p t))
@@ -636,17 +623,18 @@ position."
 position. If found, optinally advance the STATE's position to _after_
 the occurence of STRING."
   (check-type string string)
-  (let ((start (pos state))
-        (end (+ (pos state) (length string))))
+  (let ((start (current-position state))
+        (end (+ (current-position state) (length string))))
     (when (valid-position-p state (1- end))
       (when-let ((foundp (search string (source state) :start2 start :end2 end)))
         (when advance-position-p
-          (setf (pos state) end))
+          (setf (current-position state) end))
         (list start end)))))
 
 ;; 2023-05-20 only used in read-token
 ;; 2024-01-03 and read- dispatch reader macro
-(defun read-while (state predicate &key (advance-position-p t) (start (pos state)))
+(defun read-while (state predicate &key (advance-position-p t)
+                                     (start (current-position state)))
   "Returns nil or (list start end)"
   (loop
     ;; :for guard :from 0
@@ -655,7 +643,7 @@ the occurence of STRING."
     ;; :when (< 9000 guard) :do (error "read-while might be looping indefinitely...")
     :do (when (or (null c) (not (funcall predicate c)))
           (when (/= start pos)
-            (when advance-position-p (setf (pos state) pos))
+            (when advance-position-p (setf (current-position state) pos))
             (return (range start pos)))
           (return nil))))
 
@@ -678,7 +666,7 @@ the occurence of STRING."
 ;;; Actual reader
 
 (defmacro defreader (name lambda-list &body body)
-  `(defun ,name (state ,@lambda-list &aux (start (pos state)))
+  `(defun ,name (state ,@lambda-list &aux (start (current-position state)))
      (declare (ignorable start))
      ,@body))
 
@@ -688,7 +676,7 @@ the occurence of STRING."
     :for c = (at state pos)
     :while (and c (whitespacep c) (not (char= #\page c)))
     :finally (when (/= pos start)
-               (setf (pos state) pos)
+               (setf (current-position state) pos)
                (return (whitespace start pos)))))
 
 (defreader read-block-comment ()
@@ -712,7 +700,7 @@ the occurence of STRING."
             (sharp (case char
                      (#\|
                       (setf situation 'other)
-                      (push (- (pos state) 2) stack))
+                      (push (- (current-position state) 2) stack))
                      (t
                       (setf situation 'other))))
             (pipe (case char
@@ -720,7 +708,7 @@ the occurence of STRING."
                      (setf situation 'other)
                      (pop stack)
                      (when (null stack)
-                       (return (block-comment start (pos state)))))
+                       (return (block-comment start (current-position state)))))
                     (t
                      (setf situation 'other))))))))
 
@@ -729,11 +717,11 @@ the occurence of STRING."
   (when (read-char* state #\;)
     (let ((newline (search #.(format nil "~%")
                            (source state)
-                           :start2 (pos state))))
-      (setf (pos state) (if newline
+                           :start2 (current-position state))))
+      (setf (current-position state) (if newline
                             newline
                             (length (source state))))
-      (line-comment start (pos state)))))
+      (line-comment start (current-position state)))))
 
 ;; TODO rename read-integer
 (defun read-number (state &optional (radix 10))
@@ -753,10 +741,10 @@ the occurence of STRING."
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\\)
-    (decf (pos state))
-    (let ((token (when (valid-position-p state (1+ (pos state)))
+    (decf (current-position state))
+    (let ((token (when (valid-position-p state (1+ (current-position state)))
                    (read-token state))))
-      (node 'sharp-char start (if token (pos state) +end+) token))))
+      (node 'sharp-char start (if token (current-position state) +end+) token))))
 
 (defun read-any* (state)
   "Like READ-ANY, but return the end of the read and a sequence of nodes
@@ -767,7 +755,7 @@ first node being whitespaces.)"
     (let ((children (%nodes whitespaces form))
           (end (if (and form
                         (valid-node-p form))
-                   (pos state)
+                   (current-position state)
                    +end+)))
       (values end children))))
 
@@ -788,7 +776,7 @@ first node being whitespaces.)"
   ;; want to consume the left-parens right away.
   (when (current-char= state #\()
     (let ((form (read-parens state)))
-      (node 'sharp-vector start (if form (pos state) +end+) form))))
+      (node 'sharp-vector start (if form (current-position state) +end+) form))))
 
 (defun read-sharpsign-asterisk (state start length)
   (declare (ignore length))
@@ -797,15 +785,15 @@ first node being whitespaces.)"
         (read-number state 2)
       (declare (ignore range))
       ;; TODO check (- (cdr range) (car range)) <= length
-      (node 'sharp-bitvector start (pos state) bits))))
+      (node 'sharp-bitvector start (current-position state) bits))))
 
 (defun read-sharpsign-colon (state start number)
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\:)
-    (let* ((token-start (pos state))
+    (let* ((token-start (current-position state))
            (token (read-token state))
-           (end (pos state)))
+           (end (current-position state)))
       (node 'sharp-uninterned start end
             (or token
                 (token token-start end))))))
@@ -819,7 +807,7 @@ first node being whitespaces.)"
 (defun %read-sharpsign-number (state start type radix)
   "Read a number"
   (let ((n (read-number state radix)))
-    (node type start (if n (pos state) +end+))))
+    (node type start (if n (current-position state) +end+))))
 
 (defun read-sharpsign-b (state start number)
   (declare (ignore number))
@@ -884,20 +872,20 @@ first node being whitespaces.)"
        (node 'sharp-radix start +end+))
       (t
        (let ((n (read-number state radix)))
-         (node 'sharp-radix start (if n (pos state) +end+)))))))
+         (node 'sharp-radix start (if n (current-position state) +end+)))))))
 
 (defun read-sharpsign-c (state start number)
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\c nil)
     (let ((form (read-parens state)))
-      (node 'sharp-complex start (if form (pos state) +end+) form))))
+      (node 'sharp-complex start (if form (current-position state) +end+) form))))
 
 (defun read-sharpsign-a (state start length)
   (declare (ignore length))
   (when (read-char* state #\a nil)
     (let ((form (read-parens state)))
-      (node 'sharp-array start (if form (pos state) +end+) form))))
+      (node 'sharp-array start (if form (current-position state) +end+) form))))
 
 (defun read-sharpsign-s (state start number)
   (declare (ignore number))
@@ -921,7 +909,7 @@ first node being whitespaces.)"
   (when (read-char* state #\#)
     (node 'sharp-reference start (if (and (integerp number)
                                           (<= 0 number))
-                                     (pos state)
+                                     (current-position state)
                                      +end+)
           number)))
 
@@ -982,31 +970,31 @@ first node being whitespaces.)"
                                 (#\page . page))
                               :key #'car)))
     (prog1 (punctuation (cdar foundp) start)
-      (incf (pos state)))))
+      (incf (current-position state)))))
 
 (defun read-quoted-string (state delimiter escape &optional validp)
   "Read strings delimited by DELIMITER where the single escape character
 is ESCAPE. Optionally check if the characters is valid if VALIDP is
 provided."
-  (let ((start (pos state)))
-    (when (at= state (pos state) delimiter)
+  (let ((start (current-position state)))
+    (when (at= state (current-position state) delimiter)
       (loop
         ;; :for guard :upto 10
-        :for pos :from (1+ (pos state))
+        :for pos :from (1+ (current-position state))
         :for c = (at state pos)
         :do
            ;; (format *debug-io* "~%~A ~A" pos c)
            (cond
              ((null c)
-              (setf (pos state) pos)
+              (setf (current-position state) pos)
               (return (range start +end+)))
              ((char= c delimiter)
-              (setf (pos state) (1+ pos))
+              (setf (current-position state) (1+ pos))
               (return (range start (1+ pos))))
              ((char= c escape) (incf pos))
              ((and validp
                    (not (funcall validp c)))
-              (setf (pos state) pos)
+              (setf (current-position state) pos)
               (return (range start +end+))))))))
 
 (defreader read-string ()
@@ -1036,7 +1024,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 (defreader read-backslash ()
   (when (read-char* state #\\)
     (when (read-char* state)
-      (range start (pos state)))))
+      (range start (current-position state)))))
 
 (defreader read-pipe ()
   (when (current-char= state #\|)
@@ -1119,7 +1107,7 @@ Returns a new node with one of these types:
     :while (and part
                 (not-terminatingp (current-char state))
                 (not (donep state)))
-    :finally (return (unless (= start (pos state))
+    :finally (return (unless (= start (current-position state))
                        (let ((end (if part (end part) +end+)))
                          (token start end)
                          ;; for debugging
@@ -1148,7 +1136,7 @@ Returns a new node with one of these types:
   "position: ~D char: ~s context: «~a»")
 
 (defun state-context (state)
-  (let* ((pos (pos state))
+  (let* ((pos (current-position state))
          (string (source state)))
     `(,pos
       ,(at state pos)
@@ -1167,7 +1155,8 @@ Returns a new node with one of these types:
         :collect el :into content
       :unless (valid-node-p el)
         :do (return (parens start +end+ (ensure-nodes content)))
-      :finally (return (parens start (pos state) (ensure-nodes content))))))
+      :finally (return (parens start (current-position state)
+                               (ensure-nodes content))))))
 
 ;; TODO add tests with skip-whitespaces-p set
 (defun read-any (state &optional skip-whitespaces-p)
@@ -1200,7 +1189,7 @@ Returns a new node with one of these types:
   (let ((result (make-array '(0) :adjustable t :fill-pointer t)))
     (loop
       ;; :for i :from 0
-      :for node-start = (pos state)
+      :for node-start = (current-position state)
       :for node = (read-any state)
       ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
       :when node
@@ -1212,7 +1201,7 @@ Returns a new node with one of these types:
 
 (defun reparse (state)
   (loop
-    :for node-start = (pos state)
+    :for node-start = (current-position state)
     :for node = (read-any state)
     ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
     :when node
@@ -1229,12 +1218,12 @@ Returns a new node with one of these types:
   (loop
     :with state = (make-state string)
     :with unknown-start
-    :for token-start = (pos state)
+    :for token-start = (current-position state)
     ;; :for guard :upto 1000               ; infinite loop guard
     :for token = (read-any state)
 
     ;; Loop invariant
-    :when (= (pos state)
+    :when (= (current-position state)
              token-start)
       :do (error "This is a bug: failed to advance the position at ~D, character ~C, token: ~s"
                  token-start
@@ -1259,15 +1248,16 @@ Returns a new node with one of these types:
       ;; state)), advance and try again
       :do
          (unless unknown-start
-           (setf unknown-start (pos state)))
+           (setf unknown-start (current-position state)))
          ;; TODO For now we simply increment, but later we'll search
          ;; for synchornization points, hence the setf instead of an
          ;; incf
-         (setf (pos state) (1+ (pos state)))
+         (setf (current-position state) (1+ (current-position state)))
 
     :when (donep state)               ; Done
       :do (if unknown-start
-              (return (append result `((unknown ,unknown-start ,(pos state)))))
+              (return (append result `((unknown ,unknown-start
+                                                ,(current-position state)))))
               (return result))))
 
 
@@ -1286,7 +1276,7 @@ Returns a new node with one of these types:
     (etypecase node-or-vec
       (vector
        ;; (call-next-method)
-       (and (zerop (depth iterator))
+       (and (zerop (slot-value iterator 'depth))
             (breeze.iterator::current-depth-done-p iterator)))
       (node (let ((children (node-children node-or-vec)))
               (declare (dynamic-extent children))
@@ -1309,11 +1299,9 @@ Returns a new node with one of these types:
 (defmethod print-object ((node-iterator node-iterator) stream)
   (print-unreadable-object
       (node-iterator stream :type t :identity nil)
-    (format stream "~{~s~^, ~}"
-            (list
-             (depth node-iterator)
-             (positions node-iterator)
-             (vectors node-iterator)))))
+    (with-slots (depth positions vectors) node-iterator
+      (format stream "~{~s~^, ~}"
+              (list depth positions vectors)))))
 
 (defun recurse-into (node)
   (when-let ((children (node-children node)))
