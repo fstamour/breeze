@@ -178,7 +178,8 @@ children nodes."
 N.B. This doesn't guarantee that it's a valid node."
   (let* ((*state* state)
          (bindings (match #.(compile-pattern `(in-package :?package)) node))
-         (package-designator-node (cdr (find-binding bindings :?package))))
+         (package-designator-node (when bindings
+                                    (cdr (find-binding bindings :?package)))))
     package-designator-node))
 
 
