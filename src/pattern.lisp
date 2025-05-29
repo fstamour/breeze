@@ -421,11 +421,11 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Iterators
 
-(defclass pattern-iterator (recursive-iterator)
+(defclass pattern-iterator (leaf-iterator)
   ())
 
 (defmethod make-pattern-iterator ((pattern vector))
-  (make-recursive-iterator
+  (make-leaf-iterator
    pattern
    (lambda (pattern)
      (and (refp pattern)

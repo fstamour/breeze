@@ -607,11 +607,12 @@ ITERATOR unchanged."
 (defclass leaf-iterator (recursive-iterator) ())
 
 (defun make-leaf-iterator (vector recurse-into
-                                   &key apply-recurse-into-to-iterator-p)
+                                   &key apply-recurse-into-to-iterator-p
+                                     (class 'leaf-iterator))
   (let ((iterator (make-recursive-iterator
                    vector recurse-into
                    :apply-recurse-into-to-iterator-p apply-recurse-into-to-iterator-p
-                   :class 'leaf-iterator)))
+                   :class class)))
     (next-non-empty-subtree iterator)
     iterator))
 
