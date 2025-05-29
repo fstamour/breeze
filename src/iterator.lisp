@@ -345,17 +345,14 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
        (<= (length vectors) depth))
    (not (< -1 (pos iterator) (length (vec iterator))))))
 
-;; same implementation as vector-iterator's
 (defmethod donep ((iterator nested-vector-iterator))
   (with-slots (depth) iterator
     (and (zerop depth)
          (current-depth-done-p iterator))))
 
-;; same implementation as vector-iterator's
 (defmethod next ((iterator nested-vector-iterator) &key)
   (incf (pos iterator)))
 
-;; same implementation as vector-iterator's
 (defmethod value ((iterator nested-vector-iterator))
   (aref (vec iterator) (pos iterator)))
 
@@ -388,7 +385,7 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
   (with-slots (positions depth vectors) iterator
     (vector-push-extend vector vectors)
     (vector-push-extend position positions)
-    (setf depth (length positions)))
+    (setf depth (1- (length positions))))
   iterator)
 
 (defmethod pop-vector ((iterator nested-vector-iterator))
@@ -633,7 +630,12 @@ ITERATOR unchanged."
                (breeze.logging:log-debug "next-non-empty-subtree: AFTER in ~s" positions))))
       ;; the loop is necessary to skip over "deeply empty" trees. For
       ;; example: #(#(#(#())))
-      (loop :while (in) :do (out)))))
+      (unless (donep iterator)
+        (loop :while (in) :do (out))
+        (loop
+          :while (and (not (donep iterator))
+                      (zerop (length (vec iterator))))
+          :do (out) (loop :while (in) :do (out)))))))
 
 (defmethod next ((iterator leaf-iterator) &key dont-recurse-p)
   (with-slots (positions) iterator
