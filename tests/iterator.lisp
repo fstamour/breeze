@@ -27,12 +27,12 @@
     (progn
       (next iterator)
       (false (firstp iterator))
-      (true  (before-last-p iterator))
+      (true (before-last-p iterator))
       (false (lastp iterator)))
     (progn
       (next iterator)
       (false (firstp iterator))
-      (false  (before-last-p iterator))
+      (false (before-last-p iterator))
       (true (lastp iterator))))
   (let* ((vector #(1 2 3))
          (iterator (make-vector-iterator vector :position 2)))
@@ -53,7 +53,7 @@
       (collect (make-selector
                 (make-vector-iterator #(a b c d e f))
                 (lambda (iterator)
-                  (oddp (pos iterator)))
+                  (oddp (slot-value iterator 'position)))
                 :apply-filter-to-iterator-p t))
       "Should have removed the even positions"))
 
