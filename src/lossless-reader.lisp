@@ -490,8 +490,12 @@ common lisp.")
 
 (defun whitespace-or-comment-node-p (node)
   "Is this node a whitespace, a block comment or line comment?"
-  (or (whitespace-node-p node)
-      (comment-node-p node)))
+  (etypecase node
+    (node-iterator (whitespace-or-comment-node-p
+                    (value node)))
+    (node
+     (or (whitespace-node-p node)
+         (comment-node-p node)))))
 
 (defun symbol-node-p (node)
   (and

@@ -57,43 +57,51 @@ children nodes."
 (defmethod match (pattern (state state) &key skipp)
   (match-parser-state pattern state :skipp skipp))
 
+(defmethod match ((pattern null) (state state) &key skipp)
+  nil)
+
 ;; TODO move to utils, maybe rename "safe-plusp"
 (defun plusp* (x)
   (and (numberp x) (plusp x)))
 
-(defun match-symbol-to-token (symbol token-node)
-  (check-type token-node node-iterator)
-  (and
-   (symbolp symbol)
-   (token-node-p token-node)
-   (let* ((name (symbol-name symbol))
-          (package (symbol-package symbol))
-          ;; TODO would be nice to cache this
-          (symbol-node (token-symbol-node (state token-node) token-node)))
-     ;; TODO use case-sensitive comparison, but convert case if
-     ;; necessary (i.e. depending on *read-case*)
-     (when symbol-node
-       (and
-        (ecase (node-type symbol-node)
-          (current-package-symbol (node-string-equal name token-node))
-          (keyword
-           (and (string-equal "KEYWORD" (package-name package))
-                (node-string-equal name symbol-node (state token-node))))
-          (uninterned-symbol
-           (and (null package)
-                (node-string-equal name symbol-node (state token-node))))
-          ((qualified-symbol possibly-internal-symbol)
-           (let* ((nodes (node-children symbol-node))
-                  (package-name-node (first-node nodes))
-                  (symbol-name-node (second-node nodes)))
-             (and
-              (node-string-equal name symbol-name-node (state token-node))
-              (some (lambda (package-name)
-                      (node-string-equal package-name package-name-node (state token-node)))
-                    `(,(package-name package)
-                      ,@(package-nicknames package)))))))
-        ;; symbol-node
-        t)))))
+(defun match-symbol-to-token (symbol node-iterator)
+  (check-type node-iterator node-iterator)
+  (let ((token-node (value node-iterator))
+        (state (state node-iterator)))
+    (and
+     (symbolp symbol)
+     (token-node-p token-node)
+     (let* ((name (symbol-name symbol))
+            (package (symbol-package symbol))
+            ;; TODO would be nice to cache this
+            (symbol-node (token-symbol-node state token-node)))
+       ;; TODO use case-sensitive comparison, but convert case if
+       ;; necessary (i.e. depending on *read-case*)
+       ;;
+       ;; TODO check if we can find the symbol denoted by
+       ;; symbol-node... and compare (eq) symbol with it.
+       (when symbol-node
+         (and
+          (ecase (node-type symbol-node)
+            (current-package-symbol (node-string-equal name token-node state))
+            (keyword
+             (and (string-equal "KEYWORD" (package-name package))
+                  (node-string-equal name symbol-node state)))
+            (uninterned-symbol
+             (and (null package)
+                  (node-string-equal name symbol-node state)))
+            ((qualified-symbol possibly-internal-symbol)
+             (let* ((nodes (node-children symbol-node))
+                    (package-name-node (first-node nodes))
+                    (symbol-name-node (second-node nodes)))
+               (and
+                (node-string-equal name symbol-name-node state)
+                (some (lambda (package-name)
+                        (node-string-equal package-name package-name-node state))
+                      `(,(package-name package)
+                        ,@(package-nicknames package)))))))
+          ;; symbol-node
+          t))))))
 
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.

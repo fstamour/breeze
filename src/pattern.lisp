@@ -443,9 +443,22 @@ bindings and keeping only those that have not conflicting bindings."
   (loop
     :with bindings = t ;; (make-binding-set)
     :until (or (donep $pattern) (donep $input))
-    ;; TODO skipp
-
-    :for new-bindings = (match (value $pattern) (value $input))
+    :for new-bindings = (progn
+                          (when skipp
+                            (loop :while (and
+                                          (not (donep $input))
+                                          (funcall skipp $input))
+                                  :do (next $input)))
+                          (when (donep $input) (return))
+                          (match (value $pattern)
+                            ;; match-symbol-to-token would like an
+                            ;; iterator (to access the state, but
+                            ;; otherwise, this causes infinite
+                            ;; recursion.
+                            ;; TODO this is a very bad hack
+                            (if (typep $input 'breeze.lossless-reader::node-iterator )
+                                $input
+                                (value $input))))
     :do (next $pattern) (next $input)
     :if new-bindings
       ;; collect all the bindings
