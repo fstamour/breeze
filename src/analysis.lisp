@@ -51,11 +51,11 @@ children nodes."
 
 ;; (defpattern in-package package-designator)
 
-(defun match-parser-state (pattern state)
-  (match pattern (make-node-iterator state)))
+(defun match-parser-state (pattern state &key skipp)
+  (match pattern (make-node-iterator state) :skipp skipp))
 
-(defmethod match (pattern (state state))
-  (match-parser-state pattern state))
+(defmethod match (pattern (state state) &key skipp)
+  (match-parser-state pattern state :skipp skipp))
 
 ;; TODO move to utils, maybe rename "safe-plusp"
 (defun plusp* (x)
@@ -97,14 +97,16 @@ children nodes."
 
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.
-(defmethod match ((pattern symbol) (node-iterator node-iterator))
+(defmethod match ((pattern symbol) (node-iterator node-iterator) &key skipp)
+  ;; TODO skip nodes
   (match-symbol-to-token pattern node-iterator))
 
-(defmethod match ((pattern null) (node-iterator node-iterator))
+(defmethod match ((pattern null) (node-iterator node-iterator) &key skipp)
+  ;; TODO skip nodes
   (match-symbol-to-token pattern node-iterator))
 
-(defmethod match ((pattern term) (state state))
-  (match-parser-state pattern state))
+(defmethod match ((pattern term) (state state) &key skipp)
+  (match-parser-state pattern state :skipp skipp))
 
 ;; TODO package-local-nicknames
 
@@ -159,9 +161,7 @@ children nodes."
 (defmacro define-node-matcher (name (pattern) &body body)
   `(defun ,name (state node)
      ,(format nil "Does NODE match ~s?" pattern)
-     (let* ((*state* state)
-            ;; (*match-skip* #'whitespace-or-comment-node-p)
-            (bindings (match (compile-pattern ,pattern) node)))
+     (let* ((bindings (match (compile-pattern ,pattern) node)))
        ,@body)))
 
 #++ ;; TODO
@@ -176,8 +176,7 @@ children nodes."
 (defun in-package-node-p (state node)
   "Is NODE a cl:in-package node?
 N.B. This doesn't guarantee that it's a valid node."
-  (let* ((*state* state)
-         (bindings (match #.(compile-pattern `(in-package :?package)) node))
+  (let* ((bindings (match #.(compile-pattern `(in-package :?package)) node))
          (package-designator-node (when bindings
                                     (cdr (find-binding bindings :?package)))))
     package-designator-node))

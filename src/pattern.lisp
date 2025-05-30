@@ -307,7 +307,7 @@ compile-pattern is called, a new one is created."
         (assoc term-or-term-name bindings
                :key #'term-name))))
 
-;; TODO maybe this could be method?
+;; TODO maybe this could be a method instead of a defun?
 (defun set-binding (binding-set binding)
   (setf (gethash (from binding) (bindings binding-set)) binding))
 
@@ -370,7 +370,6 @@ compile-pattern is called, a new one is created."
        result))))
 
 
-;; TODO
 (defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
   "Merge two set of bindings (list of list of bindings), returns a new
 set of bindings.
@@ -387,35 +386,40 @@ bindings and keeping only those that have not conflicting bindings."
                         :collect merged-bindings)))
 
 
+;;; Matching
+
+(defgeneric match (pattern input &key))
+
+
 ;;; Matching atoms
 
 ;; Basic "equal" matching
-(defmethod match (pattern input)
+(defmethod match (pattern input &key)
   (equal pattern input))
 
 ;; Match a term (create a binding)
-(defmethod match ((pattern term) input)
+(defmethod match ((pattern term) input &key)
   (make-binding pattern input))
 
 ;; Match a typed term (creates a binding)
-(defmethod match ((pattern typed-term) input)
+(defmethod match ((pattern typed-term) input &key)
   (when (typep input (typed-term-type pattern))
     (make-binding pattern input)))
 
 ;; Recurse into a referenced pattern
-(defmethod match ((pattern ref) input)
+(defmethod match ((pattern ref) input &key)
   (match (ref-pattern pattern) input))
 
 ;; Match a string literal
-(defmethod match ((pattern string) (input string))
+(defmethod match ((pattern string) (input string) &key)
   (string= pattern input))
 
 ;; "nil" must match "nil"
-(defmethod match ((pattern null) (input null))
+(defmethod match ((pattern null) (input null) &key)
   t)
 
 ;; "nil" must not match any other symbols
-(defmethod match ((pattern null) (input symbol))
+(defmethod match ((pattern null) (input symbol) &key)
   nil)
 
 
@@ -435,10 +439,12 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Matching sequences
 
-(defmethod match (($pattern pattern-iterator) ($input iterator))
+(defmethod match (($pattern pattern-iterator) ($input iterator) &key skipp)
   (loop
     :with bindings = t ;; (make-binding-set)
     :until (or (donep $pattern) (donep $input))
+    ;; TODO skipp
+
     :for new-bindings = (match (value $pattern) (value $input))
     :do (next $pattern) (next $input)
     :if new-bindings
@@ -454,10 +460,10 @@ bindings and keeping only those that have not conflicting bindings."
     :finally
        ;; We advance the input iterator to see if there are still
        ;; values left that would not be skipped.
-       #++
-       (when (and (not (donep $input))
-                  (iterator-skip-p $input))
-         (setf $input (next $input)))
+       (when (and skipp
+                  (not (donep $input))
+                  (funcall skipp $input))
+         (next $input))
        (return
          ;; We want to match the whole pattern, but wheter we
          ;; want to match the whole input is up to the caller.
@@ -465,36 +471,38 @@ bindings and keeping only those that have not conflicting bindings."
            (values (or bindings t)
                    (unless (donep $input) $input))))))
 
-(defmethod match ((pattern term) (input iterator))
+(defmethod match ((pattern term) (input iterator) &key skipp)
   (multiple-value-bind (bindings input-remaining-p)
-      (match (make-pattern-iterator (vector pattern)) input)
+      (match (make-pattern-iterator (vector pattern)) input :skipp skipp)
     (unless input-remaining-p
       bindings)))
 
-(defmethod match ((pattern vector) (input vector))
+(defmethod match ((pattern vector) (input vector) &key skipp)
   (multiple-value-bind (bindings input-remaining-p)
-      (match (make-pattern-iterator pattern) (make-vector-iterator input))
+      (match (make-pattern-iterator pattern)
+        (make-vector-iterator input)
+        :skipp skipp)
     (unless input-remaining-p
       bindings)))
 
 
 ;;; Matching alternations
 
-(defmethod match ((pattern alternation) input)
+(defmethod match ((pattern alternation) input &key)
   (some (lambda (pat) (match pat input))
         (alternation-pattern pattern)))
 
 
 ;;; Matching repetitions
 
-(defmethod match ((pattern repetition) (input vector))
+(defmethod match ((pattern repetition) (input vector) &key skipp)
   (loop
     :with bindings = (make-binding-set)
     :with pat = (repetition-pattern pattern)
     :with input-iterator := (make-vector-iterator input)
     :for i :from 0
     :do (multiple-value-bind (new-bindings new-input-iterator)
-            (match (make-pattern-iterator pat) input-iterator)
+            (match (make-pattern-iterator pat) input-iterator :skipp skipp)
           ;; (break)
           (if new-bindings
               ;; collect all the bindings (setf bindings
@@ -520,14 +528,14 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Convenience automatic coercions
 
-(defmethod match ((pattern vector) (input iterator))
-  (match (make-pattern-iterator pattern) input))
+(defmethod match ((pattern vector) (input iterator) &key skipp)
+  (match (make-pattern-iterator pattern) input :skipp skipp))
 
-(defmethod match ((pattern vector) (input sequence))
-  (match pattern (coerce input 'vector)))
+(defmethod match ((pattern vector) (input sequence) &key skipp)
+  (match pattern (coerce input 'vector) :skipp skipp))
 
-(defmethod match ((pattern repetition) (input sequence))
-  (match pattern (coerce input 'vector)))
+(defmethod match ((pattern repetition) (input sequence) &key skipp)
+  (match pattern (coerce input 'vector) :skipp skipp))
 
 
 ;;; Match substitution
