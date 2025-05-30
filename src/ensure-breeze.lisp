@@ -12,10 +12,10 @@ TODO _maybe_ add a variable *breeze-loaded-correctly-p*
 
 (cl:in-package #:cl-user)
 
-(defpackage #:breeze-loader
+(defpackage #:breeze.loader
   (:use #:cl))
 
-(in-package #:breeze-loader)
+(in-package #:breeze.loader)
 
 (defun or-die (error callback)
   (let (success)

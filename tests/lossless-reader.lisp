@@ -798,7 +798,7 @@ the function read-sharpsign-dispatching-reader-macro
      :child (vector 3 (nodes (parens 3 8 (token 4 7)))))
     (test-read-sharpsign-equal
      '("#4" "= (foo)")
-     :child (vector 3 (nodes (whitespace 3 4) (parens 4 9 (token 5 8))))))
+     :child (vector 4 (nodes (whitespace 3 4) (parens 4 9 (token 5 8))))))
   (progn
     (test-read-sharpsign-equal
      '("#" "=")
@@ -1252,7 +1252,7 @@ reaally?")
               (is = (length content) (length result)
                   "Round-tripping the file ~s didn't give the same length.")
               (let ((mismatch (mismatch content result)))
-                (false mismatch "Failed to round-trip the file ~s. The first mismatch is at position: "
+                (false mismatch "Failed to round-trip the file ~s. The first mismatch is at position: ~d"
                        file
                        mismatch)))))
 
@@ -1269,6 +1269,25 @@ reaally?")
            (parse "a (b c)"))
         :limit 100))
 
+(define-test+run node-contains-position-p
+  (false (node-contains-position-p (token 1 2) 0))
+  (true (node-contains-position-p (token 1 2) 1))
+  (false (node-contains-position-p (token 1 2) 2)))
+
+(define-test+run node-range-contains-position-p
+  (false (node-range-contains-position-p (token 1 2) (token 5 7) 0))
+  (true (node-range-contains-position-p (token 1 2) (token 5 7) 1))
+  (true (node-range-contains-position-p (token 1 2) (token 5 7) 2))
+  (true (node-range-contains-position-p (token 1 2) (token 5 7) 3))
+  (true (node-range-contains-position-p (token 1 2) (token 5 7) 4))
+  (true (node-range-contains-position-p (token 1 2) (token 5 7) 5))
+  (true (node-range-contains-position-p (token 1 2) (token 5 7) 6))
+  (false (node-range-contains-position-p (token 1 2) (token 5 7) 7)))
+
+(define-test+run node-children-contains-position-p
+  (false (node-children-contains-position-p (token 1 2) 1))
+  (true (node-children-contains-position-p (parens 1 4 (token 1 3)) 1)))
+
 (defun goto-position/all (input)
   (let* ((state (parse input))
          (it (make-node-iterator state)))
@@ -1279,7 +1298,7 @@ reaally?")
 (define-test+run goto-position
   (is equal '((0 "a")) (goto-position/all "a"))
   (is equal '((0 "a") (1 " ") (2 "b")) (goto-position/all "a b"))
-  (is equal '((0 "(a)" "a" "(a)")) (goto-position/all "(a)"))
+  (is equal '((0 "(a)") (1 "a") (2 "(a)")) (goto-position/all "(a)"))
   (is equal '((0 "a")
               (1 " ")
               (2 "(b c (d))")
@@ -1317,42 +1336,12 @@ reaally?")
       (goto-position/all "#=3"))
   (is equal
       '((0 "#4=") (1 "#4=") (2 "#4="))
-      (goto-position/all "#4=")))
+      (goto-position/all "#4="))
+  (is equal
+      '((0 "#\\c") (1 "\\c") (2 "\\c"))
+      (goto-position/all "#\\c"))
+  (is equal
+      '((0 "#(a)") (1 "(a)") (2 "a") (3 "(a)"))
+      (goto-position/all "#(a)")))
 
-#++
-(progn
-  (breeze.lossless-reader:node-children-contains-position-p
-   (first-node (tree (parse "#:x")))
-   3)
-
-  (let* ((state (parse "#:x"))
-         (it (make-node-iterator state)))
-    (goto-position it 2)
-    (node-content state (value it)))
-
-
-  (let* ((state (parse ";;;; System definitions for breeze and auxiliary systems
-
-
-;;; breeze.asd package
-
-"))
-         (it (make-node-iterator state)))
-    (goto-position it 1)
-    (node-content state (value it)))
-
-  #((sharp-uninterned 0 3 (token 2 3)))
-
-  (trace breeze.lossless-reader::node-children-contains-position-p)
-  (trace node-children)
-  (trace next)
-
-  (untrace)
-
-
-  (goto-position/all ";;;; System definitions for breeze and auxiliary systems
-
-
-;;; breeze.asd package
-
-"))
+;; TODO run `goto-position/all' on all "test strings"

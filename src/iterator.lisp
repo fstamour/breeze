@@ -342,8 +342,10 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 (defun current-depth-done-p (iterator)
   (or
    (with-slots (depth vectors) iterator
-       (<= (length vectors) depth))
-   (not (< -1 (pos iterator) (length (vec iterator))))))
+     (<= (length vectors) depth))
+   (if (typep (vec iterator) 'sequence)
+       (not (< -1 (pos iterator) (length (vec iterator))))
+       (plusp (pos iterator)))))
 
 (defmethod donep ((iterator nested-vector-iterator))
   (with-slots (depth) iterator
@@ -444,9 +446,7 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
            :recurse-into (if apply-recurse-into-to-iterator-p
                              recurse-into
                              (lambda (iterator)
-                               ;; TODO I think this =unless= is
-                               ;; unecesary if I fix the function
-                               ;; "maybe-dig-in"
+                               ;; This "unless" is necessary for the "leaf-iterators"
                                (unless (current-depth-done-p iterator)
                                  (funcall recurse-into (value iterator)))))
            (alexandria:remove-from-plist rest :class :apply-recurse-into-to-iterator-p))))
@@ -465,37 +465,24 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
    :class 'pre-order-iterator))
 
 
+;; version with lots of logs
+#++
 (defmethod next ((iterator pre-order-iterator) &key dont-recurse-p)
   (with-slots (positions depth) iterator
     (breeze.logging:log-debug "next(pre-order): ~s" positions)
     (labels ((maybe-dig-in (iterator)
                (unless (current-depth-done-p iterator)
-                 (let ((digged-in-p nil))
-                   (loop :for value-to-dig-in = (funcall (recurse-into iterator) iterator)
-                         :for value = (and value-to-dig-in
-                                           (if (eq t value-to-dig-in)
-                                               (value iterator)
-                                               value-to-dig-in))
-                         :while (and value
-                                     ;; don't "dig-in" if the value-to-dig-in is empty
-                                     (plusp (length value)))
-                         :do
-                            (setf digged-in-p t)
-                            (push-vector iterator value))
-                   digged-in-p)))
+                 (let ((value-to-dig-in (funcall (recurse-into iterator) iterator)))
+                   (when value-to-dig-in
+                     (push-vector iterator
+                                  (if (eq t value-to-dig-in)
+                                      (value iterator)
+                                      value-to-dig-in))
+                     t))))
              (maybe-dig-out (iterator)
-               ;; TODO this docstring is not exactly right, it's still written as
-               ;; if iterator was like a linked list (it used to be).
-               "If ITERATOR is done and has a parent, return the next
-parent (i.e. the parent might also be done, in which case the parent's
-parents is returned, and so on and so on). Otherwise, just return
-ITERATOR unchanged."
-               (loop
-                 ;; :with digged-out-p = nil
-                 :while (and (current-depth-done-p iterator) (plusp depth))
-                 :do (pop-vector iterator) (next iterator :dont-recurse-p t)
-                     ;; :finally (when digged-out-p (next iterator))
-                 )))
+               (loop :while (and (current-depth-done-p iterator)
+                                 (plusp depth))
+                     :do (pop-vector iterator) (next iterator :dont-recurse-p t))))
       (flet ((++ ()
                (breeze.logging:log-debug "next: BEFORE ++ ~s" positions)
                (incf (pos iterator))
@@ -512,65 +499,43 @@ ITERATOR unchanged."
                    (breeze.logging:log-debug "next: AFTER dig in ~s (digged-in-p: ~s)" positions
                                              digged-in-p)
                    digged-in-p))))
-        ;; if the current node is "recursable", then we recurse into it
         (cond
           (dont-recurse-p (++) (out))
-          ((not dont-recurse-p)
-           (cond
-             ((in)
-              ;; If we "digged-in", we don't want to increment the current
-              ;; position, or it'll skip the first child of the sequence
-              ;; we're recursed into.
-              nil)
-             (t (++)))
+          (t
+           (unless (in)
+             ;; If we "digged-in", we don't want to increment the current
+             ;; position, or it'll skip the first child of the sequence
+             ;; we're recursed into.
+             (++))
            ;; "dig out" whether we digged in or not.
            (out)))))))
 
-
 (defmethod next ((iterator pre-order-iterator) &key dont-recurse-p)
-  (with-slots (depth) iterator
-      (labels ((next-sibling ()
-                 (incf (pos iterator)) (maybe-dig-out)
-                 (values))
-               (maybe-dig-in ()
-                 (unless (current-depth-done-p iterator)
-                   (let ((digged-in-p nil))
-                     (loop :for value-to-dig-in = (funcall (recurse-into iterator) iterator)
-                           :for value = (and value-to-dig-in
-                                             (if (eq t value-to-dig-in)
-                                                 (value iterator)
-                                                 value-to-dig-in))
-                           :while (and value
-                                       ;; don't "dig-in" if the value-to-dig-in is empty
-                                       (plusp (length value)))
-                           :do
-                              (setf digged-in-p t)
-                              (push-vector iterator value))
-                     digged-in-p)))
-               (maybe-dig-out ()
-                 (loop
-                   :while (and (current-depth-done-p iterator) (plusp depth))
-                   :do (pop-vector iterator) (next-sibling))
-                 (values)))
-        ;; if the current node is "recursable", then we recurse into it
-        (if dont-recurse-p
-            (next-sibling)
-            (unless (maybe-dig-in)
-              (incf (pos iterator))))
-        (maybe-dig-out)
-        #++
-        (cond
-          (dont-recurse-p (next-sibling))
-          ((not dont-recurse-p)
-           (cond
-             ((maybe-dig-in)
-              ;; If we "digged-in", we don't want to increment the current
-              ;; position, or it'll skip the first child of the sequence
-              ;; we're recursed into.
-              nil)
-             (t (incf (pos iterator))))
-           ;; "dig out" whether we digged in or not.
-           (maybe-dig-out))))))
+  (with-slots (positions depth) iterator
+    (labels ((in ()
+               (unless (current-depth-done-p iterator)
+                 (let ((value-to-dig-in (funcall (recurse-into iterator) iterator)))
+                   (when value-to-dig-in
+                     (push-vector iterator
+                                  (if (eq t value-to-dig-in)
+                                      (value iterator)
+                                      value-to-dig-in))
+                     t))))
+             (out ()
+               (loop :while (and (current-depth-done-p iterator)
+                                 (plusp depth))
+                     :do (pop-vector iterator) (next iterator :dont-recurse-p t)))
+             (forward () (incf (pos iterator))))
+      (cond
+        (dont-recurse-p (forward) (out))
+        (t
+         (unless (in)
+           ;; If we "digged-in", we don't want to increment the current
+           ;; position, or it'll skip the first child of the sequence
+           ;; we're recursed into.
+           (forward))
+         ;; "dig out" whether we digged in or not.
+         (out))))))
 
 
 
