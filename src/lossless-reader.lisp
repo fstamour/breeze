@@ -1351,7 +1351,9 @@ Returns a new node with one of these types:
   ;; there are children, if not, check the parent.
   ;;
   ;; TODO use binary search
-  (reset iterator)
+  (when (or (donep iterator)
+            (< position (node-start (value iterator))))
+      (reset iterator))
   (loop
     ;; :for i :from 0 ; infinite loop guard
     :until (donep iterator)

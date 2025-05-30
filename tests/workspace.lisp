@@ -165,7 +165,7 @@ Evaluation took:
 
 |#
 
-(define-test add-to-workspace
+(define-test+run add-to-workspace
   (finish
    (let ((*workspace* (make-instance 'workspace)))
      (loop
@@ -180,9 +180,7 @@ Evaluation took:
        ;; :when (string= name "src/egraph.lisp")
        :do
           (finish
-           (time
-            (progn
-              (breeze.logging:log-info "Going through ~s (~s characters)" name (length content))
-              (goto-all-positions content node-iterator)))
+           ;; (breeze.logging:log-info "Going through ~s (~s characters)" name (length content))
+           (goto-all-positions content node-iterator)
            "Should be able to \"goto\" every positions in ~s" name))
      *workspace*)))
