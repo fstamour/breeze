@@ -286,7 +286,7 @@
 
 (trace merge-bindings)
 
-(trace match)
+;; (trace match) ;; don't! it's called too many times by flymake
 
 (untrace)
 
@@ -319,7 +319,11 @@
  :wherein test-match-parse
  match
  breeze.analysis::match-symbol-to-token
- breeze.analysis::match-node)
+ breeze.analysis::node-string-equal)
+
+(trace
+ :wherein breeze.analysis::match-symbol-to-token
+ breeze.analysis::node-string-equal)
 
 (untrace)
 
