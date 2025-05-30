@@ -177,9 +177,12 @@ Evaluation took:
                                           :buffer-string ,content
                                           :point 1))
        :for node-iterator = (parse-tree buffer)
+       ;; :when (string= name "src/egraph.lisp")
        :do
-          (time
-           (progn
-             (breeze.logging:log-info "Going through ~s (~s characters)" name (length content))
-             (goto-all-positions content node-iterator))))
+          (finish
+           (time
+            (progn
+              (breeze.logging:log-info "Going through ~s (~s characters)" name (length content))
+              (goto-all-positions content node-iterator)))
+           "Should be able to \"goto\" every positions in ~s" name))
      *workspace*)))
