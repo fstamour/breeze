@@ -57,7 +57,9 @@ children nodes."
 (defmethod match (pattern (state state) &key skipp)
   (match-parser-state pattern state :skipp skipp))
 
-(defmethod match ((pattern null) (state state) &key skipp)
+(defmethod match ((pattern symbol) (state state) &key skipp)
+  ;; These should return nil because we're trying to match 1 symbol
+  ;; against a list of nodes (even if that list is empty).
   nil)
 
 ;; TODO move to utils, maybe rename "safe-plusp"
