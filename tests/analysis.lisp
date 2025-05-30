@@ -34,14 +34,13 @@
 
 (defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
   (let* ((state (parse string))
-         (*match-skip* (when skip-whitespaces-and-comments
-                         #'whitespace-or-comment-node-p))
-         (bindings (match (compile-pattern pattern) state))
+         (bindings (match (compile-pattern pattern) state
+                     :skipp (when skip-whitespaces-and-comments
+                              #'whitespace-or-comment-node-p)))
          (bindings (normalize-bindings bindings)))
     (values bindings state)))
 
 
-#++ ;; TODO
 (define-test+run "match pattern nil and (nil) against parse trees"
   ;; pattern nil
   (progn
@@ -114,7 +113,6 @@
     (false (test-match-parse '(nil) "common-lisp-user::nil" t))
     (false (test-match-parse '(nil) "common-lisp-user:nil" t))))
 
-#++ ;; TODO
 (define-test+run "match the patterns t and (t) against parse trees"
   ;; These should return nil because we're trying to match 1 symbol
   ;; against a list of nodes (even if that list is empty).
@@ -184,42 +182,41 @@
 ;; TODO test pattern "x"
 ;; TODO test pattern "some-node" (I'll have to think about the syntax)
 
-#++ ;; TODO
 (define-test+run "match terms against parse trees"
-  (progn
-    (is equalp
-        (make-binding :?x #())
-        (test-match-parse :?x ""))
-    (is equalp
-        (make-binding :?x #())
-        (test-match-parse :?x "" t))
-    (is equalp
-        (make-binding :?x (nodes (token 0 1)))
-        (test-match-parse :?x "x"))
-    (is equalp
-        (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
-        (test-match-parse :?x " x"))
-    (is equalp
-        (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
-        (test-match-parse :?x " x" t)))
-  (progn
-    (false (test-match-parse '(:?x) ""))
-    (false (test-match-parse '(:?x) "" t))
-    (is equalp
-        (make-binding :?x (token 0 1))
-        (test-match-parse '(:?x) "x"))
-    (false (test-match-parse '(:?x) " x"))
-    (is equalp
-        (make-binding :?x (token 1 2))
-        (test-match-parse '(:?x) " x" t))
-    (is equalp
-        (make-binding :?x (parens 0 4 (nodes (token 1 3))))
-        (test-match-parse '(:?x) "(42)"))
-    (is equalp
-        (make-binding :?x (token 1 3))
-        (test-match-parse '((:?x)) "(42)"))))
+  t(parachute:finish
+   (progn
+     (is equalp
+         (make-binding :?x #())
+         (test-match-parse :?x ""))
+     (is equalp
+         (make-binding :?x #())
+         (test-match-parse :?x "" t))
+     (is equalp
+         (make-binding :?x (nodes (token 0 1)))
+         (test-match-parse :?x "x"))
+     (is equalp
+         (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
+         (test-match-parse :?x " x"))
+     (is equalp
+         (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
+         (test-match-parse :?x " x" t)))
+   (progn
+     (false (test-match-parse '(:?x) ""))
+     (false (test-match-parse '(:?x) "" t))
+     (is equalp
+         (make-binding :?x (token 0 1))
+         (test-match-parse '(:?x) "x"))
+     (false (test-match-parse '(:?x) " x"))
+     (is equalp
+         (make-binding :?x (token 1 2))
+         (test-match-parse '(:?x) " x" t))
+     (is equalp
+         (make-binding :?x (parens 0 4 (nodes (token 1 3))))
+         (test-match-parse '(:?x) "(42)"))
+     (is equalp
+         (make-binding :?x (token 1 3))
+         (test-match-parse '((:?x)) "(42)")))))
 
-#++ ;; TODO
 (define-test+run "match vector against parse trees"
   (false (test-match-parse 'x "x"))
   (true (test-match-parse #(x) "x"))
@@ -247,7 +244,6 @@
       (when package-designator-node
         (node-content state package-designator-node)))))
 
-#++ ;; TODO
 (define-test+run in-package-node-p
   (is equal "x" (test-in-package-node-p "(in-package x)"))
   (is equal "#)" (test-in-package-node-p "(in-package #)"))
@@ -276,7 +272,6 @@
          (node (first (tree state))))
     (malformed-if-node-p state node)))
 
-#++ ;; WIP
 (define-test+run malformed-if-node-p
   (false (test-malformed-if-node-p "(if a b c)"))
   (true (test-malformed-if-node-p "(if a b c d)")))
@@ -287,7 +282,6 @@
 (defun test-lint (buffer-string)
   (lint :buffer-string buffer-string))
 
-#++ ;; TODO
 (define-test+run lint
   (false (test-lint ""))
   (false (test-lint ";; "))
@@ -382,7 +376,6 @@
 (progn
   (test-lint "like::%really"))
 
-#++ ;; TODO
 (define-test+run lint
   #++ ;; TODO the "fix" is to eval the defpackage, usually
   (is equal '((0 56 :warning
@@ -408,7 +401,6 @@
 (defun test-fix (input)
   (multiple-value-list (fix :buffer-string (format nil input))))
 
-#++ ;; TODO
 (define-test+run test-fix
   (is equal '("()" nil) (test-fix "()"))
   ;; TODO these don't work anymore since I modified ERROR-INVALID-NODE
@@ -453,6 +445,6 @@
   )
 
 
-#++ ;; TODO this crashes because it tries to call (read "#)") inside
-    ;; breeze.analysis::warn-undefined-in-package
+#++ ;; TODO this used to crash because it would try to call (read "#)") inside
+    ;; breeze.analysis::warn-undefined-in-package, add regression test
 (breeze.analysis::analyse :buffer-string "(in-package #)")
