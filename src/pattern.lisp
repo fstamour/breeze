@@ -14,6 +14,10 @@
   ;; Working with match results
   (:export #:merge-sets-of-bindings
            #:find-binding
+           #:binding
+           #:from
+           #:to
+           #:binding-set
            #:pattern-substitute)
   (:export #:make-rewrite
            #:rewrite-pattern
@@ -163,13 +167,15 @@
   "A pool of terms, used to share terms across patterns created by
 independent calls to compile-pattern.")
 
+(defun make-term-pool () (make-hash-table))
+
 (defun compile-pattern (pattern)
   "Compiles a PATTERN (specified as a list). Returns 2 values: the
 compiled pattern and *term-pool*. If *term-pool* is nil when
 compile-pattern is called, a new one is created."
   (if *term-pool*
       (values (%compile-pattern pattern) *term-pool*)
-      (let ((*term-pool* (make-hash-table)))
+      (let ((*term-pool* (make-term-pool)))
         (compile-pattern pattern))))
 
 ;; Default: leave as-is
@@ -394,7 +400,7 @@ bindings and keeping only those that have not conflicting bindings."
 ;;; Matching atoms
 
 ;; Basic "equal" matching
-(defmethod match (pattern input &key)
+(defmethod match (pattern input &key &allow-other-keys)
   (equal pattern input))
 
 ;; Match a term (create a binding)
@@ -549,7 +555,9 @@ bindings and keeping only those that have not conflicting bindings."
 ;;; Convenience automatic coercions
 
 (defmethod match ((pattern vector) (input iterator) &key skipp)
-  (match (make-pattern-iterator pattern) input :skipp skipp))
+  (next input) ;; TODO make sure this actually "dug down"
+  (unless (donep input)
+    (match (make-pattern-iterator pattern) input :skipp skipp)))
 
 (defmethod match ((pattern vector) (input sequence) &key skipp)
   (match pattern (coerce input 'vector) :skipp skipp))
@@ -600,13 +608,13 @@ bindings and keeping only those that have not conflicting bindings."
       (defclass rule (abstract-rule) ())
 
       (defun make-rule (a b)
-        (let ((*term-pool* (make-hash-table)))
+        (let ((*term-pool* (make-term-pool)))
           (list :rule
                 (compile-pattern a)
                 (compile-pattern b))))
 
       (defun make-rewrite (a b)
-        (let ((*term-pool* (make-hash-table)))
+        (let ((*term-pool* (make-term-pool)))
           (list :rewrite
                 (compile-pattern a)
                 (compile-pattern b)))))
