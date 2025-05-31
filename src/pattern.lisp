@@ -448,9 +448,16 @@ bindings and keeping only those that have not conflicting bindings."
                             (loop :while (and
                                           (not (donep $input))
                                           (funcall skipp $input))
-                                  :do (next $input)))
+                                  :do (next $input :dont-recurse-p t)))
                           (when (donep $input) (return))
-                          (match (value $pattern)
+                          (let ((sub-pattern (value $pattern)))
+                                (when (vectorp sub-pattern)
+                                    (push-vector $pattern sub-pattern)
+                                    ;; TODO this should "dig down", or match should fail
+                                    (next $input)
+                                    (when (donep $input) (return))))
+                          (match
+                              (value $pattern)
                             ;; match-symbol-to-token would like an
                             ;; iterator (to access the state, but
                             ;; otherwise, this causes infinite
@@ -459,7 +466,7 @@ bindings and keeping only those that have not conflicting bindings."
                             (if (typep $input 'breeze.lossless-reader::node-iterator )
                                 $input
                                 (value $input))))
-    :do (next $pattern) (next $input)
+    :do (next $pattern) (next $input :dont-recurse-p t)
     :if new-bindings
       ;; collect all the bindings
       :do
@@ -476,7 +483,7 @@ bindings and keeping only those that have not conflicting bindings."
        (when (and skipp
                   (not (donep $input))
                   (funcall skipp $input))
-         (next $input))
+         (next $input :dont-recurse-p t))
        (return
          ;; We want to match the whole pattern, but wheter we
          ;; want to match the whole input is up to the caller.
