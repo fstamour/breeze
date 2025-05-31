@@ -4,7 +4,8 @@
   (:use #:cl)
   (:use-reexport #:breeze.lossless-reader #:breeze.pattern #:breeze.workspace)
   (:import-from #:alexandria
-                #:when-let)
+                #:when-let
+                #:when-let*)
   ;; Tree/Form predicate
   (:export
    #:in-package-node-p
@@ -58,6 +59,7 @@ children nodes."
   (match-parser-state pattern state :skipp skipp))
 
 (defmethod match ((pattern symbol) (state state) &key skipp)
+  (declare (ignore skipp))
   ;; These should return nil because we're trying to match 1 symbol
   ;; against a list of nodes (even if that list is empty).
   nil)
@@ -118,6 +120,9 @@ children nodes."
 (defmethod match ((pattern term) (state state) &key skipp)
   (match-parser-state pattern state :skipp skipp))
 
+(defmethod match ((pattern term) (node-iterator node-iterator) &key skipp)
+  (breeze.pattern::make-binding pattern (value node-iterator)))
+
 ;; TODO package-local-nicknames
 
 ;; TODO One method per type of node
@@ -158,6 +163,22 @@ children nodes."
 
 ;;; Basic tree inspection
 
+(defmacro define-node-matcher (name (pattern) &body body)
+  (alexandria:with-gensyms (pattern-var term-pool-var)
+    `(defun ,name (node-iterator)
+       ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
+       (multiple-value-bind (,pattern-var ,term-pool-var)
+           (compile-pattern ,pattern)
+         (let* ((bindings (match ,pattern-var node-iterator
+                            :skipp #'whitespace-or-comment-node-p)))
+           (flet ((get-bindings (term-name)
+                    (when bindings
+                      (when-let* ((term (gethash term-name ,term-pool-var))
+                                  (binding (find-binding bindings term)))
+                        (to binding)))))
+             (declare (ignorable (function get-bindings)))
+             ,@body))))))
+
 ;; TODO I want to check if a node is an "in-package" node...
 ;; - case converting if necessary
 ;; - skip whitespaces
@@ -168,31 +189,12 @@ children nodes."
 ;; package to look for PLNs to find the in-pacakge form, but I need
 ;; the in-package to know the current package.
 
-(defmacro define-node-matcher (name (pattern) &body body)
-  `(defun ,name (state node)
-     ,(format nil "Does NODE match ~s?" pattern)
-     (let* ((bindings (match (compile-pattern ,pattern) node)))
-       ,@body)))
-
-#++ ;; TODO
-(define-node-matcher in-package-node-p ('(in-package :?package-designator))
-  (when bindings
-    (second bindings)
-    #++
-    (destructuring-bind (&key ?package-designator) bindings
-      ?package-designator)))
-
 ;; TODO don't include nodes that are quoted...
-(defun in-package-node-p (state node)
-  "Is NODE a cl:in-package node?
-N.B. This doesn't guarantee that it's a valid node."
-  (let* ((bindings (match #.(compile-pattern `(in-package :?package)) node))
-         (package-designator-node (when bindings
-                                    (cdr (find-binding bindings :?package)))))
-    package-designator-node))
+(define-node-matcher in-package-node-p ('(in-package :?package-designator))
+  (get-bindings :?package-designator))
 
 
-;; WIP this is where I left off last time
+;; TODO WIP
 #++
 (defun find-nearest-in-package (buffer)
   (let* ((position (point buffer))

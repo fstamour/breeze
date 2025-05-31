@@ -232,7 +232,7 @@
 ;; TODO test pattern "some-node" (I'll have to think about the syntax)
 
 (define-test+run "match terms against parse trees"
-  t(parachute:finish
+  (parachute:finish
    (progn
      (is equalp
          (make-binding :?x #())
@@ -284,12 +284,12 @@
 
 (defun test-in-package-node-p (string)
   (let* ((state (parse string))
-         (node (first-node (tree state))))
+         (node (make-node-iterator state)))
     ;; The funky reader macro and quasiquote is to fuck with slime and
     ;; sly's regex-based search for "(in-package". Without this the
     ;; rest of the file is evaluated in cl-user by slime and sly.
     (let ((package-designator-node
-            #.`(,'in-package-node-p state node)))
+            #.`(,'in-package-node-p node)))
       (when package-designator-node
         (node-content state package-designator-node)))))
 
