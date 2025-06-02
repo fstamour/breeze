@@ -1226,6 +1226,7 @@ reaally?")
         :do (let* ((state (parse content))
                    (last-node (last-node (tree state)))
                    (result (unparse state nil)))
+              #++ ;; TODO walk is not defined anymore
               (walk state (lambda (node &rest args
                                    &key depth
                                      aroundp beforep afterp

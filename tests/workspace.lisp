@@ -163,6 +163,27 @@ Evaluation took:
   11,814,836,460 processor cycles
   0 bytes consed
 
+Final result (this was done on a newer sbcl, but a much slower
+computer (10+ years old laptop instead of a recent breefy desktop):
+Evaluation took:
+  0.048 seconds of real time
+  0.049120 seconds of total run time (0.049120 user, 0.000000 system)
+  102.08% CPU
+  117,609,216 processor cycles
+  0 bytes consed
+
+Final result, but for parsing and "going through" _all_ the files:
+
+Evaluation took:
+  0.359 seconds of real time
+  0.341030 seconds of total run time (0.340919 user, 0.000111 system)
+  94.99% CPU
+  2 forms interpreted
+  37 lambdas converted
+  864,359,514 processor cycles
+  7,822,160 bytes consed
+
+
 |#
 
 (define-test+run add-to-workspace
@@ -176,11 +197,12 @@ Evaluation took:
        :for buffer = (add-to-workspace `( :buffer-name ,name
                                           :buffer-string ,content
                                           :point 1))
-       :for node-iterator = (parse-tree buffer)
+       :for node-iterator = (node-iterator buffer)
        ;; :when (string= name "src/egraph.lisp")
        :do
           (finish
            ;; (breeze.logging:log-info "Going through ~s (~s characters)" name (length content))
-           (goto-all-positions content node-iterator)
+           (progn ;; time
+            (goto-all-positions content node-iterator))
            "Should be able to \"goto\" every positions in ~s" name))
      *workspace*)))

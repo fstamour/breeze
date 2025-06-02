@@ -23,7 +23,7 @@ generalization of that first iteration (ha!).
            #:next
            #:value
            #:reset
-           #:copy-vector
+           #:copy-iterator
            #:current-position)
   ;; Classes and Constructors
   (:export #:iterator
@@ -369,7 +369,7 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 ;; TODO test
 (defmethod copy-iterator ((iterator nested-vector-iterator))
   (flet ((copy-vec (vec)
-           ;; TODO there's something in alexandria for this
+            ;; TODO there's something in alexandria for this
             (make-array (length vec)
                      :element-type (array-element-type vec)
                      :adjustable t
@@ -377,7 +377,7 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
                      :initial-contents vec)))
     (with-slots (vectors positions depth) iterator
       (make-instance
-       'nested-vector-iterator
+       (class-of iterator)
        :vectors (copy-vec vectors)
        :positions (copy-vec positions)
        :depth depth))))
@@ -451,6 +451,11 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
                                  (funcall recurse-into (value iterator)))))
            (alexandria:remove-from-plist rest :class :apply-recurse-into-to-iterator-p))))
     (push-vector iterator vector)
+    iterator))
+
+(defmethod copy-iterator ((recursive-iterator recursive-iterator))
+  (let ((iterator (call-next-method)))
+    (setf (recurse-into iterator) (recurse-into recursive-iterator))
     iterator))
 
 
@@ -532,7 +537,7 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
          (unless (in)
            ;; If we "digged-in", we don't want to increment the current
            ;; position, or it'll skip the first child of the sequence
-           ;; we're recursed into.
+           ;; we've recursed into.
            (forward))
          ;; "dig out" whether we digged in or not.
          (out))))))

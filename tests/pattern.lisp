@@ -208,10 +208,10 @@
 (define-test+run make-binding
   ;; TODO export 'binding, maybe
   (is eq
-      (find-class 'breeze.pattern::binding)
+      (find-class 'binding)
       (class-of (make-binding :?x "a"))
       "Make binding should retun an instance of the class \"binding\".")
-  (is equal "#<BREEZE.PATTERN::BINDING :?X → A>"
+  (is equal "#<BINDING :?X → A>"
       (prin1-to-string
        (make-binding :?x 'a))
       "The specialized print-object method on the class \"binding\" should print the slots \"from\" and \"to\"."))
@@ -220,7 +220,7 @@
   (etypecase binding-set
       ((eql t) t)
       (null nil)
-      (breeze.pattern::binding-set
+      (binding-set
        (sort
         (mapcar (lambda (binding)
                   (cons (from binding) (to binding)))
@@ -231,22 +231,22 @@
 
 (define-test+run binding-set
   (is eq
-      (find-class 'breeze.pattern::binding-set)
+      (find-class 'binding-set)
       (class-of (make-binding-set))
       "make-binding-set should return an instance of the class \"binding-set\".")
   (true (emptyp (make-binding-set))
         "make-binding-set should return an empty set of bindings.")
   (is equal
-      "#<BREEZE.PATTERN::BINDING-SET (empty)>"
+      "#<BINDING-SET (empty)>"
       (prin1-to-string (make-binding-set))
       "The print-object method specialized on the class \"binding-set\" should print it when the binding set is empty.")
   (is equal
-      "#<BREEZE.PATTERN::BINDING-SET ((:?X . #<BREEZE.PATTERN::BINDING :?X → A>))>"
+      "#<BINDING-SET ((:?X . #<BINDING :?X → A>))>"
       (prin1-to-string (merge-bindings (make-binding-set)
                                        (make-binding :?x 'a)))
       "The print-object method specialized on the class \"binding-set\" should print the binding when there's only 1.")
   (is equal
-      "#<BREEZE.PATTERN::BINDING-SET (2 bindings)>"
+      "#<BINDING-SET (2 bindings)>"
       (prin1-to-string
        (merge-bindings (make-binding-set)
                        (merge-bindings (make-binding :?x 'a)
