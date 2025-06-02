@@ -57,6 +57,9 @@ generalization of that first iteration (ha!).
    #:value-at-depth
    #:parent-value
    #:root-value)
+  ;; Functions for recursive-iterator
+  (:export
+   #:go-down)
   ;; Other utility functions
   (:export
    #:firstp
@@ -458,6 +461,16 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
     (setf (recurse-into iterator) (recurse-into recursive-iterator))
     iterator))
 
+(defmethod go-down ((iterator recursive-iterator))
+  (unless (current-depth-done-p iterator)
+                 (let ((value-to-dig-in (funcall (recurse-into iterator) iterator)))
+                   (when value-to-dig-in
+                     (push-vector iterator
+                                  (if (eq t value-to-dig-in)
+                                      (value iterator)
+                                      value-to-dig-in))
+                     t))))
+
 
 
 (defclass pre-order-iterator (recursive-iterator) ())
@@ -469,64 +482,9 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
    :apply-recurse-into-to-iterator-p apply-recurse-into-to-iterator-p
    :class 'pre-order-iterator))
 
-
-;; version with lots of logs
-#++
 (defmethod next ((iterator pre-order-iterator) &key dont-recurse-p)
   (with-slots (positions depth) iterator
-    (breeze.logging:log-debug "next(pre-order): ~s" positions)
-    (labels ((maybe-dig-in (iterator)
-               (unless (current-depth-done-p iterator)
-                 (let ((value-to-dig-in (funcall (recurse-into iterator) iterator)))
-                   (when value-to-dig-in
-                     (push-vector iterator
-                                  (if (eq t value-to-dig-in)
-                                      (value iterator)
-                                      value-to-dig-in))
-                     t))))
-             (maybe-dig-out (iterator)
-               (loop :while (and (current-depth-done-p iterator)
-                                 (plusp depth))
-                     :do (pop-vector iterator) (next iterator :dont-recurse-p t))))
-      (flet ((++ ()
-               (breeze.logging:log-debug "next: BEFORE ++ ~s" positions)
-               (incf (pos iterator))
-               (breeze.logging:log-debug "next: AFTER ++ ~s" positions))
-             (out ()
-               (progn
-                 (breeze.logging:log-debug "next: BEFORE dig out ~s" positions)
-                 (maybe-dig-out iterator)
-                 (breeze.logging:log-debug "next: AFTER dig out ~s" positions)))
-             (in ()
-               (progn
-                 (breeze.logging:log-debug "next: BEFORE dig in ~s" positions)
-                 (let ((digged-in-p (maybe-dig-in iterator)))
-                   (breeze.logging:log-debug "next: AFTER dig in ~s (digged-in-p: ~s)" positions
-                                             digged-in-p)
-                   digged-in-p))))
-        (cond
-          (dont-recurse-p (++) (out))
-          (t
-           (unless (in)
-             ;; If we "digged-in", we don't want to increment the current
-             ;; position, or it'll skip the first child of the sequence
-             ;; we're recursed into.
-             (++))
-           ;; "dig out" whether we digged in or not.
-           (out)))))))
-
-(defmethod next ((iterator pre-order-iterator) &key dont-recurse-p)
-  (with-slots (positions depth) iterator
-    (labels ((in ()
-               (unless (current-depth-done-p iterator)
-                 (let ((value-to-dig-in (funcall (recurse-into iterator) iterator)))
-                   (when value-to-dig-in
-                     (push-vector iterator
-                                  (if (eq t value-to-dig-in)
-                                      (value iterator)
-                                      value-to-dig-in))
-                     t))))
-             (out ()
+    (labels ((out ()
                (loop :while (and (current-depth-done-p iterator)
                                  (plusp depth))
                      :do (pop-vector iterator) (next iterator :dont-recurse-p t)))
@@ -534,7 +492,7 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
       (cond
         (dont-recurse-p (forward) (out))
         (t
-         (unless (in)
+         (unless (go-down iterator)
            ;; If we "digged-in", we don't want to increment the current
            ;; position, or it'll skip the first child of the sequence
            ;; we've recursed into.
