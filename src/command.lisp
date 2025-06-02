@@ -31,7 +31,7 @@
    #:current-point
    #:current-point-min
    #:current-point-max
-   #:current-parse-tree
+   #:current-node-iterator
    ;; Basic composables commands
    #:insert
    #:read-string
@@ -411,7 +411,7 @@ uses the throw tag to stop the command immediately."
              ;; TODO this assumes we have incremental parsing, which we
              ;; don't...
              (when (and buffer
-                        (not (parse-tree buffer)))
+                        (not (node-iterator buffer)))
                (send "buffer-string")
                (let ((buffer-string (recv1)))
                  (update-buffer-content buffer buffer-string)))
@@ -469,7 +469,7 @@ uses the throw tag to stop the command immediately."
           value))))
 
 (defun current-buffer (&optional (context (context*)))
-  "Get the buffer's name from the CONTEXT.
+  "Get the buffer from the CONTEXT.
 It can be null."
   (context-get context :buffer))
 
@@ -510,9 +510,9 @@ It can be null."
   (when-let ((buffer (current-buffer context)))
     (point-max buffer)))
 
-(defun current-parse-tree (&optional (context (context*)))
+(defun current-node-iterator (&optional (context (context*)))
   (when-let ((buffer (current-buffer context)))
-    (parse-tree buffer)))
+    (node-iterator buffer)))
 
 
 ;;; Basic commands, to be composed

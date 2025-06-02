@@ -21,14 +21,17 @@
                 #:state
                 #:source
                 #:goto-position)
-  (:export #:*workspace*
+  (:export #:buffer
+           #:*workspace*
+           #:make-workspace
            #:workspace
            #:update-buffer-content
            #:add-to-workspace
            #:find-buffer
            #:name
            #:filename
-           #:parse-tree
+           #:node-iterator
+           #:parse-state
            #:point
            #:point-min
            #:point-max)
@@ -80,8 +83,8 @@ Design decision(s):
    (node-iterator
     :initform nil
     :initarg :node-iterator
-    :accessor parse-tree
-    :documentation "Node at point")
+    :accessor node-iterator
+    :documentation "Node at point (iterator on the parse tree)")
    ;; TODO the docstring for current-point{,-min,-max} in command.lisp
    ;; are pretty good. Use them.
    (point
@@ -108,6 +111,22 @@ Design decision(s):
 
 (Technically, it represents a buffer with the mode \"lisp-mode\"..."))
 
+#++
+(defun make-buffer ()
+  (make-instance 'buffer :name buffer-name)
+  (make-instance ))
+
+(defmethod parse-state ((buffer buffer))
+  (when-let ((it (node-iterator buffer)))
+    (state it)))
+
+(defmethod make-node-iterator ((buffer buffer))
+  "Make new node-iterator from BUFFER's parse-state."
+  (make-node-iterator (parse-state buffer)))
+
+
+;;; workspace
+
 ;; TODO add mutex(es)?
 (defclass workspace ()
   ((buffers
@@ -115,6 +134,9 @@ Design decision(s):
     :accessor buffers
     :documentation ""))
   (:documentation ""))
+
+(defun make-workspace ()
+  (make-instance 'workspace))
 
 (defmethod find-buffer ((buffer-name string))
   (gethash buffer-name (buffers *workspace*)))
@@ -130,15 +152,16 @@ Design decision(s):
 (defmethod update-buffer-content ((buffer buffer) new-content)
   "Update the workspace's buffer BUFFER-NAME's content"
   (when new-content
-    (if-let ((old-node-iterator (parse-tree buffer)))
+    (if-let ((old-node-iterator (node-iterator buffer)))
       (unless (string= (source (state old-node-iterator)) new-content)
         (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
-        (setf (parse-tree buffer) (make-node-iterator new-content)))
+        (setf (node-iterator buffer) (make-node-iterator new-content)))
       (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
-             (setf (parse-tree buffer) (make-node-iterator new-content))))))
+             (setf (node-iterator buffer) (make-node-iterator new-content))))))
 
 ;; (untrace add-to-workspace)
 (defmethod add-to-workspace ((context-plist cons))
+  ;; TODO error or warn if name is not provided
   (when-let* ((name (getf context-plist :buffer-name))
               (buffer (ensure-buffer name)))
     (breeze.logging:log-debug "add-to-workspace buffer ~s" name)
@@ -155,9 +178,9 @@ Design decision(s):
     (when-let ((new-content (getf context-plist :buffer-string)))
       (update-buffer-content buffer new-content))
     ;; update the node-iterator's position
-    (when-let ((parse-tree (parse-tree buffer))
+    (when-let ((node-iterator (node-iterator buffer))
                (point (point buffer)))
-      (goto-position parse-tree point))
+      (goto-position node-iterator point))
     ;; return the buffer
     buffer))
 

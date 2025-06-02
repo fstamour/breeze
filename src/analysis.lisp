@@ -11,6 +11,7 @@
    #:in-package-node-p
    #:child-of-mapcar-node-p)
   (:export
+   #:lint-buffer
    #:lint
    #:fix
    #:after-change-function))
@@ -198,8 +199,8 @@ children nodes."
 #++
 (defun find-nearest-in-package (buffer)
   (let* ((position (point buffer))
-         (parse-tree (parse-tree buffer))
-         (candidates (top-level-in-package (state parse-tree))))
+         (node-iterator (node-iterator buffer))
+         (candidates (top-level-in-package (state node-iterator))))
     (unless candidates
       ;; TODO compute them, put them in a vector so we can
       ;; differentiate between "not computed" and "no in-package
@@ -245,92 +246,6 @@ TODO
 ;; - if there are "quasiquotes", it's more complicated...
 
 
-;;; Trying to figure out how to run the "formatting rules" without
-;;; applying them...
-
-
-;; TODO try to keep track whether the current node is quoted or not
-;; TODO replace by node-iterator?
-(defun %walk (state callback tree depth quotedp)
-  (when tree
-    (flet ((cb (node &rest args)
-             "Call callback with NODE, DEPTH and ARGS."
-             (apply callback node :depth depth args)))
-      (etypecase tree
-        (vector
-         (nodes
-          (loop
-            :for i :from 0
-            :for firstp = (zerop i)
-            :for lastp = (= (1- (length tree)) i)
-            :for previous = nil :then node
-            ;; :for rest :on tree
-            :for node :across tree
-            :for next = (unless lastp (aref tree (1+ i)))
-            ;; Recurse
-            :collect (%walk state
-                            callback
-                            (cb node
-                                :aroundp t
-                                :nth i
-                                :firstp firstp
-                                :lastp (null next)
-                                :previous previous
-                                :next next
-                                :quotedp quotedp)
-                            (1+ depth)
-                            quotedp))))
-        (node
-         (case (node-type tree)
-           (parens
-            (cb tree :beforep t :quotedp quotedp)
-            (%walk state
-                   callback
-                   (node-children tree)
-                   (1+ depth)
-                   quotedp)
-            (cb tree :afterp t :quotedp quotedp))
-           (t
-            (cb tree))))))))
-
-(defun walk (state callback &optional quotedp)
-  "Call CALLBACK over all nodes in the parse tree contained by STATE.
-CALLBACK will be called multiple times on the same node, with
-different parameters.
-
-When CALLBACK is called with :aroundp t, the CALLBACK can decide to
-stop the walk here(i.e. not recurse) by returning nil. The CALLBACK
-can also return a new node altogether, the walk will
-continue (recurse) in this new node instead.
-
-"
-  (%walk state callback (tree state) 0 quotedp))
-
-;; This is equivalent to unparse with the leading and trailing
-;; whitespace fixes. It is _much_ more succint!
-#++
-(let ((state (parse " (+ 2) ")))
-  (with-output-to-string (out)
-    (walk state (lambda (node &rest args &key depth aroundp beforep afterp
-                                           firstp lastp nth)
-                  ;; Debug info
-                  (format t "~&~s ~{~s~^ ~}" node args)
-                  ;; Printing stuff
-                  (cond
-                    (beforep
-                     (write-char #\( out))
-                    (afterp
-                     (write-char #\) out))
-                    ((not (or aroundp beforep afterp))
-                     (write-node node state out)))
-                  ;; Removing useless whitespaces
-                  (unless (and (plusp depth)
-                               aroundp
-                               (whitespace-node-p node)
-                               (or firstp lastp))
-                    node)))))
-
-
 ;;; Utilities to collect "diagnostics"
 
 (defvar *diagnostics* nil)
@@ -360,7 +275,7 @@ continue (recurse) in this new node instead.
 (defun diag-node (node severity format-string &rest format-args)
   "Create a diagnostic object for NODE and push it into the special
 variable *diagnostics*."
-  (push-diagnostic* (node-start node) (node-end node)
+  (push-diagnostic* (start node) (end node)
                     severity format-string format-args))
 
 (defun diag-warn (node format-string &rest format-args)
@@ -374,6 +289,8 @@ into the special variable *diagnostics*."
   (apply #'diag-node node :error format-string format-args))
 
 
+;;; using signals to be able to decide what to do when certain
+;;; conditions are discovered (e.g. keep note of it v.s. fixing it)
 
 #|
 
@@ -393,7 +310,7 @@ simple-condition-format-control, simple-condition-format-arguments
 |#
 
 (define-condition simple-node-condition (simple-condition)
-  ((node :initarg :node :reader target-node)
+  ((node-iterator :initarg :node-iterator :reader target-node)
    (replacement :initarg :replacement :reader replacement :initform 'cl:null)))
 
 (defun replacementp (simple-node-condition)
@@ -405,19 +322,19 @@ simple-condition-format-control, simple-condition-format-arguments
 
 (define-condition node-parse-error (simple-node-error parse-error) ())
 
-(defun node-parse-error (node message &key (replacement 'null))
+(defun node-parse-error (node-iterator  message &key (replacement 'null))
   (signal (make-condition
            'node-parse-error
-           :node node
+           :node-iterator node-iterator
            :format-control message
            :replacement replacement)))
 
 (define-condition node-style-warning (simple-node-warning style-warning) ())
 
-(defun node-style-warning (node message &key (replacement 'null))
+(defun node-style-warning (node-iterator message &key (replacement 'null))
   (signal (make-condition
            'node-style-warning
-           :node node
+           :node-iterator node-iterator
            :format-control message
            :replacement replacement)))
 
@@ -427,144 +344,115 @@ simple-condition-format-control, simple-condition-format-arguments
          (target-node c)
          (simple-condition-format-arguments c)))
 
-(defun warn-undefined-in-package (state node)
-  (alexandria:when-let ((package-designator-node (in-package-node-p state node)))
-    (and (valid-node-p node)
-         (let* ((content (node-content state package-designator-node))
+
+;;; Linter rules
+
+(defun warn-undefined-in-package (node-iterator)
+  (alexandria:when-let ((package-designator-node (in-package-node-p (copy-iterator node-iterator))))
+    (and (valid-node-p package-designator-node)
+         (let* ((content (node-content (state node-iterator) package-designator-node))
                 (package-designator (read-from-string content)))
            (when (and (typep package-designator 'breeze.string:string-designator)
                       (null (find-package package-designator)))
              (node-style-warning
-              node
+              node-iterator
               (format nil "Package ~s is not currently defined." package-designator)))))))
 
-(defun warn-extraneous-whitespaces (state node firstp lastp previous next)
-  (cond
-    ((and firstp lastp)
-     (node-style-warning
-      node "Extraneous whitespaces."
-      :replacement nil))
-    (firstp
-     (node-style-warning
-      node "Extraneous leading whitespaces."
-      :replacement nil))
-    ((and lastp (not (line-comment-node-p previous)))
-     (node-style-warning
-      node "Extraneous trailing whitespaces."
-      :replacement nil))
-    ((and (not (or firstp lastp))
-          ;; Longer than 1
-          (< 1 (- (node-end node) (node-start node)))
-          ;; "contains no newline"
-          (not (position #\Newline
-                         (source state)
-                         :start (node-start node)
-                         :end (node-end node)))
-          ;; is not followed by a line comment
-          (not (line-comment-node-p next)))
-     (node-style-warning
-      node "Extraneous internal whitespaces."
-      :replacement " "))))
+(defun warn-extraneous-whitespaces (node-iterator)
+  ;; TODO use node-iterator to get these information
+    #++(state node firstp lastp previous next)
+  #++
+  (let ((firstp (firstp node-iterator))
+        (lastp (lastp node-iterator)))
+   (cond
+     ((and firstp lastp)
+      (node-style-warning
+       node-iterator "Extraneous whitespaces."
+       :replacement nil))
+     (firstp
+      (node-style-warning
+       node-iterator "Extraneous leading whitespaces."
+       :replacement nil))
+     #++
+     ((and lastp (not (line-comment-node-p #| TODO |#
+                       (previous-value node-iterator))))
+      (node-style-warning
+       node-iterator "Extraneous trailing whitespaces."
+       :replacement nil))
+     #++
+     ((and (not (or firstp lastp))
+           ;; Longer than 1
+           (< 1 (- (end node-iterator) (start node-iterator)))
+           ;; "contains no newline"
+           (not (position #\Newline
+                          (source node-iterator)
+                          :start (start node-iterator)
+                          :end (end node-iterator)))
+           ;; is not followed by a line comment
+           (not (line-comment-node-p #| TODO |#
+                 (next-value node-iterator))))
+      (node-style-warning
+       node-iterator "Extraneous internal whitespaces."
+       :replacement " ")))))
 
-(defun error-invalid-node (node)
-  (unless (valid-node-p node)
-    (node-parse-error node "Syntax error")))
+(defun error-invalid-node (node-iterator)
+  (unless (valid-node-p (value node-iterator))
+    (node-parse-error node-iterator "Syntax error")))
 
-(defun analyse (&key buffer-string point-max callback
-                &allow-other-keys
-                &aux
-                  (state (parse buffer-string))
-                  (*point-max* (or point-max (length buffer-string))))
-  (walk state
-        (lambda (node &rest args &key depth aroundp beforep afterp
-                                   firstp lastp nth
-                                   previous
-                                   next
-                                   quotedp
-                 &allow-other-keys)
-          (declare (ignorable depth beforep afterp nth args quotedp))
-          (let ((new-node
-                  (catch 'return-node
+(defun analyse (buffer
+                &aux (node-iterator (make-node-iterator buffer)))
+  "Apply all the linting rules."
+  (check-type buffer buffer)
+  (loop :until (donep node-iterator)
+        :for node = (value node-iterator)
+        :for depth = (slot-value node-iterator 'depth)
+        :do (when (catch 'cut
                     ;; Debug info
                     ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
-                    (when aroundp
-                      (error-invalid-node node)
-                      (warn-undefined-in-package state node)
-                      (when (and (plusp depth)
-                                 (whitespace-node-p node))
-                        (warn-extraneous-whitespaces state node firstp lastp previous next)))
-                    ;; Always return the node, we don't want to modify it.
-                    ;; Technically, we could return nil to avoid recursing into
-                    ;; the node (when aroundp is true, that is).
-                    node)))
-            (if callback
-                (apply callback new-node :state state #| 👀 |#args)
-                new-node)))))
+                    (error-invalid-node node-iterator)
+                    (warn-undefined-in-package node-iterator)
+                    (when (and (plusp depth)
+                               (whitespace-node-p node))
+                      (warn-extraneous-whitespaces node-iterator))
+                    t)
+              (next node-iterator))))
 
 (defun lint (&key buffer-string point-max
              &allow-other-keys
              &aux (*diagnostics* '()))
+  "dummy, so I can refactor without disabling flymake"
+  ;; TODO (lint-buffer (current-buffer))
+  nil)
+
+(defun lint-buffer (buffer &aux (*diagnostics* '()))
+  "Apply all the linting rules, and accumulate the \"diagnostics\"."
+  (check-type buffer buffer)
   (handler-bind
       ((node-parse-error (lambda (condition)
-                           #++ (progn
-                                 (format *debug-io* "~&NODE-PARSE-ERROR: ~a " condition)
-                                 (force-output *debug-io*))
                            (diag-error (target-node condition)
                                        (simple-condition-format-control condition)
                                        (simple-condition-format-arguments condition))
                            ;; Don't analyze further down that tree... I guess!
-                           (throw 'return-node nil)))
+                            (next (target-node condition)
+                             :dont-recurse-p t)
+                           (throw 'cut nil)))
        (node-style-warning (lambda (condition)
-                             #++ (progn
-                                   (format *debug-io* "~&NODE-STYLE-WARNING: ~a " condition)
-                                   (force-output *debug-io*))
                              (diag-warn (target-node condition)
                                         (simple-condition-format-control condition)
                                         (simple-condition-format-arguments condition)))))
-    (analyse :buffer-string buffer-string
-             :point-max point-max))
+    (analyse buffer))
   *diagnostics*)
 
-(defun fix (&key buffer-string point-max &allow-other-keys
-            &aux fixed-anything-p)
-  (values (with-output-to-string (out)
-            (handler-bind
-                ((node-style-warning (lambda (condition)
-                                       (when (replacementp condition)
-                                         (setf fixed-anything-p t)
-                                         (let ((replacement (replacement condition)))
-                                           ;; (format *debug-io* "~&got the condition: ~a ~s" condition replacement)
-                                           (when (stringp replacement)
-                                             (write-string (replacement condition) out)))
-                                         (throw 'return-node nil))))
-                 #++ ;; TODO WIP
-                 (node-parse-error (lambda (condition)
-                                     (if (parens-node-p (target-node condition))
-                                         (target-node condition)
-                                         (signal condition)))))
-              (analyse :buffer-string buffer-string
-                       :point-max point-max
-                       :callback (lambda (node &rest args &key
-                                                            state
-                                                            depth aroundp beforep afterp
-                                                            firstp lastp nth
-                                                            previous
-                                                            quotedp
-                                          &allow-other-keys)
-                                   ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
-                                   (when (and (not (valid-node-p node))
-                                              (parens-node-p node))
-                                     (setf fixed-anything-p t))
-                                   (cond
-                                     (beforep
-                                      (write-char #\( out))
-                                     (afterp
-                                      (write-char #\) out))
-                                     ((not (or aroundp beforep afterp))
-                                      (breeze.lossless-reader::write-node node state out)))
-                                   node))))
-          fixed-anything-p))
+#|
 
+TODO fix: ignore error, save warning conditions
+
+|#
+
+#++
+ (let ((replacement (replacement condition)))
+   (when (stringp replacement)
+     (write-string (replacement condition) out)))
 
 
 ;;; Incremental parsing (the interface with the editor at least)
@@ -589,7 +477,7 @@ simple-condition-format-control, simple-condition-format-arguments
   ;; TODO the following form is just a hack to keep the breeze's
   ;; buffers in sync with the editor's buffers
   (when-let ((buffer (find-buffer buffer-name)))
-    (setf (parse-tree buffer) nil))
+    (setf (node-iterator buffer) nil))
   ;; consider ignore-error + logs, because if something goes wrong in
   ;; this function, editing is going to be funked.
   (push-edit
@@ -600,6 +488,6 @@ simple-condition-format-control, simple-condition-format-arguments
       (list :delete-at start length))
      (t :unknown-edit))))
 
-;; TODO add NOTE: "can't splice comment", but I whish I could
+;; TODO add NOTE: "can't splice comment", but I wish I could
 ;; e.g.  `  ;; (some | code)`
 ;; paredit-splice-sexp or paredit-splice-sexp-killing-backward

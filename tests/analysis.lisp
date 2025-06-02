@@ -1,6 +1,6 @@
 (defpackage #:breeze.test.analysis
   (:documentation "Tests for the package breeze.analysis")
-  (:use #:cl #:breeze.analysis)
+  (:use #:cl #:breeze.analysis #:breeze.workspace)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -329,7 +329,10 @@
 ;;; Testing the linter
 
 (defun test-lint (buffer-string)
-  (lint :buffer-string buffer-string))
+  (let* ((*workspace* (make-workspace))
+         (buffer (make-instance 'buffer)))
+    (setf (node-iterator buffer) (make-node-iterator buffer-string))
+    (lint-buffer buffer)))
 
 (define-test+run lint
   (false (test-lint ""))

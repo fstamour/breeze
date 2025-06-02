@@ -454,7 +454,7 @@ For debugging purposes ONLY.")
 (defun suggest-package-definition ()
   "When the buffer is empty, or only contains comments and whitespaces."
   (let* ((buffer (current-buffer))
-         (node-iterator (parse-tree buffer)))
+         (node-iterator (node-iterator buffer)))
     (when (and node-iterator
                (every #'whitespace-or-comment-node-p (root-vector node-iterator)))
      ;; TODO Add a configuration to decide whether to shortcircuit or
@@ -473,7 +473,7 @@ For debugging purposes ONLY.")
 (defun suggest-lambda ()
   "When inside a higher-order function, like mapcar."
   (let* ((buffer (current-buffer))
-         (node-iterator (parse-tree buffer)))
+         (node-iterator (node-iterator buffer)))
     ;; TODO Use breeze.cl:higher-order-function-p
     ;; Higher-order functions
     (when (and node-iterator
@@ -651,7 +651,7 @@ TODO there's some different kind of "quickfixes":
     (return-value-from-command
      (or (handler-case
              (format nil "~a ~a" (current-point)
-                     (let ((node-iterator (current-parse-tree)))
+                     (let ((node-iterator (current-node-iterator)))
                        (if node-iterator
                            (let* ((state (breeze.lossless-reader:state node-iterator))
                                   (node (breeze.iterator:value node-iterator)))

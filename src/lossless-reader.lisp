@@ -1271,10 +1271,16 @@ Returns a new node with one of these types:
 
 (defclass node-iterator (pre-order-iterator)
   ((parser-state
-    :initarg :state
+    :initarg :state ; TODO rename to parse-state
     :type state
-    :accessor state))
+    :accessor state ; TODO rename to parse-state
+    ))
   (:documentation "An iterator for parse-trees."))
+
+(defmethod copy-iterator ((node-iterator node-iterator))
+  (let ((iterator (call-next-method)))
+    (setf (state iterator) (state node-iterator))
+    iterator))
 
 (defmethod value ((iterator node-iterator))
   (let ((node-or-vec (vec iterator)))
@@ -1348,56 +1354,63 @@ Returns a new node with one of these types:
       (node
        (node-contains-position-p children position)))))
 
-;; TODO add tests
 (defmethod goto-position ((iterator node-iterator) position)
   ;; TODO this might not be necessary, as an optimization, when can
   ;; check if the current node contains the position. If yes, check if
   ;; there are children, if not, check the parent.
   ;;
   ;; TODO use binary search
-  (when (or (donep iterator)
-            (< position (node-start (value iterator))))
-      (reset iterator))
+  (cond
+    ((donep iterator) (reset iterator))
+    ((node-contains-position-p (root-node iterator) position)
+     (loop :for d :from (slot-value iterator 'depth) :downto 0
+           :if (node-contains-position-p (value-at-depth iterator d) position)
+             :do (return)
+           :else
+             :do (pop-vector iterator)))
+    ;; TODO this could eazily be optimized by going backward (or bin search)
+    ((< position (node-start (value iterator)))
+     (reset iterator)))
   (loop
-    ;; :for i :from 0 ; infinite loop guard
     :until (donep iterator)
     :for node = (value iterator)
     :do
-    #++
-     (unless (< i 100000)
-       (log-error "goto-position seems to be stuck in a loop (trying to get at position ~D)" position)
-       (return))
-     #++ (log-debug "============ depth: ~d positions: ~s donep: ~s node: ~s"
-                (slot-value iterator 'depth)
-                (slot-value iterator 'positions)
-                (donep iterator)
-                node)
-     (cond
-       ((= (start node) position)
-        #++ (log-debug "stop: right at the start of a node")
-        (return))
-       ((node-contains-position-p node position)
-        #++ (log-debug "node-contains-position-p ~a => T" node)
-        (if (node-children node)
-            (progn
-              #++ (log-debug "  (node-end (last-node (node-children node))): ~d"
-                             (end (last-node (node-children node))))
-              (if (not (node-children-contains-position-p node position))
-                  (progn
-                    #++ (log-debug "stop: no need to recurse")
-                    (return))
-                  ;; this will recurse into the node's children
-                  (next iterator)))
-            (progn
-              #++ (log-debug "stop: done!")
-              (return))))
-       ((< position (node-end node))
-        #++ (log-debug "stop: went too far! position: ~d node: ~s"
-                   position node)
-        (return))
-       (t (next iterator :dont-recurse-p t))))
+    #++ (log-debug "============ depth: ~d positions: ~s donep: ~s node: ~s"
+                   (slot-value iterator 'depth)
+                   (slot-value iterator 'positions)
+                   (donep iterator)
+                   node)
+        (cond
+          ((= (start node) position)
+           #++ (log-debug "stop: right at the start of a node")
+           (return))
+          ((node-contains-position-p node position)
+           #++ (log-debug "node-contains-position-p ~a => T" node)
+           (if (node-children node)
+               (if (not (node-children-contains-position-p node position))
+                   (progn
+                     #++ (log-debug "stop: no need to recurse")
+                     (return))
+                   ;; this will recurse into the node's children
+                   (next iterator))
+               (progn
+                 #++ (log-debug "stop: done!")
+                 (return))))
+          ((< position (node-end node))
+           #++ (log-debug "stop: went too far! position: ~d node: ~s"
+                          position node)
+           (return))
+          (t
+           (next iterator :dont-recurse-p t))))
   iterator)
 
+(defmethod value-at-depth ((iterator node-iterator) depth)
+  (with-slots (positions vectors) iterator
+    (let ((pos (aref positions depth))
+          (vec (aref vectors depth)))
+      (etypecase vec
+        (vector (aref vec pos))
+        (t vec)))))
 
 (defmethod parent-node ((iterator node-iterator))
   (parent-value iterator))
@@ -1412,6 +1425,12 @@ Returns a new node with one of these types:
 (defmethod end ((node-iterator node-iterator))
   "Get the end position of the current node."
   (end (value node-iterator)))
+
+;; TODO
+;; firstp
+;; lastp
+;; previous-sibling
+;; next-sibling
 
 #++
 (defmethod crumbs ((iterator node-iterator))
