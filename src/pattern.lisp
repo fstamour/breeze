@@ -459,8 +459,7 @@ bindings and keeping only those that have not conflicting bindings."
                           (let ((sub-pattern (value $pattern)))
                                 (when (vectorp sub-pattern)
                                     (push-vector $pattern sub-pattern)
-                                    ;; TODO this should "dig down", or match should fail
-                                    (next $input)
+                                    (go-down $input)
                                     (when (donep $input) (return))))
                           (match
                               (value $pattern)
@@ -555,7 +554,7 @@ bindings and keeping only those that have not conflicting bindings."
 ;;; Convenience automatic coercions
 
 (defmethod match ((pattern vector) (input iterator) &key skipp)
-  (next input) ;; TODO make sure this actually "dug down"
+  (go-down input)
   (unless (donep input)
     (match (make-pattern-iterator pattern) input :skipp skipp)))
 
