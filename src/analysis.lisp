@@ -359,41 +359,36 @@ simple-condition-format-control, simple-condition-format-arguments
               (format nil "Package ~s is not currently defined." package-designator)))))))
 
 (defun warn-extraneous-whitespaces (node-iterator)
-  ;; TODO use node-iterator to get these information
-    #++(state node firstp lastp previous next)
-  #++
   (let ((firstp (firstp node-iterator))
         (lastp (lastp node-iterator)))
-   (cond
-     ((and firstp lastp)
-      (node-style-warning
-       node-iterator "Extraneous whitespaces."
-       :replacement nil))
-     (firstp
-      (node-style-warning
-       node-iterator "Extraneous leading whitespaces."
-       :replacement nil))
-     #++
-     ((and lastp (not (line-comment-node-p #| TODO |#
-                       (previous-value node-iterator))))
-      (node-style-warning
-       node-iterator "Extraneous trailing whitespaces."
-       :replacement nil))
-     #++
-     ((and (not (or firstp lastp))
-           ;; Longer than 1
-           (< 1 (- (end node-iterator) (start node-iterator)))
-           ;; "contains no newline"
-           (not (position #\Newline
-                          (source node-iterator)
-                          :start (start node-iterator)
-                          :end (end node-iterator)))
-           ;; is not followed by a line comment
-           (not (line-comment-node-p #| TODO |#
-                 (next-value node-iterator))))
-      (node-style-warning
-       node-iterator "Extraneous internal whitespaces."
-       :replacement " ")))))
+    (cond
+      ((and firstp lastp)
+       (node-style-warning
+        node-iterator "Extraneous whitespaces."
+        :replacement nil))
+      (firstp
+       (node-style-warning
+        node-iterator "Extraneous leading whitespaces."
+        :replacement nil))
+      ((and lastp (not (line-comment-node-p
+                        (previous-sibling node-iterator))))
+       (node-style-warning
+        node-iterator "Extraneous trailing whitespaces."
+        :replacement nil))
+      ((and (not (or firstp lastp))
+            ;; Longer than 1
+            (< 1 (- (end node-iterator) (start node-iterator)))
+            ;; "contains no newline"
+            (not (position #\Newline
+                           (source node-iterator)
+                           :start (start node-iterator)
+                           :end (end node-iterator)))
+            ;; is not followed by a line comment
+            (not (line-comment-node-p
+                  (next-sibling node-iterator))))
+       (node-style-warning
+        node-iterator "Extraneous internal whitespaces."
+        :replacement " ")))))
 
 (defun error-invalid-node (node-iterator)
   (unless (valid-node-p (value node-iterator))
