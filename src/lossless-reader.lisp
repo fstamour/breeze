@@ -176,15 +176,18 @@ common lisp.")
            #:read-token
            #:read-whitespaces
            #:read-block-comment)
-  (:export #:token-symbol-node
-           #:node-contains-position-p
+  (:export #:token-symbol-node)
+  (:export #:node-contains-position-p
            #:node-range-contains-position-p
-           #:node-children-contains-position-p
-           #:make-node-iterator
+           #:node-children-contains-position-p)
+  ;; Node iterator
+  (:export #:make-node-iterator
            #:node-iterator
            #:goto-position
            #:parent-node
-           #:root-node)
+           #:root-node
+           #:previous-sibling
+           #:next-sibling)
   (:export
    ;; top-level parsing
    #:parse))
@@ -1426,11 +1429,39 @@ Returns a new node with one of these types:
   "Get the end position of the current node."
   (end (value node-iterator)))
 
-;; TODO
-;; firstp
-;; lastp
-;; previous-sibling
-;; next-sibling
+;; TODO tests
+(defmethod firstp ((iterator node-iterator))
+  "Is the current value the first one at the current depth?"
+  (zerop (pos iterator)))
+
+;; TODO tests
+(defmethod lastp ((iterator node-iterator))
+  "Is the current value the last one at the current depth?"
+  (let ((pos (pos iterator))
+        (vec (vec iterator)))
+    (etypecase vec
+      (vector (= pos (1- (length vec))))
+      (t t))))
+
+;; TODO tests
+(defmethod previous-sibling ((iterator node-iterator))
+  "Get the previous node at the same depth, or nil if there's is none."
+  (unless (firstp iterator)
+    (let ((pos (pos iterator))
+          (vec (vec iterator)))
+      (etypecase vec
+        (vector (aref vec (1- pos)))
+        (t nil)))))
+
+;; TODO tests
+(defmethod next-sibling ((iterator node-iterator))
+  "Get the previous node at the same depth, or nil if there's is none."
+  (unless (lastp iterator)
+    (let ((pos (pos iterator))
+          (vec (vec iterator)))
+      (etypecase vec
+        (vector (aref vec (1+ pos)))
+        (t nil)))))
 
 #++
 (defmethod crumbs ((iterator node-iterator))
