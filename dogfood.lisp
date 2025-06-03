@@ -52,8 +52,11 @@ newline in the expected result."
                     parachute:define-test+run) ?name))
 
 (trace :wherein insert-command-test
-       match)
+       breeze.analysis::match-symbol-to-token
+       ;; match
+       breeze.analysis::node-string-equal)
 
+(untrace)
 
 (match
     (compile-pattern '(:alternation
@@ -67,6 +70,8 @@ newline in the expected result."
                       parachute:define-test+run))
   'parachute:define-test+run)
 
+
+
 (define-command insert-command-test ()
   "Insert a missing test!"
   (let* ((node-iterator (copy-iterator (current-buffer))))
@@ -76,12 +81,17 @@ newline in the expected result."
                 (node-string outer-node)
                 0 30))
       (message "Current test name: ~s"
-               (breeze.analysis::with-match (((:alternation
-                                               parachute:define-test
-                                               parachute:define-test+run) ?name)
-                                             (?name))
+               (breeze.analysis::with-match
+                   (outer-node
+                    ((:alternation
+                       parachute:define-test
+                       parachute:define-test+run) ?name)
+                     (?name))
+                 ;; TODO would be nice if (match symbol node-iterator)
+                 ;; returned a node-iterator instead of a node
                  (when ?name
-                   (node-string ?name))))
+                   (node-content (parse-state (current-buffer))
+                                 ?name))))
       (return-from-command))
     (let* ((name
              (or
