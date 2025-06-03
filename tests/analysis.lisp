@@ -7,7 +7,8 @@
                 #:is
                 #:true
                 #:false
-                #:of-type)
+                #:of-type
+                #:finish)
   ;; importing unexported symbols
   (:import-from #:breeze.pattern
                 #:termp
@@ -32,22 +33,13 @@
   #++ ;; TODO not implemented yet
   (true (match-symbol-to-token nil (make-node-iterator "common-lisp-user:nil"))))
 
-(defun normalize-bindings (bindings)
-  "This is only to make it easier to compare the bindings in the tests."
-  (bindings-alist bindings))
-
-(defun make-binding (term input)
-  (normalize-bindings
-   (breeze.pattern::make-binding term input)))
-
 (defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
-  (let* ((state (parse string))
-         (bindings (match (compile-pattern pattern) state
-                     :skipp (when skip-whitespaces-and-comments
-                              #'whitespace-or-comment-node-p)))
-         (bindings (normalize-bindings bindings)))
-    (values bindings state)))
-
+  (finish
+   (let* ((state (parse string))
+          (bindings (match (compile-pattern pattern) state
+                      :skipp (when skip-whitespaces-and-comments
+                               #'whitespace-or-comment-node-p))))
+     (values bindings state))))
 
 (define-test+run "match pattern nil and (nil) against parse trees"
   ;; pattern nil
@@ -231,40 +223,75 @@
 ;; TODO test pattern "x"
 ;; TODO test pattern "some-node" (I'll have to think about the syntax)
 
+(defun test-match-terms-against-parse-tree (pattern string
+                                            skip-whitespaces-and-comments
+                                            expected-binding)
+  (let ((binding (test-match-parse pattern string skip-whitespaces-and-comments)))
+    (cond
+      (expected-binding
+       (true binding)
+       (parachute:of-type '(or binding binding-set) binding)
+       (when (binding-set-p binding)
+         (let ((hash-table (breeze.pattern::bindings binding)))
+           (is = 1 (hash-table-count hash-table))
+           (maphash (lambda (term binding*)
+                      (declare (ignore term))
+                      (setf binding binding*))
+                    hash-table)))
+       (is breeze.pattern::term= (term :?x) (from binding))
+       (is equalp expected-binding (to binding)
+           "matching ~s against ~s (~s) should have bound :?x to ~s"
+           pattern string (parse string) expected-binding))
+      (t
+       (false binding)))))
+
 (define-test+run "match terms against parse trees"
-  (parachute:finish
-   (progn
-     (is equalp
-         (make-binding :?x #())
-         (test-match-parse :?x ""))
-     (is equalp
-         (make-binding :?x #())
-         (test-match-parse :?x "" t))
-     (is equalp
-         (make-binding :?x (nodes (token 0 1)))
-         (test-match-parse :?x "x"))
-     (is equalp
-         (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
-         (test-match-parse :?x " x"))
-     (is equalp
-         (make-binding :?x (nodes (whitespace 0 1) (token 1 2)))
-         (test-match-parse :?x " x" t)))
-   (progn
-     (false (test-match-parse '(:?x) ""))
-     (false (test-match-parse '(:?x) "" t))
-     (is equalp
-         (make-binding :?x (token 0 1))
-         (test-match-parse '(:?x) "x"))
-     (false (test-match-parse '(:?x) " x"))
-     (is equalp
-         (make-binding :?x (token 1 2))
-         (test-match-parse '(:?x) " x" t))
-     (is equalp
-         (make-binding :?x (parens 0 4 (nodes (token 1 3))))
-         (test-match-parse '(:?x) "(42)"))
-     (is equalp
-         (make-binding :?x (token 1 3))
-         (test-match-parse '((:?x)) "(42)")))))
+  (progn
+    (test-match-terms-against-parse-tree
+     :?x "" nil
+     nil)
+    (test-match-terms-against-parse-tree
+     :?x "" t
+     nil)
+    (test-match-terms-against-parse-tree
+     :?x "x" nil
+     (token 0 1))
+    (test-match-terms-against-parse-tree
+     :?x "x" t
+     (token 0 1))
+    (test-match-terms-against-parse-tree
+     :?x " x" t
+     (whitespace 0 1)))
+  (progn
+    (test-match-terms-against-parse-tree
+     '(:?x) "" nil
+     nil)
+    (test-match-terms-against-parse-tree
+     '(:?x) "" t
+     nil)
+    (test-match-terms-against-parse-tree
+     '(:?x) "x" nil
+     (token 0 1))
+    (test-match-terms-against-parse-tree
+     '(:?x) "x" t
+     (token 0 1))
+    (test-match-terms-against-parse-tree
+     '(:?x) " x" nil
+     (whitespace 0 1))
+    (test-match-terms-against-parse-tree
+     '(:?x) " x" t
+     (token 1 2))
+    ;; TODO I'm not sure I like the behaviour of these last 2:
+    ;; A. (match '(:?x) (parens 0 4 #((token 1 3))))
+    ;; B. (match '((:?x)) (parens 0 4 #((token 1 3))))
+    ;; Both bind :?x to (token 1 3), but it would make (more?) sense
+    ;; if A bound :?x to (parens ...)
+    (test-match-terms-against-parse-tree
+     '(:?x) "(42)" nil
+     (token 1 3))
+    (test-match-terms-against-parse-tree
+     '((:?x)) "(42)" nil
+     (token 1 3))))
 
 (define-test+run "match vector against parse trees"
   (false (test-match-parse 'x "x"))
