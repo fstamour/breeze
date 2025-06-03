@@ -429,14 +429,14 @@ corresponding commands in emacs."
   (cl-loop for (symbol cl-lambda-list docstring) in (breeze-eval "(breeze.command:list-all-commands t)")
            for (cl-symbol el-symbol) = (breeze-translate-command-symbol symbol)
            for el-lambda-list = (breeze-translate-command-lambda-list cl-lambda-list)
-           for defun = `(cl-defun ,el-symbol (&optional ,@el-lambda-list)
-                          ,docstring
-                          ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
-                          (interactive)
-                          (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list))
-           do
-           ;; (breeze-debug "%S" defun)
-           (eval defun)))
+           unless (eq 'breeze-lint el-symbol)
+           do (let ((defun `(cl-defun ,el-symbol (&optional ,@el-lambda-list)
+                              ,docstring
+                              ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
+                              (interactive)
+                              (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list))))
+                ;; (breeze-debug "%S" defun)
+                (eval defun))))
 
 
 ;;; "Autoload"
@@ -663,7 +663,7 @@ with which arguments."
 
 (defun breeze-lint (args callback)
   "Asynchronously calls the function breeze.analysis:lint."
-  ;; TODO use ARGS to be able to INCREMENTALLY parse and analyzed the
+  ;; TODO use ARGS to be able to INCREMENTALLY parse and analyze the
   ;; buffer
   ;;
   ;; (null args) => first call ever
@@ -674,12 +674,7 @@ with which arguments."
   (breeze-ensure
    (lambda ()
      ;; (cl-loop for change in (cl-getf args :recent-changes) do (breeze-debug "  change: %S" change))
-     (breeze-eval-async
-      (format "(breeze.analysis:lint %s)"
-              (breeze-compute-buffer-args
-               ;; :include-buffer-content-p (null args)
-               ))
-      callback)))
+     (funcall callback (breeze-run-command 'breeze.analysis:lint))))
   nil)
 
 ;; TODO maybe delete?

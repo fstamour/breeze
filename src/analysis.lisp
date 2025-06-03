@@ -413,13 +413,6 @@ simple-condition-format-control, simple-condition-format-arguments
                     t)
               (next node-iterator))))
 
-(defun lint (&key buffer-string point-max
-             &allow-other-keys
-             &aux (*diagnostics* '()))
-  "dummy, so I can refactor without disabling flymake"
-  ;; TODO (lint-buffer (current-buffer))
-  nil)
-
 (defun lint-buffer (buffer &aux (*diagnostics* '()))
   "Apply all the linting rules, and accumulate the \"diagnostics\"."
   (check-type buffer buffer)
@@ -438,6 +431,11 @@ simple-condition-format-control, simple-condition-format-arguments
                                         (simple-condition-format-arguments condition)))))
     (analyse buffer))
   *diagnostics*)
+
+(breeze.command:define-command lint ()
+  "Lint the current buffer."
+  (breeze.command:return-value-from-command
+   (lint-buffer (breeze.command:current-buffer))))
 
 #|
 
