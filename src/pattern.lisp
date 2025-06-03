@@ -18,6 +18,7 @@
            #:from
            #:to
            #:binding-set
+           #:binding-set-p
            #:pattern-substitute)
   (:export #:make-rewrite
            #:rewrite-pattern
@@ -271,6 +272,10 @@ compile-pattern is called, a new one is created."
   ;; TODO add a union-hash to detect cycles...
   (:documentation "A set of bindings"))
 
+(defun binding-set-p (x)
+  (or (eq x t)
+      (typep x 'binding-set)))
+
 (defmethod print-object ((binding-set binding-set) stream)
   (print-unreadable-object
       (binding-set stream :type t)
@@ -304,14 +309,6 @@ compile-pattern is called, a new one is created."
 
 (defun find-binding (binding-set from)
   (gethash from (bindings binding-set)))
-
-#++ ;; old version, for reference
-(defun find-binding (bindings term-or-term-name)
-  (when bindings
-    (if (termp term-or-term-name)
-        (assoc term-or-term-name bindings)
-        (assoc term-or-term-name bindings
-               :key #'term-name))))
 
 ;; TODO maybe this could be a method instead of a defun?
 (defun set-binding (binding-set binding)
