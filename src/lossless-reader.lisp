@@ -183,9 +183,11 @@ common lisp.")
   ;; Node iterator
   (:export #:make-node-iterator
            #:node-iterator
+           #:node-string
            #:goto-position
            #:parent-node
            #:root-node
+           #:root-node-iterator
            #:previous-sibling
            #:next-sibling)
   (:export
@@ -518,7 +520,6 @@ common lisp.")
                     start
                     (and (plusp end) end)))
 
-;; TODO rename to node-string
 (defun node-content (state node)
   "Get a (displaced) string of the node's range."
   (source-substring state (node-start node) (node-end node)))
@@ -1015,7 +1016,7 @@ provided."
   "Test whether a character is terminating. See
 http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (and c
-       (not (position c '#. (concatenate 'string
+       (not (position c '#.(concatenate 'string
                                          ";\"'(),`"
                                          +whitespaces+)
                       :test #'char=))))
@@ -1024,7 +1025,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   "Test whether a character is terminating or #\| or #\\. See
 http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (and c
-       (not (position c '#. (concatenate 'string
+       (not (position c '#.(concatenate 'string
                                          ";\"'(),`"
                                          "|\\"
                                          +whitespaces+)
@@ -1090,6 +1091,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                    (node 'package-name start first)
                    (node 'symbol-name (+ 2 first) end)))))))))
 
+;; TODO take a node-iterator instead of a node
 (defun token-symbol-node (state token-node)
   "Extract information about the package-name and symbol-name of a token, if it can.
 Returns a new node with one of these types:
@@ -1325,6 +1327,9 @@ Returns a new node with one of these types:
 (defmethod source ((node-iterator node-iterator))
   (source (state node-iterator)))
 
+(defmethod node-string ((node-iterator node-iterator))
+  (node-content (state node-iterator) (value node-iterator)))
+
 (defun node-contains-position-p (node position)
   (let ((start (node-start node))
         (end (node-end node)))
@@ -1420,6 +1425,10 @@ Returns a new node with one of these types:
 
 (defmethod root-node ((iterator node-iterator))
   (root-value iterator))
+
+(defmethod root-node-iterator ((iterator node-iterator))
+  (let ((root (copy-iterator iterator)))
+    (goto-root root)))
 
 (defmethod start ((node-iterator node-iterator))
   "Get the start position of the current node."

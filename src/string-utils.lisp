@@ -256,8 +256,8 @@ nested parentheses."
      string)))
 
 
-;; This is a good candidate for a funtion where the unit tests would
-;; provide great examples for the documentation.
+;; TODO This is a good candidate for a funtion where the unit tests
+;; would provide great examples for the documentation.
 (defun around (string position &optional (around 10))
   "Returns part of STRING, from POSITIONITION - AROUND to POSITIONITION +
 AROUND. Add elipseses before and after if necessary."
