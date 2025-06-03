@@ -342,15 +342,15 @@
 (asdf
    xzcv    ; qwer
 )"))
-  (is equal '((0 2 :error "Syntax error")) (test-lint "#+"))
+  (is equal '((0 nil :error "Syntax error")) (test-lint "#+"))
   (false (test-lint "(in-package :cl-user)"))
   (false (test-lint "(in-package 42)"))
   ;; TODO it's quoted, don't check the package-designator
   ;; (false (test-lint "'(in-package 42)"))
   (is equal (test-lint "(in-package #)")
-      '((0 14 :error "Syntax error")))
+      '((0 nil :error "Syntax error")))
   (is equal (test-lint "(in-package # )")
-      '((0 15 :error "Syntax error")))
+      '((0 nil :error "Syntax error")))
   (is equal '((0 56 :warning
                "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
       (test-lint "(in-package please-dont-define-a-package-with-this-name)"))

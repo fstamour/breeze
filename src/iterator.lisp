@@ -526,11 +526,8 @@ parents is returned, and so on and so on). Otherwise, just return
 ITERATOR unchanged."
   (with-slots (depth) iterator
     (loop
-      ;; :with digged-out-p = nil
       :while (and (current-depth-done-p iterator) (plusp depth))
-      :do (pop-vector iterator) (next iterator :dont-recurse-p t)
-          ;; :finally (when digged-out-p (next iterator))
-      )))
+      :do (pop-vector iterator) (next iterator :dont-recurse-p t))))
 
 (defclass leaf-iterator (recursive-iterator) ())
 
@@ -546,17 +543,17 @@ ITERATOR unchanged."
 
 (defun next-non-empty-subtree (iterator)
   (with-slots (positions) iterator
-    (breeze.logging:log-debug "==next-non-empty-subtree==" positions)
+    #++ (breeze.logging:log-debug "==next-non-empty-subtree==" positions)
     (flet ((out ()
              (progn
-               (breeze.logging:log-debug "next-non-empty-subtree: BEFORE dig out ~s" positions)
+               #++ (breeze.logging:log-debug "next-non-empty-subtree: BEFORE dig out ~s" positions)
                (maybe-dig-out iterator)
-               (breeze.logging:log-debug "next-non-empty-subtree: AFTER dig out ~s" positions)))
+               #++ (breeze.logging:log-debug "next-non-empty-subtree: AFTER dig out ~s" positions)))
            (in ()
              (progn
-               (breeze.logging:log-debug "next-non-empty-subtree: BEFORE in ~s" positions)
+               #++ (breeze.logging:log-debug "next-non-empty-subtree: BEFORE in ~s" positions)
                (maybe-dig-in iterator)
-               (breeze.logging:log-debug "next-non-empty-subtree: AFTER in ~s" positions))))
+               #++ (breeze.logging:log-debug "next-non-empty-subtree: AFTER in ~s" positions))))
       ;; the loop is necessary to skip over "deeply empty" trees. For
       ;; example: #(#(#(#())))
       (unless (donep iterator)
@@ -568,21 +565,21 @@ ITERATOR unchanged."
 
 (defmethod next ((iterator leaf-iterator) &key dont-recurse-p)
   (with-slots (positions) iterator
-    (breeze.logging:log-debug "next(leaf): ~s" positions)
+    #++ (breeze.logging:log-debug "next(leaf): ~s" positions)
     (flet ((++ ()
-             (breeze.logging:log-debug "next: BEFORE ++ ~s" positions)
+             #++ (breeze.logging:log-debug "next: BEFORE ++ ~s" positions)
              (incf (pos iterator))
-             (breeze.logging:log-debug "next: AFTER ++ ~s" positions))
+             #++ (breeze.logging:log-debug "next: AFTER ++ ~s" positions))
            (out ()
              (progn
-               (breeze.logging:log-debug "next: BEFORE dig out ~s" positions)
+               #++ (breeze.logging:log-debug "next: BEFORE dig out ~s" positions)
                (maybe-dig-out iterator)
-               (breeze.logging:log-debug "next: AFTER dig out ~s" positions)))
+               #++ (breeze.logging:log-debug "next: AFTER dig out ~s" positions)))
            (in ()
              (progn
-               (breeze.logging:log-debug "next: BEFORE next-non-empty-subtree ~s" positions)
+               #++ (breeze.logging:log-debug "next: BEFORE next-non-empty-subtree ~s" positions)
                (next-non-empty-subtree iterator)
-               (breeze.logging:log-debug "next: AFTER next-non-empty-subtree ~s" positions))))
+               #++ (breeze.logging:log-debug "next: AFTER next-non-empty-subtree ~s" positions))))
       (++)
       (out)
       (unless dont-recurse-p (in)))))
