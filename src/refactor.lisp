@@ -548,15 +548,16 @@ commands that the user might want to run."
   "Given the context, suggest some applicable commands."
   (maybe-ask-to-load-system)
   #++ (check-in-package)
+  ;; TODO this currently only fix the first issue it finds
+  ;; TODO cache the linter issues (in the *workspace*'s buffer)
   ;; TODO try to fix only the "current" block and/or iterate
-  (multiple-value-bind (fixed fixed-anything-p)
-      (values nil nil)
-      #++
-      (breeze.analysis:fix :buffer-string (buffer-string)
-                           :point-max (point-max))
-    (if fixed-anything-p
-        ;; TODO this is utter 💩, for _any_ fix, it replaces the whole buffer 🤣
-        (replace-region (current-point-min) (current-point-max) fixed)
+  (let ((fixes (breeze.analysis:fix-buffer (current-buffer))))
+    (if fixes
+        (let* ((fix (first fixes))
+               (node (value (breeze.analysis::target-node fix)))
+               (replacement (breeze.analysis::replacement fix)))
+          (replace-region (start node) (end node)
+                          (or replacement "")))
         (let* (;; Compute the applicable commands
                (commands (sanitize-list-of-commands (compute-suggestions)))
                ;; TODO What if there are no suggestions?
@@ -568,9 +569,7 @@ commands that the user might want to run."
                                             :test #'string=))))
           (if command-function
               (funcall command-function)
-              (message "~s is not a valid choice" choice)))))
-  #++
-  (message "Failed to parse..."))
+              (message "~s is not a valid choice" choice))))))
 
 #|
 
