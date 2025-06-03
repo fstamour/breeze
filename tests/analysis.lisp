@@ -16,7 +16,9 @@
   ;; importing unexported symbols
   (:import-from #:breeze.analysis
                 #:malformed-if-node-p
-                #:match-symbol-to-token)
+                #:match-symbol-to-token
+                #:target-node
+                #:replacement)
   ;; importing unexported symbols
   (:import-from #:breeze.test.pattern
                 #:bindings-alist))
@@ -360,6 +362,8 @@
 ;;; Testing the linter
 
 (defun test-lint (buffer-string)
+  ;; TODO make it easier to create a buffer with parsed content (and
+  ;; is not dependent on *workspace*
   (let* ((*workspace* (make-workspace))
          (buffer (make-instance 'buffer)))
     (setf (node-iterator buffer) (make-node-iterator buffer-string))
@@ -481,49 +485,66 @@
             (setf diags (lint :buffer-string "( a b ( )  ) " :fixp t)))
           diags))
 
-(defun test-fix (input)
-  (multiple-value-list (fix :buffer-string (format nil input))))
+(defun test-fix (buffer-string &aux (buffer-string (format nil buffer-string)))
+  ;; TODO make it easier to create a buffer with parsed content (and
+  ;; is not dependent on *workspace*
+  (let* ((*workspace* (make-workspace))
+         (buffer (make-instance 'buffer)))
+    (setf (node-iterator buffer) (make-node-iterator buffer-string))
+    (let ((fixes (fix-buffer buffer)))
+      (loop :for fix :in fixes
+            :for node = (value (target-node fix))
+            :for replacement = (replacement fix)
+            :collect (list node replacement)))))
 
 (define-test+run test-fix
-  (is equal '("()" nil) (test-fix "()"))
+  (is equalp nil (test-fix "()"))
   ;; TODO these don't work anymore since I modified ERROR-INVALID-NODE
   ;; to signal an error. They were working by accident anyway...
   ;;
-  ;; (is equal '(")" nil) (test-fix ")")) ; TODO if reasonable
-  ;; (is equal '("()" t) (test-fix "("))
-  ;; (is equal '("((()))" t) (test-fix "((("))
-  (is equal '("()" t) (test-fix "( )"))
-  (is equal '("()" t) (test-fix "(~%)"))
-  (is equal '("() " t) (test-fix "(   ) "))
-  (is equal '("() " t) (test-fix "( ) "))
-  (is equal '(" ()" t) (test-fix " ( )"))
-  (is equal '(" () " t) (test-fix " ( ) "))
-  (is equal '("(a)" t) (test-fix "( a)"))
-  (is equal '("(a)" t) (test-fix "(a )"))
-  (is equal '("(a)" t) (test-fix "(  a  )"))
-  (is equal '("(a b)" t) (test-fix "(a   b)"))
-  (is equal '("((a))" t) (test-fix "(~%  (~%    a~%  )~%)"))
-  (is equal '("((a))" t) (test-fix "((~%~%    a~%~%  ))"))
+  ;; (is equalp '(")" nil) (test-fix ")")) ; TODO if reasonable
+  ;; (is equalp '("()" t) (test-fix "("))
+  ;; (is equalp '("((()))" t) (test-fix "((("))
+  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( )"))
+  (is equalp `((,(whitespace 1 2) nil)) (test-fix "(~%)"))
+  (is equalp `((,(whitespace 1 4) nil)) (test-fix "(   ) "))
+  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( ) "))
+  (is equalp `((,(whitespace 2 3) nil)) (test-fix " ( )"))
+  (is equalp `((,(whitespace 2 3) nil)) (test-fix " ( ) "))
+  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( a)"))
+  (is equalp `((,(whitespace 2 3) nil)) (test-fix "(a )"))
+  (is equalp `((,(whitespace 1 3) nil)
+               (,(whitespace 4 6) nil))
+      (test-fix "(  a  )"))
+  (is equalp `((,(whitespace 2 5) " ")) (test-fix "(a   b)"))
+  (is equalp `((,(whitespace 1 4) nil)
+               (,(whitespace 5 10) nil)
+               (,(whitespace 11 14) nil)
+               (,(whitespace 15 16) nil))
+      (test-fix "(~%  (~%    a~%  )~%)"))
+  (is equalp `((,(whitespace 2 8) nil)
+               (,(whitespace 9 13) nil))
+      (test-fix "((~%~%    a~%~%  ))"))
   ;; TODO handle indentation levels!
   #++
   (progn
-    (is equal '("(;;~% )" t) (test-fix "(;;~%    )"))
-    (is equal '("(;;~% )" t) (test-fix "(;;~% ~%)"))
+    (is equalp '("(;;~% )" t) (test-fix "(;;~%    )"))
+    (is equalp '("(;;~% )" t) (test-fix "(;;~% ~%)"))
     ;; TODO This should be detected as "extraneous internal newlines"...
-    (is equal '("(;;~% )" t) (test-fix "(;;~% ~%)")))
+    (is equalp '("(;;~% )" t) (test-fix "(;;~% ~%)")))
   #++ ;; TODO more whitespace fixes
   (progn
-    (is equal '("#+(or)" t) (test-fix "#+ (or)"))
-    (is equal '("(+ (- 1 2) 3)" t) (test-fix "(+(- 1 2)3)")))
+    (is equalp '("#+(or)" t) (test-fix "#+ (or)"))
+    (is equalp '("(+ (- 1 2) 3)" t) (test-fix "(+(- 1 2)3)")))
   #++ ;; TODO
   (progn
     ;; TODO (defpackage -> replace symbols by uninterned symbols
-    (is equal '("(in-package \"x\")" t) (test-fix "(in-package \"x\")"))
-    (is equal '("(in-package #:x)" t) (test-fix "(in-package :x)"))
-    (is equal '("(in-package #:x)" t) (test-fix "(in-package 'x)"))
-    (is equal '("(trace x)" t) (test-fix "(trace 'x)"))
-    (is equal '("(block x)" t) (test-fix "(block 'x)"))
-    (is equal '("(return-from x)" t) (test-fix "(return-from 'x)")))
+    (is equalp '("(in-package \"x\")" t) (test-fix "(in-package \"x\")"))
+    (is equalp '("(in-package #:x)" t) (test-fix "(in-package :x)"))
+    (is equalp '("(in-package #:x)" t) (test-fix "(in-package 'x)"))
+    (is equalp '("(trace x)" t) (test-fix "(trace 'x)"))
+    (is equalp '("(block x)" t) (test-fix "(block 'x)"))
+    (is equalp '("(return-from x)" t) (test-fix "(return-from 'x)")))
   ;; "\"a\"'(\"b\"c)" => "\"a\" '(\"b\" c)"
   )
 

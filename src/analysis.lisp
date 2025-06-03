@@ -13,7 +13,7 @@
   (:export
    #:lint-buffer
    #:lint
-   #:fix
+   #:fix-buffer
    #:after-change-function))
 
 (in-package #:breeze.analysis)
@@ -327,7 +327,7 @@ simple-condition-format-control, simple-condition-format-arguments
 (defun node-parse-error (node-iterator  message &key (replacement 'null))
   (signal (make-condition
            'node-parse-error
-           :node-iterator node-iterator
+           :node-iterator (copy-iterator node-iterator)
            :format-control message
            :replacement replacement)))
 
@@ -336,7 +336,7 @@ simple-condition-format-control, simple-condition-format-arguments
 (defun node-style-warning (node-iterator message &key (replacement 'null))
   (signal (make-condition
            'node-style-warning
-           :node-iterator node-iterator
+           :node-iterator (copy-iterator node-iterator)
            :format-control message
            :replacement replacement)))
 
@@ -405,8 +405,6 @@ simple-condition-format-control, simple-condition-format-arguments
         :for node = (value node-iterator)
         :for depth = (slot-value node-iterator 'depth)
         :do (when (catch 'cut
-                    ;; Debug info
-                    ;; (format *debug-io* "~&~s ~{~s~^ ~}" node args)
                     (error-invalid-node node-iterator)
                     (warn-undefined-in-package node-iterator)
                     (when (and (plusp depth)
@@ -439,16 +437,14 @@ simple-condition-format-control, simple-condition-format-arguments
   (breeze.command:return-value-from-command
    (lint-buffer (breeze.command:current-buffer))))
 
-#|
-
-TODO fix: ignore error, save warning conditions
-
-|#
-
-#++
- (let ((replacement (replacement condition)))
-   (when (stringp replacement)
-     (write-string (replacement condition) out)))
+(defun fix-buffer (buffer)
+  (check-type buffer buffer)
+  (uiop:while-collecting (conditions)
+    (handler-bind ((simple-node-condition
+                     (lambda (condition)
+                       (when (replacementp condition)
+                         (conditions condition)))))
+      (analyse buffer))))
 
 
 ;;; Incremental parsing (the interface with the editor at least)
