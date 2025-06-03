@@ -1199,10 +1199,22 @@ reaally?")
          (result (unparse state nil))
          (success (equalp string result)))
     (is-equalp* (or context string) result string)
+    #++ ;; TODO this can be adapted to find where the strings differ
+    (let ((mismatch (mismatch content result)))
+      (false mismatch "Failed to round-trip the file ~s. The first mismatch is at position: ~d"
+             file
+             mismatch))
+    #++ ;; TODO check that the last node's end corresponds to the string's length
+    (is = (length content) (node-end last-node)
+                  "Failed to parse correctly the file ~s. The last node is: ~s"
+                  file
+                  last-node)
     (when (and success check-for-error)
-      ;; Would be nice to (signal ...), not error, just signal, when
-      ;; there's a parsing failure, because right now it's pretty hard
-      ;; to pinpoint where something went wrong.
+      ;; TODO Would be nice to (signal ...), not error, just signal,
+      ;; when there's a parsing failure, because right now it's pretty
+      ;; hard to pinpoint where something went wrong.
+      ;;
+      ;; TODO check (recursively) that all nodes are valid
       (let ((bad-node (find-if-not #'valid-node-p (tree state))))
         (setf success
               (true (null bad-node)
@@ -1223,52 +1235,9 @@ reaally?")
 (define-test+run round-trip-breeze
   (loop :for file :in (breeze.asdf:find-all-related-files 'breeze)
         :for content = (alexandria:read-file-into-string file)
-        :do (let* ((state (parse content))
-                   (last-node (last-node (tree state)))
-                   (result (unparse state nil)))
-              #++ ;; TODO walk is not defined anymore
-              (walk state (lambda (node &rest args
-                                   &key depth
-                                     aroundp beforep afterp
-                                     firstp lastp nth
-                                   &allow-other-keys)
-                            (declare (ignorable
-                                      args
-                                      depth
-                                      aroundp beforep afterp
-                                      firstp lastp nth))
-                            (unless (valid-node-p node)
-                              ;; There's just too many nodes, this
-                              ;; makes parachute completely choke if I
-                              ;; don't filter the results...
-                              (true (valid-node-p node)
-                                    "file: ~s node: ~s" file node))
-                            #++ (when (parens-node-p node) (char= #\())
-                            node))
-              (is = (length content) (node-end last-node)
-                  "Failed to parse correctly the file ~s. The last node is: ~s"
-                  file
-                  last-node)
-              #++
-              (is = (length content) (length result)
-                  "Round-tripping the file ~s didn't give the same length.")
-              (let ((mismatch (mismatch content result)))
-                (false mismatch "Failed to round-trip the file ~s. The first mismatch is at position: ~d"
-                       file
-                       mismatch)))))
+        :do (test-round-trip content)))
 
 
-
-#++
-(list (collect
-          (make-node-iterator
-           (parse "a b c"))
-        :limit 100)
-
-      (collect
-          (make-node-iterator
-           (parse "a (b c)"))
-        :limit 100))
 
 (define-test+run node-contains-position-p
   (false (node-contains-position-p (token 1 2) 0))

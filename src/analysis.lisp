@@ -347,6 +347,7 @@ simple-condition-format-control, simple-condition-format-arguments
 
 ;;; Linter rules
 
+;; TODO this rule only make sense when "in-image"
 (defun warn-undefined-in-package (node-iterator)
   (alexandria:when-let ((package-designator-node (in-package-node-p node-iterator)))
     (and (valid-node-p package-designator-node)
