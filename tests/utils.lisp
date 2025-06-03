@@ -12,37 +12,6 @@
 
 (in-package #:breeze.test.utils)
 
-(define-test walk)
-
-(define-test walk-list
-  (is equal
-      '(('(mul)) '(mul) (mul))
-      (uiop:while-collecting (collect)
-        (walk-list
-         '('(mul))
-         #'(lambda (node)
-             (collect node)))))
-  (is equal
-      '(('(a b) c (d e (f)))
-        '(a b)
-        (a b)
-        (d e (f))
-        (f))
-      (uiop:while-collecting (collect)
-        (walk-list
-         '('(a b) c (d e (f)))
-         #'(lambda (node)
-             (collect node))))))
-
-(define-test walk-car
-  (is equal
-      '('(a b) quote a d f)
-      (uiop:while-collecting (collect)
-        (walk-car
-         '('(a b) c (d e (f)))
-         #'(lambda (node)
-             (collect node))))))
-
 (define-test package-apropos)
 
 

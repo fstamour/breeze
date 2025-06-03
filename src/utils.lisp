@@ -72,35 +72,10 @@
                                  (format out "hello ~d" y))))
     x))
 
-;; TODO I don't think I use this
-(defun walk (tree fn &optional (recurse-p (constantly t)))
-  "Walk a tree and call fn on every elements"
-  (dolist (node tree)
-    (if (listp node)
-        (when (funcall recurse-p)
-          (walk node fn recurse-p))
-        (funcall fn node))))
-
-;; TODO I don't think I use this
-(defun walk-list (tree fn &optional (recurse-p (constantly t)))
-  "Walk a tree and call fn on each list parts"
-  (when (and (listp tree) (listp (cdr tree)))
-    (funcall fn tree)
-    (dolist (node tree)
-      (when (funcall recurse-p node)
-        (walk-list node fn recurse-p)))))
-
-;; TODO I don't think I use this
-(defun walk-car (tree fn &optional (recurse-p (constantly t)))
-  "Walk a tree and call fn on each first elements (cars)"
-  (walk-list tree
-             #'(lambda (node)
-                 (funcall fn (car node)))
-             recurse-p))
 
 
 
-;; TODO move to utils; add tests...
+;; TODO add tests...
 (defun nrun (list predicate)
   "Destructively extract the first run of elements that satisfies
 PREDICATE, if the first element of LIST satisfies PREDICATE, . Returns
