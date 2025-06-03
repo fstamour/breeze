@@ -122,7 +122,8 @@ children nodes."
   (match-parser-state pattern state :skipp skipp))
 
 (defmethod match ((pattern term) (node-iterator node-iterator) &key skipp)
-  (breeze.pattern::make-binding pattern (value node-iterator)))
+  (unless (donep node-iterator)
+    (breeze.pattern::make-binding pattern (value node-iterator))))
 
 ;; TODO package-local-nicknames
 
@@ -165,20 +166,19 @@ children nodes."
 ;;; Basic tree inspection
 
 (defmacro define-node-matcher (name (pattern) &body body)
-  (alexandria:with-gensyms (pattern-var term-pool-var)
+  (multiple-value-bind (compiled-pattern term-pool)
+      (compile-pattern pattern)
     `(defun ,name (node-iterator)
        ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
-       (multiple-value-bind (,pattern-var ,term-pool-var)
-           (compile-pattern ,pattern)
-         (let* ((bindings (match ,pattern-var (copy-iterator node-iterator)
-                            :skipp #'whitespace-or-comment-node-p)))
-           (flet ((get-bindings (term-name)
-                    (when bindings
-                      (when-let* ((term (gethash term-name ,term-pool-var))
-                                  (binding (find-binding bindings term)))
-                        (to binding)))))
-             (declare (ignorable (function get-bindings)))
-             ,@body))))))
+       (let* ((bindings (match ,compiled-pattern (copy-iterator node-iterator)
+                          :skipp #'whitespace-or-comment-node-p)))
+         (flet ((get-bindings (term-name)
+                  (when bindings
+                    (when-let* ((term (gethash term-name ,term-pool))
+                                (binding (find-binding bindings term)))
+                      (to binding)))))
+           (declare (ignorable (function get-bindings)))
+           ,@body)))))
 
 ;; TODO I want to check if a node is an "in-package" node...
 ;; - case converting if necessary
@@ -191,7 +191,7 @@ children nodes."
 ;; the in-package to know the current package.
 
 ;; TODO don't include nodes that are quoted...
-(define-node-matcher in-package-node-p ('(in-package :?package-designator))
+(define-node-matcher in-package-node-p ((in-package :?package-designator))
   (get-bindings :?package-designator))
 
 
@@ -233,7 +233,9 @@ TODO
 
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
-(define-node-matcher malformed-if-node-p ('(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
+(define-node-matcher malformed-if-node-p
+    ;; TODO (or (if) (if ?cond) ...)
+    ((if :?cond :?then :?else :?extra #++ (:zero-or-more :?extras)))
   (when bindings
     ;; (destructuring-bind (&key ?cond ?then ?else ?extra) bindings)
     t))
