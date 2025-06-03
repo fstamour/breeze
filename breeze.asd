@@ -42,7 +42,10 @@
    (:file "workspace" :depends-on ("lossless-reader"))
    (:file "pattern")
    (:file "egraph")
-   (:file "analysis" :depends-on ("lossless-reader" "pattern"))
+   (:file "analysis" :depends-on ( "lossless-reader"
+                                   "pattern"
+                                   ;; because of the "lint" command
+                                   "command"))
    (:file "command"
     :depends-on ("utils"
                  "configuration"
