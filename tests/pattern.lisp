@@ -382,15 +382,26 @@
   (is equalp '(#(term :name '?x) a) (match (maybe (term '?x)) 'a))
   (is equalp `(,(term :name '?x) nil) (match (maybe (term '?x)) nil)))
 
-#++ ;; TODO
 (define-test+run "match alternations"
   (is eq t (test-match '(:alternation a b) 'a))
   (is eq t (test-match '(:alternation a b) 'b))
   (false (test-match '(:alternation a b) 'c))
-  (is equalp '(#s(term :name ?x) c) (test-match '(:alternation ?x b) 'c))
-  (let ((pat (compile-pattern '(:alternation (:maybe a ?x) b))))
-    (is equalp `(,(maybe :name ?x :pattern a) a) (test-match pat 'a))
-    (is eq t (test-match pat 'b))
+  (finish
+   (let ((binding (test-match '(:alternation ?x b) 'c)))
+     (true binding)
+     (is eq 'c (to binding))))
+  (let* ((pat (compile-pattern '(:alternation (:maybe a ?x) b))))
+    (let ((binding (test-match pat 'a)))
+      (true binding)
+      (is eq 'a (to binding)))
+    (let ((binding (test-match pat 'b)))
+      (true binding)
+      (is eq 'b (to binding)))
+    #++ ;; TODO non-greedy repetition
+    (let ((binding (test-match pat 'b)))
+      (true binding)
+      (is eq t binding))
+    #++ ;; TODO non-greedy repetition
     (false (test-match pat 'c))))
 
 #++ ;; TODO

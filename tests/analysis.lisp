@@ -300,6 +300,26 @@
   (true (test-match-parse #(x) "x"))
   (true (test-match-parse '((x)) "(x)")))
 
+(defun test-alternation (pattern string expected-binding)
+  (finish
+   (let ((binding (match (compile-pattern pattern) (make-node-iterator string))))
+     (cond
+       (expected-binding (is eq t binding))
+       (t (false binding))))))
+
+(define-test+run "match alternation against parse trees"
+  (test-alternation '(:alternation a b) "a" t)
+  (test-alternation '(:alternation a b) "b" t)
+  (test-alternation '(:alternation a b) "c" nil)
+  (test-alternation '(:alternation a b) "breeze.test.analysis::a" t)
+  (test-alternation '(:alternation a b) "breeze.analysis::a" nil))
+
+#++
+(trace :wherein test-alternation
+       match-symbol-to-token
+       match
+       breeze.analysis::node-string-equal)
+
 
 ;;; Basic tree inspection
 

@@ -17,6 +17,7 @@
   ;; package.
   (:import-from #:breeze.lossless-reader
                 #:node-iterator
+                #:copy-iterator
                 #:make-node-iterator
                 #:state
                 #:source
@@ -112,9 +113,10 @@ Design decision(s):
 (Technically, it represents a buffer with the mode \"lisp-mode\"..."))
 
 #++
-(defun make-buffer ()
-  (make-instance 'buffer :name buffer-name)
-  (make-instance ))
+(defun make-buffer (&key name string)
+  (make-instance 'buffer :name name
+                         :node-iterator (when string
+                                          (make-node-iterator string))))
 
 (defmethod parse-state ((buffer buffer))
   (when-let ((it (node-iterator buffer)))
@@ -123,6 +125,9 @@ Design decision(s):
 (defmethod make-node-iterator ((buffer buffer))
   "Make new node-iterator from BUFFER's parse-state."
   (make-node-iterator (parse-state buffer)))
+
+(defmethod copy-iterator ((buffer buffer))
+  (copy-iterator (node-iterator buffer)))
 
 
 ;;; workspace
@@ -222,7 +227,7 @@ Design decision(s):
       (format nil "~{~a~^.~}"
               (remove-if #'null (list project test name))))))
 
-#+ (or)
+#+(or)
 (trace
  infer-project-name
  infer-is-test-file

@@ -97,7 +97,9 @@
             (:include term))
   (pattern nil :read-only t)
   (min nil :read-only t)
-  (max nil :read-only t))
+  (max nil :read-only t)
+  ;; TODO (greedyp t :read-only t)
+  )
 
 (defun repetition= (a b)
   (and (repetitionp a)

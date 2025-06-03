@@ -85,28 +85,31 @@ children nodes."
        ;;
        ;; TODO check if we can find the symbol denoted by
        ;; symbol-node... and compare (eq) symbol with it.
-       (when symbol-node
-         (and
-          (ecase (node-type symbol-node)
-            (current-package-symbol (node-string-equal name token-node state))
-            (keyword
-             (and (string-equal "KEYWORD" (package-name package))
-                  (node-string-equal name symbol-node state)))
-            (uninterned-symbol
-             (and (null package)
-                  (node-string-equal name symbol-node state)))
-            ((qualified-symbol possibly-internal-symbol)
-             (let* ((nodes (node-children symbol-node))
-                    (package-name-node (first-node nodes))
-                    (symbol-name-node (second-node nodes)))
-               (and
-                (node-string-equal name symbol-name-node state)
-                (some (lambda (package-name)
-                        (node-string-equal package-name package-name-node state))
-                      `(,(package-name package)
-                        ,@(package-nicknames package)))))))
-          ;; symbol-node
-          t))))))
+       (and
+        symbol-node
+        (ecase (node-type symbol-node)
+          (current-package-symbol (node-string-equal name token-node state))
+          (keyword
+           (and (string-equal "KEYWORD" (package-name package))
+                (node-string-equal name symbol-node state)))
+          (uninterned-symbol
+           (and (null package)
+                (node-string-equal name symbol-node state)))
+          ((qualified-symbol possibly-internal-symbol)
+           (let* ((nodes (node-children symbol-node))
+                  (package-name-node (first-node nodes))
+                  (symbol-name-node (second-node nodes)))
+             #++
+             (break "~s ~s"
+                    (node-content state package-name-node)
+                    (node-content state symbol-name-node))
+             (and
+              (node-string-equal name symbol-name-node state)
+              (some (lambda (package-name)
+                      (node-string-equal package-name package-name-node state))
+                    `(,(package-name package)
+                      ,@(package-nicknames package)))))))
+        t)))))
 
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.
@@ -164,6 +167,22 @@ children nodes."
 
 
 ;;; Basic tree inspection
+
+(defmacro with-match ((pattern (&rest term-names)) &body body)
+  (alexandria:with-gensyms (bindings get-bindings)
+    (multiple-value-bind (compiled-pattern term-pool)
+        (compile-pattern pattern)
+      `(let* ((,bindings (match ,compiled-pattern (copy-iterator node-iterator)
+                           :skipp #'whitespace-or-comment-node-p)))
+         (flet ((,get-bindings (term-name)
+                  (when ,bindings
+                    (when-let* ((term (gethash term-name ,term-pool))
+                                (binding (find-binding ,bindings term)))
+                      (to binding)))))
+           (declare (ignorable (function ,get-bindings)))
+           (symbol-macrolet ,(loop :for name :in term-names
+                                   :collect `(,name (,get-bindings ',name)))
+             ,@body))))))
 
 (defmacro define-node-matcher (name (pattern) &body body)
   (multiple-value-bind (compiled-pattern term-pool)
