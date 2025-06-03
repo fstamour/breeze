@@ -646,7 +646,6 @@ with which arguments."
                          start stop length
                          :buffer-name (buffer-name)
                          :buffer-file-name (buffer-file-name))))
-                         
          (if (zerop length)
              (append base (list :insertion (buffer-substring-no-properties start stop)))
            base)))))))
@@ -707,7 +706,9 @@ for debugging breeze itself."
                                               collect (flymake-make-diagnostic
                                                        ;; Locus
                                                        buffer
-                                                       (1+ beg) (1+ end)
+                                                       (1+ beg) (if end
+                                                                    (1+ end)
+                                                                  (point-maxxs))
                                                        type
                                                        text))))))
     ;; Not connected, so we can't call breeze's linter.

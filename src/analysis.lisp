@@ -170,7 +170,7 @@ children nodes."
        ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
        (multiple-value-bind (,pattern-var ,term-pool-var)
            (compile-pattern ,pattern)
-         (let* ((bindings (match ,pattern-var node-iterator
+         (let* ((bindings (match ,pattern-var (copy-iterator node-iterator)
                             :skipp #'whitespace-or-comment-node-p)))
            (flet ((get-bindings (term-name)
                     (when bindings
@@ -348,7 +348,7 @@ simple-condition-format-control, simple-condition-format-arguments
 ;;; Linter rules
 
 (defun warn-undefined-in-package (node-iterator)
-  (alexandria:when-let ((package-designator-node (in-package-node-p (copy-iterator node-iterator))))
+  (alexandria:when-let ((package-designator-node (in-package-node-p node-iterator)))
     (and (valid-node-p package-designator-node)
          (let* ((content (node-content (state node-iterator) package-designator-node))
                 (package-designator (read-from-string content)))
