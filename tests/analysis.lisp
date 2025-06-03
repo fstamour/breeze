@@ -344,13 +344,17 @@
         :collect (child-of-mapcar-node-p node-iterator)))
 
 (defun test-malformed-if-node-p (string)
-  (let* ((state (parse string))
-         (node (first (tree state))))
-    (malformed-if-node-p state node)))
+  (malformed-if-node-p (make-node-iterator string)))
 
 (define-test+run malformed-if-node-p
+  ;; TODO add tests with comments, e.g. (if #|...|# ...)
   (false (test-malformed-if-node-p "(if a b c)"))
-  (true (test-malformed-if-node-p "(if a b c d)")))
+  (true (test-malformed-if-node-p "(if a)"))
+  (true (test-malformed-if-node-p "(if a b c d)"))
+  ;; TODO this works by shear luck: it successfully match up to "d"
+  ;; and considers that a successful match, but it didn't match
+  ;; against the whole form.
+  (true (test-malformed-if-node-p "(if a b c d e)")))
 
 
 ;;; Testing the linter
