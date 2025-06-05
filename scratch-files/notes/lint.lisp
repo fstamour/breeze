@@ -471,3 +471,16 @@ See also:
   (eq (eval `(quote ,s))
       (eval s)))
 ;; => T
+
+
+#| eval-when forms cause compile-time evaluation only at top
+level. Both :compile-toplevel and :load-toplevel situation
+specifications are ignored for non-top-level forms. For non-top-level
+forms, an eval-when specifying the :execute situation is treated as an
+implicit progn including the forms in the body of the eval-when form;
+otherwise, the forms in the body are ignored.  |#
+
+
+(multiple-value-bind (a b)
+    (load-time-value (values 'a 'b)))
+=> warn about load-time-value returning only the primary value
