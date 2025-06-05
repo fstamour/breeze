@@ -97,6 +97,19 @@
 ;; TODO gabage collect the *actors* that are done (when?)
 ;; TODO How to detect if something went wrong?
 
+#++
+(bt:with-lock-held (*actors-lock*)
+  (maphash (lambda (id actor)
+             (when (or (donep actor)
+                       (not (bt:thread-alive-p (thread actor))))
+               (remhash id *actors*))
+             ;; (break "~s ~s" id actor)
+             )
+           *actors*))
+
+#++
+(hash-table-count *actors*)
+
 (defun clear-actors ()
   "Forget all the actors"
   (bt:with-lock-held (*actors-lock*)
