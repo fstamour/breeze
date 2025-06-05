@@ -23,7 +23,10 @@
     (insert
      "\n"
      (format-time-string "[%Y-%m-%d %H:%M:%S.%3N] ")
-     (apply #'format string objects))
+     (let ((s (apply #'format string objects)))
+       (if (< (length s) 1000)
+           s
+         (cl-subseq s 0 1000))))
     (setf buffer-read-only t)))
 
 (defun breeze-message (string &rest objects)
@@ -397,6 +400,12 @@ receiving the data it requested."
                              (length suffix)))
     string))
 
+(defun breeze--remove-prefix (prefix string)
+  "String utility to remove the PREFIX from STRING if it's present."
+  (if (string-prefix-p prefix string)
+      (cl-subseq string (length prefix))
+    string))
+
 (defun breeze-translate-command-symbol (symbol)
   "Translate \"common lisp\" symbols to \"emacs lisp\" symbols. Used
 to dynamically generate emacs commands for each \"breeze
@@ -407,7 +416,9 @@ commands\"."
       (list symbol
             (if (string-prefix-p "breeze" name)
                 (intern (format "breeze-%s"
-                                (breeze--remove-suffix "-command" command)))
+                                (breeze--remove-prefix
+                                 "breeze-"
+                                 (breeze--remove-suffix "-command" command))))
               ;; TODO maybe add some way to customize this
               symbol)))))
 
