@@ -122,6 +122,15 @@
     :initform (generate-actor-id)
     :accessor id
     :documentation "The id of the actor.")
+   (fn
+    :initform nil
+    :initarg :fn
+    :accessor fn
+    :documentation "The function yo be eecuted by the actor.")
+   (created-at
+    :initform (get-internal-real-time)
+    :accessor created-at
+    :documentation "When (universal-time0 was this actor created?")
    (thread
     :initform nil
     :initarg :thread
@@ -147,14 +156,26 @@
 (defmethod initialize-instance :after ((command command-handler) &key)
   (register command))
 
-(defun make-command-handler (context-plist)
+(defun make-command-handler (fn context-plist)
   (let* ((buffer (and context-plist
                       (add-to-workspace context-plist))))
     (make-instance
      'command-handler
+     :fn fn
      :context (alexandria:alist-hash-table
                (when buffer
                  `((:buffer . ,buffer)))))))
+
+(defmethod print-object ((command command-handler) stream)
+  (print-unreadable-object
+      (command stream :type t :identity nil)
+    (let* ((then (created-at command))
+                   (now (get-internal-real-time))
+                   (diff (- now then))
+                   (seconds (/ diff internal-time-units-per-second)))
+              (multiple-value-bind (m s) (floor seconds 60)
+                (format stream "~s (~dm ~ds ago)" (fn command)
+                        m (ceiling s))))))
 
 (defmethod thread :around ((_ (eql nil))) nil)
 
@@ -404,7 +425,7 @@ uses the throw tag to stop the command immediately."
   (log-debug "Starting command...")
   (check-type fn (or function symbol))
   (check-type context-plist (or null cons))
-  (let* ((command (make-command-handler context-plist))
+  (let* ((command (make-command-handler fn context-plist))
          (buffer (current-buffer (context command))))
     ;; Create the thread for the command handler
     (make-actor-thread
