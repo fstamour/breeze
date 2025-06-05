@@ -49,14 +49,6 @@ newline in the expected result."
           (insert "~%        (is string= ~s (~:R request))" expected i))
       (insert "~%        (false (~:R request))" i)))
 
-
-(trace :wherein insert-command-test
-       breeze.analysis::match-symbol-to-token
-       ;; match
-       breeze.analysis::node-string-equal)
-
-(untrace)
-
 (defun test-at-point (buffer)
   (let ((root-node-iterator (root-node-iterator (node-iterator buffer))))
     (breeze.analysis::with-match
@@ -64,8 +56,7 @@ newline in the expected result."
          ((:alternation
            parachute:define-test
            parachute:define-test+run
-           parachute:define-test+run-interactively) ?name)
-         (?name))
+           parachute:define-test+run-interactively) ?name))
       ;; TODO would be nice if (match symbol node-iterator)
       ;; returned a node-iterator instead of a node
       (when-let ((?name (get-bindings '?name)))
@@ -125,7 +116,7 @@ newline in the expected result."
          (insert ")"))
     (insert "))")))
 
-(defun map-top-level-forms
+(defun map-top-level-forms (buffer)
   ;; forms that "preserves" top-level-ness
   ;; prong
   ;; locally, macrolet, symbol-macrolet

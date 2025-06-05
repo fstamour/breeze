@@ -168,18 +168,21 @@ children nodes."
 
 ;;; Basic tree inspection
 
+;; TODO match-case
+
 (defmacro with-match ((node-iterator pattern) &body body)
-  (alexandria:with-gensyms (bindings)
-    (multiple-value-bind (compiled-pattern term-pool)
-        (compile-pattern pattern)
+  (multiple-value-bind (compiled-pattern term-pool)
+      (compile-pattern pattern)
+    (let ((bindings (intern (symbol-name '#:bindings) *package*))
+          (get-bindings (intern (symbol-name '#:get-bindings) *package*)))
       `(let* ((,bindings (match ,compiled-pattern (copy-iterator ,node-iterator)
-                           :skipp #'whitespace-or-comment-node-p)))
-         (flet ((get-bindings (term-name)
+                                :skipp #'whitespace-or-comment-node-p)))
+         (flet ((,get-bindings (term-name)
                   (when ,bindings
                     (when-let* ((term (gethash term-name ,term-pool))
                                 (binding (find-binding ,bindings term)))
                       (to binding)))))
-           (declare (ignorable (function get-bindings)))
+           (declare (ignorable (function ,get-bindings)))
            ,@body)))))
 
 (defmacro define-node-matcher (name (pattern) &body body)
