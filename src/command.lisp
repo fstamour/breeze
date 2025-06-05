@@ -20,6 +20,7 @@
    #:start-command
    #:cancel-command
    #:continue-command
+   #:deregister
    ;; Functions to access the context
    #:context
    #:context*
@@ -84,7 +85,7 @@
 
 (defun deregister (actor)
   (bt:with-lock-held (*actors-lock*)
-    (remhash (id actor) *actors*)))
+    (remhash (if (numberp actor) actor (id actor)) *actors*)))
 
 (defun find-actor (id &key errorp)
   (check-type id integer)
@@ -460,19 +461,19 @@ uses the throw tag to stop the command immediately."
   "Continue procressing *command*."
   ;; TODO cancel-command-on-error
   (let ((actor (find-actor id :errorp t)))
-    (if (donep actor)
-        (list "done")
-        (progn
-          ;; TODO It would be nice to keep track of whether a response
-          ;; is expected or not.
-          (when response (send-into actor response))
-          (let ((request (recv-from actor)))
-            (cond
-              ((null request)
-               (cancel-command id "Request is null."))
-              ((string= "done" (car request))
-               (cancel-command id "Request is \"done\".")))
-            request)))))
+    (cond
+      ((donep actor) (deregister actor) (list "done"))
+      (t
+       ;; TODO It would be nice to keep track of whether a response
+       ;; is expected or not.
+       (when response (send-into actor response))
+       (let ((request (recv-from actor)))
+         (cond
+           ((null request)
+            (cancel-command id "Request is null."))
+           ((string= "done" (car request))
+            (cancel-command id "Request is \"done\".")))
+         request)))))
 
 
 ;;; Utilities to get common stuff from the context

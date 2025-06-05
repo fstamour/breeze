@@ -313,10 +313,12 @@ receiving the data it requested."
     (breeze-debug "Breeze: (#%s) request received: %s" id request)
     request))
 
+(defun breeze-deregister-command (id)
+  (breeze-eval (format "(breeze.command:deregister %s)" id)))
 
 ;; TODO maybe add a "narrow" request type?
 ;; TODO use "inhibit-modification-hooks" where necessary...
-(defun breeze-command-process-request (request)
+(defun breeze-command-process-request (id request)
   "Dispatch REQUESTs from a command."
   (pcase (car request)
     ("choose"
@@ -351,6 +353,7 @@ receiving the data it requested."
     ("find-file"
      (find-file (cl-second request)))
     ("return"
+     (breeze-deregister-command id)
      (throw 'breeze-run-command (cl-second request)))
     ("buffer-string"
      (buffer-substring-no-properties (point-min) (point-max)))
@@ -363,26 +366,28 @@ receiving the data it requested."
   (catch 'breeze-run-command
     (let ((id (breeze-command-start name extra-args)))
       (condition-case condition
-          (cl-loop
-           ;; guards against infinite loop
-           for i below 1000
-           for
-           ;; Get the first request from the command
-           request = (breeze-command-continue id nil nil)
-           ;; Continue the command
-           then (breeze-command-continue id response send-response-p)
-           ;; "Request" might be nil, if it is, we're done
-           while (and request
-                      (not (string= "done" (car request))))
-           ;; Whether or not we need to send arguments to the next callback.
-           for send-response-p = (member (car request)
-                                         '("choose" "read-string" "buffer-string"))
-           ;; Process the command's request
-           for response = (breeze-command-process-request request)
-           ;; Log request and response (for debugging)
-           do (breeze-debug "Breeze: request received: %S response to send %S"
-                            request
-                            response))
+          (progn
+            (cl-loop
+             ;; guards against infinite loop
+             for i below 1000
+             for
+             ;; Get the first request from the command
+             request = (breeze-command-continue id nil nil)
+             ;; Continue the command
+             then (breeze-command-continue id response send-response-p)
+             ;; "Request" might be nil, if it is, we're done
+             while (and request
+                        (not (string= "done" (car request))))
+             ;; Whether or not we need to send arguments to the next callback.
+             for send-response-p = (member (car request)
+                                           '("choose" "read-string" "buffer-string"))
+             ;; Process the command's request
+             for response = (breeze-command-process-request id request)
+             ;; Log request and response (for debugging)
+             do (breeze-debug "Breeze: request received: %S response to send %S"
+                              request
+                              response))
+            (breeze-deregister-command id))
         (quit
          (breeze-debug "Breeze run command: (%S) " id condition)
          (breeze-command-cancel id "User-cancelled"))
