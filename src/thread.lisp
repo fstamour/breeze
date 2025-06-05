@@ -9,7 +9,8 @@
    #:find-worker-threads
    #:kill-threads
    #:kill-threads-by-name
-   #:kill-worker-threads))
+   #:kill-worker-threads
+   #:breeze-kill-worker-threads))
 
 (in-package #:breeze.thread)
 
@@ -58,3 +59,7 @@
 (defun kill-worker-threads ()
   "Find threads named \"worker\", then destroy them."
   (%kill-threads (find-threads-by-name "worker")))
+
+(breeze.command:define-command breeze-kill-worker-threads ()
+ "Find threads named \"worker\", then destroy them."
+  (kill-worker-threads))
