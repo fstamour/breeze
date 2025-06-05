@@ -714,7 +714,7 @@ for debugging breeze itself."
                                                        buffer
                                                        (1+ beg) (if end
                                                                     (1+ end)
-                                                                  (point-maxxs))
+                                                                  (point-max))
                                                        type
                                                        text))))))
     ;; Not connected, so we can't call breeze's linter.

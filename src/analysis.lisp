@@ -343,7 +343,7 @@ simple-condition-format-control, simple-condition-format-arguments
 
 (define-condition node-parse-error (simple-node-error parse-error) ())
 
-(defun node-parse-error (node-iterator  message &key (replacement 'null))
+(defun node-parse-error (node-iterator message &key (replacement 'null))
   (signal (make-condition
            'node-parse-error
            :node-iterator (copy-iterator node-iterator)
@@ -423,14 +423,13 @@ simple-condition-format-control, simple-condition-format-arguments
   (loop :until (donep node-iterator)
         :for node = (value node-iterator)
         :for depth = (slot-value node-iterator 'depth)
-        :do (when (catch 'cut
-                    (error-invalid-node node-iterator)
-                    (warn-undefined-in-package node-iterator)
-                    (when (and (plusp depth)
-                               (whitespace-node-p node))
-                      (warn-extraneous-whitespaces node-iterator))
-                    t)
-              (next node-iterator))))
+        :do (progn
+              (error-invalid-node node-iterator)
+              (warn-undefined-in-package node-iterator)
+              (when (and (plusp depth)
+                         (whitespace-node-p node))
+                (warn-extraneous-whitespaces node-iterator)))
+            (next node-iterator)))
 
 (defun lint-buffer (buffer &aux (*diagnostics* '()))
   "Apply all the linting rules, and accumulate the \"diagnostics\"."
@@ -439,11 +438,7 @@ simple-condition-format-control, simple-condition-format-arguments
       ((node-parse-error (lambda (condition)
                            (diag-error (target-node condition)
                                        (simple-condition-format-control condition)
-                                       (simple-condition-format-arguments condition))
-                           ;; Don't analyze further down that tree... I guess!
-                            (next (target-node condition)
-                             :dont-recurse-p t)
-                           (throw 'cut nil)))
+                                       (simple-condition-format-arguments condition))))
        (node-style-warning (lambda (condition)
                              (diag-warn (target-node condition)
                                         (simple-condition-format-control condition)
