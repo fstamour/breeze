@@ -49,8 +49,14 @@
    ;; List all commands
    (breeze.command:list-all-commands)
    ;; List relevant tests
-   (remove-if-not #'symbolp
-                  (mapcar #'parachute:name (parachute:package-tests *package*)))
+   (remove-if
+    (lambda (test)
+      (member test '(breeze.thread:breeze-kill-worker-threads)))
+    (remove-if-not #'symbolp
+                   (mapcar #'parachute:name
+                           (parachute:package-tests '#:breeze.test.refactor
+                                                    ;; *package*
+                                                    ))))
    :key #'symbol-name
    :test #'string=))
 
@@ -682,7 +688,7 @@ strings get concatenated."
              ")"))))
 
 
-#+ (or)
+#+(or)
 (buffer-string
  (alexandria:plist-hash-table
   '(:buffer-string "asdf")))

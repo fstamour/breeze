@@ -13,6 +13,10 @@
 ;; Find all of slime's "worker" thread
 (find-threads-by-name "worker")
 
+(bt:interrupt-thread
+ (first (find-threads-by-name "worker"))
+ #'break)
+
 ;; Find all of slime's "worker" thread, including this one
 (find-threads-by-name "worker" :exclude-self-p nil)
 
