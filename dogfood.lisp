@@ -7,6 +7,8 @@
         #:breeze.lossless-reader
         #:breeze.pattern
         #:breeze.workspace)
+  (:import-from #:alexandria
+                 #:when-let)
   (:export
    #:insert-command-test))
 
@@ -47,9 +49,6 @@ newline in the expected result."
           (insert "~%        (is string= ~s (~:R request))" expected i))
       (insert "~%        (false (~:R request))" i)))
 
-(compile-pattern '((:alternation
-                    parachute:define-test
-                    parachute:define-test+run) ?name))
 
 (trace :wherein insert-command-test
        breeze.analysis::match-symbol-to-token
@@ -58,89 +57,95 @@ newline in the expected result."
 
 (untrace)
 
-(match
-    (compile-pattern '(:alternation
-                      parachute:define-test
-                      parachute:define-test+run))
-  'parachute:define-test)
+(defun test-at-point (buffer)
+  (let ((root-node-iterator (root-node-iterator (node-iterator buffer))))
+    (breeze.analysis::with-match
+        (root-node-iterator
+         ((:alternation
+           parachute:define-test
+           parachute:define-test+run
+           parachute:define-test+run-interactively) ?name)
+         (?name))
+      ;; TODO would be nice if (match symbol node-iterator)
+      ;; returned a node-iterator instead of a node
+      (when-let ((?name (get-bindings '?name)))
+        (values root-node-iterator
+                (node-content (parse-state (current-buffer))
+                              ?name))))))
 
-(match
-    (compile-pattern '(:alternation
-                      parachute:define-test
-                      parachute:define-test+run))
-  'parachute:define-test+run)
+(defun command-name-p (string)
+  (and (member
+         string
+         (mapcar #'symbol-name (list-all-commands))
+         :test #'string-equal)
+       t))
 
+;; (command-name-p "insert-class-slot")
 
+(defun extract-trace (node-iterator))
+
+(defun update-command-test (node-itereator test-name)
+  (message "Not implemented: updating the test ~s" test-name))
+
+(defun generate-command-test (node-itereator)
+  (let* ((name
+           ;; Ask the user
+           (choose "Name of the command (symbol): "
+                   (breeze.test.refactor::missing-tests)))
+         (symbol (etypecase name
+                   (symbol name)
+                   (string (read-from-string name))))
+         (trace (breeze.test.refactor::drive-command symbol
+                                                     :inputs '()
+                                                     :context '()
+                                                     :ask-for-missing-input-p t))
+         (inputs (remove-if #'null (mapcar #'first trace)))
+         (*print-case* :downcase))
+    (insert "(define-test+run ~(~a~)" symbol)
+    (insert "~%    (let* ((trace (drive-command #'~(~a~)" symbol)
+    (insert "~%                                 :inputs '~s" inputs)
+    (insert "~%                                 :context '())))")
+    (insert "~%      (common-trace-asserts '~(~a~) trace ~d)"
+            symbol (length trace))
+    (loop
+      :for (input request) :in (butlast trace)
+      :for i :from 1
+      :do
+         (insert "~%      (destructuring-bind (input request) (~:R trace)" i)
+         (insert "~%        ")
+         (if input
+             (insert "(is string= ~s input)" input)
+             (insert "(false input)")
+             ;; (insert "(declare (ignore input))")
+             )
+         (loop
+           :for part :in request
+           :for j :from 1
+           :do (insert-assert-request part j))
+         (insert ")"))
+    (insert "))")))
+
+(defun map-top-level-forms
+  ;; forms that "preserves" top-level-ness
+  ;; prong
+  ;; locally, macrolet, symbol-macrolet
+  ;; eval-when
+  ;;
+  )
 
 (define-command insert-command-test ()
   "Insert a missing test!"
-  (let* ((node-iterator (copy-iterator (current-buffer))))
-    (let ((outer-node (root-node-iterator node-iterator)))
-      (message "Current node: ~s"
-               (around
-                (node-string outer-node)
-                0 30))
-      (message "Current test name: ~s"
-               (breeze.analysis::with-match
-                   (outer-node
-                    ((:alternation
-                       parachute:define-test
-                       parachute:define-test+run) ?name)
-                     (?name))
-                 ;; TODO would be nice if (match symbol node-iterator)
-                 ;; returned a node-iterator instead of a node
-                 (when ?name
-                   (node-content (parse-state (current-buffer))
-                                 ?name))))
+  (multiple-value-bind (node-iterator test-name)
+      (test-at-point (current-buffer))
+    ;; (message "Current node: ~s" (when node-iterator (around (node-string node-iterator) 0 30)))
+    ;; (message "Current test name: ~s" test-name)
+    (when (and test-name
+               (not (command-name-p test-name)))
+      (message "Cancelling: the test's name doesn't correspond to any command's name.")
       (return-from-command))
-    (let* ((name
-             (or
-              ;; Get from the context, or...
-              #++
-              (when (breeze.syntax-tree::list-car-symbol= outer-node 'define-test)
-                (breeze.syntax-tree:node-content
-                 (second (breeze.syntax-tree:node-content outer-node))))
-              ;; Ask the user
-              (choose "Name of the command (symbol): "
-                      (or (breeze.test.refactor::missing-tests)
-                          (breeze.refactor::list-all-commands)))))
-           (symbol (etypecase name
-                     (symbol name)
-                     (string (read-from-string name))))
-           (trace (breeze.test.refactor::drive-command symbol
-                                                       :inputs '()
-                                                       :context '()
-                                                       :ask-for-missing-input-p t))
-           (inputs (remove-if #'null (mapcar #'first trace)))
-           (*print-case* :downcase))
-      ;; We got the name from the current top-level form, which means we
-      ;; want to insert the snippet elsewhere.
-      (when (symbolp name)
-        ;; TODO a "go to position" command would be better lol
-        (breeze.command:insert-at (end outer-node) "~%~%"))
-      (insert "(define-test+run ~(~a~)" symbol)
-      (insert "~%    (let* ((trace (drive-command #'~(~a~)" symbol)
-      (insert "~%                                 :inputs '~s" inputs)
-      (insert "~%                                 :context '())))")
-      (insert "~%      (common-trace-asserts '~(~a~) trace ~d)"
-              symbol (length trace))
-      (loop
-        :for (input request) :in (butlast trace)
-        :for i :from 1
-        :do
-           (insert "~%      (destructuring-bind (input request) (~:R trace)" i)
-           (insert "~%        ")
-           (if input
-               (insert "(is string= ~s input)" input)
-               (insert "(false input)")
-               ;; (insert "(declare (ignore input))")
-               )
-           (loop
-             :for part :in request
-             :for j :from 1
-             :do (insert-assert-request part j))
-           (insert ")"))
-      (insert "))"))))
+    (if test-name
+        (update-command-test node-iterator test-name)
+        (generate-command-test node-iterator))))
 
 
 ;; This is emacs lisps to add a binding to the command "insert-test"
