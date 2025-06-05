@@ -1298,7 +1298,7 @@ Returns a new node with one of these types:
       (node-iterator stream :type t :identity nil)
     (with-slots (depth positions vectors) node-iterator
       (format stream "~{~s~^, ~}"
-              (list depth positions vectors)))))
+              (list depth positions)))))
 
 (defun recurse-into (node)
   (when-let ((children (node-children node)))
