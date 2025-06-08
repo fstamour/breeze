@@ -253,20 +253,8 @@ common lisp.")
             (:constructor range (start end))
             :constructor
             (:predicate rangep))
-  (start 0
-   :type (integer 0)
-   ;; TODO Made non-readonly for testing incremental parsing, until I
-   ;; implement a better data structure
-   ;;
-   ;; :read-only t
-   )
-  (end +end+
-   :type (integer -1)
-   ;; TODO Made non-readonly for testing incremental parsing, until I
-   ;; implement a better data structure
-   ;;
-   ;; :read-only t
-   ))
+  (start 0 :type (integer 0))
+  (end +end+ :type (integer -1)))
 
 (defstruct (node
             ;; (:constructor node (type start end &optional children))
