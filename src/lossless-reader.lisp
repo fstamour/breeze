@@ -55,6 +55,8 @@ common lisp.")
            #:quasiquote
            #:dot
            #:comma
+           #:comma-at
+           #:comma-dot
            #:sharp
            #:sharp-char
            #:sharp-function
@@ -170,6 +172,7 @@ common lisp.")
            #:read-line-comment
            #:read-parens
            #:read-sharpsign-dispatching-reader-macro
+           #:read-quote
            #:read-punctuation
            #:read-quoted-string
            #:read-string
@@ -225,9 +228,6 @@ common lisp.")
   ;; - current package
   ;; - readtable case (is it case converting)
   ;; - current input base (base of numbers)
-  ;; - current depth?
-  ;; - is inside quasiquotation?
-  ;; - is inside quotes?
   ;; - cache
   ;; - labels and references (#n= and #n#)
   (:documentation "The reader's state"))
@@ -500,7 +500,8 @@ common lisp.")
                     (value node)))
     (node
      (or (whitespace-node-p node)
-         (comment-node-p node)))))
+         (comment-node-p node)
+         (eq 'page (node-type node))))))
 
 (defun symbol-node-p (node)
   (and
@@ -630,7 +631,7 @@ position."
 
 (defun read-string* (state string &optional (advance-position-p t))
   "Search STRING in the STATE's source, at the current STATE's
-position. If found, optinally advance the STATE's position to _after_
+position. If found, optionally advance the STATE's position to _after_
 the occurence of STRING."
   (check-type string string)
   (let ((start (current-position state))
@@ -760,14 +761,23 @@ the occurence of STRING."
   "Like READ-ANY, but return the end of the read and a sequence of nodes
 as two values (Wheras READ-ANY returns two nodes (also as values), the
 first node being whitespaces.)"
-  (multiple-value-bind (whitespaces form)
-      (read-any state t)
-    (let ((children (%nodes whitespaces form))
-          (end (if (and form
-                        (valid-node-p form))
-                   (current-position state)
-                   +end+)))
-      (values end children))))
+  (let ((children)
+        (end +end+))
+    (loop
+      ;; :for i :below 100 :do (when (< 100 i) (error "read-any* might be looping infinitely,"))
+      (multiple-value-bind (whitespaces form)
+          (read-any state t)
+        (when whitespaces
+          (push whitespaces children))
+        (when form
+          (push form children)
+          (when (valid-node-p form)
+            (setf end (current-position state))))
+        ;; read while comments
+        ;; (break)
+        (when (not (comment-node-p form))
+          (return))))
+    (values end (nodes (nreverse children)))))
 
 (defun %read-sharpsign-any (state start type)
   (multiple-value-bind (end children)
@@ -966,20 +976,36 @@ first node being whitespaces.)"
        ;; Invalid syntax OR custom reader macro
        (sharp-unknown start +end+)))))
 
+(defreader read-quote ()
+  "Read ` ' , ,@ and ,."
+  (when-let* ((current-char (current-char state))
+              (foundp (assoc current-char
+                             '((#\' . quote)
+                               (#\` . quasiquote)
+                               (#\, . comma))
+                             :test #'char=)))
+    (incf (current-position state))
+    ;; ,@ and ,.
+    (when (eq (cdr foundp) 'comma)
+      (when-let* ((current-char (current-char state))
+                  (foundp* (assoc current-char
+                                  '((#\. . comma-dot)
+                                    (#\@ . comma-at))
+                                  :test #'char=)))
+        (incf (current-position state))
+        (setf foundp foundp*)))
+    (multiple-value-bind (end children)
+        (read-any* state)
+      (node (cdr foundp) start end children))))
 
 (defreader read-punctuation ()
-  "Read ' or `"
+  "Read . or pagebreak (^L)"
   (when-let* ((current-char (current-char state))
-              (foundp (member current-char
-                              '((#\' . quote)
-                                (#\` . quasiquote)
-                                (#\. . dot)
-                                (#\@ . at)
-                                (#\, . comma)
-                                (#\# . sharp)
+              (foundp (assoc current-char
+                              '((#\. . dot)
                                 (#\page . page))
-                              :key #'car)))
-    (prog1 (punctuation (cdar foundp) start)
+                              :test #'char=)))
+    (prog1 (punctuation (cdr foundp) start)
       (incf (current-position state)))))
 
 (defun read-quoted-string (state delimiter escape &optional validp)
@@ -1153,8 +1179,6 @@ Returns a new node with one of these types:
       ,(at state pos)
       ,(breeze.string:around string pos))))
 
-
-;; TODO don't forget to handle dotted lists
 (defreader read-parens ()
   (when (read-char* state #\()
     ;; Read while read-any != nil && char != )
@@ -1183,6 +1207,7 @@ Returns a new node with one of these types:
                read-sharpsign-dispatching-reader-macro
                read-string
                read-line-comment
+               read-quote
                read-punctuation
                read-token
                read-parens                ; recursion

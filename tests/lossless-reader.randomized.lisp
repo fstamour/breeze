@@ -18,6 +18,7 @@
                 #:read-whitespaces
                 #:read-line-comment
                 #:read-sharpsign-dispatching-reader-macro
+                #:read-quote
                 #:read-punctuation
                 #:read-block-comment
                 #:read-quoted-string
@@ -43,6 +44,7 @@
                 #:read-sharpsign-sharpsign
                 #:read-sharpsign-plus
                 #:read-sharpsign-minus
+                #:page
                 #:%token-symbol-node
                 #:unparse)
   (:import-from #:parachute

@@ -30,8 +30,7 @@ newline or +end+)
   (alexandria:once-only (string)
     `(let ((state (make-state (register-test-string ,string))))
        ;; Wraps #'is-equal to use the state's source as input
-       ;; remainder: the input is only used (unless (equalp got expected))
-       ;; the input is used to give
+       ;; reminder: the input is only used (unless (equalp got expected))
        (labels ((test* (got &optional expected)
                   (is-equalp
                    :input ,string
@@ -89,7 +88,7 @@ newline or +end+)
 (define-test+run valid-position-p
   (with-state*+predicates (:test-form (valid-position-p state pos)
                            :extra-args (pos))
-    (""  (no -1) (no 0)  (no 1))
+    ("" (no -1) (no 0) (no 1))
     (" " (no -1) (yes 0) (no 1))))
 
 (define-test+run donep
@@ -97,7 +96,7 @@ newline or +end+)
   (with-state*+predicates (:test-form (progn (setf (current-position state) pos)
                                              (donep state))
                            :extra-args (pos))
-    (""  (yes -1) (yes 0) (yes 1))
+    ("" (yes -1) (yes 0) (yes 1))
     (" " (yes -1) (no 0) (yes 1))
     ("  " (yes -1) (no 0) (no 1) (yes 2))))
 
@@ -905,6 +904,40 @@ the function read-sharpsign-dispatching-reader-macro
 
 
 
+(defun test-read-quote (input expected-type &optional expected-end &rest children)
+  (with-state (input)
+    (test* (read-quote state)
+           (when expected-type
+             (node expected-type 0 expected-end (ensure-nodes children))))))
+
+(define-test+run read-quote
+  (test-read-quote "" nil)
+  (test-read-quote " " nil)
+  (test-read-quote "'" 'quote +end+)
+  (test-read-quote "' " 'quote +end+ (whitespace 1 2))
+  (test-read-quote "'a" 'quote 2 (token 1 2))
+  (test-read-quote "' a" 'quote 3 (whitespace 1 2) (token 2 3))
+  (test-read-quote "'(a" 'quote +end+ (parens 1 +end+ (token 2 3)))
+  (test-read-quote "'(a)" 'quote 4 (parens 1 4 (token 2 3)))
+  (test-read-quote "' #||# (a)" 'quote 10
+                   (whitespace 1 2)
+                   (block-comment 2 6)
+                   (whitespace 6 7)
+                   (parens 7 10 (token 8 9)))
+  (test-read-quote "` #||# (a)" 'quasiquote 10
+                   (whitespace 1 2)
+                   (block-comment 2 6)
+                   (whitespace 6 7)
+                   (parens 7 10 (token 8 9)))
+  (test-read-quote "," 'comma +end+)
+  (test-read-quote ",a" 'comma 2 (token 1 2))
+  (test-read-quote ",@" 'comma-at +end+)
+  (test-read-quote ",@a" 'comma-at 3 (token 2 3))
+  (test-read-quote ",." 'comma-dot +end+)
+  (test-read-quote ",.a" 'comma-dot 3 (token 2 3)))
+
+
+
 (defun test-read-punctuation (input expected-type)
   (with-state (input)
     (is-equalp* input
@@ -916,14 +949,8 @@ the function read-sharpsign-dispatching-reader-macro
   :depends-on (current-char)
   (test-read-punctuation "" nil)
   (test-read-punctuation " " nil)
-  (test-read-punctuation "'" 'quote)
-  (test-read-punctuation "`" 'quasiquote)
   (test-read-punctuation "." 'dot)
-  (test-read-punctuation "@" 'at)
-  (test-read-punctuation "," 'comma)
-  (test-read-punctuation "#" 'sharp)
-  ;; anything else should return nil
-  )
+  (test-read-punctuation (format nil "~c" #\page) 'page))
 
 
 ;; TODO Add tests with VALIDP
@@ -1096,13 +1123,12 @@ the function read-sharpsign-dispatching-reader-macro
   (test-parse "#||#" (block-comment 0 4))
   (test-parse "#|#||#" (block-comment 0 +end+))
   (test-parse "#| #||# |#" (block-comment 0 10))
-  (test-parse "'" (punctuation 'quote 0))
-  (test-parse "`" (punctuation 'quasiquote 0))
-  ;; (test-parse "#" (punctuation 'sharp 0))
-  (test-parse "," (punctuation 'comma 0))
+  (test-parse "'" (node 'quote 0 +end+))
+  (test-parse "`" (node 'quasiquote 0 +end+))
+  (test-parse "," (node 'comma 0 +end+))
   (test-parse "+-*/" (token 0 4))
   (test-parse "123" (token 0 3))
-  ;; (test-parse "asdf#" (token 0 5))
+  (test-parse "asdf#" (token 0 5))
   (test-parse "| asdf |" (token 0 8))
   (test-parse "arg| asdf | " (token 0 11) (whitespace 11 12))
   (test-parse "arg| asdf |more" (token 0 15))
@@ -1136,11 +1162,13 @@ the function read-sharpsign-dispatching-reader-macro
   (test-parse "(#\\;)" (parens 0 5
                                (nodes (sharp-char 1 4 (token 2 4)))))
   (test-parse "#\\; " (sharp-char 0 3 (token 1 3)) (whitespace 3 4))
-  (test-parse "`( asdf)" (node 'quasiquote 0 1)
-              (parens 1 8
-                      (nodes
-                       (whitespace 2 3)
-                       (token 3 7))))
+  (test-parse "`( asdf)"
+              (node 'quasiquote 0 8
+                    (nodes
+                     (parens 1 8
+                             (nodes
+                              (whitespace 2 3)
+                              (token 3 7))))))
   (test-parse "#\\Linefeed" (sharp-char 0 10 (token 1 10)))
   (test-parse "#\\: asd" (sharp-char 0 3 (token 1 3)) (whitespace 3 4) (token 4 7))
   (test-parse "(((  )))" (parens 0 8 (parens 1 7 (parens 2 6 (whitespace 3 5)))))
@@ -1166,10 +1194,6 @@ the function read-sharpsign-dispatching-reader-macro
   ;; TODO This is wrong... but _OMG_
   (test-parse (format nil "cl-user::; wtf~%reaally?")
               (token 0 9) (line-comment 9 14) (whitespace 14 15) (token 15 23))
-  ;; TODO This is silly
-  (test-parse ",@" (node 'comma 0 1) (node 'at 1 2))
-  ;; TODO This is silly
-  (test-parse ",." (node 'comma 0 1) (node 'dot 1 2))
   (test-parse "(in-package #)" (parens 0 -1
                                        (nodes (token 1 11)
                                               (whitespace 11 12)

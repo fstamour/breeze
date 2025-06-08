@@ -120,7 +120,7 @@ max-distance is reached, returns nil in that case."
             ;; (format *debug-io* "~&~s ~s" i diff-0)
             (when (and (> i 1)
                        (>= min-distance max-distance))
-              #+ (or)
+              #+(or)
               (format *debug-io* "~&min-distance ~s > max-distance ~s"
                       min-distance max-distance)
               (return-from optimal-string-alignment-distance*))
@@ -276,7 +276,7 @@ AROUND. Add elipseses before and after if necessary."
 
 
 (alexandria:define-constant +whitespaces+
-  #. (coerce '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page #\Return
+  #.(coerce '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page #\Return
                #\Rubout)
              'string)
   :test 'equal)
