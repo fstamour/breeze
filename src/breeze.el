@@ -488,7 +488,7 @@ time will initialize breeze and redefine this command."
 (defun breeze-header-line ()
   "A stub for the breeze command \"breeze-header-line\""
   (interactive)
-  "Breeze not initialzed.")
+  "Breeze header-line not implemented yet.")
 
 
 ;;; Completion at point -- NOT IMPLEMENTED, this is just a stub for now
