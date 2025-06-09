@@ -132,7 +132,7 @@ Design decision(s):
 
 ;;; workspace
 
-;; TODO add mutex(es)?
+;; TODO add mutex
 (defclass workspace ()
   ((buffers
     :initform (make-hash-table :test 'equal)
@@ -233,6 +233,8 @@ Design decision(s):
  infer-is-test-file
  infer-package-name-from-file)
 
+;; TODO use breeze.analysis::map-top-level-forms to index defpackage
+;; and in-package forms (and maybe others, like test definitions)
 
 (defmethod find-test-directory ((namestring string)))
 

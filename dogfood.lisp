@@ -116,14 +116,6 @@ newline in the expected result."
          (insert ")"))
     (insert "))")))
 
-(defun map-top-level-forms (buffer)
-  ;; forms that "preserves" top-level-ness
-  ;; prong
-  ;; locally, macrolet, symbol-macrolet
-  ;; eval-when
-  ;;
-  )
-
 (define-command insert-command-test ()
   "Insert a missing test!"
   (multiple-value-bind (node-iterator test-name)

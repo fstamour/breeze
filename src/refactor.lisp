@@ -484,14 +484,14 @@ For debugging purposes ONLY.")
 
 (defun suggest-loop-clauses ()
   "When inside a loop form."
-  nil #++
+  nil #++  ;; TODO
   (when (and inner-node
              (loop-form-p inner-node))
     (shortcircuit (commands-applicable-in-a-loop-form))))
 
 (defun suggest-package-definition-clauses ()
   "When inside a package definition form."
-  nil #++
+  nil #++  ;; TODO
   (let+ctx (inner-node)
     (when (and inner-node
                (or (defpackage-form-p inner-node)
@@ -500,6 +500,7 @@ For debugging purposes ONLY.")
 
 (defun suggest-other ()
   "Otherwise"
+  ;; TODO
   (list-all-commands)
   #++(if
       ;; if "at top-level"
@@ -608,7 +609,7 @@ TODO there's some different kind of "quickfixes":
 #++
 (when path
     (if-let ((vc-root (indirect (find-version-control-root path))))
-      (mapcar )))
+      (mapcar)))
 
 #++
 (let ((vc-root (find-version-control-root (breeze.utils:breeze-relative-pathname "."))))

@@ -51,8 +51,6 @@ children nodes."
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
-;; (defpattern in-package package-designator)
-
 (defun match-parser-state (pattern state &key skipp)
   (match pattern (make-node-iterator state) :skipp skipp))
 
@@ -64,10 +62,6 @@ children nodes."
   ;; These should return nil because we're trying to match 1 symbol
   ;; against a list of nodes (even if that list is empty).
   nil)
-
-;; TODO move to utils, maybe rename "safe-plusp"
-(defun plusp* (x)
-  (and (numberp x) (plusp x)))
 
 (defun match-symbol-to-token (symbol node-iterator)
   (check-type node-iterator node-iterator)
@@ -99,10 +93,6 @@ children nodes."
            (let* ((nodes (node-children symbol-node))
                   (package-name-node (first-node nodes))
                   (symbol-name-node (second-node nodes)))
-             #++
-             (break "~s ~s"
-                    (node-content state package-name-node)
-                    (node-content state symbol-name-node))
              (and
               (node-string-equal name symbol-name-node state)
               (some (lambda (package-name)

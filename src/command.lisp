@@ -127,7 +127,7 @@
     :initform nil
     :initarg :fn
     :accessor fn
-    :documentation "The function yo be eecuted by the actor.")
+    :documentation "The function to be executed by the actor.")
    (created-at
     :initform (get-internal-real-time)
     :accessor created-at

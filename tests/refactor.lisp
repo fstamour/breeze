@@ -568,6 +568,7 @@
                               (point-max (1+ (length content))))
   (let* ((breeze.workspace:*workspace* (make-instance 'breeze.workspace:workspace))
          (breeze.command::*command* (breeze.command::make-command-handler
+                                     fn
                                      (list
                                       :buffer-string content
                                       :buffer-name buffer-name
