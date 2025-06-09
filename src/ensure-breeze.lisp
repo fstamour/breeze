@@ -30,10 +30,13 @@ TODO _maybe_ add a variable *breeze-loaded-correctly-p*
 (or-die "Failed to load asdf."
         (lambda () (require 'asdf)))
 
+(defvar *asd* nil)
+
 (or-die "Failed to set the path to the system definition."
   (lambda ()
-    (defparameter *asd*
-      (merge-pathnames "../breeze.asd" *load-truename*)))) ; this line is dynamically replaced in breeze.el's breeze-%loader
+    (unless (and *asd* (probe-file *asd*))
+      (setf *asd*
+            (merge-pathnames "../breeze.asd" *load-truename*)))))
 
 (or-die "Failed to load the system definition"
   (lambda () (asdf:load-asd *asd*)))

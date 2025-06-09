@@ -174,9 +174,9 @@ signal an error if no listeners are loaded."
 
 ;;; Evaluation
 
-(defun breeze-%eval (form)
+(defun breeze-%eval (form &optional package)
   "Evaluate FROM using sly-eval or slime-eval"
-  (breeze-%listener-funcall "eval" form))
+  (breeze-%listener-funcall "eval" form package))
 
 (defun breeze-%eval-async (form &optional cont package)
   "Asynchronously evaluate FORM using sly-eval-async or
@@ -555,14 +555,7 @@ listener."
     (insert-file-contents (breeze-relative-path "src/ensure-breeze.lisp"))
     (beginning-of-buffer)
 
-    ;; (search-forward "(or-die ") (previous-line)
-
     (insert "(cl:multiple-value-bind (#1=#.(gensym \"result\") #2=#.(gensym \"condition\")) (cl:ignore-errors \n")
-
-    (search-forward "*asd*")
-    (forward-line) (back-to-indentation)
-    (kill-sexp)
-    (insert (format "%S" (breeze-relative-path "breeze.asd")))
 
     (end-of-buffer)
     (insert "\n)
@@ -575,8 +568,11 @@ listener."
 (cl-defun breeze-load (&optional cont)
   "Asynchronously load breeze into the inferior lisp."
   (interactive)
+  (breeze-%eval '(cl:progn (cl:defpackage breeze.loader (:use :cl)) t))
+  (breeze-%eval `(cl:progn (cl:defparameter breeze.loader::*asd*
+                                            ,(breeze-relative-path "breeze.asd")) t))
   (breeze-%eval-async
-   `(cl:let ((cl:*package* (cl:find-package :cl-user)))
+   `(cl:let ((cl:*package* (cl:find-package '#:breeze.loader)))
             (cl:eval (cl:read-from-string ,(breeze-%loader))))
    (lambda (result)
      (cl-destructuring-bind (success condition)
@@ -586,7 +582,8 @@ listener."
                          condition)
                        success)
        (when (and (and success (not condition)) cont)
-         (funcall cont))))))
+         (funcall cont))))
+   '#:breeze.loader))
 
 (cl-defun breeze-ensure (&optional callback)
   "Make sure that breeze is loaded in the inferior lisp."
