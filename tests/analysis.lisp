@@ -357,6 +357,8 @@
   ;; (is equal "x" (test-in-package-node-p "('|CL|::|IN-PACKAGE| x)"))
   (null (test-in-package-node-p "(cl:)")))
 
+
+;;; child-of-mapcar-node-p
 
 #++ ;; TODO WIP
 (let* ((input "(mapcar )")
@@ -364,6 +366,9 @@
   (loop :for i :below (length input)
         :do (goto-position node-iterator i)
         :collect (child-of-mapcar-node-p node-iterator)))
+
+
+;;; malformed-if-node-p
 
 (defun test-malformed-if-node-p (string)
   (malformed-if-node-p (make-node-iterator string)))
@@ -384,12 +389,7 @@
 ;;; Testing the linter
 
 (defun test-lint (buffer-string)
-  ;; TODO make it easier to create a buffer with parsed content (and
-  ;; is not dependent on *workspace*
-  (let* ((*workspace* (make-workspace))
-         (buffer (make-instance 'buffer)))
-    (setf (node-iterator buffer) (make-node-iterator buffer-string))
-    (lint-buffer buffer)))
+  (lint-buffer (make-buffer :string buffer-string)))
 
 (define-test+run lint
   (false (test-lint ""))
@@ -508,16 +508,12 @@
           diags))
 
 (defun test-fix (buffer-string &aux (buffer-string (format nil buffer-string)))
-  ;; TODO make it easier to create a buffer with parsed content (and
-  ;; is not dependent on *workspace*
-  (let* ((*workspace* (make-workspace))
-         (buffer (make-instance 'buffer)))
-    (setf (node-iterator buffer) (make-node-iterator buffer-string))
-    (let ((fixes (fix-buffer buffer)))
-      (loop :for fix :in fixes
-            :for node = (value (target-node fix))
-            :for replacement = (replacement fix)
-            :collect (list node replacement)))))
+  (let* ((buffer (make-buffer :string buffer-string))
+         (fixes (fix-buffer buffer)))
+    (loop :for fix :in fixes
+          :for node = (value (target-node fix))
+          :for replacement = (replacement fix)
+          :collect (list node replacement))))
 
 (define-test+run test-fix
   (is equalp nil (test-fix "()"))

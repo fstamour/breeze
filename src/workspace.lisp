@@ -23,6 +23,7 @@
                 #:source
                 #:goto-position)
   (:export #:buffer
+           #:make-buffer
            #:*workspace*
            #:make-workspace
            #:workspace
@@ -112,11 +113,11 @@ Design decision(s):
 
 (Technically, it represents a buffer with the mode \"lisp-mode\"..."))
 
-#++
 (defun make-buffer (&key name string)
-  (make-instance 'buffer :name name
-                         :node-iterator (when string
-                                          (make-node-iterator string))))
+  (let ((buffer (make-instance 'buffer :name name)))
+    (when string
+      (update-buffer-content buffer string))
+    buffer))
 
 (defmethod parse-state ((buffer buffer))
   (when-let ((it (node-iterator buffer)))
@@ -162,7 +163,8 @@ Design decision(s):
         (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
         (setf (node-iterator buffer) (make-node-iterator new-content)))
       (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
-             (setf (node-iterator buffer) (make-node-iterator new-content))))))
+             (setf (node-iterator buffer) (make-node-iterator new-content)))))
+  buffer)
 
 ;; (untrace add-to-workspace)
 (defmethod add-to-workspace ((context-plist cons))
