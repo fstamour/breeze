@@ -116,7 +116,7 @@ children nodes."
 
 (defmethod match ((pattern term) (node-iterator node-iterator) &key skipp)
   (unless (donep node-iterator)
-    (breeze.pattern::make-binding pattern (value node-iterator))))
+    (breeze.pattern::make-binding pattern (copy-iterator node-iterator))))
 
 ;; TODO package-local-nicknames
 
@@ -175,6 +175,9 @@ children nodes."
            (declare (ignorable (function ,get-bindings)))
            ,@body)))))
 
+;; TODO be able to name the "node-iterator" argument
+;; TODO maybe, be able to do some checks _before_ trying to match
+;; TODO maybe, add some options for common stuff ... e.g. "don't match if quoted"
 (defmacro define-node-matcher (name (pattern) &body body)
   (multiple-value-bind (compiled-pattern term-pool)
       (compile-pattern pattern)
@@ -191,35 +194,25 @@ children nodes."
            ,@body)))))
 
 ;; TODO I want to check if a node is an "in-package" node...
-;; - case converting if necessary
-;; - skip whitespaces
-;; - check if there's a package designator
+;; - [ ] case converting if necessary
+;; - [x] skip whitespaces
+;; - [x] check if there's a package designator
 ;;
 ;; Now, I have a chicken-and-egg issue because of
 ;; package-local-nicknames...  I need to know what is the current
 ;; package to look for PLNs to find the in-pacakge form, but I need
 ;; the in-package to know the current package.
 
-;; TODO don't include nodes that are quoted...
 (define-node-matcher in-package-node-p ((in-package :?package-designator))
-  (get-bindings :?package-designator))
-
-
-;; TODO WIP
-#++
-(defun find-nearest-in-package (buffer)
-  (let* ((position (point buffer))
-         (node-iterator (node-iterator buffer))
-         (candidates (top-level-in-package (state node-iterator))))
-    (unless candidates
-      ;; TODO compute them, put them in a vector so we can
-      ;; differentiate between "not computed" and "no in-package
-      ;; present"
-      )
-    (when (and candidates (plusp (length candidates)))
-      (find-if (lambda (in-package-node)
-                 (< (node-end in-package-node) position))))))
-
+  (unless (quotedp node-iterator)
+    (when-let* ((package-designator (get-bindings :?package-designator))
+                (package-designator-node (value package-designator)))
+      ;; TODO string-designator-node-p
+      (when (or (token-node-p package-designator-node)
+                (string-node-p package-designator-node)
+                (sharp-uninterned-node-p package-designator-node))
+        ;; TODO else... it's a malformed in-package form
+        package-designator))))
 
 #|
 
@@ -256,6 +249,22 @@ TODO
 ;; - look at the "path", from the top-level
 ;; - if there's any =(quote ...= node, then it is quoted
 ;; - if there are "quasiquotes", it's more complicated...
+
+(defun quotedness (node-iterator)
+  (let ((depth (slot-value node-iterator 'depth)))
+    (loop :for d :upto depth
+          :for node = (value-at-depth node-iterator d)
+          :for type = (assoc (node-type node)
+                             '((quote . 1)
+                               (quasiquote . 1)
+                               (comma . -1)
+                               (comma-at . -1)
+                               (comma-dot . -1)))
+          :when type
+            :sum (cdr type))))
+
+(defun quotedp (node-iterator)
+  (plusp (quotedness node-iterator)))
 
 
 ;;; Utilities to collect "diagnostics"

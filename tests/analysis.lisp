@@ -228,22 +228,31 @@
 (defun test-match-terms-against-parse-tree (pattern string
                                             skip-whitespaces-and-comments
                                             expected-binding)
-  (let ((binding (test-match-parse pattern string skip-whitespaces-and-comments)))
+  (let ((binding (test-match-parse pattern string skip-whitespaces-and-comments))
+        (state (parse string)))
     (cond
       (expected-binding
-       (true binding)
+       (true binding
+             "matching ~s against ~s (~s) should have bound something"
+             pattern string state)
        (parachute:of-type '(or binding binding-set) binding)
        (when (binding-set-p binding)
          (let ((hash-table (breeze.pattern::bindings binding)))
-           (is = 1 (hash-table-count hash-table))
+           (is = 1 (hash-table-count hash-table)
+               "Expected only 1 binding.")
            (maphash (lambda (term binding*)
                       (declare (ignore term))
                       (setf binding binding*))
                     hash-table)))
-       (is breeze.pattern::term= (term :?x) (from binding))
-       (is equalp expected-binding (to binding)
+       (is breeze.pattern::term= (term :?x) (from binding)
+           "matching ~s against ~s (~s) should have bound the term :?x"
+           pattern string state)
+       (true (to binding)
+             "matching ~s against ~s (~s) should have bound :?x to something"
+             pattern string state)
+       (is equalp expected-binding (value (to binding))
            "matching ~s against ~s (~s) should have bound :?x to ~s"
-           pattern string (parse string) expected-binding))
+           pattern string state expected-binding))
       (t
        (false binding)))))
 
@@ -332,19 +341,17 @@
           "common-lisp-user::in-package"))
 
 (defun test-in-package-node-p (string)
-  (let* ((state (parse string))
-         (node (make-node-iterator state)))
-    ;; The funky reader macro and quasiquote is to fuck with slime and
-    ;; sly's regex-based search for "(in-package". Without this the
-    ;; rest of the file is evaluated in cl-user by slime and sly.
-    (let ((package-designator-node
-            #.`(,'in-package-node-p node)))
-      (when package-designator-node
-        (node-content state package-designator-node)))))
+  ;; The funky reader macro and quasiquote is to fuck with slime and
+  ;; sly's regex-based search for "(in-package". Without this the
+  ;; rest of the file is evaluated in cl-user by slime and sly.
+  (let ((package-designator-node
+          #.`(,'in-package-node-p (make-node-iterator string))))
+    (when package-designator-node
+      (node-string package-designator-node))))
 
 (define-test+run in-package-node-p
   (is equal "x" (test-in-package-node-p "(in-package x)"))
-  (is equal "#)" (test-in-package-node-p "(in-package #)"))
+  (is equal nil (test-in-package-node-p "(in-package #)"))
   (is equal ":x" (test-in-package-node-p "(in-package :x)"))
   (is equal "#:x" (test-in-package-node-p "(in-package #:x)"))
   (is equal "\"x\"" (test-in-package-node-p "(in-package \"x\")"))
@@ -355,7 +362,8 @@
   (is equal "42" (test-in-package-node-p "(cl::in-package 42)"))
   ;; TODO ? Not sure it's worth it lol...
   ;; (is equal "x" (test-in-package-node-p "('|CL|::|IN-PACKAGE| x)"))
-  (null (test-in-package-node-p "(cl:)")))
+  (is eq nil (test-in-package-node-p "(cl:)"))
+  (is eq nil (test-in-package-node-p "'(in-package x)")))
 
 
 ;;; child-of-mapcar-node-p

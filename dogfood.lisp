@@ -57,12 +57,9 @@ newline in the expected result."
            parachute:define-test
            parachute:define-test+run
            parachute:define-test+run-interactively) ?name))
-      ;; TODO would be nice if (match symbol node-iterator)
-      ;; returned a node-iterator instead of a node
       (when-let ((?name (get-bindings '?name)))
         (values root-node-iterator
-                (node-content (parse-state (current-buffer))
-                              ?name))))))
+                (node-string ?name))))))
 
 (defun command-name-p (string)
   (and (member
