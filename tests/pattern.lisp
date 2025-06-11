@@ -146,12 +146,6 @@
   (false (term-symbol-p 'x))
   (false (term-symbol-p "?x")))
 
-#++
-(define-test+run ref-symbol-p
-  (true (ref-symbol-p :$x))
-  (false (ref-symbol-p 'x))
-  (false (ref-symbol-p "$x")))
-
 (define-test+run compile-pattern
   (is pattern= :x (compile-pattern :x))
   (is pattern= 42 (compile-pattern 42))

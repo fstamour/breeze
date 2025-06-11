@@ -26,10 +26,14 @@
 
 (in-package #:breeze.pattern)
 
+;; TODO find-match
+;; TODO Think about (defstruct hole ...)
+;; TODO find-partial-match
+;; TODO fuzzy match (e.g. symbol with a low edit distance is considerded a match)
+;; TODO pattern "don't care" :?_
+
 
 ;;; Refs
-
-;; TODO Think about (defstruct hole ...)
 
 ;; Used to reference another pattern by name.
 (defstruct (ref
@@ -512,8 +516,9 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Matching alternations
 
-(defmethod match ((pattern alternation) input &key)
-  (some (lambda (pat) (match pat input))
+;; TODO add tests with and without skipp
+(defmethod match ((pattern alternation) input &key skipp)
+  (some (lambda (pat) (match pat input :skipp skipp))
         (alternation-pattern pattern)))
 
 

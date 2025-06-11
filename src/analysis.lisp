@@ -10,6 +10,8 @@
   (:export
    #:in-package-node-p
    #:child-of-mapcar-node-p)
+  (:export #:map-top-level-forms
+           #:map-top-level-in-package)
   (:export
    #:lint-buffer
    #:lint
@@ -63,6 +65,52 @@ children nodes."
   ;; against a list of nodes (even if that list is empty).
   nil)
 
+;; TODO add tests
+(defun node-symbol-name (token-node-iterator
+                         &aux (token-node (value token-node-iterator)))
+  ;; TODO would be nice to cache this
+  (when (token-node-p token-node)
+    (let ((state (state token-node-iterator)))
+      (when-let* (;; TODO would be nice to cache this
+                  (symbol-node (token-symbol-node state token-node))
+                  (symbol-name
+                   (ecase (node-type symbol-node)
+                     (current-package-symbol (node-content state token-node))
+                     ((keyword uninterned-symbol) (node-content state symbol-node))
+                     ((qualified-symbol possibly-internal-symbol)
+                      (let* ((nodes (node-children symbol-node))
+                             ;; (package-name-node (first-node nodes))
+                             (symbol-name-node (second-node nodes)))
+                        (node-content state symbol-name-node))))))
+        ;; TODO apply readtable-case rules on symbol-name
+        ;; https://www.lispworks.com/documentation/HyperSpec/Body/23_ab.htm
+        (let ((*package* (find-package '#:KEYWORD)))
+          (ignore-errors
+           (symbol-name (read-from-string symbol-name))))
+        ;; TODO this doens't check if characters are escpaped,
+        ;; TODO this doesn't remove the escape characters...
+        #++(ecase (readtable-case *readtable*)
+             (:upcase #| this is the default |#
+              (string-upcase symbol-name))
+             (:downcase (string-downcase symbol-name))
+             (:preserve symbol-name)
+             (:invert (string-in)))))))
+
+;; TODO add tests
+(defun node-string-designator-string (node-iterator
+                                      &aux (node (value node-iterator)))
+  "Return the name of the symbol designated by node-iterator."
+  (check-type node-iterator node-iterator)
+  (cond
+    ((string-node-p node) (node-string node-iterator))
+    ((sharp-uninterned-node-p node)
+      (let ((token-node-iterator (copy-iterator node-iterator)))
+        ;; TODO there's probably a function for that...
+        (push-vector token-node-iterator (node-children node))
+        (node-symbol-name token-node-iterator)))
+    ((token-node-p node)
+      (node-symbol-name node-iterator))))
+
 (defun match-symbol-to-token (symbol node-iterator)
   (check-type node-iterator node-iterator)
   (let ((token-node (value node-iterator))
@@ -74,11 +122,7 @@ children nodes."
             (package (symbol-package symbol))
             ;; TODO would be nice to cache this
             (symbol-node (token-symbol-node state token-node)))
-       ;; TODO use case-sensitive comparison, but convert case if
-       ;; necessary (i.e. depending on *read-case*)
-       ;;
-       ;; TODO check if we can find the symbol denoted by
-       ;; symbol-node... and compare (eq) symbol with it.
+       ;; TODO use node-symbol-name
        (and
         symbol-node
         (ecase (node-type symbol-node)
@@ -266,6 +310,96 @@ TODO
 (defun quotedp (node-iterator)
   (plusp (quotedness node-iterator)))
 
+
+;; TODO add tests
+(defun map-top-level-forms (function buffer)
+  ;; TODO Recurse inot forms that "preserves" top-level-ness:
+  ;; progn, locally, macrolet, symbol-macrolet, eval-when
+  (loop :with iterator = (make-node-iterator buffer)
+        :until (donep iterator)
+        :do (let ((node (value iterator)))
+              (unless (whitespace-or-comment-node-p node)
+                (funcall function iterator)))
+            (incf (pos iterator))))
+
+;; TODO add tests
+(defun map-top-level-in-package (function buffer)
+  "Map FUNCTION over all top-level (in-package ...) forms in BUFFER."
+  (map-top-level-forms
+   (lambda (node-iterator)
+     (when-let ((package-name (in-package-node-p node-iterator)))
+       (funcall function node-iterator package-name)))
+   buffer))
+
+
+;;; In-package and package defintions
+
+
+
+#++
+(defun check-in-package ()
+  "Make sure the previous in-package form desginates a package that can
+be found. If it's not the case (e.g. because the user forgot to define
+a package and/or evaluate the form that defines the package) they show
+a message and stop the current command."
+  (let ((package (current-package)))
+    (if package
+        (let ((package-name (breeze.analysis::node-string-designator-string
+                             package)))
+          (unless (find-package package-name)
+            (message "The nearest in-package form designates a package that doesn't exists: ~s"
+                     package-name)
+            (return-from-command)))
+        (;; TODO message no (in-package ...) found...
+         (return-from-command)))))
+
+;; TODO add tests
+(defmethod index-in-package-nodes ((buffer buffer))
+  (setf (in-package-nodes buffer)
+        (coerce (uiop:while-collecting (form)
+                  (map-top-level-in-package
+                   (lambda (node-iterator package-name-designator)
+                     (declare (ignore node-iterator))
+                     (form package-name-designator))
+                   buffer))
+                'vector)))
+
+;; TODO add tests
+(defmethod current-package ((buffer buffer))
+  (let ((position (point buffer))
+        (candidates (or
+                     (in-package-nodes buffer)
+                     (index-in-package-nodes buffer))))
+    (when (and candidates (plusp (length candidates)))
+      (find-if (lambda (node) (< (end node) position)) candidates))))
+
+;; TODO add tests
+(defmethod locate-package-definition ((package package))
+  (locate-package-definition (package-name package)))
+
+;; TODO add tests
+(defmethod locate-package-definition ((package node-iterator))
+  (locate-package-definition (node-string-designator-string package)))
+
+;; TODO add tests
+(defmethod locate-package-definition ((package string))
+  ;; TODO don't look only in the current buffer
+  ;; TODO maybe cache the "match data" on the defpackage macros
+  (when-let ((buffer (breeze.command:current-buffer)))
+    (map-top-level-forms
+     (lambda (node-iterator)
+       (with-match (node-iterator
+                    (:alternation
+                     (cl:defpackage ?name)
+                     (uiop:define-package ?name)))
+         (when-let* ((package-name-node (get-bindings '?name))
+                     (package-name (node-string-designator-string
+                                    package-name-node)))
+           (when (string= package package-name)
+             (return-from locate-package-definition node-iterator)))))
+     buffer)))
+
+
 
 ;;; Utilities to collect "diagnostics"
 
@@ -370,15 +504,13 @@ simple-condition-format-control, simple-condition-format-arguments
 
 ;; TODO this rule only make sense when "in-image"
 (defun warn-undefined-in-package (node-iterator)
-  (alexandria:when-let ((package-designator-node (in-package-node-p node-iterator)))
-    (and (valid-node-p package-designator-node)
-         (let* ((content (node-content (state node-iterator) package-designator-node))
-                (package-designator (read-from-string content)))
-           (when (and (typep package-designator 'breeze.string:string-designator)
-                      (null (find-package package-designator)))
-             (node-style-warning
-              node-iterator
-              (format nil "Package ~s is not currently defined." package-designator)))))))
+  (alexandria:when-let* ((package-designator-node (in-package-node-p node-iterator))
+                         (package-name (node-string-designator-string
+                                        package-designator-node)))
+    (unless (find-package package-name)
+      (node-style-warning
+       node-iterator
+       (format nil "Package ~s is not currently defined." package-name)))))
 
 (defun warn-extraneous-whitespaces (node-iterator)
   (let ((firstp (firstp node-iterator))
@@ -420,6 +552,7 @@ simple-condition-format-control, simple-condition-format-arguments
                 &aux (node-iterator (make-node-iterator buffer)))
   "Apply all the linting rules."
   (check-type buffer buffer)
+  ;; TODO warn when using double colon for external symbols (e.g. cl::defun)
   (loop :until (donep node-iterator)
         :for node = (value node-iterator)
         :for depth = (slot-value node-iterator 'depth)

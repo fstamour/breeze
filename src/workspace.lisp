@@ -24,6 +24,8 @@
                 #:goto-position)
   (:export #:buffer
            #:make-buffer
+           #:in-package-nodes
+           #:index-in-package-nodes
            #:*workspace*
            #:make-workspace
            #:workspace
@@ -108,7 +110,11 @@ Design decision(s):
     :initform nil
     :initarg :point-max
     :accessor point-max
-    :documentation "If the buffer is narrowed, ... TODO"))
+    :documentation "If the buffer is narrowed, ... TODO")
+   (in-package-nodes
+    :initform nil
+    :accessor in-package-nodes
+    :documentation "List of node-iterators pointing to the cl:in-package forms."))
   (:documentation "Represents an editor's buffer (e.g. an opened file)
 
 (Technically, it represents a buffer with the mode \"lisp-mode\"..."))
@@ -163,7 +169,8 @@ Design decision(s):
         (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
         (setf (node-iterator buffer) (make-node-iterator new-content)))
       (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
-             (setf (node-iterator buffer) (make-node-iterator new-content)))))
+             (setf (node-iterator buffer) (make-node-iterator new-content))))
+    (index-in-package-nodes buffer))
   buffer)
 
 ;; (untrace add-to-workspace)
@@ -239,22 +246,3 @@ Design decision(s):
 ;; and in-package forms (and maybe others, like test definitions)
 
 (defmethod find-test-directory ((namestring string)))
-
-
-#++
-(defun check-in-package ()
-  "Make sure the previous in-package form desginates a package that can
-be found. If it's not the case (e.g. because the user forgot to define
-a package and/or evaluate the form that defines the package) they show
-a message and stop the current command."
-  (let+ctx (nodes
-            outer-node
-            ;; Check if the closest defpackage was evaluated once
-            (invalid-in-package
-             (and nodes
-                  outer-node
-                  (validate-nearest-in-package nodes outer-node))))
-    (when invalid-in-package
-      (message "The nearest in-package form designates a package that doesn't exists: ~s"
-               invalid-in-package)
-      (return-from-command))))

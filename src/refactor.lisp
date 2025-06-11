@@ -407,6 +407,7 @@ TODO maybe find a better nomenclature?"
 
 ;; TODO use a node-iterator instead
 ;; TODO this is _very_ similar to breeze.analysis::warn-undefined-in-package
+;; TODO see breeze.analysis::check-in-package...
 (defun validate-nearest-in-package (nodes outer-node)
   "Find the lastest \"in-package\" form, test if the packages can be
 found."
