@@ -197,7 +197,7 @@ Evaluation took:
        :for buffer = (add-to-workspace `( :buffer-name ,name
                                           :buffer-string ,content
                                           :point 1))
-       :for node-iterator = (node-iterator buffer)
+       :for node-iterator = (breeze.lossless-reader:node-iterator buffer)
        ;; :when (string= name "src/egraph.lisp")
        :do
           (finish

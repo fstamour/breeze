@@ -37,7 +37,7 @@
                 exclude-self-p))
 
 (defun find-worker-threads (&optional (exclude-self-p t))
-  (find-threads-by-name "worker" :exclude-self-p nil))
+  (find-threads-by-name "worker" :exclude-self-p exclude-self-p))
 
 (defun %kill-threads (threads)
   (prog1

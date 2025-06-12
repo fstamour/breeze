@@ -1,6 +1,6 @@
 (defpackage #:breeze.test.analysis
   (:documentation "Tests for the package breeze.analysis")
-  (:use #:cl #:breeze.analysis #:breeze.workspace)
+  (:use #:cl #:breeze.analysis)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -10,15 +10,14 @@
                 #:of-type
                 #:finish)
   ;; importing unexported symbols
+  ;; TODO these should be exported
   (:import-from #:breeze.pattern
                 #:termp
                 #:term-name)
   ;; importing unexported symbols
   (:import-from #:breeze.analysis
                 #:malformed-if-node-p
-                #:match-symbol-to-token
-                #:target-node
-                #:replacement)
+                #:match-symbol-to-token)
   ;; importing unexported symbols
   (:import-from #:breeze.test.pattern
                 #:bindings-alist))
@@ -27,6 +26,8 @@
 
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
+
+
 
 (define-test+run match-symbol-to-token
   (true (match-symbol-to-token t (make-node-iterator "t")))
@@ -332,39 +333,6 @@
 
 ;;; Basic tree inspection
 
-#++ ;; Sanity-check
-(mapcar #'read-from-string
-        '("in-package"
-          "common-lisp:in-package"
-          "cl:in-package"
-          "cl-user::in-package"
-          "common-lisp-user::in-package"))
-
-(defun test-in-package-node-p (string)
-  ;; The funky reader macro and quasiquote is to fuck with slime and
-  ;; sly's regex-based search for "(in-package". Without this the
-  ;; rest of the file is evaluated in cl-user by slime and sly.
-  (let ((package-designator-node
-          #.`(,'in-package-node-p (make-node-iterator string))))
-    (when package-designator-node
-      (node-string package-designator-node))))
-
-(define-test+run in-package-node-p
-  (is equal "x" (test-in-package-node-p "(in-package x)"))
-  (is equal nil (test-in-package-node-p "(in-package #)"))
-  (is equal ":x" (test-in-package-node-p "(in-package :x)"))
-  (is equal "#:x" (test-in-package-node-p "(in-package #:x)"))
-  (is equal "\"x\"" (test-in-package-node-p "(in-package \"x\")"))
-  (is equal "x" (test-in-package-node-p "( in-package x )"))
-  (is equal "x" (test-in-package-node-p "( in-package #| ∿ |# x )"))
-  (is equal "x" (test-in-package-node-p "(cl:in-package x)"))
-  (is equal "x" (test-in-package-node-p "(cl::in-package x)"))
-  (is equal "42" (test-in-package-node-p "(cl::in-package 42)"))
-  ;; TODO ? Not sure it's worth it lol...
-  ;; (is equal "x" (test-in-package-node-p "('|CL|::|IN-PACKAGE| x)"))
-  (is eq nil (test-in-package-node-p "(cl:)"))
-  (is eq nil (test-in-package-node-p "'(in-package x)")))
-
 
 ;;; child-of-mapcar-node-p
 
@@ -392,189 +360,3 @@
   ;; and considers that a successful match, but it didn't match
   ;; against the whole form.
   (true (test-malformed-if-node-p "(if a b c d e)")))
-
-
-;;; Testing the linter
-
-(defun test-lint (buffer-string)
-  (lint-buffer (make-buffer :string buffer-string)))
-
-(define-test+run lint
-  (false (test-lint ""))
-  (false (test-lint ";; "))
-  (false (test-lint "asdf       ; qwer"))
-  (false (test-lint "
-(asdf
-   xzcv    ; qwer
-)"))
-  (is equal '((0 nil :error "Syntax error")) (test-lint "#+"))
-  (false (test-lint "(in-package :cl-user)"))
-  (false (test-lint "(in-package 42)"))
-  ;; TODO it's quoted, don't check the package-designator
-  ;; (false (test-lint "'(in-package 42)"))
-  (is equal (test-lint "(in-package #)")
-      '((0 nil :error "Syntax error")))
-  (is equal (test-lint "(in-package # )")
-      '((0 nil :error "Syntax error")))
-  (is equal '((0 56 :warning
-               "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
-      (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
-  #++ ;; TODO check if "in-package" is NOT quoted
-  (progn
-    (false (test-lint "'(in-package :PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME)"))
-    (false (test-lint "`(in-package :PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME)")))
-  (is equalp
-      '((1 3 :warning "Extraneous whitespaces."))
-      (test-lint "(  )"))
-  (is equalp
-      '((2 4 :warning "Extraneous internal whitespaces."))
-      (test-lint "(x  y)"))
-  (is equalp
-      '((3 4 :warning "Extraneous trailing whitespaces.")
-        (1 2 :warning "Extraneous leading whitespaces."))
-      (test-lint "( x )"))
-  (is equalp
-      '((3 4 :warning "Missing internal whitespace(s)."))
-      (test-lint "(\"a\"x)")))
-
-#++ ;; TODO other cases of extraneous whitespaces:
-"
-   ;; asdf
-#|
-  |# <- here at the start of the line
-"
-
-#++ ;; Syntax errors
-(progn
-  (test-lint "(")
-  (test-lint "')")
-  (test-lint "'1")
-  (test-lint "..")
-  (test-lint "( . )")
-  (test-lint "( a . )")
-  (test-lint "( a . b . c )")
-  (test-lint "( a . b c )")
-  (test-lint "#1=")
-  (test-lint "#1=#1#")
-  (test-lint "(;;)")
-  (test-lint "::")
-  (test-lint "x::")
-  (test-lint "::x")
-  (test-lint "a:b:c")
-  (test-lint "a:::b")
-  (test-lint "b:")
-  (test-lint "b::")
-  (test-lint "\\")
-  (test-lint "\\\\") ;; Should be OK
-  (test-lint "|")
-  (test-lint "'")
-  (test-lint "(#++;;)")
-  (test-lint "(#+;;)")
-  (test-lint "(#)")
-  (test-lint ",")
-  (test-lint ",@")
-  (test-lint "`,@x")
-  (test-lint "`(a b . ,@x)") ; "has undefined consequences"
-  ;; TODO "unknown character name"
-  (test-lint "1/0")
-  ;; TODO check for invalid radix
-  (test-lint "#|")
-  (test-lint "#c(a b c d)"))
-
-;; Formatting Style
-#++
-(progn
-  (test-lint "#+ ()")
-  (test-lint "     ; this is ok")
-  (test-lint ";I don't like this")
-  (test-lint ";    not that"))
-
-#++ ;; Style warnings
-(progn
-  (test-lint "like::%really"))
-
-(define-test+run lint
-  #++ ;; TODO the "fix" is to eval the defpackage, usually
-  (is equal '((0 56 :warning
-               "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
-      (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
-  (is equalp
-      '((1 3 :warning "Extraneous whitespaces."))
-      (test-lint "(  )"))
-  (is equalp
-      '((2 4 :warning "Extraneous internal whitespaces."))
-      (test-lint "(x  y)"))
-  (is equalp
-      '((3 4 :warning "Extraneous trailing whitespaces.")
-        (1 2 :warning "Extraneous leading whitespaces."))
-      (test-lint "( x )")))
-
-#++
-(let ((diags))
-  (values (with-output-to-string (*standard-output*)
-            (setf diags (lint :buffer-string "( a b ( )  ) " :fixp t)))
-          diags))
-
-(defun test-fix (buffer-string &aux (buffer-string (format nil buffer-string)))
-  (let* ((buffer (make-buffer :string buffer-string))
-         (fixes (fix-buffer buffer)))
-    (loop :for fix :in fixes
-          :for node = (value (target-node fix))
-          :for replacement = (replacement fix)
-          :collect (list node replacement))))
-
-(define-test+run test-fix
-  (is equalp nil (test-fix "()"))
-  ;; TODO these don't work anymore since I modified ERROR-INVALID-NODE
-  ;; to signal an error. They were working by accident anyway...
-  ;;
-  ;; (is equalp '(")" nil) (test-fix ")")) ; TODO if reasonable
-  ;; (is equalp '("()" t) (test-fix "("))
-  ;; (is equalp '("((()))" t) (test-fix "((("))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( )"))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "(~%)"))
-  (is equalp `((,(whitespace 1 4) nil)) (test-fix "(   ) "))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( ) "))
-  (is equalp `((,(whitespace 2 3) nil)) (test-fix " ( )"))
-  (is equalp `((,(whitespace 2 3) nil)) (test-fix " ( ) "))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( a)"))
-  (is equalp `((,(whitespace 2 3) nil)) (test-fix "(a )"))
-  (is equalp `((,(whitespace 1 3) nil)
-               (,(whitespace 4 6) nil))
-      (test-fix "(  a  )"))
-  (is equalp `((,(whitespace 2 5) " ")) (test-fix "(a   b)"))
-  (is equalp `((,(whitespace 1 4) nil)
-               (,(whitespace 5 10) nil)
-               (,(whitespace 11 14) nil)
-               (,(whitespace 15 16) nil))
-      (test-fix "(~%  (~%    a~%  )~%)"))
-  (is equalp `((,(whitespace 2 8) nil)
-               (,(whitespace 9 13) nil))
-      (test-fix "((~%~%    a~%~%  ))"))
-  ;; TODO handle indentation levels!
-  #++
-  (progn
-    (is equalp '("(;;~% )" t) (test-fix "(;;~%    )"))
-    (is equalp '("(;;~% )" t) (test-fix "(;;~% ~%)"))
-    ;; TODO This should be detected as "extraneous internal newlines"...
-    (is equalp '("(;;~% )" t) (test-fix "(;;~% ~%)")))
-  #++ ;; TODO more whitespace fixes
-  (progn
-    (is equalp '("#+(or)" t) (test-fix "#+ (or)"))
-    (is equalp '("(+ (- 1 2) 3)" t) (test-fix "(+(- 1 2)3)")))
-  #++ ;; TODO
-  (progn
-    ;; TODO (defpackage -> replace symbols by uninterned symbols
-    (is equalp '("(in-package \"x\")" t) (test-fix "(in-package \"x\")"))
-    (is equalp '("(in-package #:x)" t) (test-fix "(in-package :x)"))
-    (is equalp '("(in-package #:x)" t) (test-fix "(in-package 'x)"))
-    (is equalp '("(trace x)" t) (test-fix "(trace 'x)"))
-    (is equalp '("(block x)" t) (test-fix "(block 'x)"))
-    (is equalp '("(return-from x)" t) (test-fix "(return-from 'x)")))
-  ;; "\"a\"'(\"b\"c)" => "\"a\" '(\"b\" c)"
-  )
-
-
-#++ ;; TODO this used to crash because it would try to call (read "#)") inside
-    ;; breeze.analysis::warn-undefined-in-package, add regression test
-(breeze.analysis::analyse :buffer-string "(in-package #)")

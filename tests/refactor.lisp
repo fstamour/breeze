@@ -4,8 +4,7 @@
     (:use :cl #:breeze.refactor)
   ;; Importing non-exported symbols of the "package under test"
   (:import-from #:breeze.refactor
-                #:suggest-package-definition
-                #:infer-project-name)
+                #:suggest-package-definition)
   ;; Things needed to define new commands
   (:import-from #:breeze.command
                 #:define-command
@@ -152,10 +151,12 @@
                                :context '())))
     (common-trace-asserts 'insert-breeze-define-command trace 3)
     (destructuring-bind (input request) (first trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Name of the command (symbol): " (second request))
       (is string= nil (third request)))
     (destructuring-bind (input request) (second trace)
+      (declare (ignorable input))
       (is equal '"rmrf" input) ;; TODO the linter should warn me about the extraneous quote
       (is string= "insert" (first request))
       (is equal
@@ -170,9 +171,11 @@
                                :context '())))
     (common-trace-asserts 'insert-defun trace 6)
     (destructuring-bind (input request) (first trace)
+      (declare (ignorable input))
       (is string= "insert" (first request))
       (is string= "(defun " (second request)))
     (destructuring-bind (input request) (second trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Name: " (second request))
       (is string= nil (third request)))
@@ -181,6 +184,7 @@
       (is string= "insert" (first request))
       (is string= "real-fun " (second request)))
     (destructuring-bind (input request) (fourth trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Enter the arguments: " (second request))
       (is string= nil (third request)))
@@ -198,9 +202,11 @@
                                :context '())))
     (common-trace-asserts 'insert-defvar trace 8)
     (destructuring-bind (input request) (first trace)
+      (declare (ignorable input))
       (is string= "insert" (first request))
       (is string= "(defvar " (second request)))
     (destructuring-bind (input request) (second trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Name: " (second request))
       (is string= nil (third request)))
@@ -209,6 +215,7 @@
       (is string= "insert" (first request))
       (is string= "*var* " (second request)))
     (destructuring-bind (input request) (fourth trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Initial value: " (second request))
       (is string= nil (third request)))
@@ -220,6 +227,7 @@
             "")
           (split-by-newline (second request))))
     (destructuring-bind (input request) (sixth trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Documentation string " (second request))
       (is string= nil (third request)))
@@ -234,6 +242,7 @@
                                :context '())))
     (common-trace-asserts 'insert-defclass trace 3)
     (destructuring-bind (input request) (first trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Name of the class: " (second request))
       (is string= nil (third request)))
@@ -255,9 +264,11 @@
                                :context '())))
     (common-trace-asserts 'insert-defmacro trace 6)
     (destructuring-bind (input request) (first trace)
+      (declare (ignorable input))
       (is string= "insert" (first request))
       (is string= "(defmacro " (second request)))
     (destructuring-bind (input request) (second trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Name: " (second request))
       (is string= nil (third request)))
@@ -266,6 +277,7 @@
       (is string= "insert" (first request))
       (is string= "mac " (second request)))
     (destructuring-bind (input request) (fourth trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Enter the arguments: " (second request))
       (is string= nil (third request)))
@@ -283,6 +295,7 @@
                                :context '())))
     (common-trace-asserts 'insert-defgeneric trace 3)
     (destructuring-bind (input request) (first trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Name of the generic function: " (second request))
       (is string= nil (third request)))
@@ -302,6 +315,7 @@
                                :context '())))
     (common-trace-asserts 'insert-defmethod trace 3)
     (destructuring-bind (input request) (first trace)
+      (declare (ignorable input))
       (is string= "read-string" (first request))
       (is string= "Name of the method: " (second request))
       (is string= nil (third request)))
@@ -313,35 +327,6 @@
             "  )")
           (split-by-newline (second request))))))
 
-;; TODO Variants: *insert-defpackage/cl-user-prefix*
-;; TODO infer-project-name
-;; TODO infer-is-test-file
-;; TODO infer-package-name-from-file
-(define-test+run insert-defpackage
-  (let* ((trace (drive-command #'insert-defpackage
-                               :inputs '("pkg")
-                               :context '())))
-
-    (common-trace-asserts 'insert-defpackage trace 4)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Name of the package: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (second trace)
-      (is string= "pkg" input)
-      (is string= "insert" (first request))
-      (is equal "(defpackage " (second request)))
-    (destructuring-bind (input request) (third trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is equal
-          '("#:pkg"
-            "  (:documentation \"\")"
-            "  (:use #:cl))"
-            ""
-            "(in-package #:pkg)")
-          (split-by-newline (second request))))))
 
 (define-test+run insert-defparameter
   (let* ((trace (drive-command #'insert-defparameter
@@ -414,6 +399,7 @@
             "    (describe condition *debug-io*)))")
           (split-by-newline (second request))))))
 
+#++
 (define-test insert-in-package-cl-user
   (let* ((trace (drive-command #'insert-in-package-cl-user
                                :inputs 'nil
@@ -584,7 +570,7 @@
 
 (defun should-suggest-to-insert-package-definition-when (when content)
   (loop :for point :from 1 #| TODO 0 |# :upto (1+ #| TODO remove 1+ |# (length content))
-        :do (is eq 'insert-defpackage (test-suggest-package-definition content :point point)
+        :do (is eq 'breeze.package-commands:insert-defpackage (test-suggest-package-definition content :point point)
                 "Should suggest to insert a package defininition when the buffer ~a (point = ~d)."
                 when point)))
 
@@ -623,7 +609,7 @@ strings get concatenated."
         (buffer-string (concatenate 'string pre post)))
     (drive-command 'quickfix
                    :context (list :buffer-name buffer-name
-                                  :buffer-file-name buffer-file-name
+                                  :buffer-file-name buffer-filename
                                   :buffer-string buffer-string
                                   :point point
                                   :point-min 0

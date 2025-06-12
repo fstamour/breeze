@@ -81,8 +81,7 @@
       ;; Variable
       (when (and (specialp symbol)
                  (not (documentation symbol 'variable)))
-        (push (list :special-variable symbol) result))
-      )))
+        (push (list :special-variable symbol) result)))))
 
 ;; To complete the 3 TODOs, I need to figure out:
 ;; how to check if a symbol represent a structure (for a class, I just need to use (find-class)
@@ -138,6 +137,7 @@
 ;; TODO
 (defun function-lambda-list (function)
   "Returns a function's lambda-list"
+  (declare (ignorable function))
   nil)
 
 

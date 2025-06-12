@@ -486,8 +486,16 @@ comparison."
                (add-form egraph form))
              (merge* (form1 form2)
                (merge-eclass egraph (add* form1) (add* form2)))
+             ;; file: /home/fstamour/dev/breeze/tests/egraph.lisp
+             ;; in: DEFINE-TEST+RUN "can I extract something useful?"
+             ;;     (BREEZE.TEST.EGRAPH::DUMP-ECLASS* (BREEZE.EGRAPH:ECLASS)
+             ;;      (BREEZE.TEST.EGRAPH::DUMP-ECLASS BREEZE.EGRAPH:EGRAPH BREEZE.EGRAPH:ECLASS))
+             ;;
+             ;; note: deleting unused function
+             ;;   (LABELS DUMP-ECLASS* :IN "/home/fstamour/dev/breeze/tests/egraph.lisp")
              (dump-eclass* (eclass)
                (dump-eclass egraph eclass)))
+      (declare (ignorable (function dump-eclass*)))
       (add* input)
       (merge* '(* a 2)
               '(ash a 1))

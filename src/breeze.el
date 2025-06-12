@@ -450,19 +450,24 @@ corresponding commands in emacs."
                               ,docstring
                               ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
                               (interactive)
-                              (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list))))
+                              (unless (breeze-disabled-p)
+                                (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list)))))
                 ;; (breeze-debug "%S" defun)
                 (eval defun))))
 
 
 ;;; "Autoload"
 
+(defvar breeze-disabled-p nil
+  "Set to true to disable breeze's feature without changing any other emacs' configuration.
+This is useful for developping breeze itself, where it's possible to break things like linting or after-change-hook, in which case editing because extremely painful as any keystroke invokes the debugger.")
+
 (defun breeze-disabled-p ()
-  nil)
+  breeze-disabled-p)
 
 ;; TODO breeze-not-initialized-hook
 
-;; TODO would be nice to restore the stubs if the inferior lisp is
+;; TODO restore the stubs if the inferior lisp is
 ;; closed.
 
 (defun breeze--stub (name)
@@ -587,14 +592,15 @@ listener."
 
 (cl-defun breeze-ensure (&optional callback)
   "Make sure that breeze is loaded in the inferior lisp."
-  (if (breeze-validate-if-breeze-package-exists)
-      (when callback (funcall callback))
-    (breeze-message "Loading breeze's system asynchronously...")
-    (breeze-load
-     (lambda (&rest _)
-       (breeze-message "Breeze loaded in inferior-lisp.")
-       (breeze-refresh-commands)
-       (when callback (funcall callback))))))
+  (unless (breeze-disabled-p)
+    (if (breeze-validate-if-breeze-package-exists)
+        (when callback (funcall callback))
+      (breeze-message "Loading breeze's system asynchronously...")
+      (breeze-load
+       (lambda (&rest _)
+         (breeze-message "Breeze loaded in inferior-lisp.")
+         (breeze-refresh-commands)
+         (when callback (funcall callback)))))))
 
 
 ;; See slime--setup-contribs, I named this breeze-init so it _could_
@@ -651,17 +657,18 @@ with which arguments."
   nil)
 
 (defun breeze-after-change-function (start stop length)
-  (breeze-ensure
-   (lambda ()
-     (breeze-eval-async
-      (prin1-to-string
-       (let ((base (list 'breeze.analysis:after-change-function
-                         start stop length
-                         :buffer-name (buffer-name)
-                         :buffer-file-name (buffer-file-name))))
-         (if (zerop length)
-             (append base (list :insertion (buffer-substring-no-properties start stop)))
-           base)))))))
+  (unless (breeze-disabled-p)
+    (breeze-ensure
+     (lambda ()
+       (breeze-eval-async
+        (prin1-to-string
+         (let ((base (list 'breeze.workspace:after-change-function
+                           start stop length
+                           :buffer-name (buffer-name)
+                           :buffer-file-name (buffer-file-name))))
+           (if (zerop length)
+               (append base (list :insertion (buffer-substring-no-properties start stop)))
+             base))))))))
 
 (add-hook 'breeze-minor-mode-hook
           (lambda ()
@@ -675,7 +682,7 @@ with which arguments."
 ;;; Hooks for flymake
 
 (defun breeze-lint (args callback)
-  "Asynchronously calls the function breeze.analysis:lint."
+  "Asynchronously calls the function breeze.lint:lint."
   ;; TODO use ARGS to be able to INCREMENTALLY parse and analyze the
   ;; buffer
   ;;
@@ -687,7 +694,7 @@ with which arguments."
   (breeze-ensure
    (lambda ()
      ;; (cl-loop for change in (cl-getf args :recent-changes) do (breeze-debug "  change: %S" change))
-     (funcall callback (breeze-run-command 'breeze.analysis:lint))))
+     (funcall callback (breeze-run-command 'breeze.lint:lint))))
   nil)
 
 ;; TODO maybe delete?

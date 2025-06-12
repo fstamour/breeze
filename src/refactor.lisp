@@ -39,8 +39,6 @@
    #:insert-defun
    #:insert-setf-defun
    #:insert-defmacro
-   #:insert-defpackage
-   #:insert-in-package-cl-user
    #:insert-asdf
    #:insert-defclass
    #:insert-class-slot
@@ -56,9 +54,6 @@
    #:completions-at-point))
 
 (in-package #:breeze.refactor)
-
-#++
-(define-node-form-predicates (uiop:define-package))
 
 (defun normalize-docstring (string)
   "Try to normalize docstring entered by the user into something that can
@@ -210,43 +205,6 @@ defun."
   "Insert a defmacro form."
   (declare (context :top-level))
   (insert-defun-shaped "defmacro"))
-
-(define-command insert-defpackage ()
-  "Insert a defpackage form."
-  (declare (context :top-level))
-  (let ((package-name
-          (read-string
-           "Name of the package: "
-           (infer-package-name-from-file (current-buffer-filename)))))
-    (when (in-package-cl-user-p)
-      (insert
-       "(cl:in-package #:cl-user)~%~%"))
-    (if nil ; TODO
-        (insert "(uiop:define-package ")
-        (insert "(defpackage "))
-    ;; TODO don't insert the (in-package ...) if it already exists
-    (insert
-     "#:~a~
-    ~%  (:documentation \"\")~
-    ~%  (:use #:cl))~
-    ~%~
-    ~%(in-package #:~a)"
-     package-name package-name)))
-
-(define-command insert-local-nicknames ()
-  "Insert local nicknames."
-  (declare (context (:child-of :package-definition))) ; TODO
-  (insert
-   "(:local-nicknames ~{~a~^~%~})"
-   (loop :for name = (read-string "Name of the package to alias: ")
-         :while (plusp (length name))
-         :for alias = (read-string "Alias of the package: ")
-         :collect (format nil "(#:~a #:~a)" alias name))))
-
-(define-command insert-in-package-cl-user ()
-  "Insert (cl:in-package #:cl-user)"
-  (declare (context :top-level))
-  (insert "(cl:in-package #:cl-user)"))
 
 ;; TODO insert-let (need to loop probably)
 
@@ -405,24 +363,6 @@ TODO maybe find a better nomenclature?"
 
 
 
-;; TODO use a node-iterator instead
-;; TODO this is _very_ similar to breeze.analysis::warn-undefined-in-package
-;; TODO see breeze.analysis::check-in-package...
-(defun validate-nearest-in-package (nodes outer-node)
-  "Find the lastest \"in-package\" form, test if the packages can be
-found."
-  (let* ((previous-in-package-form
-           (find-nearest-sibling-in-package-form nodes (or outer-node
-                                                           (point)))))
-    (when previous-in-package-form
-      (let* ((package-designator (in-package-node-package
-                                  previous-in-package-form))
-             (package (find-package package-designator)))
-        (when (null package)
-          package-designator)))))
-
-
-
 (defparameter *qf* nil
   "Data from the latest quickfix invocation.
 For debugging purposes ONLY.")
@@ -464,8 +404,8 @@ For debugging purposes ONLY.")
      ;; not. Because suggesting to insert a "defpackage" form when in
      ;; an empty file is pretty much just my personal preference.
      #++
-     (shortcircuit 'insert-defpackage)
-     'insert-defpackage)))
+     (shortcircuit 'breeze.package-commands:insert-defpackage)
+     'breeze.package-commands:insert-defpackage)))
 
 (defun suggest-system-definition ()
   "When in an .asd file"
@@ -497,7 +437,7 @@ For debugging purposes ONLY.")
     (when (and inner-node
                (or (defpackage-form-p inner-node)
                    (uiop/package--define-package-form-p inner-node)))
-      (shortcircuit 'insert-local-nicknames))))
+      (shortcircuit 'breeze.package-commands:insert-local-nicknames))))
 
 (defun suggest-other ()
   "Otherwise"
@@ -555,11 +495,11 @@ commands that the user might want to run."
   ;; TODO this currently only fix the first issue it finds
   ;; TODO cache the linter issues (in the *workspace*'s buffer)
   ;; TODO try to fix only the "current" block and/or iterate
-  (let ((fixes (breeze.analysis:fix-buffer (current-buffer))))
+  (let ((fixes (breeze.lint:fix-buffer (current-buffer))))
     (if fixes
         (let* ((fix (first fixes))
-               (node (value (breeze.analysis::target-node fix)))
-               (replacement (breeze.analysis::replacement fix)))
+               (node (value (breeze.lint:target-node fix)))
+               (replacement (breeze.lint:replacement fix)))
           (replace-region (start node) (end node)
                           (or replacement "")))
         (let* (;; Compute the applicable commands
@@ -605,7 +545,7 @@ TODO there's some different kind of "quickfixes":
 
 (define-command other-file ()
   "Find the alternative file for the current file."
-  (message (buffer-file-name)))
+  (message (current-buffer-filename)))
 
 #++
 (when path
@@ -639,7 +579,8 @@ TODO there's some different kind of "quickfixes":
 
 (define-command completions-at-point ()
   ""
-  (let ((node-iterator (node-iterator)))
+  (let (($node (node-iterator (current-buffer))))
+    (declare (ignorable $node))
     (break)
     (return-value-from-command '("asfd" "qwer" "uiop"))))
 

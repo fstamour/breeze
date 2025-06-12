@@ -12,7 +12,7 @@
   "Creates both a variable (let) and a function (flet) to keep track
 of the instance of that had the smallest score."
   (check-type var symbol)
-  `(let  ((,var nil)
+  `(let ((,var nil)
           (,score-var))
      (flet ((,var (new-candidate new-score)
               ,@(when tracep

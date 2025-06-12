@@ -100,7 +100,7 @@ newline in the expected result."
       :for i :from 1
       :do
          (insert "~%      (destructuring-bind (input request) (~:R trace)" i)
-         (insert "~%        ")
+         (insert "~%        (declare (ignorable input))")
          (if input
              (insert "(is string= ~s input)" input)
              (insert "(false input)")

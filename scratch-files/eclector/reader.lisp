@@ -44,25 +44,6 @@ This package also re-exports symbols from breeze.syntax-tree.")
   (make-instance 'code
                  :forms forms))
 
-
-;;; Parser "client", that how you customize eclector
-
-;; Define a class representing the "parse result client"
-(defclass breeze-client (eclector.parse-result:parse-result-client)
-  (
-   ;; TODO We should probably rename this, to avoid confusion with the
-   ;; node's source, which is a pair of index into this string.
-   (source
-    :initarg :source
-    :type string
-    :accessor source)
-   (start
-    :initarg :start
-    :initform 0
-    :type integer
-    :accessor start))
-  (:documentation
-   "Controls how the reader construct the parse-results."))
 
 (defun raw (breeze-client start end)
   (let* ((source (source breeze-client))
@@ -72,64 +53,6 @@ This package also re-exports symbols from breeze.syntax-tree.")
 (defun add-offset (client source)
   (incf (car source) (start client))
   (incf (cdr source) (start client)))
-
-
-;;; hooks into eclector
-
-(defmethod eclector.parse-result:make-expression-result
-    ((client breeze-client) (result t) (children t) (source t))
-  "Create an expression result"
-  (add-offset client source)
-  (let* ((raw (raw client (car source) (cdr source)))
-         (node
-           (progn
-             (cond
-               ((or (alexandria:starts-with-subseq "#+" raw)
-                    (alexandria:starts-with-subseq "#-" raw))
-                (make-instance 'feature-expression-node
-                               :feature-expression (first children)
-                               :content
-                               (if (nodep result)
-                                   result
-                                   (cdr children))))
-               (;; If result is a node, populate it
-                (typep result 'node)
-                (when children
-                  (setf (node-content result) children))
-                result)
-               (;; If result is a symbol, make a symbol-node
-                (symbolp result)
-                (make-instance 'symbol-node
-                               :content result))
-               (;; If result is a string, make a string-node
-                (stringp result)
-                (make-instance 'string-node
-                               :content result))
-               (;; Else, make a generic node
-                t
-                (make-instance 'node
-                               :content (or children result)))))))
-    (setf (node-source node) source
-          (node-raw node) raw)
-    (when (in-package-form-p node)
-      ;; TODO Add current-package to the client, to avoid changing the
-      ;; user's current-package when reading
-      ;; Will need to change the package-local-nickname logic
-      (when-let ((package (find-package (in-package-node-package node))))
-        (setf *package* package)))
-    node))
-
-
-
-;; Create a "make skipped input result" method for our custom client
-(defmethod eclector.parse-result:make-skipped-input-result
-    ((client breeze-client) (stream t) (reason t) (source t))
-  "Create a skipped-node parse result."
-  (add-offset client source)
-  (let ((content (raw client (car source) (cdr source))))
-    (make-instance 'skipped-node
-                   :content content
-                   :source source)))
 
 
 ;; Local Nicknames

@@ -1,6 +1,6 @@
 (defpackage #:breeze.workspace
   (:documentation "")
-  (:use #:cl)
+  (:use #:cl #:breeze.buffer)
   (:import-from #:alexandria
                 #:ends-with-subseq
                 #:if-let
@@ -12,29 +12,26 @@
                 #:indirect)
   (:import-from #:breeze.utils
                 #:find-version-control-root)
-  ;; TODO circular dependency... should be fixable if we put "buffer"
-  ;; either in its own package, or if it's moved into the reader's
-  ;; package.
   (:import-from #:breeze.lossless-reader
                 #:node-iterator
                 #:copy-iterator
                 #:make-node-iterator
                 #:state
                 #:source
-                #:goto-position)
-  (:export #:buffer
-           #:make-buffer
-           #:in-package-nodes
-           #:index-in-package-nodes
-           #:*workspace*
+                #:goto-position
+                #:map-top-level-forms)
+  (:import-from #:breeze.analysis
+                #:node-string-designator-string
+                #:with-match)
+  (:import-from #:breeze.package
+                #:map-top-level-in-package)
+  (:export #:*workspace*
            #:make-workspace
            #:workspace
-           #:update-buffer-content
            #:add-to-workspace
            #:find-buffer
            #:name
            #:filename
-           #:node-iterator
            #:parse-state
            #:point
            #:point-min
@@ -42,7 +39,8 @@
   (:export #:in-package-cl-user-p
            #:infer-package-name-from-file
            #:infer-project-name
-           #:infer-is-test-file))
+           #:infer-is-test-file)
+  (:export #:after-change-function))
 
 (in-package #:breeze.workspace)
 
@@ -71,71 +69,6 @@ Design decision(s):
 
 |#
 
-
-(defclass buffer ()
-  (#++ ;; TODO
-   (editor
-    :initform nil
-    :initarg :editor
-    :accessor editor
-    :documentation "In which editor is this buffer opened?")
-   (name
-    :initform nil
-    :initarg :name
-    :accessor name
-    :documentation "Name of the buffer")
-   (node-iterator
-    :initform nil
-    :initarg :node-iterator
-    :accessor node-iterator
-    :documentation "Node at point (iterator on the parse tree)")
-   ;; TODO the docstring for current-point{,-min,-max} in command.lisp
-   ;; are pretty good. Use them.
-   (point
-    :initform nil
-    :initarg :point
-    :accessor point
-    :documentation "Where the point is in the buffer.")
-   (filename
-    :initform nil
-    :initarg :filename
-    :accessor filename
-    :documentation "Path to the file visited (in emacs' lingo) by the buffer.")
-   (point-min
-    :initform nil
-    :initarg :point-min
-    :accessor point-min
-    :documentation "If the buffer is narrowed, ... TODO")
-   (point-max
-    :initform nil
-    :initarg :point-max
-    :accessor point-max
-    :documentation "If the buffer is narrowed, ... TODO")
-   (in-package-nodes
-    :initform nil
-    :accessor in-package-nodes
-    :documentation "List of node-iterators pointing to the cl:in-package forms."))
-  (:documentation "Represents an editor's buffer (e.g. an opened file)
-
-(Technically, it represents a buffer with the mode \"lisp-mode\"..."))
-
-(defun make-buffer (&key name string)
-  (let ((buffer (make-instance 'buffer :name name)))
-    (when string
-      (update-buffer-content buffer string))
-    buffer))
-
-(defmethod parse-state ((buffer buffer))
-  (when-let ((it (node-iterator buffer)))
-    (state it)))
-
-(defmethod make-node-iterator ((buffer buffer))
-  "Make new node-iterator from BUFFER's parse-state."
-  (make-node-iterator (parse-state buffer)))
-
-(defmethod copy-iterator ((buffer buffer))
-  (copy-iterator (node-iterator buffer)))
-
 
 ;;; workspace
 
@@ -150,6 +83,12 @@ Design decision(s):
 (defun make-workspace ()
   (make-instance 'workspace))
 
+(defvar *workspace* (make-instance 'workspace)
+  "The workspace.")
+
+
+;;; Buffers in the workspace
+
 (defmethod find-buffer ((buffer-name string))
   (gethash buffer-name (buffers *workspace*)))
 
@@ -158,22 +97,6 @@ Design decision(s):
       (setf (gethash buffer-name (buffers *workspace*))
             (make-instance 'buffer :name buffer-name))))
 
-(defvar *workspace* (make-instance 'workspace)
-  "The workspace.")
-
-(defmethod update-buffer-content ((buffer buffer) new-content)
-  "Update the workspace's buffer BUFFER-NAME's content"
-  (when new-content
-    (if-let ((old-node-iterator (node-iterator buffer)))
-      (unless (string= (source (state old-node-iterator)) new-content)
-        (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
-        (setf (node-iterator buffer) (make-node-iterator new-content)))
-      (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
-             (setf (node-iterator buffer) (make-node-iterator new-content))))
-    (index-in-package-nodes buffer))
-  buffer)
-
-;; (untrace add-to-workspace)
 (defmethod add-to-workspace ((context-plist cons))
   ;; TODO error or warn if name is not provided
   (when-let* ((name (getf context-plist :buffer-name))
@@ -181,14 +104,12 @@ Design decision(s):
     (breeze.logging:log-debug "add-to-workspace buffer ~s" name)
     (when-let ((buffer-file-name (getf context-plist :buffer-file-name)))
       (setf (filename buffer) buffer-file-name))
-    ;; TODO remove the =(1- ...)= this is specific to emacs, it should
-    ;; not be the responsibility of this package.
     (when-let ((point (getf context-plist :point)))
-      (setf (point buffer) (1- point)))
+      (setf (point buffer) point))
     (when-let ((point-min (getf context-plist :point-min)))
-      (setf (point-min buffer) (1- point-min)))
+      (setf (point-min buffer) point-min))
     (when-let ((point-max (getf context-plist :point-max)))
-      (setf (point-max buffer) (1- point-max)))
+      (setf (point-max buffer) point-max))
     (when-let ((new-content (getf context-plist :buffer-string)))
       (update-buffer-content buffer new-content))
     ;; update the node-iterator's position
@@ -198,13 +119,17 @@ Design decision(s):
     ;; return the buffer
     buffer))
 
+;; TODO
+;; (defun add-systemS-to-workspace ...)
+
 
 
-;; TODO This might change per-project... We could try to infer it?
+;; TODO This might change per-project... Infer this
 (defmethod in-package-cl-user-p ()
   "Whether to include (in-package #:cl-user) before a defpackage form or not."
   nil)
 
+;; TODO move to utils
 (defun directory-name (pathname)
   (lastcar (pathname-directory pathname)))
 
@@ -225,6 +150,11 @@ Design decision(s):
      '("test" "tests" "t")
      :test #'string-equal)))
 
+(defun infer-package-name-separator ()
+  ;; TODO infer whether to use "." or "/" (or something else) as
+  ;; "separator" in package names
+  )
+
 ;; TODO move infer-package-name-from-file here
 (defun infer-package-name-from-file (file-pathname)
   "Given a FILE-PATHNAME, infer a proper package name."
@@ -233,6 +163,7 @@ Design decision(s):
           (test (when (infer-is-test-file file-pathname)
                   "test"))
           (name (pathname-name file-pathname)))
+      ;; TODO not everyone would like to use "." as separator
       (format nil "~{~a~^.~}"
               (remove-if #'null (list project test name))))))
 
@@ -246,3 +177,64 @@ Design decision(s):
 ;; and in-package forms (and maybe others, like test definitions)
 
 (defmethod find-test-directory ((namestring string)))
+
+
+
+;;; Incremental parsing (the interface with the editor at least)
+
+(defun push-edit (edit)
+  (declare (ignore edit))
+  #++ (print edit))
+
+;; TODO keep track of the buffers/files, process these kind of edits
+;; "object":
+;;
+;; (:DELETE-AT 18361 1)
+;; (:INSERT-AT 17591 ";")
+
+(defun after-change-function (start stop length &rest rest
+                                              &key
+                                                buffer-name
+                                                buffer-file-name
+                                                insertion
+                                              &allow-other-keys)
+  (declare (ignorable start stop length rest buffer-file-name insertion)) ; yea, you heard me
+  ;; TODO the following form is just a hack to keep the breeze's
+  ;; buffers in sync with the editor's buffers
+  (when-let ((buffer (find-buffer buffer-name)))
+    (setf (node-iterator buffer) nil))
+  ;; consider ignore-error + logs, because if something goes wrong in
+  ;; this function, editing is going to be funked.
+  (push-edit
+   (cond
+     ((zerop length)
+      (list :insert-at start insertion))
+     ((plusp length)
+      (list :delete-at start length))
+     (t :unknown-edit))))
+
+;; TODO add NOTE: "can't splice comment", but I wish I could
+;; e.g.  `  ;; (some | code)`
+;; paredit-splice-sexp or paredit-splice-sexp-killing-backward
+
+
+
+;;; Definitions-related utilities
+
+;; TODO add tests
+(defmethod locate-package-definition ((package string) #| TODO haystack |#)
+  ;; TODO don't look only in the current buffer
+  ;; TODO maybe cache the "match data" on the defpackage macros
+  (loop :for buffer :in (buffers *workspace*)
+        :do (map-top-level-forms
+             (lambda (node-iterator)
+               (with-match (node-iterator
+                            (:alternation
+                             (cl:defpackage ?name)
+                             (uiop:define-package ?name)))
+                 (when-let* ((package-name-node (get-bindings '?name))
+                             (package-name (node-string-designator-string
+                                            package-name-node)))
+                   (when (string= package package-name)
+                     (return-from locate-package-definition node-iterator)))))
+             buffer)))

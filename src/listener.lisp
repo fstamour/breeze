@@ -1,13 +1,19 @@
 (in-package #:common-lisp-user)
 
 (defpackage #:breeze.listener
-  (:use :cl #:alexandria #:breeze.command)
   (:documentation "RPC, REPL and more.")
+  (:use :cl #:breeze.analysis #:breeze.command)
+  (:import-from #:alexandria
+                #:when-let*
+                #:when-let
+                #:symbolicate #| used in suggestions.lisp |#)
   (:import-from #:breeze.xref
                 #:classp
                 #:function-designator-p)
   (:import-from #:breeze.string
                 #:optimal-string-alignment-distance*)
+  (:import-from #:breeze.buffer
+                #:current-package)
   (:export
    #:rpc-eval
    #:interactive-eval
@@ -72,7 +78,7 @@ differences between swank and slynk."
 
 (defun interactive-eval (string)
   "Interactively evaluate a string."
-  (pushnew string *recent-forms* :test #'string=)
+  ;; TODO maybe keep an history (pushnew string *recent-forms* :test #'string=)
 
   ;; TODO add a restart to retry
   ;; (format t "~&Interactive-eval: ~A~%" string)
@@ -89,22 +95,24 @@ differences between swank and slynk."
 (defparameter *last-parse* nil
   "I sure love this trick!")
 
+;; 2025-06-12 it finally works!
 (define-command interactive-eval-command ()
   "A command to interactively evaluate code."
   (let* ((context (context*))
-         (node-iterator (node-iterator)))
+         (buffer (current-buffer context))
+         (node-iterator (node-iterator buffer))
+         ($package (current-package buffer))
+         (*package* *package*))
+    ;; TODO add more to the "last context": the package, and the string to be evaluated
     (setf *interactive-eval-last-context* context)
-    (message "Parsed without signalling an error.")
-    #++
-    (if
-     (let ((node (root-value node-iterator)))
-       (progn
-         ;; TODO (pulse-momentary-highlight-region begin end)
-         ;; TODO Find what's the value of *package* at this node...
-         #++
-         (let ((string (breeze.syntax-tree:node-raw node)))
-           (interactive-eval string)
-           ;; (message "~s" string)
-           )))
-     ;; (message "Can't parse maybe?")
-     )))
+    (when $package
+      (when-let ((package-name (node-string-designator-string $package)))
+        (setf *package* (find-package package-name))))
+    (when-let* (($node (root-node-iterator node-iterator))
+               (node (value $node)))
+      ;; TODO (pulse-momentary-highlight-region begin end)
+      ;; TODO Find what's the value of *package* at this node...
+      (let ((string (node-string $node)))
+        (interactive-eval string)
+        ;; (message "~s" string)
+        ))))

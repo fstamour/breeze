@@ -39,13 +39,11 @@
    (:file "configuration")
    (:file "iterator")
    (:file "lossless-reader" :depends-on ("utils" "iterator"))
+   (:file "buffer" :depends-on ("lossless-reader" "package"))
    (:file "workspace" :depends-on ("lossless-reader"))
    (:file "pattern")
    (:file "egraph")
-   (:file "analysis" :depends-on ( "lossless-reader"
-                                   "pattern"
-                                   ;; because of the "lint" command
-                                   "command"))
+   (:file "analysis" :depends-on ("lossless-reader" "pattern"))
    (:file "command"
     :depends-on ("utils"
                  "configuration"
@@ -55,10 +53,13 @@
    (:file "xref" :depends-on ("utils"))
    (:file "doctor")
    (:file "listener"
-    :depends-on ("xref"
-                 "command"))
+    :depends-on ("xref" "command"))
    (:file "suggestion"
     :depends-on ("listener"))
+   (:file "editing" :depends-on ("analysis" "command"))
+   (:file "package" :depends-on ("analysis"))
+   (:file "package-commands" :depends-on ("analysis" "command"))
+   (:file "lint" :depends-on ("analysis" "command"))
    (:file "refactor" :depends-on ( "command" "cl" "analysis"
                                    "utils" "indirection"
                                    "workspace"))
@@ -113,21 +114,23 @@
   :licence "BSD 2-Clause License"
   :depends-on (breeze parachute breeze/kite breeze/doc)
   :pathname "tests"
-  :serial t
   :components
-  ((:file "utils")
-   (:file "string-utils")
-   (:file "logging")
-   (:file "iterator")
-   (:file "workspace")
-   (:file "lossless-reader.randomized")
-   (:file "lossless-reader")
-   (:file "pattern")
-   (:file "analysis")
-   (:file "egraph")
+  ((:file "analysis" :depends-on ("pattern"))
    (:file "command")
-   (:file "refactor")
+   (:file "documentation" :depends-on ("dummy-package"))
    (:file "dummy-package")
+   (:file "egraph")
+   (:file "iterator")
+   (:file "lint")
+   (:file "logging")
+   (:file "lossless-reader" :depends-on ("lossless-reader.randomized"))
+   (:file "lossless-reader.randomized")
+   (:file "package")
+   (:file "package-commands")
+   (:file "pattern")
+   (:file "refactor")
+   (:file "string-utils")
+   (:file "utils")
+   (:file "workspace")
    (:file "xref")
-   (:file "documentation")
    (:file "main")))

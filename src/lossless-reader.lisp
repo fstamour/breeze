@@ -29,6 +29,7 @@ common lisp.")
            #:node-end
            #:start
            #:end
+           #:add-offset
            #:node-type
            #:node-children
            #:copy-node
@@ -192,7 +193,8 @@ common lisp.")
            #:root-node
            #:root-node-iterator
            #:previous-sibling
-           #:next-sibling)
+           #:next-sibling
+           #:map-top-level-forms)
   (:export
    ;; top-level parsing
    #:parse))
@@ -218,17 +220,14 @@ common lisp.")
     :initarg :pos
     :accessor tree
     :documentation "The parsed nodes.")
-   ;; TODO perhaps add this into the "buffer" instead of in the
-   ;; parser's state
-   (top-level-in-package
+   ;; TODO current-package is not used just yet
+   (current-package
     :initform nil
-    :accessor top-level-in-package
-    :documentation "Index of the top-level (in-package ...) forms found."))
+    :accessor current-package
+    :documentation "Current package"))
   ;; TODO More state:
-  ;; - current package
   ;; - readtable case (is it case converting)
   ;; - current input base (base of numbers)
-  ;; - cache
   ;; - labels and references (#n= and #n#)
   (:documentation "The reader's state"))
 
@@ -540,6 +539,10 @@ common lisp.")
 (defmethod no-end-p ((range range))
   "Is this range open-ended?"
   (no-end-p (range-end range)))
+
+(defmethod add-offset ((node node) offset)
+  (incf (node-start node) offset)
+  (incf (node-end node) offset))
 
 
 ;;; Reader position (in the source string)
@@ -1343,6 +1346,9 @@ Returns a new node with one of these types:
 (defmethod node-string ((node-iterator node-iterator))
   (node-content (state node-iterator) (value node-iterator)))
 
+
+;;; goto point
+
 (defun node-contains-position-p (node position)
   (let ((start (node-start node))
         (end (node-end node)))
@@ -1425,6 +1431,8 @@ Returns a new node with one of these types:
            (next iterator :dont-recurse-p t))))
   iterator)
 
+
+
 (defmethod value-at-depth ((iterator node-iterator) depth)
   (with-slots (positions vectors) iterator
     (let ((pos (aref positions depth))
@@ -1477,13 +1485,15 @@ Returns a new node with one of these types:
 
 ;; TODO tests
 (defmethod next-sibling ((iterator node-iterator))
-  "Get the previous node at the same depth, or nil if there's is none."
+  "Get the next node at the same depth, or nil if there's is none."
   (unless (lastp iterator)
     (let ((pos (pos iterator))
           (vec (vec iterator)))
       (etypecase vec
         (vector (aref vec (1+ pos)))
         (t nil)))))
+
+
 
 #++
 (defmethod crumbs ((iterator node-iterator))
@@ -1511,6 +1521,25 @@ Returns a new node with one of these types:
   (loop :for i :below (length input)
         :do (goto-position it i)
         :collect (crumbs it)))
+
+(defmethod add-offset ((iterator node-iterator) offset)
+  (loop
+    :until (donep iterator)
+    :for node = (value iterator)
+    :do (add-offset node offset)
+    (next iterator)))
+
+
+;; TODO add tests
+(defmethod map-top-level-forms (function (state state))
+  ;; TODO Recurse into forms that "preserves" top-level-ness:
+  ;; progn, locally, macrolet, symbol-macrolet, eval-when
+  (loop :with iterator = (make-node-iterator state)
+        :until (donep iterator)
+        :do (let ((node (value iterator)))
+              (unless (whitespace-or-comment-node-p node)
+                (funcall function iterator)))
+            (incf (pos iterator))))
 
 
 ;;; Unparse (not exported, only used to test the parser!)

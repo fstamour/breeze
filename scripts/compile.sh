@@ -1,6 +1,7 @@
 #!/bin/sh
 #
-# This script is used to run the tests with sbcl
+# This script is used to compile breeze and its tests in order to show
+# compilation errors and warnings
 #
 
 set -e
@@ -16,12 +17,9 @@ cd "$(git rev-parse --show-toplevel)"
 # TODO this loads stuff twice... because I used ql:quickload to ensure
 # that the dependencies are downloaded before we compile again...
 
-# TODO it would be nicer if the "lisp script" was in its own file
-
+set -x
 exec sbcl --noinform --non-interactive \
-     --eval "(declaim (optimize (debug 3) (speed 0) (safety 3)))" \
      --eval "(asdf:load-asd (truename \"breeze.asd\"))" \
-     --eval "(ql:quickload '#:breeze/test :verbose t)" \
+     --eval "(ql:quickload '#:breeze/test :verbose t :explain t)" \
      --eval "(setf asdf:*compile-file-warnings-behaviour* :error)" \
-     --eval "(asdf:compile-system '#:breeze/test :force t :verbose t)" \
-     --eval "(breeze.test.main:run-breeze-tests t)"
+     --eval "(asdf:compile-system '#:breeze/test :force t :verbose t)"

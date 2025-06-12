@@ -16,6 +16,8 @@
                 #:symbol-package-qualified-name)
   (:import-from #:breeze.indirection
                 #:indirection)
+  (:import-from #:breeze.buffer
+                #:name)
   (:export
    #:start-command
    #:cancel-command
@@ -446,10 +448,10 @@ uses the throw tag to stop the command immediately."
              ;; TODO this assumes we have incremental parsing, which we
              ;; don't...
              (when (and buffer
-                        (not (node-iterator buffer)))
+                        (not (breeze.lossless-reader:node-iterator buffer)))
                (send "buffer-string")
                (let ((buffer-string (recv1)))
-                 (update-buffer-content buffer buffer-string)))
+                 (breeze.buffer:update-buffer-content buffer buffer-string)))
              (apply fn extra-args)))))))
     (send-sync command)
     (wait-for-started-message command)

@@ -389,7 +389,6 @@ What about nested feature expressions?
 ;; TODO node-first
 ;; TODO node-lastcar
 ;; TODO node-string-equal
-;; TODO node-length
 ;; TODO node-symbols=
 ;; TODO null-node-p
 ;; TODO nodes-emptyp
