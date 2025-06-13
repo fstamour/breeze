@@ -1389,6 +1389,9 @@ Returns a new node with one of these types:
   ;;
   ;; TODO use binary search
   (cond
+    ((<= (length (source iterator)) position)
+     ;; TODO add a test for this case
+     (setf position (1- (length (source iterator)))))
     ((donep iterator) (reset iterator))
     ((node-contains-position-p (root-node iterator) position)
      (loop :for d :from (slot-value iterator 'depth) :downto 0

@@ -29,8 +29,7 @@
    ;;
    #:mul
    #:2x
-   #:add-one
-   ))
+   #:add-one))
 
 (in-package #:breeze.dummy.test)
 

@@ -746,7 +746,7 @@ for debugging breeze itself."
   (remove-hook 'flymake-diagnostic-functions 'breeze-flymake nil))
 
 ;; TODO assumes slime
-;; TODO this doesn't work well at all
+;; TODO this doesn't work perfectly
 ;; TODO if there's no slime/sly notes, nor flymake errors,
 ;;      go to the next "TODO"
 (defun breeze-next-note ()
@@ -759,7 +759,7 @@ flymake error."
       (flymake-goto-next-error))))
 
 ;; TODO assumes slime
-;; TODO this doesn't work well at all
+;; TODO this doesn't work perfectly
 (defun breeze-previous-note ()
   "Go to either the previous note from the listener or to the
 previous flymake error."
@@ -839,12 +839,6 @@ previous flymake error."
       (find-file-other-window other-file))))
 
 
-;;; managing threads
-
-;; TODO as of 2022-02-08, there's code for that in listener.lisp
-;; breeze-kill-worker-thread
-
-
 ;;; minor mode
 
 (defvar breeze-minor-mode-map
@@ -884,11 +878,13 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 
 (keymap-set breeze-minor-mode-map "C-c C-o" #'breeze-other-file-other-window)
 (keymap-set breeze-minor-mode-map "C-c o" #'breeze-other-file)
+(keymap-set breeze-minor-mode-map "M-c" #'breeze-interactive-eval)
 
 ;; TODO define keymap breeze-insert-keymap
 ;; TODO maybe a "transient" could work?
 ;; TODO e.g. C-c i l => breeze-insert-lambda
 ;; (keymap-set breeze-minor-mode-map "C-c i" #'breeze-insert)
+
 
 ;; Disabled for now
 ;; eval keymap - because we might want to keep an history

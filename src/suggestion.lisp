@@ -54,7 +54,7 @@ of the instance of that had the smallest score."
                           (string-downcase name)
                           3))))))
 
-#+ (or)
+#+(or)
 (progn
   (find-most-similar-package "breeze.util")
   ;; => breeze.utils, 1
@@ -146,12 +146,13 @@ of the instance of that had the smallest score."
          `(defun ,(symbolicate 'suggest- type) (condition)
             (let* ((input (string-downcase (condition-suggestion-input condition)))
                    (candidate (,(symbolicate 'find-most-similar- type) input)))
-              #+ (or)
+              #+(or)
               (format *debug-io*
                       ,(format nil
                                "~~&candidate ~(~a~): ~~s"
                                type)
                       candidate)
+              (break "input ~s candidate: ~s" input candidate)
               (if candidate
                   (suggest input candidate condition)
                   (error condition)))))))
@@ -161,23 +162,20 @@ of the instance of that had the smallest score."
      package
      class))
 
-(defvar *last-condition* nil
-  "For debugging purposose only.")
-
-
 (defun call-with-correction-suggestion (function)
-  "Funcall FUNCTION wrapped in a handler-bind form that suggest corrections."
+  "Funcall FUNCTION wrapped in a handler-bind form that suggests
+corrections."
   (handler-bind
-      ((error #'(lambda (condition)
-                  (setf *last-condition* condition)
-                  (error condition))))
-    (handler-bind
-        ;; The order is important!!!
-        ((undefined-function #'suggest-symbol)
-         #+sbcl (sb-ext:package-does-not-exist #'suggest-package)
-         #+sbcl (sb-int:simple-reader-package-error #'suggest-symbol)
-         #+ (or)
-         (package-error #'suggest-package)
-         #+sbcl
-         (sb-pcl:class-not-found-error #'suggest-class))
-      (funcall function))))
+      ;; The order is important!!!
+      ((undefined-function #'suggest-symbol)
+       #+sbcl (sb-ext:package-does-not-exist #'suggest-package)
+       #+sbcl (sb-int:simple-reader-package-error
+                ;; TODO actually suggest to edit the source, when possible
+                #'suggest-symbol)
+       #+(or)
+       (package-error #'suggest-package)
+       #+sbcl
+       (sb-pcl:class-not-found-error #'suggest-class))
+    (funcall function)))
+
+#++ (prinq 42)

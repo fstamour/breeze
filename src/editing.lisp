@@ -10,6 +10,20 @@
 
 ;; (trace replace-region)
 
+#|
+;; TODO add NOTE: "can't splice comment", but I wish I could
+;; e.g.  `  ;; (some | code)`
+;; paredit-splice-sexp or paredit-splice-sexp-killing-backward
+
+
+(|asdf)qwer
+M-<up> paredit-splice-sexp-killing-backward
+asfdqwer
+-- should be
+asdf qwer
+
+|#
+
 (define-command kill-sexp ()
   "Kill the expression following point."
   (let* ((buffer (current-buffer))

@@ -28,6 +28,7 @@
         (insert "(uiop:define-package ")
         (insert "(defpackage "))
     ;; TODO don't insert the (in-package ...) if it already exists
+    ;; TODO add documentation "Tests for the package X"
     (insert
      "#:~a~
     ~%  (:documentation \"\")~

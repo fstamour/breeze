@@ -194,6 +194,8 @@ found."
         node-iterator "Extraneous internal whitespaces."
         :replacement " ")))))
 
+;; TODO detect #:package:symbol => package:symbol
+
 (defun error-invalid-node (node-iterator)
   (unless (valid-node-p (value node-iterator))
     (node-parse-error node-iterator "Syntax error")))

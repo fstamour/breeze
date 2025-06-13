@@ -13,7 +13,8 @@
   (:import-from #:breeze.string
                 #:optimal-string-alignment-distance*)
   (:import-from #:breeze.buffer
-                #:current-package)
+                #:current-package
+                #:point)
   (:export
    #:rpc-eval
    #:interactive-eval
@@ -62,14 +63,14 @@ differences between swank and slynk."
         (values (multiple-value-list
                  (eval
                   (read-from-string string)))))
-    (message (format-values-for-echo-area values))))
+    (message "~a" (format-values-for-echo-area values))))
 
-(defun run-interactive-eval-after-hooks (string substring)
+(defun run-interactive-eval-after-hooks (string)
   (loop
     :for (name . hook) :in *interactive-eval-hooks*
     :do
        (handler-case
-           (funcall hook string substring)
+           (funcall hook string)
          (error (condition)
            (format *error-output*
                    "~&Error signaled while running \"~a\" interactive-eval hook: ~a~%  "
@@ -79,39 +80,44 @@ differences between swank and slynk."
 (defun interactive-eval (string)
   "Interactively evaluate a string."
   ;; TODO maybe keep an history (pushnew string *recent-forms* :test #'string=)
-
   ;; TODO add a restart to retry
-  ;; (format t "~&Interactive-eval: ~A~%" string)
-  (let ((substring string))
-    (call-with-correction-suggestion
-     (lambda ()
-       (prog1
-           (%interactive-eval substring)
-         (run-interactive-eval-after-hooks string substring))))))
+  (call-with-correction-suggestion
+   (lambda ()
+     (prog1
+         (%interactive-eval string)
+       (run-interactive-eval-after-hooks string)))))
 
 (defparameter *interactive-eval-last-context* ()
   "For debugging only.")
 
-(defparameter *last-parse* nil
-  "I sure love this trick!")
+#++
+(defparameter *current-node* nil
+  "The node iterator currently being evaluated.")
 
 ;; 2025-06-12 it finally works!
 (define-command interactive-eval-command ()
   "A command to interactively evaluate code."
   (let* ((context (context*))
          (buffer (current-buffer context))
-         (node-iterator (node-iterator buffer))
+         ($node (node-iterator buffer))
          ($package (current-package buffer))
          (*package* *package*))
+    ;; TODO if the form is a comment
+    (when (whitespace-or-comment-node-p $node)
+      ;; TODO find the closest node to evaluate
+      ;; TODO check if "firstp" and/or "lastp"
+      (when-let ((previous (previous-sibling $node
+                                             #| TODO add :skipp to previous-sibling |#)))
+        (when (= (point buffer) (end previous))
+          (decf (pos $node)))))
     ;; TODO add more to the "last context": the package, and the string to be evaluated
     (setf *interactive-eval-last-context* context)
     (when $package
       (when-let ((package-name (node-string-designator-string $package)))
         (setf *package* (find-package package-name))))
-    (when-let* (($node (root-node-iterator node-iterator))
+    (when-let* (($node (root-node-iterator $node))
                (node (value $node)))
       ;; TODO (pulse-momentary-highlight-region begin end)
-      ;; TODO Find what's the value of *package* at this node...
       (let ((string (node-string $node)))
         (interactive-eval string)
         ;; (message "~s" string)
