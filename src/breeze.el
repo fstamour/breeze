@@ -465,6 +465,12 @@ This is useful for developping breeze itself, where it's possible to break thing
 (defun breeze-disabled-p ()
   breeze-disabled-p)
 
+(defun breeze-disable ()
+  (setf breeze-disabled-p t))
+
+(defun breeze-enable ()
+  (setf breeze-disabled-p nil))
+
 ;; TODO breeze-not-initialized-hook
 
 ;; TODO restore the stubs if the inferior lisp is
@@ -662,7 +668,7 @@ with which arguments."
      (lambda ()
        (breeze-eval-async
         (prin1-to-string
-         (let ((base (list 'breeze.workspace:after-change-function
+         (let ((base (list 'breeze.incremental-reader:after-change-function
                            start stop length
                            :buffer-name (buffer-name)
                            :buffer-file-name (buffer-file-name))))

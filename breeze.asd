@@ -39,8 +39,10 @@
    (:file "configuration")
    (:file "iterator")
    (:file "lossless-reader" :depends-on ("utils" "iterator"))
+   (:file "incremental-reader"
+    :depends-on ("lossless-reader" "workspace"))
    (:file "buffer" :depends-on ("lossless-reader" "package"))
-   (:file "workspace" :depends-on ("lossless-reader"))
+   (:file "workspace" :depends-on ("lossless-reader" "buffer"))
    (:file "pattern")
    (:file "egraph")
    (:file "analysis" :depends-on ("lossless-reader" "pattern"))

@@ -1,12 +1,15 @@
 
 (uiop:define-package #:breeze.incremental-reader
-    (:documentation "")
+    (:documentation "Parsing lisp code incrementally")
   (:use #:cl)
   (:use-reexport #:breeze.lossless-reader)
   (:import-from #:breeze.lossless-reader
                 #:reparse)
-  (:import-from #:breeze.analysis
-                #:find-node*))
+  (:import-from #:breeze.workspace
+                #:find-buffer)
+  (:import-from #:alexandria
+                #:when-let)
+  (:export #:after-change-function))
 
 (in-package #:breeze.incremental-reader)
 
@@ -52,19 +55,6 @@
                           (subseq source 0 position)
                           (subseq source (+ position detail))))))))
 
-(defun find-node* (position nodes)
-  "Given a list of NODES, return the list that starts at the element just
-before the node that contains the POSITION."
-  (when (listp nodes)
-    (loop
-      :for previous-rest = nil :then rest
-      :for rest :on nodes
-      :for node := (car rest)
-      :when (and node
-                 (<= (node-start node) (node-end node))
-                 (< position (node-end node)))
-        :do (return previous-rest))))
-
 ;; This is very inefficient, for starter it handles only one edit at a
 ;; time...
 (defun edit-and-parse (state edit)
@@ -96,9 +86,7 @@ before the node that contains the POSITION."
                  ;; Possible alternative: add another field to the
                  ;; nodes: offset... _maybe_ it could be in the state
                  ;; itself... we could make the node immutable again™.
-                 (incf (node-start node) offset)
-                 (unless (minusp (node-end node))
-                   (incf (node-end node) offset)))
+                 (add-offset node offset))
             (setf (tree state) (append new-nodes (tree state))
                   (pos state) (length (source state)))))
          ;; Inserts at the end
@@ -109,6 +97,7 @@ before the node that contains the POSITION."
             (setf (cdr last-node) new-nodes)))
          ;; Inserts in the middle
          (t
+          ;; TODO use goto-position
           (let ((rest (find-node* position (tree state)))
                 #++ (suffix-before (subseq (source state)
                                            (node-end (second rest)))))
@@ -156,3 +145,37 @@ before the node that contains the POSITION."
       (:delete-at)))
   (with-output-to-string (output)
     (unparse state output)))
+
+
+;;; Integration with the editor
+
+(defun push-edit (edit)
+  (declare (ignore edit))
+  #++ (print edit))
+
+;; TODO keep track of the buffers/files, process these kind of edits
+;; "object":
+;;
+;; (:DELETE-AT 18361 1)
+;; (:INSERT-AT 17591 ";")
+
+(defun after-change-function (start stop length &rest rest
+                                              &key
+                                                buffer-name
+                                                buffer-file-name
+                                                insertion
+                                              &allow-other-keys)
+  (declare (ignorable start stop length rest buffer-file-name insertion)) ; yea, you heard me
+  ;; TODO the following form is just a hack to keep the breeze's
+  ;; buffers in sync with the editor's buffers
+  (when-let ((buffer (find-buffer buffer-name)))
+    (setf (node-iterator buffer) nil))
+  ;; consider ignore-error + logs, because if something goes wrong in
+  ;; this function, editing is going to be funked.
+  (push-edit
+   (cond
+     ((zerop length)
+      (list :insert-at start insertion))
+     ((plusp length)
+      (list :delete-at start length))
+     (t :unknown-edit))))

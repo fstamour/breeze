@@ -56,6 +56,31 @@
       '((3 4 :warning "Missing internal whitespace(s)."))
       (test-lint "(\"a\"x)")))
 
+
+;; TODO add more "test-lint" tests with syntax errors
+
+#++
+(test-lint
+ "(LET* ((#:BINDINGS1694
+        (MATCH #(#(#<TERM :?_ {1022EB0623}> #<TERM ?NAME {1022EB0633}>))
+               (COPY-ITERATOR ROOT-NODE-ITERATOR) :SKIPP
+               #'WHITESPACE-OR-COMMENT-NODE-P)))
+  (FLET ((BREEZE.ANALYSIS::GET-BINDINGS (BREEZE.ANALYSIS::TERM-NAME)
+           (WHEN #:BINDINGS1694
+             (ALEXANDRIA:WHEN-LET* ((TERM
+                                     (GETHASH BREEZE.ANALYSIS::TERM-NAME
+                                              #<HASH-TABLE :TEST EQL :COUNT 2 {1022EB0543}>))
+                                    (BINDING
+                                     (FIND-BINDING #:BINDINGS1694 TERM)))
+               (TO BINDING)))))
+    (DECLARE (IGNORABLE (FUNCTION BREEZE.ANALYSIS::GET-BINDINGS)))
+    (LET ((?NAME (GET-BINDINGS '?NAME)))
+      (IF ?NAME
+          (LET ((NAME (NODE-CONTENT (PARSE-STATE (CURRENT-BUFFER)) ?NAME)))
+            (MESSAGE \"Name: ~s\" NAME))
+          (MESSAGE \"Not in a top-level form.\")))))")
+
+
 #++ ;; TODO other cases of extraneous whitespaces:
 "
    ;; asdf

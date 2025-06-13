@@ -542,7 +542,8 @@ common lisp.")
 
 (defmethod add-offset ((node node) offset)
   (incf (node-start node) offset)
-  (incf (node-end node) offset))
+  (unless (minusp (node-end node))
+    (incf (node-end node) offset)))
 
 
 ;;; Reader position (in the source string)
