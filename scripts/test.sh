@@ -23,5 +23,5 @@ exec sbcl --noinform --non-interactive \
      --eval "(asdf:load-asd (truename \"breeze.asd\"))" \
      --eval "(ql:quickload '#:breeze/test :verbose t)" \
      --eval "(setf asdf:*compile-file-warnings-behaviour* :error)" \
-     --eval "(asdf:compile-system '#:breeze/test :force t :verbose t)" \
+     --eval "(asdf:compile-system '#:breeze/test :force-not t :force t :verbose t)" \
      --eval "(breeze.test.main:run-breeze-tests t)"
