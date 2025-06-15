@@ -16,6 +16,10 @@
                 #:symbol-package-qualified-name)
   (:import-from #:breeze.indirection
                 #:indirection)
+  (:import-from #:breeze.channel
+                #:channel
+                #:make-channel
+                #:emptyp)
   (:import-from #:breeze.buffer
                 #:name)
   (:export
@@ -140,14 +144,14 @@
     :accessor thread
     :documentation "The thread running the actor.")
    (channel-in
-    :initform (make-instance 'chanl:unbounded-channel)
+    :initform (make-channel)
     :accessor channel-in
-    :type (or null chanl:channel)
+    :type channel
     :documentation "The channel to send response to the actor.")
    (channel-out
-    :initform (make-instance 'chanl:unbounded-channel)
+    :initform (make-channel)
     :accessor channel-out
-    :type (or null chanl:channel)
+    :type channel
     :documentation "The channel to receive requests from the actor.")
    (context
     :initarg :context
@@ -233,7 +237,7 @@ uses the throw tag to stop the command immediately."
       (funcall fn))))
 
 (defun %recv (channel)
-  (let ((value (chanl:recv channel)))
+  (let ((value (breeze.channel:receive channel)))
     (when (eq value 'stop)
       (return-from-command))
     ;; Return from command uses cl:signal, which means that it'll do
@@ -242,7 +246,7 @@ uses the throw tag to stop the command immediately."
     value))
 
 (defun %send (channel value)
-  (chanl:send channel value)
+  (breeze.channel:send channel value)
   value)
 
 
@@ -294,6 +298,9 @@ uses the throw tag to stop the command immediately."
       ;; and bt:destroy-thread ends up interrupting the thread)
       #+sbcl
       (sb-thread:interrupt-thread-error (condition)
+        (declare (ignore condition)))
+      #+ecl
+      (error (condition)
         (declare (ignore condition))))))
 
 ;; TODO rename cancel -> stop
@@ -311,7 +318,7 @@ uses the throw tag to stop the command immediately."
 (defun outgoing-messages-p (command)
   ;; There are no outgoing messages waiting.
   ;; blockp = no message
-  (not (chanl:recv-blocks-p (channel-out command))))
+  (not (emptyp (channel-out command))))
 
 (defun thread-dead-p (command)
   (and (thread command)

@@ -1,5 +1,9 @@
 *.fasl
 *.core
+
+# ecl
+*.fas
+
 *.svg
 result
 public/

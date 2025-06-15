@@ -21,7 +21,6 @@
   :description "A system to help automate work."
   :depends-on (;; Multi-threading
                bordeaux-threads
-               chanl
                ;; To create projects (scaffolds)
                quickproject
                ;; Utilities
@@ -34,6 +33,7 @@
    (:file "utils")
    (:file "indirection")
    (:file "string-utils" :depends-on ("utils"))
+   (:file "channel")
    ;; "test-file" is for parsing ERT files
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
