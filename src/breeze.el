@@ -466,9 +466,11 @@ This is useful for developping breeze itself, where it's possible to break thing
   breeze-disabled-p)
 
 (defun breeze-disable ()
+  (interactive)
   (setf breeze-disabled-p t))
 
 (defun breeze-enable ()
+  (interactive)
   (setf breeze-disabled-p nil))
 
 ;; TODO breeze-not-initialized-hook
