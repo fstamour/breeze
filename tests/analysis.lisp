@@ -360,3 +360,22 @@
   ;; and considers that a successful match, but it didn't match
   ;; against the whole form.
   (true (test-malformed-if-node-p "(if a b c d e)")))
+
+
+;;; TODO Quotepd
+
+#++
+(defun test-quotedp (input)
+  (let* ((state (parse input))
+         (it (make-node-iterator state)))
+    (loop :for i :below (length input)
+          :do (goto-position it i)
+          :collect (list i (breeze.analysis::quotedp it)))))
+
+#++
+(define-test+run quotedp
+  (test-quotedp "'a")
+  (test-quotedp "`a")
+  (test-quotedp ",a")
+  (test-quotedp ",@a")
+  (test-quotedp ",.a"))
