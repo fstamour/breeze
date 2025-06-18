@@ -59,5 +59,10 @@ COPY --from=org-publish /breeze/public /
 ######################################################################
 ### This is where I left off
 
-# FROM deps as integration-tests
-# RUN emacs -batch -l ert -l my-tests.el -f ert-run-tests-batch-and-exit
+FROM deps as integration-tests
+
+RUN apk add bash ca-certificates emacs
+
+COPY . .
+
+RUN emacs -batch -l ert -l /breeze/tests/breeze-test.el -f ert-run-tests-batch-and-exit
