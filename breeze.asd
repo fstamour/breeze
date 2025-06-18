@@ -124,6 +124,7 @@
    (:file "egraph")
    (:file "iterator")
    (:file "lint")
+   (:file "listener")
    (:file "logging")
    (:file "lossless-reader" :depends-on ("lossless-reader.randomized"))
    (:file "lossless-reader.randomized")
