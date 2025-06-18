@@ -11,6 +11,8 @@ doc:
 
 DOCKER_BUILD := DOCKER_BUILDKIT=1 docker build --progress=plain
 
+# TODO set -o pipefail
+
 # This is "generic" makefile target. To use it, tweak the variables
 # and add it as a dependency.
 .PHONY: build-within-container
