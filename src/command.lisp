@@ -21,7 +21,8 @@
                 #:make-channel
                 #:emptyp)
   (:import-from #:breeze.buffer
-                #:name)
+                #:name
+                #:node-iterator)
   (:export
    #:start-command
    #:cancel-command
