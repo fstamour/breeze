@@ -24,9 +24,9 @@
     (when (in-package-cl-user-p)
       (insert
        "(cl:in-package #:cl-user)~%~%"))
-    (if nil ; TODO
-        (insert "(uiop:define-package ")
-        (insert "(defpackage "))
+    (progn
+      ;; TODO if nil (insert "(uiop:define-package ")
+      (insert "(defpackage "))
     ;; TODO don't insert the (in-package ...) if it already exists
     ;; TODO add documentation "Tests for the package X"
     (insert
