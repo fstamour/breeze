@@ -132,7 +132,7 @@ system definition file."
 
 TODO fix loadedp
 
-Here's a complex but that I never noticed:
+Here's a complex bug that I never noticed:
 
 1. The function loadedp calls infer-systems
 2. loadedp will crash if it gets a path to a system file that doesn't
@@ -180,15 +180,45 @@ likely not loaded
 #++
 (infer-systems (truename "./"))
 
+(defun asd-file-registered-p (path-to-asd)
+  ;; this maps over asdf/system-registry:*registered-systems*
+  (etypecase path-to-asd
+    (asdf:system path-to-asd)
+    (pathname
+     (asdf:map-systems
+      (lambda (system)
+        (when-let ((pathname (asdf/system:system-source-file system)))
+          (when (equal pathname path-to-asd)
+            (return-from asd-file-registered-p system))))))))
+
+#++
+(mapcar
+ (lambda (x)
+   (list (cons :designator x)
+         (cons :was-registed-p (and (asd-file-registered-p x) t))
+         (cons :system (if (pathnamep x) (list x (asdf:load-asd x)) x))))
+ (infer-systems (truename "./")))
+
+
 ;; TODO if it's not part of a system, check if it should
 (defun loadedp (pathname &aux (pathname (uiop:truename* pathname)))
   "Check whether PATHNAME is part of a system, and wheter it was loaded.
 This will return false if the file was loaded outside of asdf."
+  ;; TODO This function should never fail, add a handler-case
   (when pathname
-    (loop :for system :in (infer-systems pathname)
-          ;; BUG if system is a path to an .asd file that has not been
-          ;; loaded, then sub-components will error (on
-          ;; asdf/component:component-if-feature).
+    (loop :for system-or-pathname-to-asd :in (infer-systems pathname)
+          :for system = (or
+                         ;; Check if it's a system (and if it's in
+                         ;; asdf/system-registry:*registered-systems*)
+                         (asd-file-registered-p system-or-pathname-to-asd)
+                         ;; TODO think about the implications of loading asd files on-the-go...
+                         ;; 1. it might make it easier to work on stuff outside asdf' registery
+                         ;; 2. it _will_ make it hard to work on different copies of the same project...
+                         ;; 3. it will probably lead to confusing situation
+                         ;; TODO actually ask permissions before doing this!
+                         (asdf:load-asd system-or-pathname-to-asd)
+                         ;; this will lookup the system in asdf/system-registry:*registered-systems*
+                         (asd-file-registered-p system-or-pathname-to-asd))
           :for components = (asdf/component:sub-components system)
           :when (typep system 'asdf:system)
             :do (when-let* ((component-found (member
