@@ -97,7 +97,7 @@
 (loop
   :for actor-id :being :the :hash-key :of *actors* :using (hash-value actor)
   :for filename = (current-buffer-filename (context actor))
-  :when (alexandria:ends-with-subseq "breeze/kite/kite.lisp" filename)
+  :when (alexandria:ends-with-subseq "breeze/src/+parachute.lisp" filename)
     :collect actor-id)
 
 (defparameter *a* (gethash 9 *actors*))

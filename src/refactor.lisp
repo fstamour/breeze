@@ -323,14 +323,6 @@ defun."
 
 ;; TODO quick-insert (format *debug-io* "~&")
 
-;; TODO move into a +parachute.lisp file
-(define-command insert-parachute-define-test ()
-  "Insert a parachute:define-test form"
-  (declare (context :top-level))
-  (insert "(define-test+run ")
-  (read-string-then-insert "Name of the test: "
-                           "~a)~%"))
-
 
 ;;;
 

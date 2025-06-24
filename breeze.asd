@@ -93,18 +93,17 @@
    (:file "report")))
 
 
-;;; breeze/kite system
+;;; breeze/parachute system
 
-(defsystem breeze/kite
-  :description "A breeze in a parachute makes a kite: utils for parachute"
+(defsystem breeze/parachute
+  :description "Utils for parachute"
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :depends-on (parachute breeze)
-  :pathname "kite"
-  :serial t
+  :pathname "src"
   :components
-  ((:file "kite")))
+  ((:file "+parachute")))
 
 
 ;;; Quickproject
@@ -127,7 +126,7 @@
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze parachute breeze/kite breeze/doc breeze/quickproject)
+  :depends-on (breeze parachute breeze/parachute breeze/doc breeze/quickproject)
   :pathname "tests"
   :components
   ((:file "analysis" :depends-on ("pattern"))

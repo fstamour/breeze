@@ -1,15 +1,20 @@
 
-;;; breeze.kite package
+;;; breeze+parachute package
 
-(uiop:define-package #:breeze.kite
+(uiop:define-package #:breeze+parachute
     (:documentation "Utilities for the test framework parachute.")
   (:use #:cl)
+  (:import-from #:breeze.command
+                #:define-command
+                #:insert
+                #:read-string-then-insert)
   (:export
    #:is
    #:is-equalp
-   #:is-equalp*))
+   #:is-equalp*)
+  (:export #:insert-parachute-define-test))
 
-(in-package #:breeze.kite)
+(in-package #:breeze+parachute)
 
 
 ;;; WIP
@@ -168,3 +173,15 @@ expected:
 ;; (is-equalp* "32 " 2 1 'equalp "  (~a ~s)" "thirty-two" 32)
 
 |#
+
+
+(define-command insert-parachute-define-test ()
+  "Insert a parachute:define-test form"
+  (declare (context :top-level))
+  (insert "(define-test+run ")
+  (read-string-then-insert "Name of the test: "
+                           "~a)~%"))
+
+;; run-test
+;; delete-test
+;; goto-test (same name or search, or choose)

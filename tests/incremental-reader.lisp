@@ -17,7 +17,7 @@
                 #:false
                 #:of-type
                 #:fail)
-  (:import-from #:breeze.kite
+  (:import-from #:breeze+parachute
                 #:is-equalp*
                 #:is-equalp))
 
