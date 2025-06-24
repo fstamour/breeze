@@ -22,6 +22,14 @@ asfdqwer
 -- should be
 asdf qwer
 
+M-( paredit-wrap-round
+
+I just had to wrap a bunch of forms with (multiple-value-list ...)  It
+would have been nice to have something to help with this... perhaps
+using the region/rectangle?
+
+TODO next-alternative/previous alternative (e.g. :accessor <-> :reader <-> :writer, in the right context)
+
 |#
 
 (define-command kill-sexp ()

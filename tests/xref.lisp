@@ -11,6 +11,8 @@
 
 (in-package #:breeze.test.xref)
 
+;; TODO this test is useful, but doesn't scale as-is
+#++
 (define-test find-package
   (is equal
       (find-packages-by-prefix "breeze")

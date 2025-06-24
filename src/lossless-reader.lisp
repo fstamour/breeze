@@ -1552,6 +1552,21 @@ Returns a new node with one of these types:
         :do (goto-position it i)
         :collect (crumbs it)))
 
+
+(defun type-path (node-iterator)
+  (let ((depth (slot-value node-iterator 'depth)))
+    (loop :for d :upto depth
+          :for node = (value-at-depth node-iterator d)
+          :collect (node-type node))))
+
+#++
+(let* ((input "a (b c (d (e g)))")
+       (state (parse input))
+       (it (make-node-iterator state)))
+  (loop :for i :below (length input)
+        :do (goto-position it i)
+        :collect (type-path it)))
+
 (defmethod add-offset ((iterator node-iterator) offset)
   (loop
     :until (donep iterator)

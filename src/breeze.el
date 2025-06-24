@@ -882,6 +882,8 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 (keymap-set breeze-minor-mode-map "C-c o" #'breeze-other-file)
 (keymap-set breeze-minor-mode-map "M-c" #'breeze-interactive-eval)
 
+;; TODO bind M-a and M-e to smth (forward/backward sexp)
+
 ;; TODO define keymap breeze-insert-keymap
 ;; TODO maybe a "transient" could work?
 ;; TODO e.g. C-c i l => breeze-insert-lambda

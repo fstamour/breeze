@@ -281,6 +281,16 @@
        ;; match
        merge-bindings)
 
+(trace
+ :wherein test-match
+ :methods t
+ match)
+
+(trace
+ :wherein test-maybe
+ :methods t
+ match)
+
 (in-package #:breeze.test.analysis)
 
 (trace in-package-node-p

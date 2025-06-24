@@ -154,7 +154,8 @@ Design decision(s):
   ;; "separator" in package names
   )
 
-;; TODO move infer-package-name-from-file here
+;; TODO replace .+ by + (e.g. breeze.+parachute => breeze+parachute
+;; TODO project "abcd" file "abcd", package should be "abcd", not "abdc.abcd"
 (defun infer-package-name-from-file (file-pathname)
   "Given a FILE-PATHNAME, infer a proper package name."
   (when file-pathname
