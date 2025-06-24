@@ -21,8 +21,6 @@
   :description "A system to help automate work."
   :depends-on (;; Multi-threading
                bordeaux-threads
-               ;; To create projects (scaffolds)
-               quickproject
                ;; Utilities
                alexandria
                uiop)
@@ -109,6 +107,19 @@
   ((:file "kite")))
 
 
+;;; Quickproject
+
+(defsystem breeze/quickproject
+  :description "Integration with quickproject"
+  :version "0.0.1"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :depends-on (breeze quickproject)
+  :pathname "src"
+  :components
+  ((:file "+quickproject")))
+
+
 ;;; breeze/test system
 
 (defsystem breeze/test
@@ -116,7 +127,7 @@
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze parachute breeze/kite breeze/doc)
+  :depends-on (breeze parachute breeze/kite breeze/doc breeze/quickproject)
   :pathname "tests"
   :components
   ((:file "analysis" :depends-on ("pattern"))
@@ -139,3 +150,6 @@
    (:file "workspace")
    (:file "xref")
    (:file "main")))
+
+
+;; TODO breeze/quickproject/test
