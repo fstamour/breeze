@@ -1,6 +1,8 @@
 (defpackage #:breeze.test.analysis
   (:documentation "Tests for the package breeze.analysis")
   (:use #:cl #:breeze.analysis)
+  (:import-from #:breeze.generics
+                #:eqv)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -251,7 +253,7 @@
        (true (to binding)
              "matching ~s against ~s (~s) should have bound :?x to something"
              pattern string state)
-       (is equalp expected-binding (value (to binding))
+       (is eqv expected-binding (value (to binding))
            "matching ~s against ~s (~s) should have bound :?x to ~s"
            pattern string state expected-binding))
       (t

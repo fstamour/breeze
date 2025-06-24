@@ -55,6 +55,7 @@
 
 
 (defun is-equalp (&key
+                    (comparator 'equalp)
                     input
                     got
                     (form nil form-supplied-p)
@@ -92,7 +93,7 @@ that message to *trace-output* and return it as a second value.
                  (format *trace-output* "~&~a" str))
                str)))
       (is
-       :comparator 'equalp
+       :comparator comparator
        :expected expected
        :got got
        :form (if form-supplied-p form got)
@@ -107,7 +108,9 @@ that message to *trace-output* and return it as a second value.
                 input (list description format-args) got expected))))))
 
 
-(defun is-equalp* (input got &optional expected description &rest format-args)
+(defun is-equalp* (input got &optional expected
+                               (comparator 'equalp)
+                               description &rest format-args)
   "Helper for testing that GOT and EXPECTED are EQUALP.
 
 Can be run interactively.
@@ -120,6 +123,7 @@ If GOT is not equalp to EXPECTED, generate a nice error message. Print
 that message to *trace-output* and return it as a second value.
 "
   (is-equalp
+   :comparator comparator
    :input input
    :got got
    :expected expected
@@ -152,7 +156,7 @@ expected:
 returns 2
 doesn't print
 
-(is-equalp* "32 " 2 1 "  (~{~a~^, ~})" '(a b c))
+(is-equalp* "32 " 2 1 'equalp "  (~{~a~^, ~})" '(a b c))
 returns 2
 prints
 For «32 »  (A, B, C)
@@ -161,6 +165,6 @@ got:
 expected:
 1
 
-;; (is-equalp* "32 " 2 1 "  (~a ~s)" "thirty-two" 32)
+;; (is-equalp* "32 " 2 1 'equalp "  (~a ~s)" "thirty-two" 32)
 
 |#

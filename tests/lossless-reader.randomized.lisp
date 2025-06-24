@@ -4,8 +4,11 @@
 (defpackage #:breeze.test.lossless-reader
   (:documentation "Test package for #:breeze.lossless-reader")
   (:use #:cl #:breeze.lossless-reader)
+  (:import-from #:breeze.generics
+                #:eqv)
   ;; Importing non-exported symbols
   (:import-from #:breeze.lossless-reader
+                #:make-node
                 #:at
                 #:at=
                 #:valid-position-p

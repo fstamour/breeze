@@ -1,6 +1,8 @@
 (defpackage #:breeze.test.lint
   (:documentation "Tests for the package breeze.lint")
   (:use #:cl #:breeze.lint #:breeze.buffer #:breeze.analysis)
+  (:import-from #:breeze.generics
+                #:eqv)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -175,46 +177,46 @@
   ;; (is equalp '(")" nil) (test-fix ")")) ; TODO if reasonable
   ;; (is equalp '("()" t) (test-fix "("))
   ;; (is equalp '("((()))" t) (test-fix "((("))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( )"))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "(~%)"))
-  (is equalp `((,(whitespace 1 4) nil)) (test-fix "(   ) "))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( ) "))
-  (is equalp `((,(whitespace 2 3) nil)) (test-fix " ( )"))
-  (is equalp `((,(whitespace 2 3) nil)) (test-fix " ( ) "))
-  (is equalp `((,(whitespace 1 2) nil)) (test-fix "( a)"))
-  (is equalp `((,(whitespace 2 3) nil)) (test-fix "(a )"))
-  (is equalp `((,(whitespace 1 3) nil)
+  (is eqv `((,(whitespace 1 2) nil)) (test-fix "( )"))
+  (is eqv `((,(whitespace 1 2) nil)) (test-fix "(~%)"))
+  (is eqv `((,(whitespace 1 4) nil)) (test-fix "(   ) "))
+  (is eqv `((,(whitespace 1 2) nil)) (test-fix "( ) "))
+  (is eqv `((,(whitespace 2 3) nil)) (test-fix " ( )"))
+  (is eqv `((,(whitespace 2 3) nil)) (test-fix " ( ) "))
+  (is eqv `((,(whitespace 1 2) nil)) (test-fix "( a)"))
+  (is eqv `((,(whitespace 2 3) nil)) (test-fix "(a )"))
+  (is eqv `((,(whitespace 1 3) nil)
                (,(whitespace 4 6) nil))
       (test-fix "(  a  )"))
-  (is equalp `((,(whitespace 2 5) " ")) (test-fix "(a   b)"))
-  (is equalp `((,(whitespace 1 4) nil)
+  (is eqv `((,(whitespace 2 5) " ")) (test-fix "(a   b)"))
+  (is eqv `((,(whitespace 1 4) nil)
                (,(whitespace 5 10) nil)
                (,(whitespace 11 14) nil)
                (,(whitespace 15 16) nil))
       (test-fix "(~%  (~%    a~%  )~%)"))
-  (is equalp `((,(whitespace 2 8) nil)
+  (is eqv `((,(whitespace 2 8) nil)
                (,(whitespace 9 13) nil))
       (test-fix "((~%~%    a~%~%  ))"))
   ;; TODO handle indentation levels!
   #++
   (progn
-    (is equalp '("(;;~% )" t) (test-fix "(;;~%    )"))
-    (is equalp '("(;;~% )" t) (test-fix "(;;~% ~%)"))
+    (is eqv '("(;;~% )" t) (test-fix "(;;~%    )"))
+    (is eqv '("(;;~% )" t) (test-fix "(;;~% ~%)"))
     ;; TODO This should be detected as "extraneous internal newlines"...
-    (is equalp '("(;;~% )" t) (test-fix "(;;~% ~%)")))
+    (is eqv '("(;;~% )" t) (test-fix "(;;~% ~%)")))
   #++ ;; TODO more whitespace fixes
   (progn
-    (is equalp '("#+(or)" t) (test-fix "#+ (or)"))
-    (is equalp '("(+ (- 1 2) 3)" t) (test-fix "(+(- 1 2)3)")))
+    (is eqv '("#+(or)" t) (test-fix "#+ (or)"))
+    (is eqv '("(+ (- 1 2) 3)" t) (test-fix "(+(- 1 2)3)")))
   #++ ;; TODO
   (progn
     ;; TODO (defpackage -> replace symbols by uninterned symbols
-    (is equalp '("(in-package \"x\")" t) (test-fix "(in-package \"x\")"))
-    (is equalp '("(in-package #:x)" t) (test-fix "(in-package :x)"))
-    (is equalp '("(in-package #:x)" t) (test-fix "(in-package 'x)"))
-    (is equalp '("(trace x)" t) (test-fix "(trace 'x)"))
-    (is equalp '("(block x)" t) (test-fix "(block 'x)"))
-    (is equalp '("(return-from x)" t) (test-fix "(return-from 'x)")))
+    (is eqv '("(in-package \"x\")" t) (test-fix "(in-package \"x\")"))
+    (is eqv '("(in-package #:x)" t) (test-fix "(in-package :x)"))
+    (is eqv '("(in-package #:x)" t) (test-fix "(in-package 'x)"))
+    (is eqv '("(trace x)" t) (test-fix "(trace 'x)"))
+    (is eqv '("(block x)" t) (test-fix "(block 'x)"))
+    (is eqv '("(return-from x)" t) (test-fix "(return-from 'x)")))
   ;; "\"a\"'(\"b\"c)" => "\"a\" '(\"b\" c)"
   )
 

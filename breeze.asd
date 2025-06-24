@@ -33,12 +33,14 @@
    (:file "utils")
    (:file "indirection")
    (:file "string-utils" :depends-on ("utils"))
+   (:file "generics")
    (:file "channel")
    ;; "test-file" is for parsing ERT files
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
    (:file "iterator")
-   (:file "lossless-reader" :depends-on ("utils" "iterator"))
+   (:file "lossless-reader"
+    :depends-on ("utils" "generics" "iterator"))
    (:file "incremental-reader"
     :depends-on ("lossless-reader" "workspace"))
    (:file "buffer" :depends-on ("lossless-reader" "package"))

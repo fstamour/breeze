@@ -5,6 +5,8 @@
 common lisp.")
   (:use #:cl #:breeze.logging)
   (:use-reexport #:breeze.iterator)
+  (:import-from #:breeze.generics
+                #:eqv)
   (:import-from #:breeze.string
                 #:subseq-displaced
                 #:+whitespaces+
@@ -246,25 +248,71 @@ common lisp.")
               (length excerpt)
               (length (source state))))))
 
+
+;;; The +end+
+
 (alexandria:define-constant +end+ -1)
 
-(defstruct (range
-            (:constructor range (start end))
-            :constructor
-            (:predicate rangep))
-  (start 0 :type (integer 0))
-  (end +end+ :type (integer -1)))
+
+;;; Range class
 
-(defstruct (node
-            ;; (:constructor node (type start end &optional children))
-            :constructor
-            (:predicate nodep)
-            (:include range))
-  (type 'nil
-   :type symbol
-   :read-only t)
-  (children '()
-   :read-only t))
+(defclass range ()
+  ((start :type (integer 0)
+          :initarg :start
+          :initform 0
+          :accessor start)
+   (end :type (integer -1)
+        :initarg :end
+        :initform +end+
+        :accessor end)))
+
+(defun range (start end)
+  (make-instance 'range :start start :end end))
+
+(declaim (inline range=))
+(defun range= (a b)
+  (and (= (start a) (start b))
+       (= (end a) (end b))))
+
+(defmethod eqv ((a range) (b range))
+  (range= a b))
+
+
+;;; Node class
+
+(defclass node (range)
+  ((node-type
+    :type symbol
+    :initform (error "The slot :node-type must be specified.")
+    :initarg :type
+    :accessor node-type)
+   (children
+    :initform nil
+    :initarg :children
+    :accessor children)))
+
+(declaim (inline node-children))
+(defun node-children (node)
+  (slot-value node 'children))
+
+(defun nodep (x)
+  (typep x 'node))
+
+(defun node-start (node)
+  (start node))
+
+(defun node-end (node)
+  (end node))
+
+(declaim (inline node=))
+(defun node= (a b)
+  (and (eq (node-type a)
+           (node-type b))
+       (range= a b)
+       (eqv (node-children a) (node-children b))))
+
+(defmethod eqv ((a node) (b node))
+  (node= a b))
 
 (defun ensure-nodes (x)
   "Ensure that that X is a sequence of node."
@@ -313,9 +361,7 @@ common lisp.")
     (vector (nth-node nodes -1))))
 
 (defun node (type start end &optional child &rest children)
-  #++ (when (= +end+ end)
-        (break))
-  (make-node
+  (make-instance 'node
    :type type
    :start start
    :end end
@@ -323,10 +369,9 @@ common lisp.")
                  (%nodes child children)
                  child)))
 
-(defmethod make-load-form ((node node) &optional environment)
-  (make-load-form-saving-slots node
-                               :slot-names '(start end type children)
-                               :environment environment))
+(defun make-node (&rest args &key type start end children)
+  (declare (ignore type start end children))
+  (apply #'make-instance 'node args))
 
 
 ;;; Constructors
@@ -512,38 +557,19 @@ common lisp.")
   "Get a (displaced) string of the node's range."
   (source-substring state (node-start node) (node-end node)))
 
-(defmethod start ((node node))
-  "Get the start position of the node."
-  (node-start node))
-
-(defmethod end ((node node))
-  "Get the end position of the node."
-  (node-end node))
-
-(defmethod start ((range range))
-  "Get the start of the range."
-  (range-start range))
-
-(defmethod end ((range range))
-  "Get the end of the range."
-  (range-end range))
-
 (defmethod no-end-p ((x integer))
   "Does this number represent the +infinity?"
   (= +end+ x))
 
-(defmethod no-end-p ((node node))
-  "Is this node's end position open-ended?"
-  (no-end-p (node-end node)))
-
 (defmethod no-end-p ((range range))
   "Is this range open-ended?"
-  (no-end-p (range-end range)))
+  (= +end+ (end range)))
 
+;; TODO this could be "range" instead of "node"
 (defmethod add-offset ((node node) offset)
-  (incf (node-start node) offset)
-  (unless (minusp (node-end node))
-    (incf (node-end node) offset)))
+  (incf (start node) offset)
+  (unless (minusp (end node))
+    (incf (end node) offset)))
 
 
 ;;; Reader position (in the source string)

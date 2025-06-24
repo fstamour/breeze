@@ -30,9 +30,10 @@ newline or +end+)
   (alexandria:once-only (string)
     `(let ((state (make-state (register-test-string ,string))))
        ;; Wraps #'is-equal to use the state's source as input
-       ;; reminder: the input is only used (unless (equalp got expected))
+       ;; reminder: the input is only used (unless (eqv got expected))
        (labels ((test* (got &optional expected)
                   (is-equalp
+                   :comparator 'eqv
                    :input ,string
                    :got got
                    :expected expected
@@ -40,7 +41,7 @@ newline or +end+)
                    :format-args (state-context state)))
                 ,@more-labels)
          (declare (ignorable (function test*)))
-         ,@ (loop :for (label . _) :in more-labels
+         ,@(loop :for (label . _) :in more-labels
                   :collect `(declare (ignorable (function ,label))))
          ,@body))))
 
@@ -141,17 +142,17 @@ newline or +end+)
 (define-test+run next-char=)
 
 
-;;; Node structs
+;;; Node object
 
 (define-test+run node-constructor
-  (is equalp (node 'x 0 0) (node 'x 0 0))
-  (is equalp (node 'x 0 2 (node 'y 1 2)) (node 'x 0 2 (node 'y 1 2)))
-  (is equalp
+  (is eqv (node 'x 0 0) (node 'x 0 0))
+  (is eqv (node 'x 0 2 (node 'y 1 2)) (node 'x 0 2 (node 'y 1 2)))
+  (is eqv
       (node 'x 0 3 (node 'y 1 2) (node 'z 2 3))
       (node 'x 0 3 (nodes (node 'y 1 2) (node 'z 2 3))))
-  (is equalp (node 'parens 1 2) (parens 1 2))
-  (is equalp (parens 1 2 'x) (parens 1 2 'x))
-  (is equalp
+  (is eqv (node 'parens 1 2) (parens 1 2))
+  (is eqv (parens 1 2 'x) (parens 1 2 'x))
+  (is eqv
       (parens 1 2 (node 'x 3 4))
       (parens 1 2 (nodes (node 'x 3 4)))))
 
@@ -164,9 +165,9 @@ newline or +end+)
 
 (define-test+run node-print-object
   (test-node-print-object (node 'asdf 1 3) "(node 'asdf 1 3)")
-  (test-node-print-object #s(node :type boo :start 1 :end 2) "(node 'boo 1 2)")
+  (test-node-print-object (make-node :type 'boo :start 1 :end 2) "(node 'boo 1 2)")
   (test-node-print-object
-   (list #s(node :type boo :start 1 :end 2))
+   (list (make-node :type 'boo :start 1 :end 2))
    "((node 'boo 1 2))")
   (test-node-print-object
    (node 'asdf 1 3 (node 'qwer 3 5))
@@ -187,19 +188,19 @@ newline or +end+)
 
 (define-test+run ensure-nodes
   (false (ensure-nodes nil))
-  (is equalp #(t) (ensure-nodes t))
-  (is equalp #(t) (ensure-nodes (ensure-nodes t)))
-  (is equalp #(a b c) (ensure-nodes '(a b c))))
+  (is eqv #(t) (ensure-nodes t))
+  (is eqv #(t) (ensure-nodes (ensure-nodes t)))
+  (is eqv #(a b c) (ensure-nodes '(a b c))))
 
 (define-test+run nodes
   (false (%nodes nil nil))
-  (is equalp #(t) (%nodes t nil))
-  (is equalp #(t t) (%nodes t t))
-  (is equalp #(t) (%nodes nil t))
+  (is eqv #(t) (%nodes t nil))
+  (is eqv #(t t) (%nodes t t))
+  (is eqv #(t) (%nodes nil t))
   (false (nodes))
-  (is equalp #(t) (nodes t))
-  (is equalp #(a b) (nodes 'a 'b))
-  (is equalp #(a b c) (nodes 'a 'b 'c)))
+  (is eqv #(t) (nodes t))
+  (is eqv #(a b) (nodes 'a 'b))
+  (is eqv #(a b c) (nodes 'a 'b 'c)))
 
 
 ;;; Low-level parsing helpers
@@ -282,7 +283,8 @@ newline or +end+)
      :got (read-block-comment state)
      :form `(read-block-comment ,state)
      :expected (when expected-end
-                 (block-comment 0 expected-end)))))
+                 (block-comment 0 expected-end))
+     :comparator 'eqv)))
 
 (define-test+run read-block-comment
   :depends-on (read-string*)
@@ -364,6 +366,7 @@ the function read-sharpsign-dispatching-reader-macro
                              expected-children))
              (got
                (is-equalp
+                :comparator #'breeze.lossless-reader::eqv
                 :input input
                 :got (funcall sharpsing-reader-function
                               state
@@ -877,7 +880,8 @@ the function read-sharpsign-dispatching-reader-macro
   (with-state (input)
     (let ((got (is-equalp* input
                            (read-sharpsign-dispatching-reader-macro state)
-                           (node expected-type 0 expected-end))))
+                           (node expected-type 0 expected-end)
+                           #'eqv)))
       (when got
         (is-equalp* input
                     expected-pos
@@ -893,6 +897,7 @@ the function read-sharpsign-dispatching-reader-macro
                :got (read-sharpsign-dispatching-reader-macro state)
                :expected expected
                :form `(read-sharpsign-dispatching-reader-macro ,state)
+               :comparator 'eqv
                ;; :description description
                ;; :format-args format-args
                ))))
@@ -943,7 +948,8 @@ the function read-sharpsign-dispatching-reader-macro
     (is-equalp* input
                 (read-punctuation state)
                 (when expected-type
-                  (punctuation expected-type 0)))))
+                  (punctuation expected-type 0))
+                'eqv)))
 
 (define-test+run read-punctuation
   :depends-on (current-char)
@@ -1003,15 +1009,15 @@ the function read-sharpsign-dispatching-reader-macro
 
 (define-test token-symbol-node
   (progn
-    (is equalp (node 'current-package-symbol 0 1) (tsn "x"))
-    (is equalp (node 'keyword 1 2) (tsn ":x"))
-    (is equalp (node 'uninterned-symbol 2 3) (tsn "#:x"))
-    (is equalp
+    (is eqv (node 'current-package-symbol 0 1) (tsn "x"))
+    (is eqv (node 'keyword 1 2) (tsn ":x"))
+    (is eqv (node 'uninterned-symbol 2 3) (tsn "#:x"))
+    (is eqv
         (node 'qualified-symbol 0 3
               (nodes (node 'package-name 0 1)
                      (node 'symbol-name 2 3)))
         (tsn "p:x"))
-    (is equalp
+    (is eqv
         (node 'possibly-internal-symbol 0 4
               (nodes
                (node 'package-name 0 1)
@@ -1025,14 +1031,14 @@ the function read-sharpsign-dispatching-reader-macro
     (false (tsn "::x"))
     (false (tsn "a:a:x")))
   (progn
-    (is equalp (node 'current-package-symbol 3 4) (tsn-padded "x"))
-    (is equalp (node 'keyword 4 5) (tsn-padded ":x"))
-    (is equalp (node 'uninterned-symbol 5 6) (tsn-padded "#:x"))
-    (is equalp (node 'qualified-symbol 3 6
+    (is eqv (node 'current-package-symbol 3 4) (tsn-padded "x"))
+    (is eqv (node 'keyword 4 5) (tsn-padded ":x"))
+    (is eqv (node 'uninterned-symbol 5 6) (tsn-padded "#:x"))
+    (is eqv (node 'qualified-symbol 3 6
                      (nodes (node 'package-name 3 4)
                             (node 'symbol-name 5 6)))
         (tsn-padded "p:x"))
-    (is equalp (node 'possibly-internal-symbol 3 7
+    (is eqv (node 'possibly-internal-symbol 3 7
                      (nodes (node 'package-name 3 4)
                             (node 'symbol-name 6 7)))
         (tsn-padded "p::x"))
@@ -1106,8 +1112,8 @@ the function read-sharpsign-dispatching-reader-macro
   (let* ((state (parse input))
          (tree (tree state)))
     (if expected
-        (is-equalp* input tree (ensure-nodes expected))
-        (is-equalp* input tree))))
+        (is-equalp* input tree (ensure-nodes expected) 'eqv)
+        (is-equalp* input tree 'eqv))))
 
 (define-test+run "parse"
   :depends-on (read-parens)

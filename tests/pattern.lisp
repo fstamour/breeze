@@ -1,6 +1,8 @@
 (defpackage #:breeze.test.pattern
   (:documentation "Test package for breeze.pattern.")
   (:use #:cl #:breeze.pattern #:breeze.iterator)
+  (:import-from #:breeze.generics
+                #:eqv)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -484,7 +486,7 @@
                                         bindings-alist)
                                 bindings-alist)))
     (if bindings
-        (is equalp bindings bindings-alist
+        (is eqv bindings bindings-alist
             "Matching the pattern ~s against the input ~s should have created the bindings ~s but we got ~s instead."
             pattern input bindings bindings-alist)
         (false bindings-alist))))
