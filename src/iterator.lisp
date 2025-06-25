@@ -123,7 +123,7 @@ save this function's return value."))
 (defgeneric reset (iterator)
   (:documentation "Move the iterator to the beginning."))
 
-(defgeneric copy-iterator (iterator)
+(defgeneric copy-iterator (iterator &optional target)
   (:documentation "Copy an iterator."))
 
 (defgeneric current-position (iterator)
@@ -176,9 +176,15 @@ save this function's return value."))
     (setf position 0)))
 
 ;; TODO test
-(defmethod copy-iterator ((iterator vector-iterator))
+(defmethod copy-iterator ((iterator vector-iterator) &optional target)
   (with-slots (position vector) iterator
-    (make-vector-iterator vector :position position)))
+    (cond
+      (target
+       (setf (slot-value target 'vector) vector
+             (slot-value target 'position) position)
+       target)
+      (t
+       (make-vector-iterator vector :position position)))))
 
 
 ;;; Other methods on vector-iterator
@@ -371,20 +377,28 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
           (fill-pointer positions) 1)))
 
 ;; TODO test
-(defmethod copy-iterator ((iterator nested-vector-iterator))
+(defmethod copy-iterator ((iterator nested-vector-iterator)
+                          &optional target)
   (flet ((copy-vec (vec)
-            ;; TODO there's something in alexandria for this
-            (make-array (length vec)
-                     :element-type (array-element-type vec)
-                     :adjustable t
-                     :fill-pointer (fill-pointer vec)
-                     :initial-contents vec)))
+           ;; TODO there's something in alexandria for this
+           (make-array (length vec)
+                       :element-type (array-element-type vec)
+                       :adjustable t
+                       :fill-pointer (fill-pointer vec)
+                       :initial-contents vec)))
     (with-slots (vectors positions depth) iterator
-      (make-instance
-       (class-of iterator)
-       :vectors (copy-vec vectors)
-       :positions (copy-vec positions)
-       :depth depth))))
+      (cond
+        (target
+         (setf (slot-value target 'vectors) (copy-vec vectors)
+               (slot-value target 'positions) (copy-vec positions)
+               (slot-value target 'depth) depth)
+         target)
+        (t
+         (make-instance
+          (class-of iterator)
+          :vectors (copy-vec vectors)
+          :positions (copy-vec positions)
+          :depth depth))))))
 
 (defmethod push-vector ((iterator nested-vector-iterator)
                         vector &key (position 0))
@@ -465,7 +479,9 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
     (push-vector iterator vector)
     iterator))
 
-(defmethod copy-iterator ((recursive-iterator recursive-iterator))
+(defmethod copy-iterator ((recursive-iterator recursive-iterator)
+                          &optional target)
+  (declare (ignorable target))
   (let ((iterator (call-next-method)))
     (setf (recurse-into iterator) (recurse-into recursive-iterator))
     iterator))

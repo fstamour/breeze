@@ -10,7 +10,13 @@
            #:match
            #:ref
            #:term
-           #:maybe)
+           #:maybe
+           #:zero-or-more
+           #:repetition
+           #:repetition-pattern
+           #:repetition-min
+           #:repetition-max
+           #:make-pattern-iterator)
   ;; Working with match results
   (:export #:merge-sets-of-bindings
            #:find-binding
@@ -19,6 +25,7 @@
            #:to
            #:binding-set
            #:binding-set-p
+           #:merge-bindings
            #:pattern-substitute)
   (:export #:make-rewrite
            #:rewrite-pattern
@@ -95,10 +102,9 @@
 ;;; Repetitions
 
 (defstruct (repetition
-            (:constructor repetition (pattern min max &optional name))
+            (:constructor repetition (pattern min max))
             :constructor
-            (:predicate repetitionp)
-            (:include term))
+            (:predicate repetitionp))
   (pattern nil :read-only t)
   (min nil :read-only t)
   (max nil :read-only t)
@@ -112,17 +118,13 @@
        (= (repetition-min a) (repetition-min b))
        (let ((ma (repetition-max a))
              (mb (repetition-max a)))
-         (or (eq ma mb) (and (numberp ma) (numberp mb)) (= ma mb)))
-       (or (null (repetition-name a))
-           (null (repetition-name b))
-           (eq (repetition-name a)
-               (repetition-name b)))))
+         (or (eq ma mb) (and (numberp ma) (numberp mb)) (= ma mb)))))
 
-(defun maybe (pattern &optional name)
-  (repetition pattern 0 1 name))
+(defun maybe (pattern)
+  (repetition pattern 0 1))
 
-(defun zero-or-more (pattern &optional name)
-  (repetition pattern 0 nil name))
+(defun zero-or-more (pattern)
+  (repetition pattern 0 nil))
 
 
 ;;; WIP Alternations
@@ -220,7 +222,7 @@ compile-pattern is called, a new one is created."
 ;; Compile (:maybe ...)
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
   ;; TODO check the length of "pattern"
-  (maybe (%compile-pattern (second pattern)) (third pattern)))
+  (maybe (%compile-pattern (second pattern))))
 
 ;; Compile (:zero-or-more ...)
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
@@ -270,6 +272,9 @@ compile-pattern is called, a new one is created."
       (binding stream :type t)
     (format stream "~s → ~s" (from binding) (to binding))))
 
+(defmethod to ((_ null)))
+(defmethod from ((_ null)))
+
 (defclass binding-set ()
   ((bindings
     :initform (make-hash-table)
@@ -288,7 +293,7 @@ compile-pattern is called, a new one is created."
     (let* ((bindings (bindings binding-set))
            (size (hash-table-count bindings)))
       (cond
-        ((zerop size) (write-string "(empty)" stream) )
+        ((zerop size) (write-string "(empty)" stream))
         ((= 1 size) (prin1 (alexandria:hash-table-alist bindings) stream))
         (t (format stream "(~d bindings)" size))))))
 
@@ -445,19 +450,27 @@ bindings and keeping only those that have not conflicting bindings."
           (ref-pattern pattern)))
    :class 'pattern-iterator))
 
+(defmethod make-pattern-iterator ((pattern t))
+  (make-leaf-iterator
+   (vector pattern)
+   (constantly nil)
+   :class 'pattern-iterator))
+
 
 ;;; Matching sequences
+
+(defun skip ($input skipp)
+  (loop :while (and
+                (not (donep $input))
+                (funcall skipp $input))
+        :do (next $input :dont-recurse-p t)))
 
 (defmethod match (($pattern pattern-iterator) ($input iterator) &key skipp)
   (loop
     :with bindings = t ;; (make-binding-set)
     :until (or (donep $pattern) (donep $input))
     :for new-bindings = (progn
-                          (when skipp
-                            (loop :while (and
-                                          (not (donep $input))
-                                          (funcall skipp $input))
-                                  :do (next $input :dont-recurse-p t)))
+                          (when skipp (skip $input skipp))
                           (when (donep $input) (return))
                           (let ((sub-pattern (value $pattern)))
                                 (when (vectorp sub-pattern)
@@ -471,7 +484,7 @@ bindings and keeping only those that have not conflicting bindings."
                             ;; otherwise, this causes infinite
                             ;; recursion.
                             ;; TODO this is a very bad hack
-                            (if (typep $input 'breeze.lossless-reader::node-iterator )
+                            (if (typep $input 'breeze.lossless-reader::node-iterator)
                                 $input
                                 (value $input))))
     :do (next $pattern) (next $input :dont-recurse-p t)
@@ -500,59 +513,59 @@ bindings and keeping only those that have not conflicting bindings."
                    (unless (donep $input) $input))))))
 
 (defmethod match ((pattern term) (input iterator) &key skipp)
-  (multiple-value-bind (bindings input-remaining-p)
-      (match (make-pattern-iterator (vector pattern)) input :skipp skipp)
-    (unless input-remaining-p
-      bindings)))
+  (match (make-pattern-iterator (vector pattern)) input :skipp skipp))
 
 (defmethod match ((pattern vector) (input vector) &key skipp)
-  (multiple-value-bind (bindings input-remaining-p)
-      (match (make-pattern-iterator pattern)
-        (make-vector-iterator input)
-        :skipp skipp)
-    (unless input-remaining-p
-      bindings)))
+  (match (make-pattern-iterator pattern)
+    (make-vector-iterator input)
+    :skipp skipp))
 
 
 ;;; Matching alternations
 
 ;; TODO add tests with and without skipp
 (defmethod match ((pattern alternation) input &key skipp)
-  (some (lambda (pat) (match pat input :skipp skipp))
-        (alternation-pattern pattern)))
+  (loop :for pat :across (alternation-pattern pattern)
+        :for bindings = (match pat input :skipp skipp)
+        :when bindings
+          ;; TODO this is probably very wrong
+          :return (make-binding pattern
+                                (if (eq t bindings)
+                                    input
+                                    bindings))))
 
 
-;;; Matching repetitions
+;;; repetitions
 
 (defmethod match ((pattern repetition) (input vector) &key skipp)
   (loop
-    :with bindings = (make-binding-set)
-    :with pat = (repetition-pattern pattern)
-    :with input-iterator := (make-vector-iterator input)
-    :for i :from 0
-    :do (multiple-value-bind (new-bindings new-input-iterator)
-            (match (make-pattern-iterator pat) input-iterator :skipp skipp)
-          ;; (break)
-          (if new-bindings
-              ;; collect all the bindings (setf bindings
-              ;; (merge-bindings bindings new-bindings))
-              (progn
-                (setf bindings (merge-bindings bindings new-bindings))
-                ;; TODO check if bindings is nil after merging.
-                )
-              ;; No match
-              (if (<= (repetition-min pattern) i)
-                  (return bindings)
-                  (return nil)))
-          (if new-input-iterator
-              (setf input-iterator new-input-iterator)
-              ;; No more input left
-              (if (<= (repetition-min pattern) i)
-                  (return bindings)
-                  (return nil))))))
-
-;; TODO
-;; (defmethod match ((pattern repetition) (input iterator)))
+    :with bindings := t ;; (make-binding-set)
+    :with $pattern := (make-pattern-iterator
+                       (repetition-pattern pattern))
+    :with $input := (make-vector-iterator input)
+    :for i :from 0 :below 100 ;; TODO removve infinite loop guard
+    :for new-bindings = (progn
+                          (reset $pattern)
+                          (match $pattern $input :skipp skipp))
+    :do
+       ;;(break)
+       ;; No more input or, no match
+       (when (or
+              ;; no more input
+              (donep $input)
+              ;; no match
+              (not new-bindings)
+              ;; incomplete match
+              (not (donep $pattern)))
+         (if (<= (repetition-min pattern) i)
+             (return bindings)
+             (return nil)))
+       (when new-bindings
+         ;; collect all the bindings
+         (setf bindings (merge-bindings bindings new-bindings))
+         ;; TODO check if bindings is nil after merging.
+         (unless bindings
+           (break "conflict?")))))
 
 
 ;;; Convenience automatic coercions

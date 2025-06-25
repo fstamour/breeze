@@ -136,22 +136,71 @@
 ;; TODO add a special pattern type to match symbols in packages that
 ;; are not defined in the current image.
 (defmethod match ((pattern symbol) (node-iterator node-iterator) &key skipp)
-  (declare (ignorable skipp))
-  ;; TODO skip nodes
+  (when skipp (breeze.pattern::skip node-iterator skipp))
   (match-symbol-to-token pattern node-iterator))
 
 (defmethod match ((pattern null) (node-iterator node-iterator) &key skipp)
-  (declare (ignorable skipp))
-  ;; TODO skip nodes
+  (when skipp (breeze.pattern::skip node-iterator skipp))
   (match-symbol-to-token pattern node-iterator))
 
 (defmethod match ((pattern term) (state state) &key skipp)
   (match-parser-state pattern state :skipp skipp))
 
 (defmethod match ((pattern term) (node-iterator node-iterator) &key skipp)
-  (declare (ignore skipp))
+  (when skipp (breeze.pattern::skip node-iterator skipp))
   (unless (donep node-iterator)
     (breeze.pattern::make-binding pattern (copy-iterator node-iterator))))
+
+(defmethod match ((pattern repetition) (node-iterator node-iterator) &key skipp)
+  (when skipp (breeze.pattern::skip node-iterator skipp))
+  (unless (donep node-iterator)
+    (loop
+      :with bindings := t ;; (make-binding-set)
+      :with $pattern := (make-pattern-iterator
+                         (repetition-pattern pattern))
+      ;; TODO update node-iterator on match
+      :with $input := (copy-iterator node-iterator)
+      :for $prev-input := (copy-iterator $input)
+        :then  (copy-iterator $input $prev-input)
+      :for i :from 0 :below 100 ;; TODO removve infinite loop guard
+
+      :for new-bindings = (progn
+                            (reset $pattern)
+                            (match $pattern $input :skipp skipp))
+      :do
+         ;;(break)
+         ;; No more input or, no match
+         (when (or
+                ;; no more input
+                (donep $input)
+                ;; no match
+                (not new-bindings)
+                ;; incomplete match
+                (not (donep $pattern)))
+           ;; (break "The end")
+           (return
+             (when (<= (repetition-min pattern) i)
+               ;; (break "i: ~s new-bindings: ~s" i new-bindings)
+               (if (and (zerop i) (not new-bindings))
+                   t
+                   (let (($start (copy-iterator node-iterator))
+                         ($end
+                           ;; if it was a match, include the current position,
+                           ;; otherwise stop at the previous one.
+                           (if new-bindings $input $prev-input)))
+                     ;; update node-iterator
+                     (copy-iterator $end node-iterator)
+                     #++ (return bindings)
+                     ;; TODO return an object (iterator-range? +
+                     ;; binding-sets???)
+                     (cons $start $end))))))
+      #++
+       (when new-bindings
+         ;; collect all the bindings
+         ;; (setf bindings (merge-bindings bindings new-bindings))
+         ;; TODO check if bindings is nil after merging.
+         (unless bindings
+           (break "conflict?"))))))
 
 ;; TODO package-local-nicknames
 

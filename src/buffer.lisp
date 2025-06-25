@@ -95,8 +95,8 @@
   "Make new node-iterator from BUFFER's parse-state."
   (make-node-iterator (parse-state buffer)))
 
-(defmethod copy-iterator ((buffer buffer))
-  (copy-iterator (node-iterator buffer)))
+(defmethod copy-iterator ((buffer buffer) &optional target)
+  (copy-iterator (node-iterator buffer) target))
 
 ;; TODO add tests
 (defmethod map-top-level-in-package (function (buffer buffer))

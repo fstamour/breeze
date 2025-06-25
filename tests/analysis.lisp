@@ -259,6 +259,12 @@
       (t
        (false binding)))))
 
+#++
+(trace :wherein test-match-terms-against-parse-tree
+       match-symbol-to-token
+       match
+       breeze.analysis::node-string-equal)
+
 (define-test+run "match terms against parse trees"
   (progn
     (test-match-terms-against-parse-tree
@@ -274,7 +280,7 @@
      :?x "x" t
      (token 0 1))
     (test-match-terms-against-parse-tree
-     :?x " x" t
+     :?x " x" nil
      (whitespace 0 1)))
   (progn
     (test-match-terms-against-parse-tree
@@ -312,22 +318,92 @@
   (true (test-match-parse #(x) "x"))
   (true (test-match-parse '((x)) "(x)")))
 
-(defun test-alternation (pattern string expected-binding)
+(defun test-alternation (pattern string expected-binding
+                         &optional skip-whitespaces-and-comments)
   (finish
-   (let ((binding (match (compile-pattern pattern) (make-node-iterator string))))
+   (let* ((pattern (compile-pattern pattern))
+          (binding (match pattern (make-node-iterator string)
+                     :skipp (when skip-whitespaces-and-comments
+                               #'whitespace-or-comment-node-p))))
      (cond
-       (expected-binding (is eq t binding))
-       (t (false binding))))))
+       (expected-binding
+        (and
+         (true binding
+               "the pattern ~s should have matched the parse tree of ~s"
+               pattern string)
+         (of-type 'binding binding
+                  "matching the pattern ~s against the parse tree of ~s should return an object of type \"binding\", got ~s (of type ~s) instead."
+                  pattern string binding (type-of binding))
+         (is eq pattern (from binding)
+             "the binding from matching the pattern ~s against the parse tree of ~s should bind ~s, but got ~s instead"
+             pattern string pattern (from binding))
+         (of-type node-iterator (to binding)
+                  "the binding from matching the pattern ~s against the parse tree of ~s should bind to an object of type node-iterator, but got ~s (type ~s) instead"
+                  pattern string (to binding) (type-of (to binding)))
+         (is equalp expected-binding (node-string (to binding))
+             "the binding from matching the pattern ~s against the parse tree of ~s should bind _to_ ~s, but got ~s instead"
+             pattern string expected-binding (to binding))))
+       (t (false binding
+                 "the pattern ~s should not have matched the parse tree of ~s"
+                 pattern string))))))
 
 (define-test+run "match alternation against parse trees"
-  (test-alternation '(:alternation a b) "a" t)
-  (test-alternation '(:alternation a b) "b" t)
+  (test-alternation '(:alternation a b) "a" "a")
+  (test-alternation '(:alternation a b) "  a " nil)
+  (test-alternation '(:alternation a b) "  a " "a" :skipp)
+  (test-alternation '(:alternation a b) "b" "b")
   (test-alternation '(:alternation a b) "c" nil)
-  (test-alternation '(:alternation a b) "breeze.test.analysis::a" t)
+  (test-alternation '(:alternation a b) "breeze.test.analysis::a" "breeze.test.analysis::a")
   (test-alternation '(:alternation a b) "breeze.analysis::a" nil))
+
 
 #++
 (trace :wherein test-alternation
+       match-symbol-to-token
+       match
+       breeze.analysis::node-string-equal)
+
+(defun test-maybe (pattern string pos-start pos-end
+                   &optional skip-whitespaces-and-comments)
+  (finish
+   (let* (($node (make-node-iterator string))
+          (binding (match (compile-pattern pattern) $node
+                     :skipp
+                     (when skip-whitespaces-and-comments
+                               #'whitespace-or-comment-node-p))))
+     (is = pos-end (pos $node)
+         "matching the pattern ~s against the parse tree of ~s was expected to advance the iterator to ~s"
+         pattern string pos-end)
+     (true binding
+           "the pattern ~s was expected to match against the parse tree of ~s."
+           pattern string)
+     (and (plusp pos-end)
+         (of-type cons binding
+                  "matching the pattern ~s against the parse tree of ~s was expected to return a cons, got ~s instead"
+                  pattern string (type-of binding))
+         (destructuring-bind ($start . $end)
+             binding
+           (is = pos-start (pos $start)
+               "the bindings from matching the pattern ~s against the parse tree of ~s was expected to start at position ~s, but got ~s instead"
+               pattern string pos-start (pos $start))
+           (is = pos-end (pos $end)
+               "the bindings from matching the pattern ~s against the parse tree of ~s
+was expected to end at position ~s (exclusive), but got ~s instead"
+               pattern string pos-end (pos $end))))
+     ;; TODO maybe check the depth and/or the whole "positions" slot
+     ;; of $node
+     binding)))
+
+(define-test+run "match maybes against parse trees"
+  (test-maybe '(:maybe a) "a" 0 1)
+  (test-maybe '(:maybe a) " a" 1 2 :skipp)
+  (test-maybe '(:maybe a) "b" 0 0)
+  (test-maybe '(:maybe a) "c" 0 0)
+  (test-maybe '(:maybe a) "breeze.test.analysis::a" 0 1)
+  (test-maybe '(:maybe a) "breeze.analysis::a" 0 0))
+
+#++
+(trace :wherein test-maybe
        match-symbol-to-token
        match
        breeze.analysis::node-string-equal)

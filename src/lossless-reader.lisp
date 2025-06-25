@@ -1325,7 +1325,7 @@ Returns a new node with one of these types:
     ))
   (:documentation "An iterator for parse-trees."))
 
-(defmethod copy-iterator ((node-iterator node-iterator))
+(defmethod copy-iterator ((node-iterator node-iterator) &optional target)
   (let ((iterator (call-next-method)))
     (setf (state iterator) (state node-iterator))
     iterator))

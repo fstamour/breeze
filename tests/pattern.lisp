@@ -154,7 +154,6 @@
   (is pattern= (term :?x) (compile-pattern :?x))
   (is pattern= (ref :x) (compile-pattern '(:ref :x)))
   (is pattern= (maybe :x) (compile-pattern '(:maybe :x)))
-  (is pattern= (maybe :x :?y) (compile-pattern '(:maybe :x :?y)))
   (is pattern= (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
   (is pattern= (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
   (is pattern= (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
@@ -216,6 +215,8 @@
   (etypecase binding-set
       ((eql t) t)
       (null nil)
+      (binding
+       (list (cons (from binding-set) (to binding-set))))
       (binding-set
        (sort
         (mapcar (lambda (binding)
@@ -362,51 +363,91 @@
   (true (match #(a) '(a)))
   (false (match #(a b) #(a)))
   (true (match #(a b) #(a b)))
-  (false (match #(a b) #(a b a))))
+  (finish
+   (multiple-value-bind (bindings iterator)
+       (match #(a b) #(a b a))
+     (is eq t bindings)
+     (false (donep iterator)))))
 
 
 ;;; test :maybe :zero-or-more and :alternation
 
-#++ ;; TODO
+(defun test-match* (description pattern input expected-binding)
+  (finish
+   (let* ((pattern (compile-pattern pattern))
+         (bindings (match pattern input)))
+     (cond
+       ((eq expected-binding t)
+        (is eq t bindings
+            "~a: matching the pattern ~s against the input ~s should have created the bindings ~s but we got ~s instead."
+            description pattern input expected-binding bindings))
+       (expected-binding
+        (and (true bindings
+                   "~a: matching the pattern ~s against the input ~s should been successful."
+                   description pattern input)
+             (of-type 'binding bindings
+                      "~a: matching the pattern ~s against the input ~s should return an object of type \"bindings\", got ~s (of type ~s) instead."
+                      description pattern input bindings (type-of bindings))
+             (is eq pattern (from bindings)
+                 "~a: the bindings from matching the pattern ~s against the input ~s should bind ~s, but got ~s instead"
+                 description pattern input pattern (from bindings))
+             (is equalp expected-binding (to bindings)
+                 "~a: the bindings from matching the pattern ~s against the input ~s should bind _to_ ~s, but got ~s instead"
+                 description pattern input expected-binding (to bindings))))
+       (t
+        (false bindings
+               "~a: matching the pattern ~s against the input ~s should not have matched"
+               description pattern input)))
+     bindings)))
+
 (define-test+run "match maybe"
-  (is eq t (match (maybe 'a) 'a))
-  (is eq t (match (maybe 'a) nil))
-  (is eq t (match (maybe 'a :?x) nil))
-  (false (match (maybe 'a :?x) 'b))
-  (false (match (maybe 'a) 'b))
-  (is equalp `(,(maybe :name :?x :pattern a) a) (match (maybe 'a :?x) 'a))
-  (is equalp '(#(term :name '?x) a) (match (maybe (term '?x)) 'a))
-  (is equalp `(,(term :name '?x) nil) (match (maybe (term '?x)) nil)))
+  (test-match* "matching a? against the sequence (a)"
+              (maybe 'a) '(a) t)
+  (test-match* "matching a? against the atom 'a"
+              (maybe 'a) 'a nil)
+  (test-match* "matching a? against the empty sequence"
+              (maybe 'a) nil t)
+  (test-match* "matching a? against the atom 'b"
+              (maybe 'a) 'b nil)
+  (test-match* "matching (maybe ?x) against the atom 'a"
+              (maybe (term '?x)) 'a nil)
+  (test-match* "matching (maybe ?x) agains the empty sequence"
+              (maybe (term '?x)) nil t))
 
 (define-test+run "match alternations"
-  (is eq t (test-match '(:alternation a b) 'a))
-  (is eq t (test-match '(:alternation a b) 'b))
-  (false (test-match '(:alternation a b) 'c))
-  (finish
-   (let ((binding (test-match '(:alternation ?x b) 'c)))
-     (true binding)
-     (is eq 'c (to binding))))
-  (let* ((pat (compile-pattern '(:alternation (:maybe a ?x) b))))
-    (let ((binding (test-match pat 'a)))
-      (true binding)
-      (is eq 'a (to binding)))
-    (let ((binding (test-match pat 'b)))
-      (true binding)
-      (is eq 'b (to binding)))
-    #++ ;; TODO non-greedy repetition
-    (let ((binding (test-match pat 'b)))
-      (true binding)
-      (is eq t binding))
-    #++ ;; TODO non-greedy repetition
-    (false (test-match pat 'c))))
+  (test-match* "matching (or a b) against 'a"
+               (alternation #(a b)) 'a 'a)
+  (test-match* "matching (or a b) against 'b"
+               (alternation #(a b)) 'b 'b)
+  (test-match* "matching (or a b) against 'c"
+               (alternation #(a b)) 'c nil)
+  (test-match* "matching (or ?x b) against 'c"
+               (alternation #(a b)) 'c nil)
+  (test-match* "matching (or (maybe a) b) against the atom 'a"
+               '(:alternation (:maybe a) b) 'a nil)
+  (test-match* "matching (or (maybe a) b) against the sequence (a)"
+               '(:alternation (:maybe a) b) '(a) '(a))
+  (test-match* "matching (or (maybe a) b) against the atom 'b"
+               '(:alternation (:maybe a) b) 'b 'b)
+  (test-match* "matching (or (maybe a) b) against the sequence (b)"
+               '(:alternation (:maybe a) b) '(b) '(b))
+  #++ ;; TODO non-greedy repetition
+  (let ((binding (test-match pat 'b)))
+    (true binding)
+    (is eq t binding))
+  #++ ;; TODO non-greedy repetition
+  (false (test-match pat 'c)))
 
-#++ ;; TODO
 (define-test+run "match zero-or-more"
   (true (test-match '(:zero-or-more a) nil))
-  (false (test-match '(:zero-or-more a b) '(a)))
-  (is eq t (test-match '(:zero-or-more a b) '(a b)))
-  (false (test-match '(:zero-or-more a b) '(a b a)))
-  (is eq t (test-match '(:zero-or-more a b) '(a b a b)))
+  (true (test-match '(:zero-or-more a b) '(a))
+        "It should match 0 times")
+  (is eq t (test-match '(:zero-or-more a b) '(a b))
+      "It should match 1 time")
+  (is eq t (test-match '(:zero-or-more a b) '(a b a))
+      "It should match 1 time")
+  (is eq t (test-match '(:zero-or-more a b) '(a b a b))
+      "It should match twice")
   (false (test-match '(:zero-or-more a b) 'a)))
 
 #++ ;; TODO
@@ -486,7 +527,7 @@
                                         bindings-alist)
                                 bindings-alist)))
     (if bindings
-        (is eqv bindings bindings-alist
+        (is equalp bindings bindings-alist
             "Matching the pattern ~s against the input ~s should have created the bindings ~s but we got ~s instead."
             pattern input bindings bindings-alist)
         (false bindings-alist))))

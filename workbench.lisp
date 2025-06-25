@@ -287,8 +287,13 @@
  match)
 
 (trace
- :wherein test-maybe
+ :wherein test-match*
  :methods t
+ match)
+
+(trace
+ :wherein test-match*
+ ;; :methods t
  match)
 
 (in-package #:breeze.test.analysis)
