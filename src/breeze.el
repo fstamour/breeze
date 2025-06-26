@@ -920,6 +920,18 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 (keymap-set breeze-minor-mode-map "C-c o" #'breeze-other-file)
 (keymap-set breeze-minor-mode-map "M-c" #'breeze-interactive-eval)
 
+(defvar breeze-test-map (make-sparse-keymap)
+  "Keymap for the test-related commands.")
+
+;; TODO none of these commands are implemented
+(keymap-set breeze-test-map "r" 'breeze-test-run)
+(keymap-set breeze-test-map "u" 'breeze-test-undefine)
+(keymap-set breeze-test-map "a" 'breeze-test-run-all)
+(keymap-set breeze-test-map "." 'breeze-test-quickfix)
+(keymap-set breeze-test-map "g" 'breeze-test-goto)
+
+(keymap-set breeze-minor-mode-map "C-c t" breeze-test-map)
+
 ;; TODO bind M-a and M-e to smth (forward/backward sexp)
 
 ;; TODO define keymap breeze-insert-keymap
