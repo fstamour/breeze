@@ -15,6 +15,8 @@
            #:filename
            #:point-min
            #:point-max
+           #:major-mode
+           #:cwd
            #:in-package-nodes
            #:make-buffer
            #:update-buffer-content
@@ -61,6 +63,16 @@
     :initarg :point-max
     :accessor point-max
     :documentation "If the buffer is narrowed, ... TODO")
+   (major-mode
+    :initform nil
+    :initarg :major-mode
+    :accessor major-mode
+    :documentation "Mode of the buffer")
+   (cwd
+    :initform nil
+    :initarg :cwd
+    :accessor cwd
+    :documentation "Current working directory of the buffer")
    (in-package-nodes
     :initform nil
     :accessor in-package-nodes

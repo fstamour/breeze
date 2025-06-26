@@ -270,14 +270,17 @@ when starting a command."
     ":buffer-string %S "
     ":point %S "
     ":point-min %S "
-    ":point-max %S")
+    ":point-max %S "
+    ":major-mode %S ")
    (buffer-name)
    (buffer-file-name)
    (when include-buffer-content-p
      (buffer-substring-no-properties (point-min) (point-max)))
    (1- (point))
    (1- (point-min))
-   (1- (point-max))))
+   (1- (point-max))
+   major-mode
+   default-directory))
 
 (defun breeze-command-start (name &optional extra-args)
   "Start a command by evaluating the CL function breeze.command:start-command.
@@ -299,7 +302,6 @@ diagnostics)."
   (breeze-eval
    (format "(breeze.command:cancel-command %s %S)" id reason))
   (breeze-debug "Breeze: command %s canceled." id))
-;; (breeze-command-cancel)
 
 (defun breeze-command-continue (id response send-response-p)
   "Send RESPONSE to the command ID so it can continues after
