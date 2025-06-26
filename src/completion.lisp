@@ -12,8 +12,10 @@
 
 (in-package #:breeze.completion)
 
+;; TODO this shouldn't show up in the list of commands suggested by
+;; "quickfix", and it shouldn't generate an interactive command when
 (define-command completions-at-point (&optional string)
-  ""
+  "completion-at-point"
   (let* (($node (node-iterator (current-buffer)))
          (node (breeze.iterator:value $node)))
     ;; (break "~s" (breeze.lossless-reader:node-string $node))
