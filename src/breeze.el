@@ -359,6 +359,10 @@ receiving the data it requested."
      (throw 'breeze-run-command (cl-second request)))
     ("buffer-string"
      (buffer-substring-no-properties (point-min) (point-max)))
+    ("goto-char"
+     (cl-destructuring-bind (_ position)
+         request
+       (goto-char (1+ position))))
     (_ (breeze-debug "Unknown request: %S" request))))
 
 (defun breeze-run-command (name &rest extra-args)

@@ -53,6 +53,7 @@
    #:ask-y-or-n-p
    #:return-value-from-command
    #:return-from-command
+   #:goto-char
    ;; Command discovery and documentation
    #:commandp
    #:list-all-commands
@@ -649,6 +650,9 @@ resulting string to the editor."
 
 (defun return-value-from-command (value)
   (send "return" value))
+
+(defun goto-char (position)
+  (send "goto-char" position))
 
 
 ;;; Command discovery and documentation
