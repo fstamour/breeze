@@ -23,7 +23,8 @@
                bordeaux-threads
                ;; Utilities
                alexandria
-               uiop)
+               uiop
+               cl-heap)
   :pathname "src"
   :components
   ((:file "logging")
@@ -65,6 +66,8 @@
    (:file "refactor" :depends-on ( "command" "cl" "analysis"
                                    "utils" "indirection"
                                    "workspace"))
+   (:file "completion"
+          :depends-on ("command" "analysis"))
    (:file "project" :depends-on ("utils" "command" "configuration"))
    (:file "capture" :depends-on ("utils" "command" "configuration")))
   :in-order-to ((test-op (load-op breeze/test)))

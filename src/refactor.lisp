@@ -50,8 +50,7 @@
    ;; Other commands
    #:quickfix
    #| WIP commands |#
-   #++ #:other-file
-   #:completions-at-point))
+   #++ #:other-file))
 
 (in-package #:breeze.refactor)
 
@@ -562,19 +561,6 @@ TODO there's some different kind of "quickfixes":
 #++
 (if-let ((vc-root (indirect (find-version-control-root path))))
   (directory-name vc-root))
-
-
-
-;;; Completion-at-point
-
-
-
-(define-command completions-at-point ()
-  ""
-  (let (($node (node-iterator (current-buffer))))
-    (declare (ignorable $node))
-    (break)
-    (return-value-from-command '("asfd" "qwer" "uiop"))))
 
 
 ;;; Emacs header-line
