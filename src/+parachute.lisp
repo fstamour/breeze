@@ -7,7 +7,8 @@
   (:import-from #:breeze.command
                 #:define-command
                 #:insert
-                #:read-string-then-insert)
+                #:read-string-then-insert
+                #:context)
   (:export
    #:is
    #:is-equalp
