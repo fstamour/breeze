@@ -5,7 +5,7 @@ Point-Char: $
 ;; with paredit, you can't use paredit-splice-sexp-killing-backward
 ;; (M-up) without losing the comment
 Name: splice backward keeps comments
-Command: breeze:splice-sexp-backwards
+Code: breeze:splice-sexp-backwards
 ;; TODO automatically skip if the "command" doesn't exist
 Skip: t
 
@@ -24,7 +24,7 @@ $(+ 2 2)
 
 
 Name: contextual split sexp
-Command: breeze:split-sexp
+Code: breeze:split-sexp
 
 =-=
 (:export
@@ -42,7 +42,7 @@ Command: breeze:split-sexp
 =-=-=
 
 Name: fill-paragraph in multiline-comments
-Command: breeze:fill-paragraph
+Code: breeze:fill-paragraph
 
 =-=
 #| this is a long line this is a long line this is a long line this is a long line |#
@@ -79,7 +79,7 @@ a long line |#
 
 
 Name: delete-char should let you delete a character to fix syntax errors
-Command: breeze:delete-char
+Code: breeze:delete-char
 
 =-=
 (if $; test)
@@ -88,7 +88,7 @@ Command: breeze:delete-char
 =-=-=
 
 Name: delete-forward-char should let you delete a character to fix syntax errors
-Command: breeze:delete-forward-char
+Code: breeze:delete-forward-char
 
 =-=
 (if ;$ test)
@@ -98,7 +98,7 @@ Command: breeze:delete-forward-char
 
 
 Name: forward-slurp-sexp should not ignore comments
-Command: breeze:forward-slurp-sexp
+Code: breeze:forward-slurp-sexp
 
 =-=
 ($) ;; asdf
@@ -305,7 +305,7 @@ Name: transpose-chars
 (|)
 =-=
 (|)
-=-=
+=-=-=
 
 
 ;; TODO transpose loop-clause
