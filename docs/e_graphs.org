@@ -1,5 +1,6 @@
 :PROPERTIES:
 :ID:       32155195-1bc4-4f2d-8f6a-12fb0bd68ecc
+:ROAM_ALIASES: egraphs
 :END:
 #+title: E-graphs
 
@@ -22,5 +23,6 @@ https://gitlab.com/fstamour/catchall/-/tree/master/egraph
 - https://egraphs-good.github.io/
 - https://colab.research.google.com/drive/1tNOQijJqe5tw-Pk9iqd6HHb2abC5aRid?usp=sharing
 - https://arxiv.org/pdf/2004.03082.pdf
+- https://github.com/philzook58/awesome-egraphs
 
 ** TODO Find the paper relating FTA, VSAs and e-graphs
