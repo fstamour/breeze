@@ -60,7 +60,8 @@ generalization of that first iteration (ha!).
    #:root-value)
   ;; Functions for recursive-iterator
   (:export
-   #:go-down)
+   #:go-down
+   #:go-up)
   ;; Other utility functions
   (:export
    #:firstp
@@ -305,9 +306,9 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
 
 (defmethod print-object ((iterator nested-vector-iterator) stream)
   (print-unreadable-object
-      (iterator stream :type nil :identity t)
+      (iterator stream :type t :identity t)
     (with-slots (depth positions) iterator
-        (format stream "nested-vector-iterator depth: ~s pos: ~s" depth positions))))
+        (format stream "depth: ~s pos: ~s" depth positions))))
 
 (defun make-nested-vector-iterator (vector)
   "Create a new depth-first iterator on VECTOR."
@@ -495,6 +496,11 @@ If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applie
                                       (value iterator)
                                       value-to-dig-in))
                      t))))
+
+(defmethod go-up ((iterator recursive-iterator))
+  (when (lastp iterator)
+    (unless (zerop (slot-value iterator 'depth))
+      (pop-vector iterator))))
 
 
 

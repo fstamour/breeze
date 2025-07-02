@@ -92,6 +92,12 @@
 (defmethod match (pattern (state state) &key skipp)
   (match-parser-state pattern state :skipp skipp))
 
+(defmethod match ((pattern null) (state state) &key skipp)
+  "Nil should not match a parse-tree (use an empty vector as pattern to
+match an empty parse tree."
+  (declare (ignore skipp))
+  nil)
+
 (defmethod match ((pattern symbol) (state state) &key skipp)
   (declare (ignore skipp))
   ;; These should return nil because we're trying to match 1 symbol
@@ -151,24 +157,25 @@
   (unless (donep node-iterator)
     (breeze.pattern::make-binding pattern (copy-iterator node-iterator))))
 
-(defmethod match ((pattern repetition) (node-iterator node-iterator) &key skipp)
-  (when skipp (breeze.pattern::skip node-iterator skipp))
-  (unless (donep node-iterator)
+(defmethod match ((pattern repetition) (iterator node-iterator) &key skipp)
+  (when skipp (breeze.pattern::skip iterator skipp))
+  (unless (donep iterator)
     (loop
-      :with bindings := t ;; (make-binding-set)
+      ;; :with bindings := t ;; (make-binding-set)
       :with $pattern := (make-pattern-iterator
                          (repetition-pattern pattern))
       ;; TODO update node-iterator on match
-      :with $input := (copy-iterator node-iterator)
+      :with $input := (copy-iterator iterator)
       :for $prev-input := (copy-iterator $input)
-        :then  (copy-iterator $input $prev-input)
+        :then (copy-iterator $input $prev-input)
       :for i :from 0 :below 100 ;; TODO removve infinite loop guard
 
       :for new-bindings = (progn
                             (reset $pattern)
                             (match $pattern $input :skipp skipp))
+      :when new-bindings
+        :collect new-bindings :into bindings
       :do
-         ;;(break)
          ;; No more input or, no match
          (when (or
                 ;; no more input
@@ -183,17 +190,22 @@
                ;; (break "i: ~s new-bindings: ~s" i new-bindings)
                (if (and (zerop i) (not new-bindings))
                    t
-                   (let (($start (copy-iterator node-iterator))
+                   (let (($start (copy-iterator iterator))
                          ($end
                            ;; if it was a match, include the current position,
                            ;; otherwise stop at the previous one.
                            (if new-bindings $input $prev-input)))
-                     ;; update node-iterator
-                     (copy-iterator $end node-iterator)
-                     #++ (return bindings)
+                     ;; update iterator
+                     (copy-iterator $end iterator)
                      ;; TODO return an object (iterator-range? +
                      ;; binding-sets???)
-                     (cons $start $end))))))
+                     (make-binding
+                      pattern
+                      (list
+                       :bindings bindings
+                       :$start $start
+                       :$end $end
+                       :times i)))))))
       #++
        (when new-bindings
          ;; collect all the bindings

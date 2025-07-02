@@ -199,6 +199,7 @@
       (collect (make-pattern-iterator `#(b ,(ref 'a) c)))))
 
 
+;;; bindings
 
 (define-test+run make-binding
   ;; TODO export 'binding, maybe

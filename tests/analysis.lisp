@@ -49,10 +49,8 @@
 (define-test+run "match pattern nil and (nil) against parse trees"
   ;; pattern nil
   (progn
-    ;; TODO I'm not sure what should be the right things
-    ;;  - on one hand the parse tree _is_ nil
-    ;;  - on the other hand, (read "") would error
-    ;; (false (test-match-parse nil ""))
+    (false (test-match-parse nil "")
+           "Nil should not match a parse tree (to match an empty parse tree, use an empty vector)")
     (false (test-match-parse nil "  " nil))
     (false (test-match-parse nil "; hi" nil))
     (false (test-match-parse nil "#| hi |#" nil))
@@ -68,10 +66,8 @@
     #++ ;; TODO not implemented yet
     (false (test-match-parse nil "common-lisp-user:nil" nil)))
   (progn
-    ;; TODO I'm not sure what should be the right things
-    ;;  - on one hand the parse tree _is_ nil
-    ;;  - on the other hand, (read "") would error
-    ;; (false (test-match-parse nil ""))
+    (false (test-match-parse nil "")
+           "Nil should not match a parse tree (to match an empty parse tree, use an empty vector)")
     (false (test-match-parse nil "  " t))
     (false (test-match-parse nil "; hi" t))
     (false (test-match-parse nil "#| hi |#" t))
@@ -91,7 +87,7 @@
     (false (test-match-parse '(nil) "  "))
     (false (test-match-parse '(nil) "; hi"))
     (false (test-match-parse '(nil) "#| hi |#"))
-    (true (test-match-parse '(nil) "nil")) ;;;;;;;;;;;;;;;;;;;;;;;;;;
+    (true (test-match-parse '(nil) "nil"))
     (true (test-match-parse '(nil) "NIL"))
     (true (test-match-parse '(nil) "nIl"))
     (true (test-match-parse '(nil) "cl:nil"))
@@ -321,10 +317,11 @@
 (defun test-alternation (pattern string expected-binding
                          &optional skip-whitespaces-and-comments)
   (finish
-   (let* ((pattern (compile-pattern pattern))
-          (binding (match pattern (make-node-iterator string)
+   (let* (($node (make-node-iterator string))
+          (pattern (compile-pattern pattern))
+          (binding (match pattern $node
                      :skipp (when skip-whitespaces-and-comments
-                               #'whitespace-or-comment-node-p))))
+                              #'whitespace-or-comment-node-p))))
      (cond
        (expected-binding
         (and
@@ -345,7 +342,8 @@
              pattern string expected-binding (to binding))))
        (t (false binding
                  "the pattern ~s should not have matched the parse tree of ~s"
-                 pattern string))))))
+                 pattern string)))
+     binding)))
 
 (define-test+run "match alternation against parse trees"
   (test-alternation '(:alternation a b) "a" "a")
@@ -363,50 +361,111 @@
        match
        breeze.analysis::node-string-equal)
 
-(defun test-maybe (pattern string pos-start pos-end
-                   &optional skip-whitespaces-and-comments)
-  (finish
-   (let* (($node (make-node-iterator string))
-          (binding (match (compile-pattern pattern) $node
-                     :skipp
-                     (when skip-whitespaces-and-comments
-                               #'whitespace-or-comment-node-p))))
-     (is = pos-end (pos $node)
-         "matching the pattern ~s against the parse tree of ~s was expected to advance the iterator to ~s"
-         pattern string pos-end)
-     (true binding
-           "the pattern ~s was expected to match against the parse tree of ~s."
-           pattern string)
-     (and (plusp pos-end)
-         (of-type cons binding
-                  "matching the pattern ~s against the parse tree of ~s was expected to return a cons, got ~s instead"
-                  pattern string (type-of binding))
-         (destructuring-bind ($start . $end)
-             binding
-           (is = pos-start (pos $start)
-               "the bindings from matching the pattern ~s against the parse tree of ~s was expected to start at position ~s, but got ~s instead"
-               pattern string pos-start (pos $start))
-           (is = pos-end (pos $end)
-               "the bindings from matching the pattern ~s against the parse tree of ~s
+(defun test-repetition (pattern string pos-start pos-end
+                        &optional skip-whitespaces-and-comments)
+  (let* (($node (make-node-iterator string))
+         (pattern (compile-pattern pattern))
+         (binding (match pattern $node
+                    :skipp (when skip-whitespaces-and-comments
+                             #'whitespace-or-comment-node-p))))
+    (is = pos-end (pos $node)
+        "matching the pattern ~s against the parse tree of ~s was expected to advance the iterator to ~s"
+        pattern string pos-end)
+    (true binding
+          "the pattern ~s was expected to match against the parse tree of ~s."
+          pattern string)
+    (and (plusp pos-end)
+         (of-type 'binding binding
+                  "matching the pattern ~s against the parse tree of ~s should return an object of type \"binding\", got ~s (of type ~s) instead."
+                  pattern string binding (type-of binding))
+         (when binding
+           (let ((from (from binding))
+                 (to (to binding)))
+             (is eq pattern from
+                 "the binding from matching the pattern ~s against the parse tree of ~s should bind ~s, but got ~s instead"
+                 pattern string pattern from)
+             (let (($start (getf to :$start))
+                   ($end (getf to :$end))
+                   (bindings (getf to :bindings))
+                   (times (getf to :times)))
+               (declare (ignorable bindings times)) ;; TODO
+               (is = pos-start (pos $start)
+                   "the bindings from matching the pattern ~s against the parse tree of ~s was expected to start at position ~s, but got ~s instead"
+                   pattern string pos-start (pos $start))
+               (is = pos-end (pos $end)
+                   "the bindings from matching the pattern ~s against the parse tree of ~s
 was expected to end at position ~s (exclusive), but got ~s instead"
-               pattern string pos-end (pos $end))))
-     ;; TODO maybe check the depth and/or the whole "positions" slot
-     ;; of $node
-     binding)))
+                   pattern string pos-end (pos $end))
+               ;; TODO check bindings
+               ;; TODO check times
+               ))))
+    ;; TODO maybe check the depth and/or the whole "positions" slot
+    ;; of $node
+    binding))
 
-(define-test+run "match maybes against parse trees"
-  (test-maybe '(:maybe a) "a" 0 1)
-  (test-maybe '(:maybe a) " a" 1 2 :skipp)
-  (test-maybe '(:maybe a) "b" 0 0)
-  (test-maybe '(:maybe a) "c" 0 0)
-  (test-maybe '(:maybe a) "breeze.test.analysis::a" 0 1)
-  (test-maybe '(:maybe a) "breeze.analysis::a" 0 0))
+(define-test+run "match maybe against parse trees"
+  ;; TODO these don't check the resulting bindings
+  (test-repetition '(:maybe a) "a" 0 1)
+  (test-repetition '(:maybe a) " a" 1 2 :skipp)
+  (test-repetition '(:maybe a) "b" 0 0)
+  (test-repetition '(:maybe a) "c" 0 0)
+  (test-repetition '(:maybe a) "breeze.test.analysis::a" 0 1)
+  (test-repetition '(:maybe a) "breeze.analysis::a" 0 0))
 
 #++
-(trace :wherein test-maybe
+(trace :wherein test-repetition
        match-symbol-to-token
        match
        breeze.analysis::node-string-equal)
+
+(define-test+run "match zero-or-more against parse trees"
+  (progn
+    (test-repetition '(:zero-or-more a) "a" 0 1)
+    (test-repetition '(:zero-or-more a) " a" 1 2 :skipp)
+    (test-repetition '(:zero-or-more a) "b" 0 0)
+    (test-repetition '(:zero-or-more a) "c" 0 0)
+    (test-repetition '(:zero-or-more a) "breeze.test.analysis::a" 0 1)
+    (test-repetition '(:zero-or-more a) "breeze.analysis::a" 0 0))
+  (progn
+    (test-repetition '(:zero-or-more a) "a a a" 0 1)
+    (test-repetition '(:zero-or-more a) " a a a " 1 7 :skipp)
+    (test-repetition '(:zero-or-more a) "a b" 0 1)
+    (test-repetition '(:zero-or-more a) "a b" 0 2 :skipp)
+    (test-repetition '(:zero-or-more a) "c" 0 0)
+    (test-repetition '(:zero-or-more a) "breeze.test.analysis::a" 0 1)
+    (test-repetition '(:zero-or-more a) "breeze.analysis::a" 0 0)))
+
+(define-test+run "match zero-or-more + alternation against parse trees"
+  (progn
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "a" 0 1)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     " a" 1 2 :skipp)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "b" 0 1)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "c" 0 0)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "breeze.test.analysis::a" 0 1)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "breeze.analysis::a" 0 0))
+  (progn
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "a a a" 0 1)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     " a a a " 1 7 :skipp)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "a b" 0 1)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "a b" 0 3 :skipp)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "a b a b b a a c" 0 14 :skipp)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "c" 0 0)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "breeze.test.analysis::b" 0 1)
+    (test-repetition '(:zero-or-more (:alternation a b))
+                     "breeze.analysis::a" 0 0)))
 
 
 ;;; Basic tree inspection

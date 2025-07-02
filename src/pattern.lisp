@@ -18,7 +18,8 @@
            #:repetition-max
            #:make-pattern-iterator)
   ;; Working with match results
-  (:export #:merge-sets-of-bindings
+  (:export #:make-binding
+           #:merge-sets-of-bindings
            #:find-binding
            #:binding
            #:from
@@ -120,6 +121,13 @@
              (mb (repetition-max a)))
          (or (eq ma mb) (and (numberp ma) (numberp mb)) (= ma mb)))))
 
+(defmethod print-object ((repetition repetition) stream)
+  (print-unreadable-object
+      (repetition stream :type t :identity t)
+    (format stream "[~s-~s]"
+            (repetition-min repetition)
+            (repetition-max repetition))))
+
 (defun maybe (pattern)
   (repetition pattern 0 1))
 
@@ -140,6 +148,12 @@
        (alternationp b)
        (pattern= (alternation-pattern a)
                  (alternation-pattern b))))
+
+(defmethod print-object ((alternation alternation) stream)
+  (print-unreadable-object
+      (alternation stream :type t :identity t)
+    ;; (format stream "~s" (alternation-something alternation))
+    ))
 
 
 ;;; Pattern comparison
@@ -421,8 +435,8 @@ bindings and keeping only those that have not conflicting bindings."
     (make-binding pattern input)))
 
 ;; Recurse into a referenced pattern
-(defmethod match ((pattern ref) input &key)
-  (match (ref-pattern pattern) input))
+(defmethod match ((pattern ref) input &key skipp)
+  (match (ref-pattern pattern) input :skipp skipp))
 
 ;; Match a string literal
 (defmethod match ((pattern string) (input string) &key)
@@ -465,6 +479,8 @@ bindings and keeping only those that have not conflicting bindings."
                 (funcall skipp $input))
         :do (next $input :dont-recurse-p t)))
 
+;; TODO rename $input to iterator; :with $input = copy iterator, copy
+;; back if match is successful
 (defmethod match (($pattern pattern-iterator) ($input iterator) &key skipp)
   (loop
     :with bindings = t ;; (make-binding-set)
@@ -548,7 +564,6 @@ bindings and keeping only those that have not conflicting bindings."
                           (reset $pattern)
                           (match $pattern $input :skipp skipp))
     :do
-       ;;(break)
        ;; No more input or, no match
        (when (or
               ;; no more input

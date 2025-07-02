@@ -685,7 +685,7 @@ resulting string to the editor."
   (let ((doc (documentation function 'function)))
     (unless doc
       (error
-       "Function ~s does not have a documentation string.~
+       "Function ~s does not have a documentation string. ~
                   Is it defined?"
        function))
     doc))

@@ -16,8 +16,10 @@
 ;; "quickfix", and it shouldn't generate an interactive command when
 (define-command completions-at-point (&optional string)
   "completion-at-point"
+  (declare (ignorable string))
   (let* (($node (node-iterator (current-buffer)))
          (node (breeze.iterator:value $node)))
+    (declare (ignorable node))
     ;; (break "~s" (breeze.lossless-reader:node-string $node))
     (return-value-from-command
      (list "prin1" "print")
