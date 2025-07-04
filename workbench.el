@@ -52,6 +52,8 @@
 
 (symbol-function 'breeze-scaffold-project)
 
+(symbol-function 'breeze-quickfix)
+
 
 ;;; Trying to make breeze system load automatically... and
 ;;; asynchronously if it make sense.
@@ -142,3 +144,141 @@ flymake-diagnostic-functions
              do
              (sldb-forward-frame)
              (sldb-show-frame-details))))
+
+
+
+;;; TODO show number of workers in header-line
+
+(breeze-%eval `(cl:eval '(cl:length (breeze.thread:find-worker-threads))))
+(breeze-eval "(cl:length (breeze.thread:find-worker-threads))")
+
+
+;;; WIP Lisp listener state
+
+(defun breeze-find-slime-connections ()
+  (cl-remove-duplicates
+   (cl-loop for buffer the buffers
+            when (and (equal (buffer-local-value 'major-mode buffer)
+                             'slime-repl-mode))
+            collect (buffer-local-value 'slime-buffer-connection buffer))))
+
+(breeze-find-slime-connections)
+
+(defun breeze-find-slime-repl-buffers ()
+  (cl-loop for buffer the buffers
+           when (and (equal (buffer-local-value 'major-mode buffer) 'slime-repl-mode))
+           collect buffer))
+
+(breeze-find-slime-repl-buffers)
+
+(defun breeze-slime-repl-input-history (buffer)
+  (mapcar (lambda (entry)
+            (substring-no-properties entry))
+          (buffer-local-value 'slime-repl-input-history buffer)))
+
+(breeze-slime-repl-input-history
+ (cl-first (breeze-find-slime-repl-buffers)))
+
+
+
+;;; TODO detect when sbcl entered LDB
+
+(with-current-buffer "*inferior-lisp*"
+  (save-excursion
+    (goto-char (point-max))
+    (search-backward "Welcome to LDB, a low-level debugger for the Lisp runtime environment.")))
+
+(breeze-eval
+ "(labels ((boom (x)
+               (boom x)))
+        (boom #\\💀))")
+
+(process-filter
+ (breeze-listener-connected-p))
+slime-net-filter
+
+(comint-check-proc)
+
+(let* ((buffer (get-buffer "*inferior-lisp*"))
+       (process (get-buffer-process buffer)))
+  (process-command process))
+("sbcl" "--noinform" "--dynamic-space-size" "16000")
+
+(let* ((buffer (get-buffer "*inferior-lisp*"))
+       (process (get-buffer-process buffer)))
+  process)
+
+
+slime-net-processes
+
+
+
+;;; Enabling/disabling breeze
+
+(breeze-disabled-p)
+
+?\
+?\
+
+
+;;; generating stubs
+
+(defun breeze--update-command-stubs ()
+  (interactive)
+  (breeze-refresh-commands)
+  (save-excursion
+    (with-current-buffer (find-file-noselect breeze-breeze.el)
+      ;; TODO maybe "unnarrow"
+      (goto-char (point-max))
+      (let* ((end (search-backward "" nil t))
+             (start (progn
+                      (search-backward "" nil t)
+                      ;; Skip the C-l and C-m chararcters
+                      (forward-line)
+                      ;; inspecting, just to make sure
+                      ;; (thing-at-point 'line t)
+                      ;; Skip the ";;; This page ...."
+                      (forward-line)
+                      (point))))
+
+        (buffer-substring-no-properties start end)
+
+        (replace-region-contents
+         start end
+         (lambda ()
+           "hello\n"))
+
+        ;; TODO replace, not just insert
+        ;; (insert (format "%S" (breeze-list-commands)))
+        ))))
+
+
+(save-excursion
+  (with-current-buffer (find-file-noselect breeze-breeze.el)
+    ;; TODO maybe "unnarrow"
+    (goto-char (point-max))
+    (let* ((end (search-backward "\n\n" nil t))
+           (start (progn
+                    (search-backward "" nil t)
+                    ;; Skip the C-l and C-m chararcters
+                    (forward-line)
+                    ;; inspecting, just to make sure
+                    ;; (thing-at-point 'line t)
+                    ;; Skip the ";;; This page ...." and leave an
+                    ;; empty line
+                    (forward-line 2)
+                    (point))))
+
+      (replace-region-contents
+       start end
+       (lambda ()
+         (with-temp-buffer
+           (dolist (command (breeze-list-commands))
+             (insert (format "%S\n" `(breeze--defstub ,command ,(documentation command t)))))
+           (buffer-substring-no-properties (point-min) (point-max))))))))
+
+
+
+
+(documentation 'breeze-quickfix t)
+(symbol-plist )

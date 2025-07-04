@@ -67,26 +67,6 @@
 
 ;;; Lisp listener state
 
-;; TODO this isn't used for anything yet
-;; (defun breeze-find-slime-connections ()
-;;   (cl-remove-duplicates
-;;    (cl-loop for buffer the buffers
-;;             when (and (equal (buffer-local-value 'major-mode buffer) 'slime-repl-mode))
-;;             collect (buffer-local-value 'slime-buffer-connection buffer))))
-
-;; (defun prefix-find-slime-repl-buffers ()
-;;   (cl-loop for buffer the buffers
-;;            when (and (equal (buffer-local-value 'major-mode buffer) 'slime-repl-mode))
-;;            collect buffer))
-
-;; (defun prefix-slime-repl-input-history (buffer)
-;;   (mapcar (lambda (entry)
-;;             (substring-no-properties entry))
-;;           (buffer-local-value 'slime-repl-input-history buffer)))
-
-;; (prefix-slime-repl-input-history
-;;  (cl-first (prefix-find-slime-repl-buffers)))
-
 (defun breeze-sly-connected-p ()
   "Check if sly loaded and connected."
   (or
@@ -459,55 +439,82 @@ corresponding commands in emacs."
                               (unless (breeze-disabled-p)
                                 (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list)))))
                 ;; (breeze-debug "%S" defun)
-                (eval defun))))
+                (eval defun)
+                (setf (get el-symbol 'breeze-command-p) t))))
 
 
-;;; "Autoload"
+;;; Enabling/disabling breeze
 
-(defvar breeze-disabled-p nil
-  "Set to true to disable breeze's feature without changing any other emacs' configuration.
-This is useful for developping breeze itself, where it's possible to break things like linting or after-change-hook, in which case editing because extremely painful as any keystroke invokes the debugger.")
+(defvar breeze-disabled-p (make-hash-table)
+  "Internal hash-table used to disable breeze’s features on a
+per-connection basis. It is managed by the `breeze-enable' and
+`breeze-disable' commands.
+
+When breeze is disabled for a connection, all breeze commands
+become no-ops (for that connection), while hooks remain intact.
+
+Disabling is useful when breeze cannot be loaded or is currently
+broken (e.g. during development of breeze itself).")
 
 (defun breeze-disabled-p ()
-  breeze-disabled-p)
+  (let ((connection (breeze-listener-connected-p)))
+    (gethash connection breeze-disabled-p)))
 
 (defun breeze-disable ()
+  "Disable breeze's features for the current connection.
+This doesn't remove any hooks, instead, each breeze's command becomes no-ops."
   (interactive)
-  (setf breeze-disabled-p t))
+  (let ((connection (breeze-listener-connected-p)))
+    (setf (gethash connection breeze-disabled-p) t)))
 
 (defun breeze-enable ()
+  "Enable breeze's features for the current connection."
   (interactive)
-  (setf breeze-disabled-p nil))
+  (let ((connection (breeze-listener-connected-p)))
+    (setf (gethash connection breeze-disabled-p) nil)))
 
 ;; TODO breeze-not-initialized-hook
 
 ;; TODO restore the stubs if the inferior lisp is
 ;; closed.
 
+
+;;; "Autoload"
+
 (defun breeze--stub (name)
-  "A dummy command that is used to load breeze the first time a
-command is invoked. breeze-refresh-commands is called, which will
-redefined the dummy command (there's only 1 at the moment:
-breeze-quickfix)."
-  (warn "Breeze is not loaded")
+  "A dummy command that is used to ensure breeze is loaded the first
+time a command is invoked. breeze-refresh-commands is called,
+which will redefine the dummy command."
   (if (breeze-disabled-p)
-      (warn "Breeze is disabled")
+      nil ;; (warn "Breeze is disabled")
     (and
      (breeze-list-loaded-listeners)
      (breeze-listener-connected-p)
      (breeze-validate-if-breeze-package-exists)
      (breeze-refresh-commands))))
 
-(defun breeze-quickfix ()
-  "A stub for the breeze command \"quickfix\", calling it the first
-time will initialize breeze and redefine this command."
-  (interactive)
-  (breeze--stub "quickfix"))
-
 (defun breeze-header-line ()
-  "A stub for the breeze command \"breeze-header-line\""
+  "Compute the content of the header-line for the current buffer"
   (interactive)
-  "Breeze header-line not implemented yet.")
+  (let ((connection (breeze-listener-connected-p nil)))
+    (if connection
+        (format "BRZ: %s %S (%s)"
+                (process-name connection)
+                (process-contact connection)
+                (if (process-live-p (breeze-listener-connected-p nil))
+                    "live" "!!!dead!!!"))
+      (format "BRZ: not connected"))))
+
+;; calling the common lisp side in the header line can really slow things down:
+;;
+;; backtrace()
+;; breeze-validate-if-breeze-package-exists()
+;; (and (breeze-list-loaded-listeners) (breeze-listener-connected-p) (breeze-validate-if-breeze-package-exists) (breeze-refresh-commands))
+;; (if (breeze-disabled-p) nil (and (breeze-list-loaded-listeners) (breeze-listener-connected-p) (breeze-validate-if-breeze-package-exists) (breeze-refresh-commands)))
+;; breeze--stub("breeze-header-line")
+;; breeze-header-line()
+;; eval((breeze-header-line))
+;; redisplay_internal\ \(C\ function\)()
 
 
 ;;; Completion at point -- NOT IMPLEMENTED, this is just a stub for now
@@ -519,13 +526,6 @@ time will initialize breeze and redefine this command."
 ;; 4. `breeze--complete-at-point' gets called with a STRING
 ;; 5. delegate the generation of candidates to the command
 ;;    `breeze-completions-at-point' (with an "S")
-
-(defun breeze-completions-at-point ()
-  "A stub for the breeze command \"completions-at-point\". Calling
-it before breeze is initialize will do nothing.")
-
-;; To see the command's code:
-;; (symbol-function #'breeze-completions-at-point)
 
 (defun breeze--complete-at-point (string)
   ;; (message "string: %S" string)
@@ -554,24 +554,26 @@ it before breeze is initialize will do nothing.")
   "Add breeze-completion-at-point in the list of
 completion-at-point-functions, if it wasn't already there."
   (interactive)
-  ;; TODO add-hook breeze-minor-mode
-  (breeze--map-minor-mode-buffers
-   (lambda (buffer)
-     (with-current-buffer buffer
-       ;; TODO instead, use add-hook ... nil t
-       (cl-pushnew 'breeze-completion-at-point completion-at-point-functions)))))
+  (unless (breeze-disabled-p)
+    ;; TODO add-hook breeze-minor-mode
+    (breeze--map-minor-mode-buffers
+     (lambda (buffer)
+       (with-current-buffer buffer
+         ;; TODO instead, use add-hook ... nil t
+         (cl-pushnew 'breeze-completion-at-point completion-at-point-functions))))))
 
 (defun breeze-disable-completion-at-point ()
   "Remove breeze-completion-at-point in the list of
 completion-at-point-functions, if it was present."
   (interactive)
-  (breeze--map-minor-mode-buffers
-   (lambda (buffer)
-     (with-current-buffer buffer
-       ;; TODO instead, use remove-hook
-       (when (memq 'breeze-completion-at-point completion-at-point-functions)
-         (setq completion-at-point-functions
-               (delq 'breeze-completion-at-point completion-at-point-functions)))))))
+  (unless (breeze-disabled-p)
+    (breeze--map-minor-mode-buffers
+     (lambda (buffer)
+       (with-current-buffer buffer
+         ;; TODO instead, use remove-hook
+         (when (memq 'breeze-completion-at-point completion-at-point-functions)
+           (setq completion-at-point-functions
+                 (delq 'breeze-completion-at-point completion-at-point-functions))))))))
 
 
 ;;; Initializations
@@ -590,6 +592,7 @@ completion-at-point-functions, if it was present."
 (defun breeze-validate-if-breeze-package-exists ()
   "Returns true if the package \"breeze.utils\" exists in the
 inferior lisp."
+  ;; (backtrace)
   (breeze-validate-if-package-exists "breeze.utils"))
 
 (defvar breeze-breeze.el load-file-name
@@ -1007,6 +1010,61 @@ automatically enabling breeze-minor-mode in lisp-mode."
 (keymap-set breeze-major-mode-map "C-." #'breeze-quickfix)
 (keymap-set breeze-major-mode-map "C-c C-c" #'breeze-eval-defun)
 (keymap-set breeze-major-mode-map "C-c o" #'breeze-other-file-other-window)
+
+;; TODO use <remap> (keymap-set breeze-major-mode-map "<remap> <kill-line>" 'breeze-kill-line)
+
+
+;;; Generating stubs
+
+(defun breeze-list-commands ()
+  "List the \"breeze commands\" that are currently defined in emacs."
+  (let ((x))
+    (mapatoms (lambda (s)
+                (when (get s 'breeze-command-p)
+                  (push s x))))
+    x))
+
+(defmacro breeze--defstub (name docstring)
+  "Macro to define a stub function for the command NAME."
+  `(defun ,name ()
+     ,docstring
+     (interactive)
+     (breeze--stub ,(symbol-name name))))
+
+
+;;; This page is auto-generated (see ../workbench.el), don't edit it
+
+(breeze--defstub breeze-insert-loop-clause-for-hash "Insert a loop clause to iterate on a hash-table.")
+(breeze--defstub breeze-insert-make-load-form-boilerplate "Insert a make-load-form method form.")
+(breeze--defstub breeze-insert-defgeneric "Insert a defgeneric form.")
+(breeze--defstub breeze-completions-at-point "completion-at-point")
+(breeze--defstub breeze-kill-worker-threads "Find threads named \"worker\", then destroy them.")
+(breeze--defstub breeze-insert-setf-defun "Insert a setf function form e.g. (defun (setf ...) ...)")
+(breeze--defstub breeze-insert-loop-clause-for-on-list "Insert a loop clause to iterate on a list.")
+(breeze--defstub breeze-insert-local-nicknames "Insert local nicknames.")
+(breeze--defstub breeze-insert-defun "Insert a defun form.")
+(breeze--defstub breeze-insert-defpackage "Insert a defpackage form.")
+(breeze--defstub breeze-quickfix "Given the context, suggest some applicable commands.")
+(breeze--defstub breeze-insert-breeze-define "Insert a breeze:define-command form.")
+(breeze--defstub breeze-insert-defmacro "Insert a defmacro form.")
+(breeze--defstub breeze-insert-defclass "Insert a defclass form.")
+(breeze--defstub breeze-insert-asdf "Insert an asdf system definition form.")
+(breeze--defstub breeze-insert-defparameter "Insert a defparameter form.")
+(breeze--defstub breeze-insert-in-package-cl-user "Insert (cl:in-package #:cl-user)")
+(breeze--defstub breeze-insert-define-constant "Insert a alexandria:define-constant form.")
+(breeze--defstub breeze-insert-loop-clause-for-in-list "Insert a loop clause to iterate in a list.")
+(breeze--defstub breeze-capture "Quickly create a lisp file in a pre-determined directory.")
+(breeze--defstub breeze-insert-defvar "Insert a defvar form.")
+(breeze--defstub breeze-insert-defmethod "Insert a defmethod form.")
+(breeze--defstub breeze-insert-lambda "Insert a lambda form.")
+(breeze--defstub breeze-insert-handler-bind-form "Insert handler bind form.")
+(breeze--defstub breeze-interactive-eval "A command to interactively evaluate code.")
+(breeze--defstub breeze-insert-handler-case-form "Insert handler case form.")
+(breeze--defstub breeze-insert-class-slot "Insert a defclass slot form.")
+(breeze--defstub breeze-insert-print-unreadable-object-boilerplate "Insert a print-object method form.")
+(breeze--defstub breeze-insert-defconstant "Insert a defconstant form.")
+(breeze--defstub breeze-kill-sexp "Kill the expression following point.")
+
 
 
 
