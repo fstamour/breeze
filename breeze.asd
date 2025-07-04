@@ -24,7 +24,8 @@
                ;; Utilities
                alexandria
                uiop
-               cl-heap)
+               ;; cl-heap
+               )
   :pathname "src"
   :components
   ((:file "logging")
