@@ -644,7 +644,7 @@ listener."
   (interactive)
   (breeze-ensure-listener)
   (breeze-ensure)
-  (breeze-debug "Breeze initialized (might still be loading in the inferior lisp."))
+  (breeze-debug "Breeze initialized (might still be loading in the inferior lisp)."))
 
 
 ;;; Listener Hooks

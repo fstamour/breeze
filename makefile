@@ -9,6 +9,11 @@ test:
 doc:
 	scripts/doc.sh
 
+.PHONY: test-emacs
+test-emacs:
+	guix shell emacs-no-x --container --preserve='^TERM$$' -- emacs -batch --load src/breeze.el --load tests/emacs/no-listener.el -f ert-run-tests-batch-and-exit
+
+
 DOCKER_BUILD := DOCKER_BUILDKIT=1 docker build --progress=plain
 
 # TODO set -o pipefail
