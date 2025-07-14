@@ -544,36 +544,15 @@ which will redefine the dummy command."
               (completion-table-with-cache 'breeze--complete-at-point)
               :exclusive 'no)))))
 
-(defun breeze--map-minor-mode-buffers (callback)
-  (cl-remove-duplicates
-   (cl-loop for buffer the buffers
-            when (buffer-local-value 'breeze-minor-mode buffer)
-            collect (funcall callback buffer))))
+(define-minor-mode breeze-capfs-mode
+  "Toggle Breeze's completion at point"
+  :lighter nil
+  (cond
+   (breeze-capfs-mode
+    (add-hook 'completion-at-point-functions 'breeze-completion-at-point))
+   (t
+    (remove-hook 'completion-at-point-functions 'breeze-completion-at-point))))
 
-(defun breeze-enable-completion-at-point ()
-  "Add breeze-completion-at-point in the list of
-completion-at-point-functions, if it wasn't already there."
-  (interactive)
-  (unless (breeze-disabled-p)
-    ;; TODO add-hook breeze-minor-mode
-    (breeze--map-minor-mode-buffers
-     (lambda (buffer)
-       (with-current-buffer buffer
-         ;; TODO instead, use add-hook ... nil t
-         (cl-pushnew 'breeze-completion-at-point completion-at-point-functions))))))
-
-(defun breeze-disable-completion-at-point ()
-  "Remove breeze-completion-at-point in the list of
-completion-at-point-functions, if it was present."
-  (interactive)
-  (unless (breeze-disabled-p)
-    (breeze--map-minor-mode-buffers
-     (lambda (buffer)
-       (with-current-buffer buffer
-         ;; TODO instead, use remove-hook
-         (when (memq 'breeze-completion-at-point completion-at-point-functions)
-           (setq completion-at-point-functions
-                 (delq 'breeze-completion-at-point completion-at-point-functions))))))))
 
 
 ;;; Initializations
@@ -905,10 +884,8 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
    (breeze-minor-mode
     ;; TODO What if dabbrev-abbrev-skip-leading-regexp is already customized?
     (setf dabbrev-abbrev-skip-leading-regexp "\\(#?:\\)\\|+")
-    (breeze-enable-completion-at-point)
     (setq header-line-format '(:eval (breeze-header-line))))
    (t
-    (breeze-disable-completion-at-point)
     (setq header-line-format nil))))
 
 ;; Analogous to org-insert-structure-template
