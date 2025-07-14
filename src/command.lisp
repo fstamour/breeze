@@ -721,8 +721,9 @@ Example:
       `(values (prog1
                    (defun ,name ,lambda-list
                      ;; Add the users' declarations
-                     ,@cl-declarations
                      ,docstring
+                     ,@(loop :for declaration :in cl-declarations
+                             :collect `(declare ,declaration))
                      (progn ,@remaining-forms)
                      (send "done"))
                  ;; Add flags into the symbol's plist
