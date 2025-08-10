@@ -75,3 +75,4 @@
 ;; (function-designator-p '(a b c))
 ;; (function-designator-p 'defmacro)
 ;; (function-designator-p nil)
+;; TODO (setf x)

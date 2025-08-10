@@ -26,13 +26,6 @@ TODO Split comment/paragraphs when the line starts with "TODO"
 
 (in-package #:breeze.report)
 
-#++
-(ql:quickload "cl-ppcre")
-
-#++ ;; this is annoying af...
-(setf (cdr (assoc 'slynk:*string-elision-length* slynk:*slynk-pprint-bindings*)) nil)
-
-
 (defun paragraphs (string)
   "Split a string in \"paragraphs\" (a bit like markdown does, where two
 newlines or more marks the start of a new paragraph)."
@@ -102,22 +95,22 @@ newlines or more marks the start of a new paragraph)."
 
 
 
-(defun enough-breeze (pathname)
-  "Given a pathname, return the relative pathname from the root of the
-breeze project (system)."
+;; TODO in some systems, the *.asd file is not at the root of the project, perhaps usethe vc root?
+(defun system-enough-pathname (pathname system)
+  "Given a pathname, return the relative pathname from the root of the project (system)."
   (uiop:enough-pathname
    pathname
-   (asdf:system-source-directory 'breeze)))
+   (asdf:system-source-directory system)))
 
 
-(defun parse-system (&optional (system 'breeze))
+(defun parse-system (system)
   "Parse (with lossless-reader) all files we want to include."
   ;; TODO include all files that are tracked under git...
   (loop
     :for file :in (sort (breeze.asdf:find-all-related-files system)
                         #'string<
                         :key #'namestring)
-    :for filename = (enough-breeze file)
+    :for filename = (system-enough-pathname file system)
     :for content-str = (alexandria:read-file-into-string file)
     :for state = (progn
                    (format *trace-output* "~&Parsing file ~s..." file)
@@ -125,7 +118,7 @@ breeze project (system)."
     :collect (list filename state (pages state))))
 
 #++
-(parse-system)
+(parse-system 'breeze)
 
 
 
@@ -185,9 +178,12 @@ breeze project (system)."
       'syntaxerror))
 
 (defun render-escaped (out string)
+
   (write-string (escape-html string) out))
 
+;; TODO use a node-iterator instead, maybe
 (defun escaped-node-content (state node)
+  "Return the content of NODE as an HTML-escaped string"
   (escape-html (node-content state node)))
 
 (defun render-node (out state node &optional (depth 0))
@@ -283,6 +279,7 @@ breeze project (system)."
 ;; (link-to-page "asdf" 42)
 
 (defun system-listing-pathname (system)
+  "Get the path to SYSTEM's generated listings."
   (format nil "docs/listing-~a.html"
           (cl-ppcre:regex-replace-all "/" (asdf:coerce-name system) "--")))
 

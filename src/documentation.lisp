@@ -1,7 +1,6 @@
 (in-package #:common-lisp-user)
 
 (defpackage #:breeze.documentation
-  (:nicknames ":br.doc")
   (:documentation "Tools to inspect and generate documentation")
   (:use :cl #:alexandria)
   (:import-from #:breeze.xref
@@ -99,20 +98,21 @@
   (once-only (package)
     (with-gensyms (symbols)
       `(spinneret:with-html
-         (let ((,symbols
-                 (sort
-                  (loop :for ,var :being :the :external-symbol :of ,package
-                        :when ,predicate-body
-                          :collect ,var)
-                  #'string<
-                  :key #'symbol-name)))
-           (when ,symbols
-             ,prelude-body
-             ,(let ((loop `(loop :for ,var :in ,symbols
-                                 ,@loop-body)))
-                (if wrapper
-                    (list wrapper loop)
-                    loop))))))))
+           (let ((,symbols
+                   (sort
+                    (loop :for ,var :being :the :external-symbol :of ,package
+                          :when (eq ,package (symbol-package ,var))
+                            :when ,predicate-body
+                              :collect ,var)
+                    #'string<
+                    :key #'symbol-name)))
+             (when ,symbols
+               ,prelude-body
+               ,(let ((loop `(loop :for ,var :in ,symbols
+                                   ,@loop-body)))
+                  (if wrapper
+                      (list wrapper loop)
+                      loop))))))))
 
 ;; TODO turn this into a test
 #+nil
