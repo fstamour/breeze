@@ -19,20 +19,20 @@ pretty much all the time.
 - Implemented in common lisp to be able to port it to other editors in
   the future
 
-Currently, breeze's main interface is emacs; `breeze.el` adds a few
-commands and one minor-mode with one bindings (`C-.`).
+Currently, breeze's main interface is emacs; =breeze.el= adds a few
+commands and one minor-mode with one bindings (~C-.~).
 
-The one binding calls a command named `breeze-quickfix` (might rename
+The one binding calls a command named ~breeze-quickfix~ (might rename
 in the future). This command suggests applicable actions given the
 current context (file name, file content, position in the file,
 etc.). For example, if the file ends with ".asd" it will suggest a
-command to insert a `defsystem` form. If breeze was already
-configured, it will pre-fill the `:maintainer`, `:author` and
-`:licence` fields. Another example is that if the file is empty, or
-contains only comments, it will suggest to insert a `defpackage` or
-`uiop:define-package` form. It is also able to detect when you're
+command to insert a ~defsystem~ form. If breeze was already
+configured, it will pre-fill the ~:maintainer~, ~:author~ and
+~:licence~ fields. Another example is that if the file is empty, or
+contains only comments, it will suggest to insert a ~defpackage~ or
+~uiop:define-package~ form. It is also able to detect when you're
 trying to edit/evaluate forms that are in a package that doesn't
-exists (_did you forget to evaluate the `defpackage` form_).
+exists (=did you forget to evaluate the ~defpackage~ form?=).
 
 The integration with quickproject is pretty simple and let's you
 quickly create new projects from the comfort of your editor. The
@@ -41,7 +41,7 @@ information, like the project name and licence. It takes some default
 values from breeze's configuration, but let's you change them. All
 this to ease the use of quickproject.
 
-Another simple command that helps me is `breeze-capture`, it creates a
+Another simple command that helps me is ~breeze-capture~, it creates a
 new file in a pre-determined (must be configured) folder and fills it
 with some pre-configured content (template) and let's you code right
 away. This could've easily be done in emacs (that's how I prototyped
@@ -50,3 +50,7 @@ port it to other editors (or just the repl) in the future.
 
 I must stress that this whole project is in constant flux, and until I
 add more and more tests, stuff might break any time.
+
+* Next
+
+[[id:306350c9-0fb5-478b-958b-b35cae726280][Getting Started]]
