@@ -44,13 +44,14 @@
   (is string= "<a href=\"#life\">42</a>" (link-to-id nil "42" "life")))
 
 (define-test+run link-to-file
-  :dependencies pathname-to
+  :dependencies (pathname-to)
   (is string=
       "<a href=\"out/listing-asdf.html\">asdf</a>"
       (link-to-file
        (make-instance 'report :output-dir "out/") "asdf")))
 
 (define-test+run link-to-page
+  :dependencies (pathname-to)
   (is string=
       "<a href=\"out/listing-asdf.html#asdf-42\">asdf &#8212; untitled page 42</a>"
       (link-to-page

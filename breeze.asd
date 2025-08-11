@@ -136,7 +136,7 @@
   ((:file "analysis" :depends-on ("pattern"))
    (:file "command")
    (:file "report")
-   (:file "documentation" :depends-on ("xref" "report" "dummy-package"))
+   (:file "documentation" :depends-on ("xref" "report"))
    (:file "dummy-package")
    (:file "egraph")
    (:file "iterator")
@@ -152,7 +152,7 @@
    (:file "string-utils")
    (:file "utils")
    (:file "workspace")
-   (:file "xref")
+   (:file "xref" :depends-on ("dummy-package"))
    (:file "main")))
 
 
