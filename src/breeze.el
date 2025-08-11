@@ -808,7 +808,10 @@ previous flymake error."
 
 (defun breeze--candidate-aternate-directories ()
   "Generate a list of existing alternate directories."
-  (let ((root (vc-root-dir)))
+  (let ((root (or (vc-root-dir)
+                  ;; when the current file is not yet commited,
+                  ;; `vc-root-dir' returns nil, but not this:
+                  (project-root (project-current)))))
     (cl-remove-if-not
      (lambda (fullpath)
        (and
@@ -832,13 +835,13 @@ previous flymake error."
 ;; (breeze--split-file-name (buffer-file-name))
 ;; => '("/home/fstamour/dev/breeze/src" "breeze.el")
 
-(defun breeze--alternate-files (file-name)
+(cl-defun breeze--alternate-files (file-name &optional allp)
   (cl-loop
    with (dir path) = (breeze--split-file-name file-name)
    for altdir in (breeze--candidate-aternate-directories)
    for altpath = (file-name-concat altdir path)
    when (and (not (string= dir altdir))
-             (file-exists-p altpath))
+             (or allp (file-exists-p altpath)))
    collect altpath))
 
 ;; TODO I should really check how to unit-tests emacs lisp...
@@ -852,19 +855,31 @@ previous flymake error."
 ;;; The names breeze-other-file and breeze-other-file-other-window are
 ;;; inspired by projectile's equivalent commands.
 
+(defun breeze-choose-other-file ()
+  (let ((candidates (breeze--alternate-files (buffer-file-name))))
+    (cond
+     ;; no candidates
+     ((null candidates)
+      (completing-read "Other file: " (breeze--alternate-files (buffer-file-name) t)))
+     ;; exactly one candidate
+     ((null (cdr candidates))
+      (car candidates))
+     ;; more than one candidates
+     (t (completing-read "Other file: " candidates)))))
+
 ;; TODO would be nice if it suggested to create the alternate files if
 ;; it didn't exist.
 (defun breeze-other-file ()
   "Open other file."
   (interactive)
-  (let ((other-file (car (breeze--alternate-files (buffer-file-name)))))
+  (let ((other-file (breeze-choose-other-file)))
     (when other-file
       (find-file other-file))))
 
 (defun breeze-other-file-other-window ()
   "Open other file in other window."
   (interactive)
-  (let ((other-file (car (breeze--alternate-files (buffer-file-name)))))
+  (let ((other-file (breeze-choose-other-file)))
     (when other-file
       (find-file-other-window other-file))))
 
