@@ -777,6 +777,8 @@ for debugging breeze itself."
 ;; TODO this doesn't work perfectly
 ;; TODO if there's no slime/sly notes, nor flymake errors,
 ;;      go to the next "TODO"
+;; TODO investigate using (goto-char (next-overlay-change (point)))
+;; TODO investigate `next-error' and `compile-next-error'
 (defun breeze-next-note ()
   "Go to either the next note from the listener or to the next
 flymake error."
