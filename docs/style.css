@@ -7,11 +7,31 @@ Table of Contents:
 */
 
 
-:root {
-   --text-color: black;
-   --dimmed-text-color: #777;
-   /* TODO better name? */
-   --contrast-background: #f4f5f6;
+:root, :root.light {
+    --text-color: black;
+    --background: white;
+    --dimmed-text-color: #777;
+    /* TODO better name? */
+    --contrast-background: #f4f5f6;
+    /* Color of table's border */
+    --border-color: #d1d1d1;
+
+    --link-color: #0065bd;
+    --hover-color: #00c5bd;
+}
+
+@media(prefers-color-scheme: dark) {
+    :root {
+        --text-color: white;
+        --background: black;
+        --dimmed-text-color: #777;
+        /* TODO better name? */
+        --contrast-background: #040506;
+
+        --link-color: #0075cd;
+        --visited-link-color: #F72585;
+        --hover-color: #00c5bd;
+    }
 }
 
 
@@ -41,7 +61,8 @@ footer { margin: 10rem 0rem 0rem; }
 :root {
     font: 13pt 'Open Sans', sans-serif;
     line-height: 1.5;
-    color: var(--text-color)
+    color: var(--text-color);
+    background-color: var(--background);
 }
 small, sub, sup { font-size: 75%; }
 
@@ -72,7 +93,7 @@ dt { font-weight: bold; }
 /* tables */
 td, th {
   padding: 0.5rem 1.5rem;
-  border-bottom: 0.1rem solid #d1d1d1;
+  border-bottom: 0.1rem solid var(--border-color);
 }
 td:first-child, th:first-child { padding-left:  0; text-align: left; }
 td:last-child,  th:last-child  { padding-right: 0; }
@@ -85,6 +106,10 @@ figure { text-align: center; }
 figure > img { display: block; margin: 0.5em auto; }
 figcaption, caption { color: var(--dimmed-text-color); margin-bottom: 1rem; }
 
+pre {
+    color: var(--text-color);
+    background-color: var(--background);
+}
 
 /*code*/
 pre > code {
@@ -100,21 +125,30 @@ code, kbd, samp {
 
 
 /* links */
-a { color: #0065bd; text-decoration: none; cursor: pointer; }
+a {
+    color: var(--link-color);
+    /* text-decoration: none; */
+    cursor: pointer;
+}
+
+a:visited {
+    color: var(--visited-link-color);
+}
+
 a:hover, button:not([disabled]):hover {
-	color: #00C5bd;
-	border-color: #00C5bd;
+	color: var(--hover-color);
+	border-color: var(--hover-color);
 }
 
 
 /* forms and inputs */
-textarea, input, button, select { border-radius: .3rem; border: .1rem solid #d1d1d1; padding: 0.3rem; outline: none;}
-button { padding: 0.7rem 1rem; cursor: pointer; font-weight: bold; letter-spacing: 0.1rem; color: #0065bd; background-color: var(--contrast-background); border: .1rem solid #0065bd; }
+textarea, input, button, select { border-radius: .3rem; border: .1rem solid var(--border-color); padding: 0.3rem; outline: none;}
+button { padding: 0.7rem 1rem; cursor: pointer; font-weight: bold; letter-spacing: 0.1rem; color: var(--link-color); background-color: var(--contrast-background); border: .1rem solid var(--link-color); }
 
 
 /* misc */
-blockquote{ border-left: 0.3rem solid #d1d1d1; padding: 1rem 1.5rem; }
-hr { border: 0; border-top: 0.1rem solid #d1d1d1; }
+blockquote{ border-left: 0.3rem solid var(--border-color); padding: 1rem 1.5rem; }
+hr { border: 0; border-top: 0.1rem solid var(--border-color); }
 
 
 
@@ -142,7 +176,7 @@ main aside {
 body nav {
 	width: 100%; min-height: 3rem;
 	background-color: var(--contrast-background);
-	border-bottom: solid 0.1rem #d1d1d1;
+	border-bottom: solid 0.1rem var(--border-color);
 }
 body > nav { position: fixed; top: 0; left: 0; }
 nav ul:first-child {
@@ -174,15 +208,15 @@ nav+main, nav+header { margin-top: 3rem; }
 
 
 /* Extra: forms and inputs advanced styling */
-fieldset { border-radius: 0rem; border: .1rem solid #d1d1d1; }
+fieldset { border-radius: 0rem; border: .1rem solid var(--border-color); }
 textarea:focus, input:not([type=checkbox]):not([type=radio]):hover, select:hover{
-  border:.1rem solid #00C5bd;
+  border:.1rem solid var(--hover-color);
 }
 textarea:focus, input:not([type=checkbox]):not([type=radio]):focus{
 	border:.1rem solid #3273dc;
 	box-shadow: 0 0 5px #3273dc;
 }
-button[disabled]{ color: #777; border-color: #d1d1d1; }
+button[disabled]{ color: #777; border-color: var(--border-color); }
 
 
 /* misc */
@@ -322,11 +356,17 @@ code .symbol{
     background-color: var(--contrast-background);
 }
 
+@media(prefers-color-scheme: dark) {
+    code .symbol {
+        color: #2AA198
+    }
+}
+
 code a.symbol:link,
 code a.symbol:active,
 code a.symbol:visited,
 code a.symbol:hover{
-    color: #2AA198;
+    color: var(--symbol-hover-color);
     background-color: var(--contrast-background);
 }
 
@@ -339,6 +379,13 @@ code .keyword {
     color: #770000;
     background-color: var(--contrast-background);
 }
+
+@media(prefers-color-scheme: dark) {
+    code .keyword {
+        color: #2AA100
+    }
+}
+
 
 code .comment {
     color: #586E75;

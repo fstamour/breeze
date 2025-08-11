@@ -32,7 +32,12 @@
           :author "Francis St-Amour"
           :creator "Francis St-Amour"
           :with-author nil
+
+          :html-style nil
+
           :html-validation-link nil
+
+          :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />"
 
           :auto-sitemap t
           ;; :makeindex t
