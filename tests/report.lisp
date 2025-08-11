@@ -36,7 +36,7 @@
 
 (define-test+run pathname-to
   :dependencies (slug)
-  (is equalp #P"out/listing-tests--report.lisp"
+  (is equalp #P"out/listing-tests--report.lisp.html"
       (pathname-to (make-instance 'report :output-dir "out/")
                    "tests/report.lisp" :listing)))
 
