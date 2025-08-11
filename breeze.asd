@@ -135,7 +135,8 @@
   :components
   ((:file "analysis" :depends-on ("pattern"))
    (:file "command")
-   (:file "documentation" :depends-on ("dummy-package"))
+   (:file "report")
+   (:file "documentation" :depends-on ("xref" "report" "dummy-package"))
    (:file "dummy-package")
    (:file "egraph")
    (:file "iterator")

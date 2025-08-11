@@ -22,9 +22,65 @@ TODO Split comment/paragraphs when the line starts with "TODO"
   (:documentation "Using breeze's code to generate report to improve breeze.")
   (:use #:cl #:breeze.lossless-reader)
   (:import-from #:breeze.utils
-                #:nrun))
+                #:nrun)
+  (:export #:report
+           #:slug
+           #:url-to
+           #:pathname-to)
+  (:export #:paragraphs
+           #:remove-leading-semicolons
+           #:escape-html)
+  (:export #:link-to-id
+           #:link-to-file
+           #:link-to-page))
 
 (in-package #:breeze.report)
+
+
+;;; Report object and core methods
+
+(defclass report ()
+  ((output-dir
+    :initform (error "OUTPUT-DIR is required.")
+    :initarg :output-dir
+    :accessor output-dir
+    :documentation "The path to the directory where the report's files will be created."))
+  (:documentation "A report object is used to carry around configuration and state. Methods
+can be specialised on this class for further customization."))
+
+(defmethod slug (report thing)
+  "Get an url-safe version of THING."
+  (with-output-to-string (o)
+    (loop
+      :with string = (string-trim '(#\Space #\Tab #\Newline)
+                                  (string thing))
+      :for c :across string
+      :do (cond
+            ((or (alphanumericp c) (position c "-_."))
+             (write-char (char-downcase c) o))
+            ((char= #\space c) (write-char #\- o))
+            ((char= #\/ c) (write-string "--" o))
+            (t (format o "~(~16r~)" (char-code c)))))))
+
+(defmethod url-to (report thing &optional prefix)
+  (format nil "~:[~;~a-~]~a"
+          prefix
+          (and prefix (slug report prefix))
+          (slug report thing)))
+
+(defmethod pathname-to (report thing prefix)
+  (merge-pathnames
+   (url-to report thing prefix)
+   (output-dir report)))
+
+(defmethod pathname-to (report thing (prefix (eql :listing)))
+  (merge-pathnames
+   (format nil "~a.html"
+           (url-to report thing :listing))
+   (output-dir report)))
+
+
+;;; The rest
 
 (defun paragraphs (string)
   "Split a string in \"paragraphs\" (a bit like markdown does, where two
@@ -37,10 +93,6 @@ newlines or more marks the start of a new paragraph)."
                             :single-line-mode t)
    string))
 
-#++;; TODO Make a test
-(paragraphs
- (format nil "asd~5%qwe~%ert~2%jkl"))
-
 
 
 (defun remove-leading-semicolons (string)
@@ -50,32 +102,20 @@ newlines or more marks the start of a new paragraph)."
                             :multi-line-mode t)
    string ""))
 
-#++
-(remove-leading-semicolons "; ; ; ")
-;; => ""
-
-
 (defun escape-html (string)
-  (cl-ppcre:regex-replace-all
-   ;; I'm sure this is rock solid /s
-   (cl-ppcre:create-scanner "<((?!a |\/a|br).*?)>"
-                            :multi-line-mode t)
-   string
-   "&lt;\\1&gt;"))
-
-#++
-(progn
-  (escape-html "<br>")
-  (escape-html "<a>")
-  (escape-html "<a href=\"\"></a>")
-  (escape-html "=> (#<ASDF/SYSTEM:SYSTEM \"breeze/test\"> #<ASDF/SYSTEM:SYSTEM \"breeze/config\">)"))
+  (nth-value 0
+      (cl-ppcre:regex-replace-all
+       ;; I'm sure this is rock solid /s
+       (cl-ppcre:create-scanner "<((?!a |\/a|br).*?)>"
+                                :multi-line-mode t)
+       string
+       "&lt;\\1&gt;")))
 
 
 
 (defun page-node-p (node)
   "Is the node (from the lossless parser) a new-page (^L) character?"
   (eq 'breeze.lossless-reader::page (node-type node)))
-
 
 (defun pages (state)
   "Split a parse-tree by top-level new-page character (^L)"
@@ -230,12 +270,16 @@ newlines or more marks the start of a new paragraph)."
           (render-node out state node)
           (format out "~%</code></pre>")))))
 
+(defmacro with-html ((stream-var) &body body)
+  `(labels ((fmt (&rest rest)
+              (apply #'format ,stream-var rest)))
+     ,@body))
+
 (defmacro with-html-file ((stream-var filename) &body body)
   `(alexandria:with-output-to-file (,stream-var
                                     (breeze.utils:breeze-relative-pathname ,filename)
                                     :if-exists :supersede)
-     (labels ((fmt (&rest rest)
-                (apply #'format out rest)))
+     (with-html (,stream-var)
        (fmt "<!DOCTYPE html>")
        (fmt "<html>")
        ;; https://github.com/emareg/classlesscss
@@ -247,55 +291,44 @@ newlines or more marks the start of a new paragraph)."
        ,@body
        (fmt "</html>"))))
 
-;; I made this into a macro mainly to reduce the indentation... meh
-(defmacro with-system-listing ((system stream-var filename) &body body)
-  `(with-html-file (,stream-var ,filename)
-     (let ((files (parse-system ,system)))
-       (fmt "<html>")
-       ,@body
-       (fmt "</html>"))))
+(defmethod link-to-id (report name id &optional (path ""))
+  (format nil "<a href=\"~a#~a\">~a</a>" path id name))
 
-(defun link-to-id (name id)
-  (format nil "<a href=\"#~a\">~a</a>" id name))
-
-(defun file-id (filename)
-  filename)
-
-(defun link-to-file (filename)
-  (link-to-id (file-id filename) filename))
+(defmethod link-to-file (report filename)
+  (format nil "<a href=\"~a\">~a</a>"
+          (pathname-to report (namestring filename) :listing)
+          filename))
 
 ;; (link-to-file "asdf")
 
-(defun page-id (filename page-number)
+(defmethod page-id (report filename page-number)
   (format nil "~a-~d" filename page-number))
 
-(defun link-to-page (filename page-number &optional name)
+(defun link-to-page (report filename page-number &optional name)
   (link-to-id
-   ;; that's an em-dash
+   report
    (or name
-       (format nil "~a &#8212; page ~d" filename page-number))
-       (page-id filename page-number)))
+       ;; &#8212; is an em-dash
+       (format nil "~a &#8212; untitled page ~d" filename page-number))
+   (page-id report filename page-number)
+   (pathname-to report (namestring filename) :listing)))
 
 ;; (link-to-page "asdf" 42)
 
-(defun system-listing-pathname (system)
+(defun system-listing-pathname (report system)
   "Get the path to SYSTEM's generated listings."
-  (format nil "docs/listing-~a.html"
-          (cl-ppcre:regex-replace-all "/" (asdf:coerce-name system) "--")))
+  (pathname-to report system :listing))
 
-
-
-(defun render (system &aux (pathname (system-listing-pathname system)))
-  (format *debug-io* "~&Rendering listing for system ~s" system)
-  (with-system-listing (system out pathname)
-    ;; Table of content
+(defun render-system-toc (report out files)
+  ;; Table of content
+  (with-html (out)
     (fmt "<ol>")
     (loop
       :for (filename state pages) :in files
       :do
          (fmt "<li>")
-         (fmt "~a" (link-to-file filename))
-         (progn ;;when (breeze.utils:length>1? pages)
+         (fmt "~a" (link-to-file report (namestring filename)))
+         (progn ;; TODO when (breeze.utils:length>1? pages)
            (fmt "<ol>")
            (loop
              :for page :in pages
@@ -304,25 +337,48 @@ newlines or more marks the start of a new paragraph)."
                                  (when node
                                    (escape-html
                                     (remove-leading-semicolons (node-content state node)))))
-             :do (fmt "<li>~a</li>" (link-to-page filename i page-title)))
+             :do (fmt "<li>~a</li>" (link-to-page report filename i page-title)))
            (fmt "</ol>"))
          (fmt "</li>"))
-    (fmt "</ol>")
-    ;; The actual content
+    (fmt "</ol>")))
+
+(defun render-lisp-file (report out file)
+  (with-html (out)
+    (destructuring-bind (filename state pages)
+        file
+      (let ((number-of-pages (length pages)))
+        ;; TODO not h2
+        (fmt "<h2 id=\"~a~:*\">~a</h2>~%" filename)
+        (loop
+          :for page :in pages
+          :for i :from 1
+          :do
+             (if (> number-of-pages 1)
+                 (fmt "<hr id=\"~a\"></h3>" (page-id report filename i))
+                 (fmt "<div id=\"~a\"></div>" (page-id report filename i)))
+             (render-page out state page))))))
+
+(defun render (report system &aux (pathname (system-listing-pathname report (asdf:coerce-name system))))
+  (format *debug-io* "~&Rendering listing for system ~s" system)
+  (let ((files (parse-system system)))
+    (with-html-file (out pathname)
+      (fmt "<html>")
+      ;; TODO sort files differently
+      (render-system-toc report out files)
+      (fmt "</html>"))
     (loop
-      :for (filename state pages) :in files
-      :for number-of-pages = (length pages)
+      :for file :in files
+      :for (filename state pages) = file
+      :for listing-filename = (pathname-to report (namestring filename) :listing)
       :do
-         (fmt "<h2 id=\"~a~:*\">~a</h2>~%" filename)
-         (loop
-           :for page :in pages
-           :for i :from 1
-           :do
-              (if (> number-of-pages 1)
-                  (fmt "<hr id=\"~a\"></h3>" (page-id filename i))
-                  (fmt "<div id=\"~a\"></div>" (page-id filename i)))
-              (render-page out state page))))
+         (format *trace-output* "~&Writing ~a..."
+                 (namestring listing-filename))
+         (with-html-file (out listing-filename)
+           (render-lisp-file report out file))))
   pathname)
 
 #++
-(render 'breeze)
+(render
+ (make-instance 'report
+                :output-dir (breeze.utils:breeze-relative-pathname "docs/"))
+ 'breeze)

@@ -53,4 +53,6 @@
 (define-test generate-documentation
   (with-output-to-string (*trace-output*)
     (breeze.documentation::generate-documentation)
-    (breeze.report::render 'breeze)))
+    (breeze.report::render
+     (make-instance 'breeze.report:report :output-dir (breeze.utils:breeze-relative-pathname "docs/"))
+     'breeze)))
