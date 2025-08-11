@@ -63,8 +63,7 @@ can be specialised on this class for further customization."))
             (t (format o "~(~16r~)" (char-code c)))))))
 
 (defmethod url-to (report thing &optional prefix)
-  (format nil "~:[~;~a-~]~a"
-          prefix
+  (format nil "~@[~a-~]~a"
           (and prefix (slug report prefix))
           (slug report thing)))
 
