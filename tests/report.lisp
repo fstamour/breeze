@@ -29,9 +29,12 @@
 
 (define-test+run url-to
   :dependencies (slug)
-  (is string= "nil" (url-to nil nil))
   (is string= "nil" (url-to nil nil nil))
-  (is string= "listing-tests--report.lisp"
+  (is string= "tests--report.lisp"
+      (url-to nil "tests/report.lisp" nil))
+  (is string= "foo-tests--report.lisp"
+      (url-to nil "tests/report.lisp" :foo))
+  (is string= "listing-tests--report.lisp.html"
       (url-to nil "tests/report.lisp" :listing)))
 
 (define-test+run pathname-to
@@ -46,18 +49,18 @@
 (define-test+run link-to-file
   :dependencies (pathname-to)
   (is string=
-      "<a href=\"out/listing-asdf.html\">asdf</a>"
+      "<a href=\"listing-asdf.html\">asdf</a>"
       (link-to-file
        (make-instance 'report :output-dir "out/") "asdf")))
 
 (define-test+run link-to-page
   :dependencies (pathname-to)
   (is string=
-      "<a href=\"out/listing-asdf.html#asdf-42\">asdf &#8212; untitled page 42</a>"
+      "<a href=\"listing-asdf.html#asdf-42\">asdf &#8212; untitled page 42</a>"
       (link-to-page
        (make-instance 'report :output-dir "out/") "asdf" 42))
   (is string=
-      "<a href=\"out/listing-asdf.html#asdf-42\">Not untitled!</a>"
+      "<a href=\"listing-asdf.html#asdf-42\">Not untitled!</a>"
       (link-to-page
        (make-instance 'report :output-dir "out/") "asdf" 42
        "Not untitled!")))

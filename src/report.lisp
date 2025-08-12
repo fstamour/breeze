@@ -62,20 +62,19 @@ can be specialised on this class for further customization."))
             ((char= #\/ c) (write-string "--" o))
             (t (format o "~(~16r~)" (char-code c)))))))
 
-(defmethod url-to (report thing &optional prefix)
+(defmethod url-to (report thing prefix)
   (format nil "~@[~a-~]~a"
+          (and prefix (slug report prefix))
+          (slug report thing)))
+
+(defmethod url-to (report thing (prefix (eql :listing)))
+  (format nil "~@[~a-~]~a.html"
           (and prefix (slug report prefix))
           (slug report thing)))
 
 (defmethod pathname-to (report thing prefix)
   (merge-pathnames
    (url-to report thing prefix)
-   (output-dir report)))
-
-(defmethod pathname-to (report thing (prefix (eql :listing)))
-  (merge-pathnames
-   (format nil "~a.html"
-           (url-to report thing :listing))
    (output-dir report)))
 
 
@@ -295,10 +294,10 @@ newlines or more marks the start of a new paragraph)."
 
 (defmethod link-to-file (report filename)
   (format nil "<a href=\"~a\">~a</a>"
-          (pathname-to report (namestring filename) :listing)
+          (url-to report (namestring filename) :listing)
           filename))
 
-;; (link-to-file "asdf")
+;; (link-to-file nil "asdf")
 
 (defmethod page-id (report filename page-number)
   (format nil "~a-~d" filename page-number))
@@ -310,9 +309,9 @@ newlines or more marks the start of a new paragraph)."
        ;; &#8212; is an em-dash
        (format nil "~a &#8212; untitled page ~d" filename page-number))
    (page-id report filename page-number)
-   (pathname-to report (namestring filename) :listing)))
+   (url-to report (namestring filename) :listing)))
 
-;; (link-to-page "asdf" 42)
+;; (link-to-page nil "asdf.lisp" 42)
 
 (defun system-listing-pathname (report system)
   "Get the path to SYSTEM's generated listings."
