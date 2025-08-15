@@ -65,4 +65,4 @@ RUN apk add bash ca-certificates emacs
 
 COPY . .
 
-RUN emacs -batch -l ert -l /breeze/tests/breeze-test.el -f ert-run-tests-batch-and-exit
+RUN emacs -batch -l ert -l /breeze/tests/emacs/breeze-test.el -f ert-run-tests-batch-and-exit
