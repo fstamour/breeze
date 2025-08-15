@@ -24,7 +24,7 @@
     :initform nil
     :initarg :root-dir
     :accessor root-dir
-    :documentation "Te path of the root directory of the project.")))
+    :documentation "The path of the root directory of the project.")))
 
 ;; &key depends-on author include-copyright license
 ;; name template-directory template-parameters
