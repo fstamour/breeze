@@ -348,11 +348,10 @@ uses the throw tag to stop the command immediately."
   (tagbody
    :retry
      (restart-case
-         (handler-bind
-             ((error #'(lambda (condition)
-                         (log-error "~&An error occurred: ~a" condition)
-                         (cancel-command id condition))))
-           (funcall thunk))
+         (handler-case (funcall thunk)
+             (error (condition)
+               (log-error "~&An error occurred: ~a" condition)
+               (cancel-command id condition)))
        (retry-command ()
          :report "Retry calling the command"
          (go :retry)))))
