@@ -351,7 +351,8 @@ uses the throw tag to stop the command immediately."
          (handler-case (funcall thunk)
              (error (condition)
                (log-error "~&An error occurred: ~a" condition)
-               (cancel-command id condition)))
+               (cancel-command id condition)
+               (send "done")))
        (retry-command ()
          :report "Retry calling the command"
          (go :retry)))))
