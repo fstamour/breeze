@@ -252,7 +252,6 @@ slime-net-processes
         ;; (insert (format "%S" (breeze-list-commands)))
         ))))
 
-
 (save-excursion
   (with-current-buffer (find-file-noselect breeze-breeze.el)
     ;; TODO maybe "unnarrow"
@@ -274,7 +273,7 @@ slime-net-processes
        (lambda ()
          (with-temp-buffer
            (dolist (command (breeze-list-commands))
-             (insert (format "%S\n" `(breeze--defstub ,command ,(documentation command t)))))
+             (insert (format ";;;###autoload\n%S\n" `(breeze--defstub ,command ,(documentation command t)))))
            (buffer-substring-no-properties (point-min) (point-max))))))))
 
 

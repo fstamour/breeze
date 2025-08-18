@@ -9,6 +9,9 @@ test:
 doc:
 	scripts/doc.sh
 
+emacs/breeze-autoloads.el: emacs/breeze.el
+	emacs -batch -f loaddefs-generate-batch emacs/breeze-autoloads.el emacs
+
 .PHONY: test-emacs
 test-emacs:
 	guix shell emacs-no-x --container --preserve='^TERM$$' -- emacs -batch --load src/breeze.el --load tests/emacs/no-listener.el -f ert-run-tests-batch-and-exit

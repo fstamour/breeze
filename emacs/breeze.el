@@ -639,6 +639,7 @@ listener."
 
 ;; See slime--setup-contribs, I named this breeze-init so it _could_
 ;; be added to slime-contrib,
+;;;###autoload
 (cl-defun breeze-init ()
   "Initialize breeze."
   (interactive)
@@ -890,6 +891,7 @@ previous flymake error."
   (make-sparse-keymap)
   "Keymap for breeze-minor-mode")
 
+;;;###autoload
 (define-minor-mode breeze-minor-mode
   "Toggle Breeze minor mode on or off
 
@@ -951,12 +953,14 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 ;; choose an expression from history to evaluate
 ;; (define-key breeze-eval-map (kbd "e") 'breeze-reevaluate-form)
 
+;;;###autoload
 (defun enable-breeze-minor-mode ()
   "Enable breeze-minor-mode."
   (interactive)
   (unless breeze-minor-mode
     (breeze-minor-mode 1)))
 
+;;;###autoload
 (defun disable-breeze-minor-mode ()
   "Disable breeze-minor-mode."
   (interactive)
@@ -998,6 +1002,7 @@ automatically enabling breeze-minor-mode in lisp-mode."
 
 ;;; major mode
 
+;;;###autoload
 (define-derived-mode breeze-major-mode prog-mode
   "BRZ")
 
@@ -1018,6 +1023,7 @@ automatically enabling breeze-minor-mode in lisp-mode."
                   (push s x))))
     x))
 
+;;;###autoload
 (defmacro breeze--defstub (name docstring)
   "Macro to define a stub function for the command NAME."
   `(defun ,name ()
@@ -1028,36 +1034,68 @@ automatically enabling breeze-minor-mode in lisp-mode."
 
 ;;; This page is auto-generated (see ../workbench.el), don't edit it
 
-(breeze--defstub breeze-insert-loop-clause-for-hash "Insert a loop clause to iterate on a hash-table.")
-(breeze--defstub breeze-insert-make-load-form-boilerplate "Insert a make-load-form method form.")
-(breeze--defstub breeze-insert-defgeneric "Insert a defgeneric form.")
+;;;###autoload
 (breeze--defstub breeze-completions-at-point "completion-at-point")
-(breeze--defstub breeze-kill-worker-threads "Find threads named \"worker\", then destroy them.")
-(breeze--defstub breeze-insert-setf-defun "Insert a setf function form e.g. (defun (setf ...) ...)")
-(breeze--defstub breeze-insert-loop-clause-for-on-list "Insert a loop clause to iterate on a list.")
-(breeze--defstub breeze-insert-local-nicknames "Insert local nicknames.")
-(breeze--defstub breeze-insert-defun "Insert a defun form.")
-(breeze--defstub breeze-insert-defpackage "Insert a defpackage form.")
-(breeze--defstub breeze-quickfix "Given the context, suggest some applicable commands.")
-(breeze--defstub breeze-insert-breeze-define "Insert a breeze:define-command form.")
-(breeze--defstub breeze-insert-defmacro "Insert a defmacro form.")
-(breeze--defstub breeze-insert-defclass "Insert a defclass form.")
-(breeze--defstub breeze-insert-asdf "Insert an asdf system definition form.")
-(breeze--defstub breeze-insert-defparameter "Insert a defparameter form.")
-(breeze--defstub breeze-insert-in-package-cl-user "Insert (cl:in-package #:cl-user)")
-(breeze--defstub breeze-insert-define-constant "Insert a alexandria:define-constant form.")
-(breeze--defstub breeze-insert-loop-clause-for-in-list "Insert a loop clause to iterate in a list.")
-(breeze--defstub breeze-capture "Quickly create a lisp file in a pre-determined directory.")
+;;;###autoload
 (breeze--defstub breeze-insert-defvar "Insert a defvar form.")
-(breeze--defstub breeze-insert-defmethod "Insert a defmethod form.")
-(breeze--defstub breeze-insert-lambda "Insert a lambda form.")
-(breeze--defstub breeze-insert-handler-bind-form "Insert handler bind form.")
+;;;###autoload
 (breeze--defstub breeze-interactive-eval "A command to interactively evaluate code.")
+;;;###autoload
+(breeze--defstub breeze-insert-loop-clause-for-on-list "Insert a loop clause to iterate on a list.")
+;;;###autoload
 (breeze--defstub breeze-insert-handler-case-form "Insert handler case form.")
-(breeze--defstub breeze-insert-class-slot "Insert a defclass slot form.")
+;;;###autoload
+(breeze--defstub breeze-insert-setf-defun "Insert a setf function form e.g. (defun (setf ...) ...)")
+;;;###autoload
+(breeze--defstub breeze-insert-handler-bind-form "Insert handler bind form.")
+;;;###autoload
+(breeze--defstub breeze-insert-loop-clause-for-hash "Insert a loop clause to iterate on a hash-table.")
+;;;###autoload
+(breeze--defstub breeze-insert-defgeneric "Insert a defgeneric form.")
+;;;###autoload
+(breeze--defstub breeze-capture "Quickly create a lisp file in a pre-determined directory.")
+;;;###autoload
 (breeze--defstub breeze-insert-print-unreadable-object-boilerplate "Insert a print-object method form.")
-(breeze--defstub breeze-insert-defconstant "Insert a defconstant form.")
+;;;###autoload
+(breeze--defstub breeze-kill-worker-threads "Find threads named \"worker\", then destroy them.")
+;;;###autoload
+(breeze--defstub breeze-insert-local-nicknames "Insert local nicknames.")
+;;;###autoload
+(breeze--defstub breeze-insert-make-load-form-boilerplate "Insert a make-load-form method form.")
+;;;###autoload
+(breeze--defstub breeze-insert-defpackage "Insert a defpackage form.")
+;;;###autoload
+(breeze--defstub breeze-quickfix "Given the context, suggest some applicable commands.")
+;;;###autoload
+(breeze--defstub breeze-insert-loop-clause-for-in-list "Insert a loop clause to iterate in a list.")
+;;;###autoload
+(breeze--defstub breeze-insert-defclass "Insert a defclass form.")
+;;;###autoload
+(breeze--defstub breeze-insert-defparameter "Insert a defparameter form.")
+;;;###autoload
+(breeze--defstub breeze-insert-asdf "Insert an asdf system definition form.")
+;;;###autoload
+(breeze--defstub breeze-insert-in-package-cl-user "Insert (cl:in-package #:cl-user)")
+;;;###autoload
+(breeze--defstub breeze-insert-lambda "Insert a lambda form.")
+;;;###autoload
+(breeze--defstub breeze-quickproject "Create a project interactively using quickproject.")
+;;;###autoload
+(breeze--defstub breeze-insert-defun "Insert a defun form.")
+;;;###autoload
 (breeze--defstub breeze-kill-sexp "Kill the expression following point.")
+;;;###autoload
+(breeze--defstub breeze-insert-defconstant "Insert a defconstant form.")
+;;;###autoload
+(breeze--defstub breeze-insert-class-slot "Insert a defclass slot form.")
+;;;###autoload
+(breeze--defstub breeze-insert-breeze-define "Insert a breeze:define-command form.")
+;;;###autoload
+(breeze--defstub breeze-insert-define-constant "Insert a alexandria:define-constant form.")
+;;;###autoload
+(breeze--defstub breeze-insert-defmethod "Insert a defmethod form.")
+;;;###autoload
+(breeze--defstub breeze-insert-defmacro "Insert a defmacro form.")
 
 
 
