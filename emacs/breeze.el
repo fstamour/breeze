@@ -607,7 +607,11 @@ listener."
 (cl-defun breeze-load (&optional cont)
   "Asynchronously load breeze into the inferior lisp."
   (interactive)
+  ;; require asdf
+  (breeze-%eval '(cl:progn (cl:require "asdf") t))
+  ;; define package
   (breeze-%eval '(cl:progn (cl:defpackage breeze.loader (:use :cl)) t))
+  ;; load!
   (breeze-%eval `(cl:progn (cl:defparameter breeze.loader::*asd*
                                             ,(breeze-relative-path "breeze.asd")) t))
   (breeze-%eval-async
