@@ -28,7 +28,15 @@ launch-emacs:
 
 .PHONY: test-emacs
 test-emacs:
-	guix shell emacs-no-x --container --preserve='^TERM$$' -- emacs -batch --load src/breeze.el --load tests/emacs/no-listener.el -f ert-run-tests-batch-and-exit
+	guix shell \
+		--manifest=scripts/manifest.scm \
+		--container --preserve='^TERM$$' \
+		--user=user \
+		--no-cwd --expose=$$PWD=$$HOME/breeze \
+		-- emacs --batch \
+		--load \~/breeze/emacs/breeze.el \
+		--load \~/breeze/tests/emacs/no-listener.el \
+		-f ert-run-tests-batch-and-exit
 
 
 DOCKER_BUILD := DOCKER_BUILDKIT=1 docker build --progress=plain
