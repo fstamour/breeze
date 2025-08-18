@@ -38,6 +38,10 @@
     (error "*capture-folder* not set"))
   ;; TODO ensure that *capture-folder* is a valid directory pathname
   ;; TODO check if *capture-folder* exists
+  (unless (probe-file *capture-folder*)
+    (if (breeze.command:ask-y-or-n-p "The capture folder ~s does not exist, create it? " *capture-folder*)
+        (ensure-directories-exist *capture-folder*)
+        (error "The capture folder ~s does not exist" *capture-folder*)))
   ;; We use "chose" instead of "read-string" so that the user can
   ;; easily see if he's trying to create a file with a name that
   ;; already exists.
