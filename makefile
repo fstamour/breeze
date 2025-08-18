@@ -12,6 +12,20 @@ doc:
 emacs/breeze-autoloads.el: emacs/breeze.el
 	emacs -batch -f loaddefs-generate-batch emacs/breeze-autoloads.el emacs
 
+# use guix shell to run emacs in a container
+# uses X11
+.PHONY:
+launch-emacs:
+	guix shell \
+		--manifest=scripts/manifest.scm \
+		--container --preserve='^TERM$$' \
+		--user=user \
+		--preserve='^XAUTHORITY$$' --expose="$${XAUTHORITY}" --preserve='^DISPLAY$$' \
+		--network \
+		--no-cwd --expose=$$PWD=$$HOME/breeze \
+		--expose=$$PWD/emacs/dot-emacs.el=$$HOME/.emacs \
+		-- emacs
+
 .PHONY: test-emacs
 test-emacs:
 	guix shell emacs-no-x --container --preserve='^TERM$$' -- emacs -batch --load src/breeze.el --load tests/emacs/no-listener.el -f ert-run-tests-batch-and-exit
