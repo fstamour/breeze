@@ -82,7 +82,7 @@ Backtrace:
 |#
 
 
-;;; Lookint at the macro expension
+;;; Looking at the macro expansion
 ;;; - it creates class named TEST (the name of the workflow)
 ;;; - it makes a list of object of type Job, then
 ;;; - create an instance of the class TEST

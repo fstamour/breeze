@@ -581,5 +581,5 @@ TODO there's some different kind of "quickfixes":
                            "NODE-ITERATOR is nil")))
            (error (condition) (apply #'format nil (simple-condition-format-control condition)
                                      (simple-condition-format-arguments condition))))
-         "An error occured when calling breeze-header-line")))
+         "An error occurred when calling breeze-header-line")))
   (export 'header-line))

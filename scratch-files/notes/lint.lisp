@@ -230,7 +230,7 @@ prog*
 
 ;; In the loop clause
 ;; :for i :from 0 :below 10
-;; the ":from 0" is unecesary
+;; the ":from 0" is unnecessary
 
 
 
@@ -319,7 +319,7 @@ prog*
 (not (null x)) == (and x t)
 (eq nil x) == (null x)  { (eq a b) === (eq b a) }
 
-;; it's redundent to add a quote before t, nil, or any keywords
+;; it's redundant to add a quote before t, nil, or any keywords
 ':ok 'nil 'y
 
 Bad:
@@ -337,7 +337,7 @@ Good:
 
 (defun f (y)
   ;; Copy-pasted code, where the variables doesn't match, breeze
-  ;; should be able to "quickfix" this relpacing either x or y by the
+  ;; should be able to "quickfix" this replacing either x or y by the
   ;; other.
   (if (plusp x)
       x

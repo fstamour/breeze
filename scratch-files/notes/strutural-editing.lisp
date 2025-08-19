@@ -254,7 +254,7 @@ Name: backslash
 =-=-=
 
 ;; When deleting an escaped character, it should not delete the
-;; backslash along with it, it should intead try to read a new
+;; backslash along with it, it should instead try to read a new
 ;; character to escape... probably
 
 Code: breeze-backward-delete

@@ -9,7 +9,7 @@
 2024-12-20 can't repro just yet, didn't try too much.
 
 I did discover that if a thread is aborted while a debugger is opened
-in slime, slime detects it and kill the debuger buffer.
+in slime, slime detects it and kill the debugger buffer.
 |#
 
 #|

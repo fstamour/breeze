@@ -139,7 +139,7 @@ a message and stop the current command."
 ;; TODO rename validate current-package
 #++
 (defun validate-nearest-in-package (nodes outer-node)
-  "Find the lastest \"in-package\" form, test if the packages can be
+  "Find the latest \"in-package\" form, test if the packages can be
 found."
   (let* ((previous-in-package-form
            (find-nearest-sibling-in-package-form nodes (or outer-node

@@ -5,7 +5,7 @@ Goal: be able to load breeze into a remote lisp image
 
 Motivation: making breeze easier to use in more contexts
 
-Expected issue: Loading breeze migth be easy... if we send the source
+Expected issue: Loading breeze might be easy... if we send the source
 code through sly/slime's listener. But it probably won't be easy to do
 so for all the dependencies...
 

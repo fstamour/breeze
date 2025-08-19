@@ -571,7 +571,7 @@
 (defun should-suggest-to-insert-package-definition-when (when content)
   (loop :for point :from 1 #| TODO 0 |# :upto (1+ #| TODO remove 1+ |# (length content))
         :do (is eq 'breeze.package-commands:insert-defpackage (test-suggest-package-definition content :point point)
-                "Should suggest to insert a package defininition when the buffer ~a (point = ~d)."
+                "Should suggest to insert a package definition when the buffer ~a (point = ~d)."
                 when point)))
 
 (define-test+run suggest-package-definition

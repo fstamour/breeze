@@ -141,7 +141,7 @@ contain any loaded system
 system that has not been loaded
 
 Which means that loadedp crashes when it's called on a file that is
-part of a system that no systems from the same system defintion file
+part of a system that no systems from the same system definition file
 was loaded.
 
 It's subtle...
@@ -202,7 +202,7 @@ likely not loaded
 
 ;; TODO if it's not part of a system, check if it should
 (defun loadedp (pathname &aux (pathname (uiop:truename* pathname)))
-  "Check whether PATHNAME is part of a system, and wheter it was loaded.
+  "Check whether PATHNAME is part of a system, and whether it was loaded.
 This will return false if the file was loaded outside of asdf."
   ;; TODO This function should never fail, add a handler-case
   (when pathname

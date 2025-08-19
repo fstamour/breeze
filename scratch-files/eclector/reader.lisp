@@ -37,7 +37,7 @@ This package also re-exports symbols from breeze.syntax-tree.")
     :initform nil
     :initarg :condition
     :accessor parser-condition
-    :documentation "The condition that occured while parsing"))
+    :documentation "The condition that occurred while parsing"))
   (:documentation "Represents a parsed piece of code."))
 
 (defun make-code (&optional forms)

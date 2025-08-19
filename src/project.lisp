@@ -19,7 +19,7 @@
     :initform nil
     :initarg :name
     :accessor name
-    :documentation "Name of the poject,")
+    :documentation "Name of the project,")
    (root-dir
     :initform nil
     :initarg :root-dir

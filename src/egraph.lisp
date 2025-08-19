@@ -93,7 +93,7 @@ Example:
         id
         (let ((root (disjoint-sets-find sets parent)))
           ;; TODO Don't do the path compression here... I feel like
-          ;; it's going to add unecesary step to the egraph's hot
+          ;; it's going to add unnecessary step to the egraph's hot
           ;; loop.
           ;; Path compression: point directly to the root if it's not
           ;; already the case.
@@ -341,7 +341,7 @@ eclass-id (and a second value T, if the eclass was just created)."
 (defun merge-eclass (egraph id1 id2)
   "Merge eclasses represented by ID1 and ID2.
 This breaks the invariant of the egraph, rebuild must be called
-aftewards to restore them."
+afterwards to restore them."
   (let ((canonical-id1 (eclass-find egraph id1))
         (canonical-id2 (eclass-find egraph id2)))
     (if (= canonical-id1 canonical-id2)

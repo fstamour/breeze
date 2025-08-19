@@ -103,15 +103,15 @@
                                            (node-end (second rest)))))
             (apply-edit-to-source state edit)
             (setf (pos state) (node-start (second rest)))
-            ;; TODO note the lack of re-use xD
+            ;; TODO note the lack of reuse xD
             ;; - (first rest) is unchanged
             ;; - (second rest) is the first node to re-parse
-            ;; - (third rest) is the first node that we might be able to re-use
+            ;; - (third rest) is the first node that we might be able to reuse
             (let ((new-node (breeze.lossless-reader::read-any state)))
               (cond
                 ((and
                   (third rest)
-                  ;; we stopped parsing the new node at an analoguous
+                  ;; we stopped parsing the new node at an analogous
                   ;; location
                   (= (+ (length detail) (node-start (third rest)))
                      (node-end new-node))

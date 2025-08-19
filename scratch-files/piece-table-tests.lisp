@@ -69,7 +69,7 @@
                      &optional expected-after-fill-pointer)
   (of-type string s "~a" description)
   (is string= expected-before-fill-pointer s
-       "~a: the string was expectd to be ~s got ~s"
+       "~a: the string was expected to be ~s got ~s"
        description expected-before-fill-pointer s)
   (when expected-after-fill-pointer
     (is string= expected-after-fill-pointer

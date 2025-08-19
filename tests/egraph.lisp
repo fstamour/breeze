@@ -63,7 +63,7 @@
     (add-form egraph '(+ x y))
     (add-form egraph '(+ x 2))
     (add-form egraph '(+ y y))
-    ;; 3 distinct forms + 3 disctinct atoms = 6
+    ;; 3 distinct forms + 3 distinct atoms = 6
     (is = 6 (length (union-find egraph)))
     (is = 6 (hash-table-count (eclasses egraph)))
     (is = 6 (hash-table-count (eclasses egraph)))))

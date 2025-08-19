@@ -1,6 +1,6 @@
 #|
 
-Those were smoke tests that I was running manually when developping
+Those were smoke tests that I was running manually when developing
 this package.
 
 I could add actual test to this package... but I already have lots of

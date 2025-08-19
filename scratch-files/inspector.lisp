@@ -86,7 +86,7 @@ In the inspectors' buffer RET is bound to
 slime-inspector-operate-on-point, here's its docstring:
 
 Invoke the command for the text at point.
-1. If point is on a value then recursivly call the inspector on
+1. If point is on a value then recursively call the inspector on
 that value.
 2. If point is on an action then call that action.
 3. If point is on a range-button fetch and insert the range.
@@ -192,7 +192,7 @@ If NEWLINE is non-NIL a `(:newline)' is added to the result."
                      (value-part value nil place (istate.parts istate))
                      newline)))))))
 
-;; these migth not be up-to-date
+;; these might not be up-to-date
 #++
 (flet ((test-prepare-part (object part)
          (let* ((istate (make-istate :object object :previous nil

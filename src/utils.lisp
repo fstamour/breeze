@@ -50,7 +50,7 @@
                                                   `((with ,(rest rest))))))
                            ,@body))))
            ((and (not (eq *package* symbol-package)) (eq :internal status))
-            (error "The symbol ~s is interal to ~s" with symbol-package))
+            (error "The symbol ~s is internal to ~s" with symbol-package))
            (t (setf body `((,with ,@rest ,@body)))))))
   (car body))
 

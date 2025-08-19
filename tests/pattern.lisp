@@ -206,7 +206,7 @@
   (is eq
       (find-class 'binding)
       (class-of (make-binding :?x "a"))
-      "Make binding should retun an instance of the class \"binding\".")
+      "Make binding should return an instance of the class \"binding\".")
   (is equal "#<BINDING :?X → A>"
       (prin1-to-string
        (make-binding :?x 'a))
@@ -412,7 +412,7 @@
               (maybe 'a) 'b nil)
   (test-match* "matching (maybe ?x) against the atom 'a"
               (maybe (term '?x)) 'a nil)
-  (test-match* "matching (maybe ?x) agains the empty sequence"
+  (test-match* "matching (maybe ?x) against the empty sequence"
               (maybe (term '?x)) nil t))
 
 (define-test+run "match alternations"

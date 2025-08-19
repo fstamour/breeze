@@ -343,7 +343,7 @@ EXPECTED-END is the expected node's end. E.g. (true (eql expected-end (node-end 
 EXPECTED-POS is the expected position of the parser's state after the
 SHARPSING-READER-FUNCTION's execution.
 
-EXPECTED-CHILDREN is the exepected list of node's children
+EXPECTED-CHILDREN is the expected list of node's children
 
 GIVEN-NUMERIC-ARGUMENT is passed to SHARPSING-READER-FUNCTION as the
 \"optional sequence of digits\" (in the hyperspec's words) read by
@@ -1105,7 +1105,7 @@ the function read-sharpsign-dispatching-reader-macro
 (define-test read-any)
 
 
-;;; Putting it all toghether
+;;; Putting it all together
 
 (defun test-parse (input &rest expected)
   (register-test-string input)

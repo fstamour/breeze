@@ -103,7 +103,7 @@
       (error "Failed to find command with id ~S." id))
     actor))
 
-;; TODO gabage collect the *actors* that are done (when?)
+;; TODO garbage collect the *actors* that are done (when?)
 ;; TODO How to detect if something went wrong?
 
 #++
@@ -330,7 +330,7 @@ uses the throw tag to stop the command immediately."
 (defun donep (command)
   (if command
       ;; Command is considered done because it has a thread and it is
-      ;; not alive, and there is not outbound messages wainting.
+      ;; not alive, and there is not outbound messages waiting.
       (and
        (thread-dead-p command)
        (not (outgoing-messages-p command)))

@@ -148,7 +148,7 @@
         `(loop :for ,(first vars) :below ,n :do (∀ (,n ,@(rest vars)) ,@body)))
       `(progn ,@body)))
 
-;; Generate all possible strings of 1 charcater
+;; Generate all possible strings of 1 character
 ;; Generate all ASCII strings of length 2 and 3
 #++
 (define-test+run parse-exhaustive

@@ -650,7 +650,7 @@ position."
 (defun read-string* (state string &optional (advance-position-p t))
   "Search STRING in the STATE's source, at the current STATE's
 position. If found, optionally advance the STATE's position to _after_
-the occurence of STRING."
+the occurrence of STRING."
   (check-type string string)
   (let ((start (current-position state))
         (end (+ (current-position state) (length string))))
@@ -777,7 +777,7 @@ the occurence of STRING."
 
 (defun read-any* (state)
   "Like READ-ANY, but return the end of the read and a sequence of nodes
-as two values (Wheras READ-ANY returns two nodes (also as values), the
+as two values (Whereas READ-ANY returns two nodes (also as values), the
 first node being whitespaces.)"
   (let ((children)
         (end +end+))
@@ -887,7 +887,7 @@ first node being whitespaces.)"
        ;;
        ;; TODO each node could have a list of errors (diagnostics?)
        ;; attached, so we can have better feedback than just "syntax
-       ;; error" (could we re-use the node-children to store the
+       ;; error" (could we reuse the node-children to store the
        ;; diagnostics?)
        ;;
        ;; TODO if we fail to parse this, it would be nice to tell the
@@ -1236,7 +1236,7 @@ Returns a new node with one of these types:
                 (state-context state))))))
 
 
-;;; Putting it all toghether
+;;; Putting it all together
 
 (defun parse (string &optional (state (make-state string)))
   "Parse a string, stop at the end, or when there's a parse error."

@@ -9,13 +9,13 @@
 
 (let* ((classes #(+ a b))
        (initial-states #(0))
-       (occurences '((a . 2) (b . 1)))
+       (occurrences '((a . 2) (b . 1)))
        (input #(+ a b a))
        (transitions '((0 . (1 2))
                       (1 . (1 2))
                       (2 . (1 2)))))
   (loop
-    :with counts = (alexandria:alist-hash-table occurences)
+    :with counts = (alexandria:alist-hash-table occurrences)
     :for state = (aref initial-states 0)
       :then (cdr (assoc class transitions))
     :for guard :below 100

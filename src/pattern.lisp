@@ -214,7 +214,7 @@ compile-pattern is called, a new one is created."
 
 ;; Compile lists
 (defmethod %compile-pattern ((pattern cons))
-  ;; Dispatch to another method that is eql-specialized on the firt
+  ;; Dispatch to another method that is eql-specialized on the first
   ;; element of the list.
   (compile-compound-pattern (first pattern) pattern))
 
@@ -247,7 +247,7 @@ compile-pattern is called, a new one is created."
   (alternation (%compile-pattern (rest patterns))))
 
 
-;;; Re-usable, named patterns
+;;; Reusable, named patterns
 
 (defvar *patterns* (make-hash-table :test 'equal)
   "Stores all the patterns.")
@@ -402,9 +402,9 @@ compile-pattern is called, a new one is created."
   "Merge two set of bindings (list of list of bindings), returns a new
 set of bindings.
 Matching a pattern against a set of values (e.g. an egraph) will yield
-a set of independant bindings. During the macthing process, we might
+a set of independent bindings. During the matching process, we might
 need to refine the \"current\" set of bindings. Long-story short, this
-is analoguous to computing the Cartesian product of the two sets of
+is analogous to computing the Cartesian product of the two sets of
 bindings and keeping only those that have not conflicting bindings."
   (loop :for bindings1 :in set-of-bindings1
         :append (loop :for bindings2 :in set-of-bindings2
@@ -522,7 +522,7 @@ bindings and keeping only those that have not conflicting bindings."
                   (funcall skipp $input))
          (next $input :dont-recurse-p t))
        (return
-         ;; We want to match the whole pattern, but wheter we
+         ;; We want to match the whole pattern, but whether we
          ;; want to match the whole input is up to the caller.
          (when (donep $pattern)
            (values (or bindings t)
@@ -631,7 +631,7 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;; TODO "rules" would be "bidirectional" and "rewrites" wouldn't.
 ;; TODO (defun rule (a b) ...)
-;; TODO (defun make-rewrite (antecedant consequent) ...)
+;; TODO (defun make-rewrite (antecedent consequent) ...)
 
 #++ (progn
       (defclass abstract-rule () ())

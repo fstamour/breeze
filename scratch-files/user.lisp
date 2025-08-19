@@ -148,7 +148,7 @@
         (format t "~&No undocumented symbols found ~{~A~}. ~A" (current-packages) (cheers)))))
 
 (defun tips-about-failing-tests ()
-  "Tell the user about currently failiing tests."
+  "Tell the user about currently failing tests."
   ;; TODO
   )
 

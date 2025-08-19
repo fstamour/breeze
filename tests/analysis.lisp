@@ -29,8 +29,6 @@
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
-
-
 (define-test+run match-symbol-to-token
   (true (match-symbol-to-token t (make-node-iterator "t")))
   (true (match-symbol-to-token nil (make-node-iterator "nil")))

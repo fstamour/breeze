@@ -35,7 +35,7 @@
   (:LOCAL-NICKNAMES (:A :ALEXANDRIA)))
 
 ;; But this method (copying everything) fails to take advantage of
-;; possible strucutral sharing.
+;; possible structural sharing.
 ;;
 ;; For example, both trees have equivalent third element.
 (third *tree*)

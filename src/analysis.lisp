@@ -59,7 +59,7 @@
         (let ((*package* (find-package '#:KEYWORD)))
           (ignore-errors
            (symbol-name (read-from-string symbol-name))))
-        ;; TODO this doens't check if characters are escpaped,
+        ;; TODO this doesn't check if characters are escpaped,
         ;; TODO this doesn't remove the escape characters...
         #++(ecase (readtable-case *readtable*)
              (:upcase #| this is the default |#

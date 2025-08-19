@@ -156,7 +156,7 @@
 	  collect
 	  `(,symbol ;; Does the symbol have function?
 	    ,@(pred 'fboundp symbol)
-	    ;; Is the symbol a lamba list keyword? (e.g. &optional, &key, etc.)
+	    ;; Is the symbol a lambda list keyword? (e.g. &optional, &key, etc.)
 	    ,@(pred 'lambda-list-keyword-p symbol)
 	    ;; Is the symbol a variable?
 	    ,@(pred 'boundp symbol)
