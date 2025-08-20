@@ -1,4 +1,7 @@
 
+.PHONY: all-tests
+all-tests: test test-emacs
+
 # Run the unit tests
 .PHONY: test
 test:
@@ -8,6 +11,11 @@ test:
 .PHONY: doc
 doc:
 	scripts/doc.sh
+
+# Work in progress
+# Create a container meant to be uploaded (using skopeo), and to be used in CI pipelines.
+guix-container-for-ci.tar.gz: scripts/manifest.scm
+	guix pack -f docker --manifest=$< --image-tag=$(subst .tar.gz,,$@) --root=$@ --save-provenance
 
 emacs/breeze-autoloads.el: emacs/breeze.el
 	emacs -batch -f loaddefs-generate-batch emacs/breeze-autoloads.el emacs
@@ -26,6 +34,7 @@ launch-emacs:
 		--expose=$$PWD/emacs/dot-emacs.el=$$HOME/.emacs \
 		-- emacs
 
+# Run **SOME** emacs test in a container, using guix
 .PHONY: test-emacs
 test-emacs:
 	guix shell \
@@ -44,35 +53,30 @@ DOCKER_BUILD := DOCKER_BUILDKIT=1 docker build --progress=plain
 # TODO set -o pipefail
 
 # This is "generic" makefile target. To use it, tweak the variables
-# and add it as a dependency.
+# (TARGET and DEST) and add it as a dependency.
+# See the targets "dependencies.core" and "public" for examples
 .PHONY: build-within-container
 build-within-container:
 	$(DOCKER_BUILD) --target=$(TARGET) --output type=local,dest=$(or $(DEST),.) . 2>&1 | tee $(TARGET).log
 
-# Generate the documentation. in a docker
+# Inside a container, create an sbcl core dump (for caching and faster
+# loading (inside a container))
 dependencies.core: Dockerfile breeze.asd scripts/load-dependencies.lisp
 	$(MAKE) build-within-container TARGET=dependencies.core
 
 .PHONY: integration
 integration: dependencies.core
-	$(MAKE) build-within-container TARGET=integration-tests DEST=public
+	$(MAKE) build-within-container TARGET=integration-tests DEST=public/integration-tests
+	mv integration-tests.log public/integration-tests/
 
 # Generate the documentation (the _public_ website)
 .PHONY: public
 public: dependencies.core
 	$(MAKE) build-within-container TARGET=public DEST=public
 
-
 .PHONY: list-warnings
 list-warnings: public.log
 	awk '/; compiling file "\/breeze\/src\//,/About to run tests for the packages/ { $$1=""; $$2=""; print }' $<
-
-
-# Run some "integration tests" that generates some screenshots
-# This is work-in-progress
-.PHONY: demo
-demo:
-	scripts/demo/build-docker-image.sh
 
 # Fix spelling
 .PHONY: spell

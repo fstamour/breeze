@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This script is meant to be run as the main script _inside docker_
 #
@@ -8,8 +8,13 @@
 
 set -xeuo pipefail
 
+# TODO test if `git` is available first
+# This is for running the script outside a container, which is not supported as well (for the moment)
+# # Move to repo's root
+# cd "$(git rev-parse --show-toplevel)"
+
 export DEMO_LISTENER_PORT=40050
-export DEMO_OUTPUT_DIR=${DEMO_OUTPUT_DIR:-scripts/demo/output/}
+export DEMO_OUTPUT_DIR=${DEMO_OUTPUT_DIR:-scripts/demo/output}
 
 mkdir -p ${DEMO_OUTPUT_DIR}
 
@@ -26,6 +31,7 @@ director_logs=${DEMO_OUTPUT_DIR}/emacs-director.log
 # Starting sbcl in a screen
 screen -dm sbcl --noinform \
      --core dependencies.core \
+     --eval "(asdf:load-system '#:swank :verbose t :force-not (asdf:already-loaded-systems))" \
      --eval "(asdf:load-asd \"/breeze/breeze.asd\")" \
      --eval "(asdf:load-system '#:breeze :verbose t :force-not (asdf:already-loaded-systems))" \
      --eval "(swank:create-server :dont-close t :port ${DEMO_LISTENER_PORT})" \
@@ -51,8 +57,7 @@ emacs_args=(
     # Run in fullscreen
     --fullscreen
     # Run our demo
-    # TODO move to scripts/scripts/demo.el
-    -l scripts/demo.el
+    -l scripts/demo/demo.el
     # Trying to pass extra arguments
     base-demo
 )
@@ -67,15 +72,15 @@ function emacs_x11() {
 
     # TODO This is Work in progress..
     # I think I should run the whole x11 stuff in screen
-    if command x11vnc; then
+    # if command x11vnc; then
         # TODO vnc
-        x11vnc -o ${DEMO_OUTPUT_DIR}/x11vnc.log -display ${DISPLAY} -bg
+        # x11vnc -o ${DEMO_OUTPUT_DIR}/x11vnc.log -display ${DISPLAY} -bg
         # -xkb
         # -noxrecord -noxfixes -noxdamage
         # -repeat -nopw
         # -wait 5
         # -permitfiletransfer -tightfilexfer
-    fi
+    # fi
 }
 
 function emacs_tty() {

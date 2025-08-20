@@ -19,3 +19,6 @@ githooks/*.sample
 *.log
 *~
 /docs/sitemap.org
+
+*.tar
+*.tar.gz

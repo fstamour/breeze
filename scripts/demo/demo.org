@@ -2,32 +2,87 @@
 
 This is heavily work-in-progress
 
+** Goals
+
+- make sure the integration with emacs works well and is not broken
+- optionally, create screenshots, logs and videos demonstrating the features
+  - both for quality control and for documentation
+
 ** Status
 
 - 2022-12-12: It works! Needs some more work to be useful
 - 2023-05-09: Added a way to easily create a demo.tar that contains
 the logs and screenshots.
+- 2025-08-20: Cleanup. Extract the result directly as files instead of
+  via a tar file.
 
 ** How to run the demo(s)?
 
+From the root of breeze's repo:
+
 *** With docker
 
-1. Build the docker image: ~/scripts/demo/build-docker-image.sh~
-2. Run it interactively: ~/scripts/demo/run-demo-recorder.sh~
-3. Copy the outputs: ~/scripts/demo/cp-results.sh~
+#+begin_src shell
+make integration
+#+end_src
+
+The results should be under =public/integration-tests/=.
 
 *** Without docker
 
-1. Start common lisp listener with ~../demo.sh~
-2. Run emacs with ~../demo.sh~
+Warning: this is not supported as well as running it inside a
+container.
+
+#+begin_src shell
+scripts/demo/demo-recorder.sh
+#+end_src
 
 ** Tasks
 
-*** TODO [#A] VNC for interactive debugging inside docker
+*** TODO [#A] emacs in xvfb fails to start
+
+#+begin_example
+#18 2.335 + xvfb-run -e scripts/demo/output/xvfb-errors.log emacs -Q -l scripts/emacs-director/util/director-bootstrap.el --fullscreen -l scripts/demo/demo.el base-demo
+#18 2.472 emacs: standard input is not a tty
+#+end_example
+
+*** TODO [#B] VNC for interactive debugging inside docker
 
 It would be nice to be able to see xvfb's content "live" for
 debugging. Or to interact with it (as opposed to just viewing
 it). (ssh or vnc?)
+
+*** TODO ~setup-demo.lisp~ is not used anymore
+
+It used to be for generating =dependencies.core=.
+
+*** TODO output software's version
+
+- [ ] the os (=/etc/os-release= probably)
+- [ ] emacs
+- [ ] sbcl
+- [ ] quicklisp client
+- [ ] quicklisp distribution
+- [ ] each systems
+- [ ] ...
+
+Totally optional: make this "script" an org-mode babel document.
+
+*** TODO Try using xdotools or similar to control emacs
+
+It would be easier (I think) to do similar test with other
+editors. Because I currently use something extremely emacs-specific.
+
+*** TODO rewrite =demo-recorder.sh= in lisp
+
+This bash script is starting to get unwidely. I think it might be
+easier in the long term to use another language to better handle all
+the possible conditions.
+
+It would also make it easier (possible) to write tests for that
+script.
+
+- use ~uiop~ to run executables
 
 *** DONE [#A] The outputs are all over the place
 
@@ -58,6 +113,9 @@ Vertico is available from ELPA, and only needs =(vertico-mode 1)= to
 have something working.
 
 *** TODO [#C] A video might be nice
+
+That's why =ffmpeg= is installed in the container, it is able to
+capture a video of an X window.
 
 *** TODO [#C] Can't run locally
 
@@ -99,7 +157,7 @@ I tried ~ubuntu:22.04~, ~apt-get update~ errored, I installed sbcl
 anyway with ~apt install sbcl~, but sbcl crashed on startup, saying
 that it wasn't able to create new thread.
 
-I tried alpine, was able to install sbcl with `apk add sbcl`, it ran
+I tried alpine, was able to install sbcl with ~apk add sbcl~, it ran
 perfectly well, asdf wasn't loaded by default and it was still version
 3.3.1. Also, emacs didn't have issues to install packages from elpa.
 
@@ -112,42 +170,42 @@ possible features and dependencies that emacs could possibly have).
 
 *** Overview of the scripts
 
-| File                  | Purpose                                          |
-|-----------------------+--------------------------------------------------|
-| ../demo.sh            | run demo.el, in terminal emacs                   |
-| ../demo.el            | setup emacs (pkgs, load-path), run director      |
-| ../demo.lisp          | setup lisp: start swank, load breeze             |
-| demo-recorder.sh      | docker's entrypoint, calls ~../demo.el~          |
-| setup-demo.lisp       | use by docker to install ql projects             |
-| alpine.dockerfile     | init quicklisp, calls setup-demo.lisp            |
-| build-docker-image.sh | build both base and final docker images          |
-| demo.log              | emacs-director's logs                            |
-| run-demo-recorder.sh  | run the docker image interactively               |
+| File                  | Purpose                                     |
+|-----------------------+---------------------------------------------|
+| ../demo.el            | setup emacs (pkgs, load-path), run director |
+| ../demo.lisp          | setup lisp: start swank, load breeze        |
+| demo-recorder.sh      | docker's entrypoint, calls ~../demo.el~     |
+| setup-demo.lisp       | use by docker to install ql projects        |
+
+*** TODO Overview of the scripts' output
+
+| File                  | Description                                                                                   |
+|-----------------------+-----------------------------------------------------------------------------------------------|
+| dependencies.core     | an sbcl core dump that has all possible breeze's dependencies loaded. Just for better caching |
+| demo.log              | emacs-director's logs                                                                         |
+| integration-tests.log | the "docker build"'s logs                                                                     |
+| xvfg-errors.log       | xvfb-run's error logs                                                                         |
 
 *** Docker image
 
-See `build-docker-image.sh`.
-
-**** Tips
-
-The image can be run interactively with `run-demo-recorder.sh`
+See the makefile targets ~integration~ and ~build-within-container~.
 
 *** Screenshot and capture
 
-In order to take screenshots or capture: `export DISPLAY=:99`
+In order to take screenshots or capture: ~export DISPLAY=:99~
 
 **** xvfb
 
-Using `xvfb-run emacs`, I can run emacs in a virtual frame buffer.
+Using ~xvfb-run emacs~, I can run emacs in a virtual frame buffer.
 
 ***** resolution
 
-xvfb-run creates a 640x480 buffer by default, it _might_ be okay for
-demo though. `-s "-screen 0 1280x800x32"`
+~xvfb-run~ creates a 640x480 buffer by default, it _might_ be okay for
+demo though. ~-s "-screen 0 1280x800x32"~
 
 **** Screenshot
 
-I can take screenshots using scrot. It doesn't need any special
+I can take screenshots using ~scrot~. It doesn't need any special
 arguments, it creates a png screenshot with a timestamp and the
 resolution in the current directory.
 
@@ -156,7 +214,7 @@ resolution in the current directory.
 Maybe I could use imagemagick to add annotations to the
 screenshots.
 
-Oh, `scrot` supports adding notes, I haven't tested
+Oh, ~scrot~ supports adding notes, I haven't tested
 yet.
 
 I tested it... it sucked, you have to specify a lot of arguments in a
@@ -166,8 +224,8 @@ priority, the screenshot's filenames are enough for the moment.
 
 **** Video capture
 
-I should be able to take videos using ffmpeg. `ffmpeg -y -r 30 -f
-x11grab -i :99.0 output.mp4`
+I should be able to take videos using ffmpeg. ~ffmpeg -y -r 30 -f
+x11grab -i :99.0 output.mp4~
 
 **** When
 
@@ -176,8 +234,5 @@ because it's the only one that knows when stuff is initialized.
 
 *** Emacs
 
-- I can use emacs-director, to simulate a user that run commands in
-  emacs. see `../demo.el`
-
-- `../demo.sh` contains an example of how to start emacs with a
-  specific script
+I use ~emacs-director~, to simulate a user that run commands in
+emacs. see ~./demo.el~

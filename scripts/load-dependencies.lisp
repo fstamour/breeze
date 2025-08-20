@@ -16,7 +16,6 @@ file (including the one passed as argument)."
          (let ((result ())
                (asd-pathname (asdf:system-source-file system)))
            (asdf:map-systems (lambda (system)
-                               ;; TODO Perhaps use asdf:primary-system-name
                                (when (equal asd-pathname
                                             (asdf:system-source-file system))
                                  (push system result))))

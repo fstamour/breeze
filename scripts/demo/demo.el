@@ -9,22 +9,24 @@
 (setf debug-on-error t)
 
 
-;;; Variables
+;;;; Variables
 
 (defvar demo-listener-port
   (or (getenv "DEMO_LISTENER_PORT") 40050)
   "Which port common lisp listener (repl) is listening to.")
 
-(defvar demo-root (concat
-                   (vc-find-root
-                    (or (buffer-file-name
-                         (current-buffer))
-                        (pwd))
-                    ".git")
-                   "./scripts/demo")
+(defvar demo-root
+  (expand-file-name
+   "./scripts/demo"
+   (vc-find-root
+    (or (buffer-file-name
+         (current-buffer))
+        (pwd))
+    ".git"))
   "Directory where to find the other scripts.")
 
-(defvar demo-output-dir (getenv "DEMO_OUTPUT_DIR")
+(defvar demo-output-dir (or (getenv "DEMO_OUTPUT_DIR")
+                            (expand-file-name "output/" demo-root))
   "Directory where to save the outputs.")
 
 (defvar demo-log-file (concat demo-output-dir "/demo.log")
@@ -39,9 +41,8 @@
 (setq shell-command-dont-erase-buffer t)
 
 (setq
- ;; This variable was added in emacs 28
  shell-command-buffer-name "*Shell Command Output*"
- ;; Put the error in the same buffer as the errors
+ ;; Put the error in the same buffer as the output
  shell-command-default-error-buffer shell-command-buffer-name)
 
 
@@ -59,7 +60,18 @@
   "Test if emacs is running in a container."
   ;; This is a bad implementation, but it'll do for now.
   ;; I _will_ break the day I don't use the root user in the container
-  (= 0 (user-real-uid)))
+  (or (= 0 (user-real-uid))
+      ;; if pid 1 is emacs,321 then there's a very good chance we're
+      ;; currently running inside a container.
+      (string= "emacs"
+               (with-temp-buffer
+                 (insert-file "/proc/1/cmdline")
+                 (goto-char (point-min))
+                 ;; (search-forward-regexp "guile")
+                 (search-forward-regexp "/\\([^\0/]+\\)\0")
+                 ;; (buffer-substring-no-properties (point-min) (point-max))
+                 (buffer-substring-no-properties (match-beginning 1)
+                                                 (match-end 1))))))
 
 (defun demo-load-listener-client ()
   "Load slime or slynk (spoiler: only slime is supported for now)"

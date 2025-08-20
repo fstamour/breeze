@@ -1,3 +1,8 @@
+(defpackage #:breeze.setup-demo
+  (:documentation "Load and configure everything needed for a demonstation.")
+  (:use #:cl))
+
+(in-package #:breeze.setup-demo)
 
 (ql:quickload "swank")
 
@@ -18,14 +23,3 @@
    #:swank-c-p-c
    #:swank-arglists
    #:swank-repl))
-
-;; install breeze's dependencies
-(asdf:load-asd (truename "breeze.asd"))
-
-(ql:quickload
- (remove-if
-  (lambda (system-name)
-    (string= "breeze/config" system-name))
-  (asdf:system-depends-on (asdf:find-system "breeze"))))
-
-(uiop:dump-image "dependencies.core")
