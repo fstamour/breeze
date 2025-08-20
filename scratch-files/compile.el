@@ -1,10 +1,24 @@
+;; -*- lexical-binding: t; -*-
+
+;; TODO use ffap instead
+
+
 ;;; Trying out emacs' "compile" command
 ;;;
 
 
+;; TODO add pattern "file /home/fstamour/dev/llm/loader.lisp"
+
 ;; Trying out with parachute's output
 
 
+;; TODO docstring
+;; - must be run in the "*compile*" buffer
+;; - get the last match as a string
+;; - return a list (buffer point string)
+;; ^^^ nevermind all this, this is just the log...
+;;
+;; TODO this is hardcoded..., the real immplementation is below
 (cl-defun breeze--convert-compilation-error-to-buffer-or-file ()
   (message "breeze--convert-compilation-error-to-buffer-or-file: %S"
            (list (current-buffer)

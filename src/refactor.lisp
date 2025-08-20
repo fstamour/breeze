@@ -211,11 +211,14 @@ defun."
   "Insert an asdf system definition form."
   (declare (context :top-level
                     :extension ".asd"))
-  (let ((system-name (read-string "Name of the system: "))
-        ;; TODO Add *default-author*
-        (author (read-string "Author: "))
+  (let ((system-name (read-string "Name of the system: "
+                                  #| TODO infer-system-name |#))
+        (author (read-string "Author: "
+                             #| TODO infer-autor-name |#
+                             breeze.config:*default-author*))
         ;; TODO Add default license from config
-        (licence (read-string "Licence name: ")))
+        (licence (read-string "Licence name: "
+                              #| TODO infer-licence |#)))
     (insert "(cl:in-package #:cl)~%~%")
     ;; TODO don't insert a defpackage if it already exists
     (insert "(defpackage #:~a.asd~% (:use :cl :asdf))~%~%"
@@ -236,6 +239,9 @@ defun."
 
 
 ;; TODO How could I re-use an hypothetical "add-slot" command?
+
+
+;; TODO How could I reuse an hypothetical "add-slot" command?
 (define-command insert-defclass ()
   "Insert a defclass form."
   (declare (context :top-level))
@@ -478,6 +484,10 @@ commands that the user might want to run."
           (asdf:load-system system)
           (message "System \"~a\" successfully loaded." system)
           (return-from-command))))))
+
+(defun maybe-create-system ()
+  (let ((buffer (current-buffer)))
+    (cwd)))
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
