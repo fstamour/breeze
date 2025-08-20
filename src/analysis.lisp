@@ -22,7 +22,7 @@
 (defun node-string= (string node &optional state)
   (when node
     (etypecase node
-      (node-iterator (node-string-equal string (value node) (state node)))
+      (node-iterator (node-string= string (value node) (state node)))
       (node
        (string= (source state) string
                 :start1 (start node)
@@ -139,8 +139,75 @@ match an empty parse tree."
                       ,@(package-nicknames package)))))))
         t)))))
 
-;; TODO add a special pattern type to match symbols in packages that
-;; are not defined in the current image.
+#|
+
+TODO add a special pattern type to match symbols in packages that are
+not defined in the current image.
+
+What do I want it to look like?
+
+- should probably be "compiled"
+  - (compile-pattern (sym ...))
+
+* normal/simple match: "cl:null"
+  - should match any nicknames
+  - should match any case
+  - should match current-package-symbol, qualified-symbol and possibly-internal-symbol
+
+* exact match: "^cl:null$"
+  - (eq cl) (eq null)
+  - case-insensitive: (sym '(equal cl) (equal null))
+    - default
+
+* exact package name:
+  - "^cl$:null" (= cl) null
+
+* any package
+  - '(:any "null")
+
+* any symbol
+  - '(cl :any)
+
+* qualification: nil, current, internal, :any, :or <===
+
+|#
+
+(defclass sym ()
+  ((name
+    :initform nil
+    :initarg :name
+    :accessor name
+    :documentation "The name of the symbol.")
+  (package
+    :initform nil
+    :initarg :package
+    :accessor sym-package
+    :documentation "The name of the symbol's package.")
+  (qualification
+    :initform nil
+    :initarg :qualification
+    :accessor qualification
+    :documentation "How many #\\: is there in the symbol"))
+  (:documentation "An object representing a symbol. Meant to be use for matching against
+symbol nodes without having to define packages or intern symbols."))
+
+(defmethod print-object ((sym sym) stream)
+  (format stream "(sym ~s ~s~@[ ~s~])"
+          (sym-package sym)
+          (name sym)
+          (qualification sym)))
+
+(defun sym (package name &optional qualification)
+  ;; TODO validation
+  ;; nil means "don't care"
+  (check-type package (or string (member :any nil :keyword)))
+  (check-type name (or string (member :any)))
+  (check-type qualification (member nil :current :internal :uninterned))
+  (make-instance 'sym
+                 :package package
+                 :name name
+                 :qualification qualification))
+
 (defmethod match ((pattern symbol) (node-iterator node-iterator) &key skipp)
   (when skipp (breeze.pattern::skip node-iterator skipp))
   (match-symbol-to-token pattern node-iterator))
