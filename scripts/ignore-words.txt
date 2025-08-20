@@ -1,3 +1,6 @@
 upto
 falsy
 dum
+isnt
+skipp
+whats
