@@ -96,6 +96,7 @@ Design decision(s):
       (setf (gethash buffer-name (buffers *workspace*))
             (make-instance 'buffer :name buffer-name))))
 
+;; TODO(bug) add to workspace fails when a file is empty: outer-node is nil
 (defmethod add-to-workspace ((context-plist cons))
   ;; TODO error or warn if name is not provided
   (when-let* ((name (getf context-plist :buffer-name))

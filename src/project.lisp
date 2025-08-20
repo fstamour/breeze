@@ -59,3 +59,20 @@ exists, we need their confirmation to continue."
              directory)
       (return-from-command)))
   directory)
+
+
+
+#|
+"system.asd"
+"readme.org"
+"package.lisp"
+("test.lisp"
+"(defpackage #:<name>.test
+  (:documentation \"Tests for the package <package>\")
+  (:use #:cl))
+
+(in-package #:loom.test)")
+"application.lisp"
+"package.lisp"
+
+|#

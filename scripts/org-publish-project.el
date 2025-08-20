@@ -49,7 +49,7 @@
           :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />"
 
           :auto-sitemap t
-          ;; :makeindex t
+          :makeindex t ;; TODO need to add a bunch of #+index: term
           :with-toc nil
           )))
   (org-id-update-id-locations (directory-files root t "\\.org$"))

@@ -138,3 +138,38 @@
 	      (:h3 (symbol-name kind))
 	      (loop :for what :in whats
 		 :do (:dl (:dt (format nil "~(~a~)" what)))))))))))
+
+
+
+
+
+
+#|
+
+contentEditable="true" spellcheck="false"
+
+observer.disconnect();
+
+var observer = new MutationObserver((mutations, observer) => {
+  mutations.forEach((mutation) => {
+    console.log("mutation: ", mutation);
+  });
+});
+
+observer.observe(document.body, {
+  subtree: true,
+  attributes: true,
+  attributeOldValue: true,
+  childList: true,
+  characterData: true,
+  characterDataOldValue: true,
+})
+
+
+var style = window.getComputedStyle(document.body)
+style.getPropertyValue('--bar')
+
+window.getComputedStyle(document.documentElement).getPropertyValue('--color-font-general');
+document.documentElement.style.setProperty('--color-font-general', '#000');
+
+|#
