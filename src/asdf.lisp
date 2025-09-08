@@ -205,33 +205,34 @@ likely not loaded
   "Check whether PATHNAME is part of a system, and whether it was loaded.
 This will return false if the file was loaded outside of asdf."
   ;; TODO This function should never fail, add a handler-case
-  (when pathname
-    (loop :for system-or-pathname-to-asd :in (infer-systems pathname)
-          :for system = (or
-                         ;; Check if it's a system (and if it's in
-                         ;; asdf/system-registry:*registered-systems*)
-                         (asd-file-registered-p system-or-pathname-to-asd)
-                         ;; TODO think about the implications of loading asd files on-the-go...
-                         ;; 1. it might make it easier to work on stuff outside asdf' registery
-                         ;; 2. it _will_ make it hard to work on different copies of the same project...
-                         ;; 3. it will probably lead to confusing situation
-                         ;; TODO actually ask permissions before doing this!
-                         (asdf:load-asd system-or-pathname-to-asd)
-                         ;; this will lookup the system in asdf/system-registry:*registered-systems*
-                         (asd-file-registered-p system-or-pathname-to-asd))
-          :for components = (asdf/component:sub-components system)
-          :when (typep system 'asdf:system)
-            :do (when-let* ((component-found (member
-                                              pathname
-                                              components
-                                              :test #'equal
-                                              :key #'asdf/component:component-pathname))
-                            (component (first component-found)))
-                  (return (values
-                           (if (asdf:component-loaded-p component)
-                               :loaded
-                               :not-loaded)
-                           (asdf:component-system component)))))))
+  (ignore-errors ; 🤯
+   (when pathname
+     (loop :for system-or-pathname-to-asd :in (infer-systems pathname)
+           :for system = (or
+                          ;; Check if it's a system (and if it's in
+                          ;; asdf/system-registry:*registered-systems*)
+                          (asd-file-registered-p system-or-pathname-to-asd)
+                          ;; TODO think about the implications of loading asd files on-the-go...
+                          ;; 1. it might make it easier to work on stuff outside asdf' registry
+                          ;; 2. it _will_ make it hard to work on different copies of the same project...
+                          ;; 3. it will probably lead to confusing situation
+                          ;; TODO actually ask permissions before doing this!
+                          (asdf:load-asd system-or-pathname-to-asd)
+                          ;; this will lookup the system in asdf/system-registry:*registered-systems*
+                          (asd-file-registered-p system-or-pathname-to-asd))
+           :for components = (asdf/component:sub-components system)
+           :when (typep system 'asdf:system)
+             :do (when-let* ((component-found (member
+                                               pathname
+                                               components
+                                               :test #'equal
+                                               :key #'asdf/component:component-pathname))
+                             (component (first component-found)))
+                   (return (values
+                            (if (asdf:component-loaded-p component)
+                                :loaded
+                                :not-loaded)
+                            (asdf:component-system component))))))))
 
 
 #++
