@@ -49,6 +49,7 @@
           :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />"
 
           :auto-sitemap t
+          ;; https://emacs.stackexchange.com/questions/70824/how-to-use-makeindex
           :makeindex t ;; TODO need to add a bunch of #+index: term
           :with-toc nil
           )))
