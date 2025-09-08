@@ -97,7 +97,7 @@
       (is string= "a" input)
       (is string= "read-string" (first request))
       (is string= "Author: " (second request))
-      (false (third request)))
+      (is string= "" (third request)))
     (destructuring-bind (input request) (third trace)
       (is string= "b" input)
       (is string= "read-string" (first request))
@@ -139,10 +139,19 @@
             "  :licence \"c\""
             "  :depends-on ()"
             "  ;; :pathname \"src\""
-            "  :serial t"
+            "  ;; :serial t"
             "  :components"
-            "    (#+(or) (:file \"todo\")))"
-            "")
+            "    (#+(or) (:file \"todo\"))"
+            "  ;; in order to test this system, load the test system"
+            "  :in-order-to ((test-op (load-op a/test)))"
+            "  ;; this tells asdf what to execute to run the tests"
+            "  :perform"
+            "  (test-op (o c)"
+            "           (uiop:symbol-call"
+            "            'a.test 'run-tests))"
+            "  )"
+              "")
+
           (split-by-newline (second request))))))
 
 (define-test+run insert-breeze-define-command

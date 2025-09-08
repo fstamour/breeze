@@ -232,9 +232,21 @@ defun."
               ,(format nil ":licence \"~a\"" licence)
               ":depends-on ()"
               ";; :pathname \"src\""
-              ":serial t"
+              ";; :serial t"
               ":components"
-              "  (#+(or) (:file \"todo\")))"))))
+              "  (#+(or) (:file \"todo\"))"
+              ";; in order to test this system, load the test system"
+              ,(format nil ":in-order-to ((test-op (load-op ~a/test)))"
+                       system-name)
+              ";; this tells asdf what to execute to run the tests"
+              ":perform"
+              "(test-op (o c)"
+              "         (uiop:symbol-call"
+              ,(format nil "          '~a.test 'run-tests))"
+                       system-name)
+              ")"))
+    ;; TODO maybe insert test-system
+    ))
 
 
 
