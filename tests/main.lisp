@@ -11,7 +11,7 @@
 
 ;; (setf parachute:*silence-plain-compilation-errors-p* nil)
 
-(defun run-breeze-tests (&optional exitp)
+(defun run-breeze-tests (&key exitp (report 'parachute:largescale))
   "Run breeze's tests."
   (let ((packages (breeze.xref:find-packages-by-prefix "breeze.test")))
     (format *trace-output*
@@ -19,4 +19,4 @@
             packages)
     (finish-output *trace-output*)
     (let ((cl-user::*exit-on-test-failures* exitp))
-      (parachute:test packages :report 'parachute:largescale))))
+      (parachute:test packages :report report))))

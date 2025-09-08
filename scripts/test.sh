@@ -24,4 +24,4 @@ exec sbcl --noinform --non-interactive \
      --eval "(ql:quickload '#:breeze/test :verbose t)" \
      --eval "(setf asdf:*compile-file-warnings-behaviour* :error)" \
      --eval "(asdf:compile-system '#:breeze/test :force-not t :force t :verbose t)" \
-     --eval "(breeze.test.main:run-breeze-tests t)"
+     --eval "(breeze.test.main:run-breeze-tests :exitp t)"
