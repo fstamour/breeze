@@ -238,9 +238,6 @@ defun."
 
 
 
-;; TODO How could I re-use an hypothetical "add-slot" command?
-
-
 ;; TODO How could I reuse an hypothetical "add-slot" command?
 (define-command insert-defclass ()
   "Insert a defclass form."
