@@ -1317,51 +1317,57 @@ Returns a new node with one of these types:
 
 ;;; Node iterators
 
-(defclass node-iterator (pre-order-iterator)
+(defclass node-iterator (tree-iterator)
   ((parser-state
-    :initarg :state ; TODO rename to parse-state
+    ;; TODO rename to parser-state
+    :initarg :state
     :type state
-    :accessor state ; TODO rename to parse-state
-    ))
+    ;; TODO rename to parser-state
+    :accessor state))
   (:documentation "An iterator for parse-trees."))
 
 (defmethod copy-iterator ((node-iterator node-iterator) &optional target)
+  (declare (ignore target))
   (let ((iterator (call-next-method)))
     (setf (state iterator) (state node-iterator))
     iterator))
 
 (defmethod value ((iterator node-iterator))
-  (let ((node-or-vec (vec iterator)))
-    (etypecase node-or-vec
-      (vector (aref node-or-vec (pos iterator)))
-      (node node-or-vec))))
+  ;; TODO Ideally we wouldn't call `donep' here for performance
+  ;; reasons. But it is very convenient.
+  (unless (donep iterator)
+    (let ((node-or-vec (subtree iterator)))
+      (etypecase node-or-vec
+        (vector (aref node-or-vec (pos iterator)))
+        (node node-or-vec)))))
 
 (defmethod print-object ((node-iterator node-iterator) stream)
   (print-unreadable-object
       (node-iterator stream :type t :identity nil)
-    (with-slots (depth positions vectors) node-iterator
+    (with-slots (depth positions subtrees) node-iterator
       (format stream "~{~s~^, ~}"
               (list depth positions)))))
 
-(defun recurse-into (node)
-  (when-let ((children (node-children node)))
-    ;; (break "node: ~s children: ~s" node children)
-    (typecase children
-      (vector
-       (cond
-         ((sharp-label-node-p node) (aref children 1))
-         (t children)))
-      (node children))))
+(defmethod children ((iterator node-iterator))
+  (unless (donep iterator)
+    (let* ((node (value iterator)))
+      (when-let ((children (node-children node)))
+        ;; (break "node: ~s children: ~s" node children)
+        (typecase children
+          (vector
+           (cond
+             ;; TODO would be nice not to have this special case
+             ((sharp-label-node-p node) (aref children 1))
+             (t children)))
+          (node children))))))
 
 ;; TODO add tests
 (defmethod make-node-iterator ((state state))
   (when (null (tree state))
     (error "Can't iterate on an empty parse tree."))
-  (make-recursive-iterator
-   (tree state)
-   #'recurse-into
-   :state state
-   :class 'node-iterator))
+  (make-instance 'node-iterator
+                 :root (tree state)
+                 :state state))
 
 ;; TODO add tests
 (defmethod make-node-iterator ((string string))
@@ -1424,7 +1430,7 @@ Returns a new node with one of these types:
            :if (node-contains-position-p (value-at-depth iterator d) position)
              :do (return)
            :else
-             :do (pop-vector iterator)))
+             :do (pop-subtree iterator)))
     ;; TODO this could eazily be optimized by going backward (or bin search)
     ((< position (node-start (value iterator)))
      (reset iterator)))
@@ -1464,12 +1470,12 @@ Returns a new node with one of these types:
 
 
 (defmethod value-at-depth ((iterator node-iterator) depth)
-  (with-slots (positions vectors) iterator
+  (with-slots (positions subtrees) iterator
     (let ((pos (aref positions depth))
-          (vec (aref vectors depth)))
-      (etypecase vec
-        (vector (aref vec pos))
-        (t vec)))))
+          (subtree (aref subtrees depth)))
+      (etypecase subtree
+        (vector (aref subtree pos))
+        (t subtree)))))
 
 (defmethod parent-node ((iterator node-iterator))
   (parent-value iterator))
@@ -1498,9 +1504,9 @@ Returns a new node with one of these types:
 (defmethod lastp ((iterator node-iterator))
   "Is the current value the last one at the current depth?"
   (let ((pos (pos iterator))
-        (vec (vec iterator)))
-    (etypecase vec
-      (vector (= pos (1- (length vec))))
+        (subtree (subtree iterator)))
+    (etypecase subtree
+      (vector (= pos (1- (length subtree))))
       (t t))))
 
 ;; TODO tests
@@ -1508,9 +1514,9 @@ Returns a new node with one of these types:
   "Get the previous node at the same depth, or nil if there's is none."
   (unless (firstp iterator)
     (let ((pos (pos iterator))
-          (vec (vec iterator)))
-      (etypecase vec
-        (vector (aref vec (1- pos)))
+          (subtree (subtree iterator)))
+      (etypecase subtree
+        (vector (aref subtree (1- pos)))
         (t nil)))))
 
 ;; TODO tests
@@ -1518,9 +1524,9 @@ Returns a new node with one of these types:
   "Get the next node at the same depth, or nil if there's is none."
   (unless (lastp iterator)
     (let ((pos (pos iterator))
-          (vec (vec iterator)))
-      (etypecase vec
-        (vector (aref vec (1+ pos)))
+          (subtree (subtree iterator)))
+      (etypecase subtree
+        (vector (aref subtree (1+ pos)))
         (t nil)))))
 
 

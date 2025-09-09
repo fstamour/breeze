@@ -453,22 +453,14 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Iterators
 
-(defclass pattern-iterator (leaf-iterator)
+(defclass pattern-iterator (tree-iterator)
   ())
 
 (defmethod make-pattern-iterator ((pattern vector))
-  (make-leaf-iterator
-   pattern
-   (lambda (pattern)
-     (and (refp pattern)
-          (ref-pattern pattern)))
-   :class 'pattern-iterator))
+  (make-instance 'pattern-iterator :root pattern))
 
 (defmethod make-pattern-iterator ((pattern t))
-  (make-leaf-iterator
-   (vector pattern)
-   (constantly nil)
-   :class 'pattern-iterator))
+  (make-pattern-iterator (vector pattern)))
 
 
 ;;; Matching sequences
@@ -490,7 +482,7 @@ bindings and keeping only those that have not conflicting bindings."
                           (when (donep $input) (return))
                           (let ((sub-pattern (value $pattern)))
                                 (when (vectorp sub-pattern)
-                                    (push-vector $pattern sub-pattern)
+                                    (push-subtree $pattern sub-pattern)
                                     (go-down $input)
                                     (when (donep $input) (return))))
                           (match

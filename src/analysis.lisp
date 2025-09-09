@@ -78,7 +78,7 @@
     ((sharp-uninterned-node-p node)
       (let ((token-node-iterator (copy-iterator node-iterator)))
         ;; TODO there's probably a function for that...
-        (push-vector token-node-iterator (node-children node))
+        (push-subtree token-node-iterator (node-children node))
         (node-symbol-name token-node-iterator)))
     ((token-node-p node)
       (node-symbol-name node-iterator))))

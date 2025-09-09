@@ -199,9 +199,7 @@
  current-depth-done-p
  donep
  value
- next
- maybe-dig-in
- maybe-dig-out)
+ next)
 
 
 ;;; lossless-reader.lisp
@@ -227,7 +225,7 @@
  read-any
  parse)
 
-(trace recurse-into
+(trace children
        :wherein breeze.test.lossless-reader::goto-position/all)
 
 (trace value next donep
@@ -243,16 +241,13 @@
 
 (sb-profile:profile
  goto-position
- recurse-into
+ children
  make-recursive-iterator
  breeze.iterator:collect
  breeze.iterator::current-depth-done-p
  donep
  value
- next
- breeze.iterator::maybe-dig-in
- breeze.iterator::maybe-dig-out
-)
+ next)
 
 (sb-profile:report)
 (sb-profile:reset)

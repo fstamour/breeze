@@ -405,7 +405,7 @@ For debugging purposes ONLY.")
   (let* ((buffer (current-buffer))
          (node-iterator (node-iterator buffer)))
     (when (and node-iterator
-               (every #'whitespace-or-comment-node-p (root-vector node-iterator)))
+               (every #'whitespace-or-comment-node-p (root-subtree node-iterator)))
      ;; TODO Add a configuration to decide whether to shortcircuit or
      ;; not. Because suggesting to insert a "defpackage" form when in
      ;; an empty file is pretty much just my personal preference.
@@ -494,6 +494,7 @@ commands that the user might want to run."
           (message "System \"~a\" successfully loaded." system)
           (return-from-command))))))
 
+#++
 (defun maybe-create-system ()
   (let ((buffer (current-buffer)))
     (cwd)))
