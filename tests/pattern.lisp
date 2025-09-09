@@ -16,19 +16,10 @@
                 #:finish)
   (:import-from #:breeze.pattern
                 ;; Structures
-                #:ref
-                #:ref-name
-                #:refp
-                #:ref=
                 #:term
                 #:termp
                 #:term-name
                 #:term=
-                #:typed-term
-                #:typed-term-p
-                #:typed-term-name
-                #:typed-term-type
-                #:typed-term=
                 #:repetition
                 #:repetitionp
                 #:repetition=
@@ -45,8 +36,6 @@
                 ;; Compilation
                 #:term-symbol-p
                 #:compile-pattern
-                #:ref-pattern
-                #:defpattern
                 ;; Iterator
                 #:pattern-iterator
                 #:make-pattern-iterator
@@ -66,17 +55,6 @@
 
 (in-package #:breeze.test.pattern)
 
-(define-test+run ref
-  (let ((ref (ref :x)))
-    (of-type ref ref)
-    (true (refp ref))
-    (is eq :x (ref-name ref))))
-
-(define-test+run ref=
-  (true (ref= (ref :x) (ref :x)))
-  (false (ref= (ref :y) (ref :x)))
-  (false (ref= (ref :y) 42)))
-
 (define-test+run term
   (let ((term (term :x)))
     (of-type term term)
@@ -87,22 +65,6 @@
   (true (term= (term :x) (term :x)))
   (false (term= (term :y) (term :x)))
   (false (term= (term :y) 42)))
-
-(define-test+run typed-term
-  (let ((typed-term (typed-term 'symbol :x)))
-    (of-type typed-term typed-term)
-    (true (typed-term-p typed-term))
-    (is eq :x (typed-term-name typed-term))
-    (is eq 'symbol (typed-term-type typed-term))))
-
-(define-test+run typed-term=
-  (is typed-term= (term :x) (term :x))
-  (isnt typed-term= (term :x) (term :y))
-  (let ((expected (typed-term 'symbol :x)))
-    (is typed-term= expected (typed-term 'symbol :x))
-    (isnt typed-term= expected (typed-term 'symbol :y))
-    (isnt typed-term= expected (typed-term 'keyword :x))
-    (isnt typed-term= expected (typed-term 'keyword :y))))
 
 (define-test+run maybe
   (let ((maybe (maybe :x)))
@@ -127,9 +89,7 @@
 (define-test+run pattern=
   (is pattern= 'x 'x)
   (is pattern= '(x) '(x))
-  (is pattern= (ref 'x) (ref 'x))
   (is pattern= (term 'x) (term 'x))
-  (is pattern= (typed-term 'symbol 'x) (typed-term 'symbol 'x))
   (is pattern= (maybe 'y) (maybe 'y))
   (is pattern= (maybe '(x y)) (maybe '(x y)))
   ;; TODO Maybe I should try to detect this case when compiling...
@@ -152,7 +112,6 @@
   (is pattern= :x (compile-pattern :x))
   (is pattern= 42 (compile-pattern 42))
   (is pattern= (term :?x) (compile-pattern :?x))
-  (is pattern= (ref :x) (compile-pattern '(:ref :x)))
   (is pattern= (maybe :x) (compile-pattern '(:maybe :x)))
   (is pattern= (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
   (is pattern= (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
@@ -163,14 +122,6 @@
       (compile-pattern '(?x ?x))
     (is eq (aref p 0) (aref p 1))
     (is eq (aref p 0) (gethash '?x terms))))
-
-
-
-(defpattern a
-    a ?a)
-
-(defpattern b
-  (:ref a) (:ref a))
 
 
 ;;; Pattern iterators...
@@ -186,17 +137,7 @@
 
 (define-test+run pattern-iterator
   (false (collect (make-pattern-iterator #())))
-  (is equalp '(a) (collect (make-pattern-iterator #(a))))
-  (is equalp
-      '(a #s(term :name ?a))
-      ;; == (coerce (ref-pattern 'a) 'list)
-      (collect (make-pattern-iterator `#(,(ref 'a)))))
-  (is equalp
-      '(a #s(term :name ?a) a #s(term :name ?a))
-      (collect (make-pattern-iterator `#(,(ref 'b)))))
-  (is equalp
-      `(b ,@(coerce (ref-pattern 'a) 'list) c)
-      (collect (make-pattern-iterator `#(b ,(ref 'a) c)))))
+  (is equalp '(a) (collect (make-pattern-iterator #(a)))))
 
 
 ;;; bindings
@@ -344,19 +285,6 @@
   (true (match (term :?x) (term :?x)))
   (true (match `#(,(term :?x)) (list 42))))
 
-;;; TODO check the actual return values
-(define-test+run "match typed-terms"
-  (true (match (typed-term 'null :?x) nil))
-  (false (match (typed-term 'null :?x) t))
-  (true (match (typed-term 'number :?x) 1))
-  (false (match (typed-term 'number :?x) t))
-  (true (match (typed-term 'symbol :?x) 'x))
-  (false (match (typed-term 'keyword :?x) 'x))
-  (true (match (typed-term 'string :?x) "x"))
-  (false (match (typed-term 'string :?x) 1))
-  (true (match (typed-term 'cons :?x) '(a)))
-  (false (match (typed-term 'cons :?x) 'a)))
-
 
 ;;; Sequences
 
@@ -459,89 +387,6 @@
   (test-match '(a (:zero-or-more a b)) '(a (a b)))
   ;; That one should be used instead of ^^^
   (test-match '(a ((:zero-or-more a b))) '(a (a b))))
-
-
-
-;;; Testing patterns with references in them
-
-(defpattern optional-parameters
-    &optional
-    (:zero-or-more
-     (:alternation (:the symbol ?var)
-                   ((:the symbol ?var)
-                    ?init-form (:maybe (:the symbol ?supplied-p-parameter))))))
-
-#++
-(match (ref 'optional-parameters)
-  '(&optional))
-
-#++
-(match (ref 'optional-parameters)
-  '(&optional x))
-
-#++
-(list
- '(&optional x)
- '(&optional (x 1))
- '(&optional (x 1 supplied-p))
- '(&optional x y (z t)))
-
-
-(defpattern rest-parameter &rest ?var)
-
-(defpattern body-parameter &body ?var)
-
-(defpattern key-parameters
-    &key
-    (:zero-or-more
-     (:alternation (:the symbol ?var)
-                   ((:the symbol ?var)
-                    ?init-form (:maybe (:the symbol ?supplied-p-parameter))))))
-
-(defpattern aux-parameters
-    &aux
-    (:zero-or-more
-     (:alternation (:symbol ?var)
-                   ((:symbol ?var) ?init-form)))
-  (:maybe &allow-other-keys))
-
-(defpattern ordinary-lambda-list
-    (:zero-or-more ?var)
-    (:ref optional-parameters)
-  (:ref rest-parameter)
-  (:ref key-parameters)
-  (:ref aux-parameters))
-
-(defpattern defun
-    (defun (:the symbol ?name) $ordinary-lambda-list ?body))
-
-
-
-
-
-(defun test-match-ref (pattern input &key bindings)
-  (let* ((binding-set (match pattern input))
-         (bindings-alist (bindings-alist binding-set))
-         (bindings-alist (if (listp bindings-alist)
-                                (mapcar (lambda (x)
-                                          (cons (term-name (car x)) (cdr x)))
-                                        bindings-alist)
-                                bindings-alist)))
-    (if bindings
-        (is equalp bindings bindings-alist
-            "Matching the pattern ~s against the input ~s should have created the bindings ~s but we got ~s instead."
-            pattern input bindings bindings-alist)
-        (false bindings-alist))))
-
-(define-test+run "match ref"
-  (test-match-ref (ref 'a) '(a 42) :bindings '((?a . 42)))
-  (test-match-ref (ref 'b) '(a 42 a 73))
-  ;; TODO What if we want to use the pattern 'a with independent bindings?
-  ;; Idea new syntax: (ref 'a ('?a ?a1)) or (ref 'a :prefix a1)
-  (test-match-ref (ref 'b) '(a 42 a 42) :bindings '((?a . 42)))
-  (test-match-ref (ref 'body-parameter) '(42))
-  (test-match-ref (ref 'body-parameter) '(&body 42)
-                  :bindings '((?var . 42))))
 
 
 ;;; Match substitution

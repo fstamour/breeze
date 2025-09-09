@@ -8,7 +8,6 @@
   (:export #:compile-pattern)
   (:export #:defpattern
            #:match
-           #:ref
            #:term
            #:maybe
            #:zero-or-more
@@ -41,22 +40,6 @@
 ;; TODO pattern "don't care" :?_
 
 
-;;; Refs
-
-;; Used to reference another pattern by name.
-(defstruct (ref
-            (:constructor ref (name))
-            :constructor
-            (:predicate refp))
-  (name nil :type symbol :read-only t))
-
-(defun ref= (a b)
-  (and (refp a)
-       (refp b)
-       (eq (ref-name a)
-           (ref-name b))))
-
-
 ;;; Terms
 
 ;; Decision: I chose "term" and not "variable" to avoid clashes with
@@ -77,27 +60,6 @@
        (termp b)
        (eq (term-name a)
            (term-name b))))
-
-
-;;; Typed-terms
-
-(defstruct (typed-term
-            (:constructor typed-term (type name))
-            :constructor
-            :predicate
-            (:include term))
-  (type nil :read-only t))
-
-(defmethod typed-term= (a b) nil)
-
-(defmethod typed-term= ((a term) (b term))
-  (term= a b))
-
-(defmethod typed-term= ((a typed-term) (b typed-term))
-  (and (eq (typed-term-name a)
-           (typed-term-name b))
-       (equal (typed-term-type a)
-              (typed-term-type b))))
 
 
 ;;; Repetitions
@@ -135,7 +97,7 @@
   (repetition pattern 0 nil))
 
 
-;;; WIP Alternations
+;;; Alternations
 
 (defstruct (alternation
             (:constructor alternation (pattern))
@@ -174,9 +136,7 @@
                   (,(alexandria:symbolicate name '=) a b))
                 (defmethod make-load-form ((s ,name) &optional environment)
                   (make-load-form-saving-slots s :environment environment)))))
-  (def ref)
   (def term)
-  (def typed-term)
   (def repetition)
   (def alternation))
 
@@ -222,17 +182,6 @@ compile-pattern is called, a new one is created."
 (defmethod compile-compound-pattern (token pattern)
   (map 'vector #'%compile-pattern pattern))
 
-;; Compile (:the ...)
-(defmethod compile-compound-pattern ((token (eql :the)) pattern)
-  ;; TODO Check length of "pattern"
-  ;; TODO check if type is nil, that's very likely that's an error.
-  (apply #'typed-term (rest pattern)))
-
-;; Compile (:ref ...)
-(defmethod compile-compound-pattern ((token (eql :ref)) pattern)
-  ;; TODO Check length of "rest"
-  (ref (second pattern)))
-
 ;; Compile (:maybe ...)
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
   ;; TODO check the length of "pattern"
@@ -245,27 +194,6 @@ compile-pattern is called, a new one is created."
 ;; Compile (:alternation ...)
 (defmethod compile-compound-pattern ((token (eql :alternation)) patterns)
   (alternation (%compile-pattern (rest patterns))))
-
-
-;;; Reusable, named patterns
-
-(defvar *patterns* (make-hash-table :test 'equal)
-  "Stores all the patterns.")
-
-(defmacro defpattern (name &body body)
-  `(setf (gethash ',name *patterns*)
-         ',(compile-pattern
-            (if (breeze.utils:length>1? body)
-                body
-                (first body)))))
-
-(defun ref-pattern (pattern)
-  (check-type pattern (or ref symbol))
-  ;; TODO rename terms????
-  (or (typecase pattern
-        (symbol (gethash pattern *patterns*))
-        (ref (gethash (ref-name pattern) *patterns*)))
-      (error "Failed to find the pattern ~S." (ref-name pattern))))
 
 
 ;;; Bindings (e.g. the result of a successful match)
@@ -428,15 +356,6 @@ bindings and keeping only those that have not conflicting bindings."
 ;; Match a term (create a binding)
 (defmethod match ((pattern term) input &key)
   (make-binding pattern input))
-
-;; Match a typed term (creates a binding)
-(defmethod match ((pattern typed-term) input &key)
-  (when (typep input (typed-term-type pattern))
-    (make-binding pattern input)))
-
-;; Recurse into a referenced pattern
-(defmethod match ((pattern ref) input &key skipp)
-  (match (ref-pattern pattern) input :skipp skipp))
 
 ;; Match a string literal
 (defmethod match ((pattern string) (input string) &key)
