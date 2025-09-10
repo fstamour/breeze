@@ -186,16 +186,17 @@ Design decision(s):
 (defmethod locate-package-definition ((package string) #| TODO haystack |#)
   ;; TODO don't look only in the current buffer
   ;; TODO maybe cache the "match data" on the defpackage macros
-  (loop :for buffer :in (buffers *workspace*)
-        :do (map-top-level-forms
-             (lambda (node-iterator)
-               (with-match (node-iterator
-                            (:alternation
-                             (cl:defpackage ?name)
-                             (uiop:define-package ?name)))
-                 (when-let* ((package-name-node (get-bindings '?name))
-                             (package-name (node-string-designator-string
-                                            package-name-node)))
-                   (when (string= package package-name)
-                     (return-from locate-package-definition node-iterator)))))
-             buffer)))
+  (loop
+    :for buffer-name :being :the :hash-key :of (buffers *workspace*) :using (hash-value buffer)
+    :do (map-top-level-forms
+         (lambda (node-iterator)
+           (with-match (node-iterator
+                        (:alternation
+                         (cl:defpackage ?name)
+                         (uiop:define-package ?name)))
+             (when-let* ((package-name-node (get-bindings '?name))
+                         (package-name (node-string-designator-string
+                                        package-name-node)))
+               (when (string= package package-name)
+                 (return-from locate-package-definition node-iterator)))))
+         buffer)))

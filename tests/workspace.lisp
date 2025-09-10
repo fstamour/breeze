@@ -206,3 +206,6 @@ Evaluation took:
             (goto-all-positions content node-iterator))
            "Should be able to \"goto\" every positions in ~s" name))
      *workspace*)))
+
+
+;; TODO tests! (breeze.workspace::locate-package-definition "breeze.lossless-reader")
