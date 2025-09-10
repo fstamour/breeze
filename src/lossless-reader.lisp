@@ -1455,7 +1455,7 @@ Returns a new node with one of these types:
                      #++ (log-debug "stop: no need to recurse")
                      (return))
                    ;; this will recurse into the node's children
-                   (next iterator))
+                   (go-down iterator))
                (progn
                  #++ (log-debug "stop: done!")
                  (return))))
