@@ -194,7 +194,7 @@
 (in-package #:breeze.iterator)
 
 (trace
- make-recursive-iterator
+ make-tree-iterator
  collect
  current-depth-done-p
  donep
