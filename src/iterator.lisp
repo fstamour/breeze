@@ -45,6 +45,8 @@ generalization of that first iteration (ha!).
    #:children
    #:push-subtree
    #:pop-subtree
+   #:go-forward
+   #:go-backward
    #:go-down
    #:go-up
    #:subtree-at-depth
@@ -428,6 +430,14 @@ depth of the tree."))
     (decf (fill-pointer positions))
     (decf depth))
   iterator)
+
+(defmethod go-forward ((iterator tree-iterator))
+  (when (< (pos iterator) (length (subtree iterator)))
+    (incf (pos iterator))
+    t))
+
+(defmethod go-backward ((iterator tree-iterator))
+  (when (plusp (pos iterator)) (decf (pos iterator)) t))
 
 (defmethod go-down ((iterator tree-iterator))
   (unless (current-depth-done-p iterator)
