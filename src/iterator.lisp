@@ -38,12 +38,11 @@ generalization of that first iteration (ha!).
            #:make-concat-iterator)
   ;; Accessors
   (:export
+   #:pos
    #:subtree
-   #:pos)
-  ;; Functions for tree-iterator
-  (:export
    #:subtrees
    #:positions
+   #:children
    #:push-subtree
    #:pop-subtree
    #:go-down
