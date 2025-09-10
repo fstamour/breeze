@@ -144,16 +144,19 @@ newlines or more marks the start of a new paragraph)."
 (defun parse-system (system)
   "Parse (with lossless-reader) all files we want to include."
   ;; TODO include all files that are tracked under git...
-  (loop
-    :for file :in (sort (breeze.asdf:find-all-related-files system)
-                        #'string<
-                        :key #'namestring)
-    :for filename = (system-enough-pathname file system)
-    :for content-str = (alexandria:read-file-into-string file)
-    :for state = (progn
-                   (format *trace-output* "~&Parsing file ~s..." file)
-                   (parse content-str))
-    :collect (list filename state (pages state))))
+  (format t "~&Parsing the system ~S 's files..." system)
+  (prog1
+      (loop
+        :for file :in (sort (breeze.asdf:find-all-related-files system)
+                            #'string<
+                            :key #'namestring)
+        :for filename = (system-enough-pathname file system)
+        :for content-str = (alexandria:read-file-into-string file)
+        :for state = (progn
+                       (format t "~&Parsing file ~s..." file)
+                       (parse content-str))
+        :collect (list filename state (pages state)))
+    (format t "~&Done parsing the system ~S 's files." system)))
 
 #++
 (parse-system 'breeze)
@@ -357,7 +360,7 @@ newlines or more marks the start of a new paragraph)."
              (render-page out state page))))))
 
 (defun render (report system &aux (pathname (system-listing-pathname report (asdf:coerce-name system))))
-  (format *debug-io* "~&Rendering listing for system ~s" system)
+  (format t "~&Rendering listing for system ~s..." system)
   (let ((files (parse-system system)))
     (with-html-file (out pathname)
       (fmt "<html>")
@@ -369,10 +372,12 @@ newlines or more marks the start of a new paragraph)."
       :for (filename state pages) = file
       :for listing-filename = (pathname-to report (namestring filename) :listing)
       :do
-         (format *trace-output* "~&Writing ~a..."
+         (format t "~&Writing listing ~a..."
                  (namestring listing-filename))
+         (finish-output)
          (with-html-file (out listing-filename)
            (render-lisp-file report out file))))
+  (format t "~&Done rendering listing for system ~s" system)
   pathname)
 
 #++
