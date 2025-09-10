@@ -315,7 +315,8 @@ depth of the tree."))
      &rest initargs
      &key root &allow-other-keys)
   (apply #'shared-initialize iterator t initargs)
-  (push-subtree iterator root))
+  ;; root is nil when the tree-iterator is being copied
+  (when root (push-subtree iterator root)))
 
 (defun make-tree-iterator (root)
   "Create a new iterator on ROOT."
