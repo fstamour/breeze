@@ -455,13 +455,14 @@ depth of the tree."))
     t))
 
 (defun next-preorder (iterator)
-  (cond
-    ((go-down iterator)
-     (next iterator))
-    ((current-depth-done-p iterator)
-     (go-up iterator)
-     (next iterator))
-    (t (next iterator))))
+  (unless (go-down iterator) (next iterator))
+  (loop :while (and (current-depth-done-p iterator)
+                    (plusp (slot-value iterator 'depth)))
+        :do
+           ;; go-up
+           (pop-subtree iterator)
+           ;; go-forward
+           (next iterator)))
 
 ;; TODO add tests
 (defmethod subtree-at-depth ((iterator tree-iterator) depth)
