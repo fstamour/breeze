@@ -48,6 +48,9 @@
       '((1 3 :warning "Extraneous whitespaces."))
       (test-lint "(  )"))
   (is equalp
+      '((1 3 :warning "Extraneous whitespaces."))
+      (test-lint "((  ))"))
+  (is equalp
       '((2 4 :warning "Extraneous internal whitespaces."))
       (test-lint "(x  y)"))
   (is equalp

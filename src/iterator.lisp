@@ -49,6 +49,7 @@ generalization of that first iteration (ha!).
    #:go-backward
    #:go-down
    #:go-up
+   #:next-preorder
    #:subtree-at-depth
    #:root-subtree
    #:goto-root
@@ -375,8 +376,7 @@ depth of the tree."))
 
 (defmethod donep ((iterator tree-iterator))
   (with-slots (depth) iterator
-    (and (zerop depth)
-         (current-depth-done-p iterator))))
+    (current-depth-done-p iterator)))
 
 (defmethod next ((iterator tree-iterator) &key)
   (incf (pos iterator)))
@@ -453,6 +453,15 @@ depth of the tree."))
   (unless (zerop (slot-value iterator 'depth))
     (pop-subtree iterator)
     t))
+
+(defun next-preorder (iterator)
+  (cond
+    ((go-down iterator)
+     (next iterator))
+    ((current-depth-done-p iterator)
+     (go-up iterator)
+     (next iterator))
+    (t (next iterator))))
 
 ;; TODO add tests
 (defmethod subtree-at-depth ((iterator tree-iterator) depth)

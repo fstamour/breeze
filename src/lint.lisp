@@ -223,7 +223,7 @@ found."
               (when (and (plusp depth)
                          (whitespace-node-p node))
                 (warn-extraneous-whitespaces node-iterator)))
-            (next node-iterator)))
+            (next-preorder node-iterator)))
 
 (defun lint-buffer (buffer &aux (*diagnostics* '()))
   "Apply all the linting rules, and accumulate the \"diagnostics\"."
