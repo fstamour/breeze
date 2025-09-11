@@ -15,7 +15,7 @@
   ;; TODO these should be exported
   (:import-from #:breeze.pattern
                 #:termp
-                #:term-name)
+                #:name)
   ;; importing unexported symbols
   (:import-from #:breeze.analysis
                 #:malformed-if-node-p

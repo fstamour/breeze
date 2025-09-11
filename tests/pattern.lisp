@@ -14,44 +14,15 @@
                 #:of-type
                 #:fail
                 #:finish)
+  ;; importing non-exported symbols
   (:import-from #:breeze.pattern
-                ;; Structures
-                #:term
-                #:termp
-                #:term-name
-                #:term=
-                #:repetition
-                #:repetitionp
-                #:repetition=
-                #:repetition-pattern
-                #:repetition-min
-                #:repetition-max
-                #:maybe
-                #:zero-or-more
-                #:alternation
-                #:alternationp
-                #:alternation-pattern
-                #:alternation=
-                #:pattern=
-                ;; Compilation
                 #:term-symbol-p
-                #:compile-pattern
-                ;; Iterator
-                #:pattern-iterator
-                #:make-pattern-iterator
-                ;; Match
-                #:make-binding
-                #:from
-                #:to
                 #:bindings
                 #:make-binding-set
                 #:copy-binding-set
-                #:find-binding
                 #:set-binding
                 #:add-binding
-                #:emptyp
-                #:merge-bindings
-                #:match))
+                #:emptyp))
 
 (in-package #:breeze.test.pattern)
 
@@ -59,7 +30,7 @@
   (let ((term (term :x)))
     (of-type term term)
     (true (termp term))
-    (is eq :x (term-name term))))
+    (is eq :x (name term))))
 
 (define-test+run term=
   (true (term= (term :x) (term :x)))

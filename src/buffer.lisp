@@ -1,7 +1,10 @@
 
 (defpackage #:breeze.buffer
-  (:documentation "")
+  (:documentation "Data structure to hold and manage lisp source code, its parse tree and
+point.")
   (:use #:cl #:breeze.lossless-reader)
+  (:import-from #:breeze.generics
+                #:name)
   (:import-from #:breeze.package
                 #:in-package-node-p
                 #:map-top-level-in-package)

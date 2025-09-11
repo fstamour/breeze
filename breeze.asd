@@ -45,7 +45,7 @@
     :depends-on ("lossless-reader" "workspace"))
    (:file "buffer" :depends-on ("lossless-reader" "package"))
    (:file "workspace" :depends-on ("lossless-reader" "buffer"))
-   (:file "pattern")
+   (:file "pattern" :depends-on ("iterator" "generics"))
    (:file "egraph")
    (:file "analysis" :depends-on ("lossless-reader" "pattern"))
    (:file "command"

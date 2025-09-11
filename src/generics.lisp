@@ -2,7 +2,7 @@
 (defpackage #:breeze.generics
   (:documentation "Declare some generic interfaces.")
   (:use #:cl)
-  (:export #:eqv))
+  (:export #:eqv #:name))
 
 (in-package #:breeze.generics)
 
@@ -37,3 +37,6 @@ emptyp
 donep
 
 |#
+
+(defgeneric name (thing)
+  (:documentation "Get the name of THING."))

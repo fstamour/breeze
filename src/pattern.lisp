@@ -3,18 +3,34 @@
 (defpackage #:breeze.pattern
   (:documentation "Pattern matching")
   (:use #:cl #:breeze.iterator)
+  (:import-from #:breeze.generics
+                #:name)
   (:import-from #:breeze.string
                 #:symbol-starts-with)
   (:export #:compile-pattern)
-  (:export #:defpattern
+  (:export #:pattern
+           #:defpattern
            #:match
            #:term
+           #:termp
+           #:term=
+           #:name
            #:maybe
            #:zero-or-more
            #:repetition
+           #:repetitionp
+           #:repetition=
            #:repetition-pattern
            #:repetition-min
            #:repetition-max
+           #:maybe
+           #:zero-or-more
+           #:alternation
+           #:alternationp
+           #:alternation=
+           #:alternation-pattern
+           #:pattern=
+           #:pattern-iterator
            #:make-pattern-iterator)
   ;; Working with match results
   (:export #:make-binding
@@ -40,26 +56,40 @@
 ;; TODO pattern "don't care" :?_
 
 
+
+(defclass pattern ()
+  ()
+  (:documentation "Abstract pattern"))
+
+
 ;;; Terms
 
 ;; Decision: I chose "term" and not "variable" to avoid clashes with
 ;; cl:variable
-(defstruct (term
-            (:constructor term (name))
-            :constructor
-            (:predicate termp))
-  (name nil :type symbol :read-only t))
+(defclass term (pattern)
+  ((name
+    :initform nil
+    :initarg :name
+    :accessor name
+    :documentation "The name of the term."))
+  (:documentation "Pattern that matches anything and creates a binding."))
+
+(defun term (name)
+  (make-instance 'term :name name))
+
+(defun termp (x)
+  (eq (class-name (class-of x)) 'term))
 
 (defmethod print-object ((term term) stream)
   (print-unreadable-object
       (term stream :type t :identity t)
-    (format stream "~s" (term-name term))))
+    (format stream "~s" (name term))))
 
 (defun term= (a b)
   (and (termp a)
        (termp b)
-       (eq (term-name a)
-           (term-name b))))
+       (eq (name a)
+           (name b))))
 
 
 ;;; Repetitions
