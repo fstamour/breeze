@@ -230,7 +230,7 @@ symbol nodes without having to define packages or intern symbols."))
     (loop
       ;; :with bindings := t ;; (make-binding-set)
       :with $pattern := (make-pattern-iterator
-                         (repetition-pattern pattern))
+                         (pattern pattern))
       ;; TODO update node-iterator on match
       :with $input := (copy-iterator iterator)
       :for $prev-input := (copy-iterator $input)
@@ -253,7 +253,7 @@ symbol nodes without having to define packages or intern symbols."))
                 (not (donep $pattern)))
            ;; (break "The end")
            (return
-             (when (<= (repetition-min pattern) i)
+             (when (<= (minimum pattern) i)
                ;; (break "i: ~s new-bindings: ~s" i new-bindings)
                (if (and (zerop i) (not new-bindings))
                    t

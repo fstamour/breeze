@@ -20,9 +20,8 @@
            #:repetition
            #:repetitionp
            #:repetition=
-           #:repetition-pattern
-           #:repetition-min
-           #:repetition-max
+           #:minimum
+           #:maximum
            #:maybe
            #:zero-or-more
            #:alternation
@@ -94,31 +93,54 @@
 
 ;;; Repetitions
 
-(defstruct (repetition
-            (:constructor repetition (pattern min max))
-            :constructor
-            (:predicate repetitionp))
-  (pattern nil :read-only t)
-  (min nil :read-only t)
-  (max nil :read-only t)
-  ;; TODO (greedyp t :read-only t)
-  )
+(defclass repetition ()
+  ((pattern
+    :initform nil
+    :initarg :pattern
+    :accessor pattern
+    :documentation "The pattern to be match repeatedly.")
+   (minimum
+    :initform nil
+    :initarg :minimum
+    :accessor minimum
+    :documentation "The minimum number of times the pattern must match to be considered a
+successful match.")
+   (maximum
+    :initform nil
+    :initarg :maximum
+    :accessor maximum
+    :documentation "The maximum number of times the pattern must match to be considered a
+successful match.")
+   ;; TODO greedyp
+   )
+  (:documentation "A repeated pattern."))
+
+(defun repetition (pattern &optional (min 0) max)
+  (make-instance 'repetition
+                 :pattern pattern
+                 :minimum min
+                 :maximum max))
+
+(defun repetitionp (x)
+  (eq (class-name (class-of x)) 'repetition))
 
 (defun repetition= (a b)
   (and (repetitionp a)
        (repetitionp b)
-       (pattern= (repetition-pattern a) (repetition-pattern b))
-       (= (repetition-min a) (repetition-min b))
-       (let ((ma (repetition-max a))
-             (mb (repetition-max a)))
-         (or (eq ma mb) (and (numberp ma) (numberp mb)) (= ma mb)))))
+       (pattern= (pattern a) (pattern b))
+       (= (minimum a) (minimum b))
+       (let ((ma (maximum a))
+             (mb (maximum a)))
+         (or (eq ma mb)
+             (and (numberp ma) (numberp mb)
+                  (= ma mb))))))
 
 (defmethod print-object ((repetition repetition) stream)
   (print-unreadable-object
       (repetition stream :type t :identity t)
     (format stream "[~s-~s]"
-            (repetition-min repetition)
-            (repetition-max repetition))))
+            (minimum repetition)
+            (maximum repetition))))
 
 (defun maybe (pattern)
   (repetition pattern 0 1))
@@ -498,7 +520,7 @@ bindings and keeping only those that have not conflicting bindings."
   (loop
     :with bindings := t ;; (make-binding-set)
     :with $pattern := (make-pattern-iterator
-                       (repetition-pattern pattern))
+                       (pattern pattern))
     :with $input := (make-vector-iterator input)
     :for i :from 0 :below 100 ;; TODO removve infinite loop guard
     :for new-bindings = (progn
@@ -513,7 +535,7 @@ bindings and keeping only those that have not conflicting bindings."
               (not new-bindings)
               ;; incomplete match
               (not (donep $pattern)))
-         (if (<= (repetition-min pattern) i)
+         (if (<= (minimum pattern) i)
              (return bindings)
              (return nil)))
        (when new-bindings

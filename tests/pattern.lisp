@@ -40,14 +40,18 @@
 (define-test+run maybe
   (let ((maybe (maybe :x)))
     (of-type repetition maybe)
-    ;; TODO check repetition-{min,max}
-    (is eq :x (repetition-pattern maybe))))
+    (is eq :x (pattern maybe))
+    (is = 0 (minimum maybe))
+    (is = 1 (maximum maybe))))
 
 (define-test+run zero-or-more
   (let ((zero-or-more (zero-or-more :x)))
     (of-type repetition zero-or-more)
-    ;; TODO check repetition-{min,max}
-    (is eq :x (repetition-pattern zero-or-more))))
+    (is eq :x (pattern zero-or-more))
+    (is = 0 (minimum zero-or-more)
+        "A pattern created with the function `zero-or-more' should have a minimum of 0.")
+    (false (maximum zero-or-more)
+           "A pattern created with the function `zero-or-more' should not have a maximum.")))
 
 (define-test+run alternation
   (let ((alternation (alternation :x)))
