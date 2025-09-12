@@ -54,10 +54,10 @@
            "A pattern created with the function `zero-or-more' should not have a maximum.")))
 
 (define-test+run alternation
-  (let ((alternation (alternation :x)))
+  (let ((alternation (alternation #(:x))))
     (of-type alternation alternation)
     (true (alternationp alternation))
-    (is eq :x (alternation-pattern alternation))))
+    (is equalp #(:x) (patterns alternation))))
 
 ;; TODO alternation=
 
@@ -72,9 +72,11 @@
   (is pattern= (zero-or-more 'y) (zero-or-more 'y))
   (is pattern= (zero-or-more '(x y)) (zero-or-more '(x y)))
   (is pattern= (zero-or-more (maybe 'x)) (zero-or-more (maybe 'x)))
-  (is pattern= (alternation 'y) (alternation 'y))
-  (is pattern= (alternation '(x y)) (alternation '(x y)))
-  (is pattern= (alternation (maybe 'x)) (alternation (maybe 'x))))
+  (is pattern= (alternation #(y)) (alternation #(y)))
+  (is pattern= (alternation #(x y)) (alternation #(x y)))
+  (is pattern=
+      (alternation (vector (maybe 'x)))
+      (alternation (vector (maybe 'x)))))
 
 
 

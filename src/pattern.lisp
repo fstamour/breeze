@@ -9,6 +9,7 @@
                 #:symbol-starts-with)
   (:export #:compile-pattern)
   (:export #:pattern
+           #:patterns
            #:defpattern
            #:match
            #:term
@@ -27,7 +28,6 @@
            #:alternation
            #:alternationp
            #:alternation=
-           #:alternation-pattern
            #:pattern=
            #:pattern-iterator
            #:make-pattern-iterator)
@@ -151,23 +151,36 @@ successful match.")
 
 ;;; Alternations
 
-(defstruct (alternation
-            (:constructor alternation (pattern))
-            :constructor
-            (:predicate alternationp))
-  (pattern nil :read-only t))
+(defclass alternation ()
+  ((patterns
+    :initform nil
+    :initarg :patterns
+    :accessor patterns
+    :documentation "The sequence of patterns to be tried one after the other."))
+  (:documentation "An ordered set of patterns."))
+
+(defun alternation (patterns)
+  (check-type patterns vector)
+  ;; maybe we would also like to check that there's more than 1
+  ;; pattern, perhaps even check that they are not `pattern='.
+  (make-instance 'alternation :patterns patterns))
+
+(defun alternationp (x)
+  (eq (class-name (class-of x)) 'alternation))
 
 (defun alternation= (a b)
   (and (alternationp a)
        (alternationp b)
-       (pattern= (alternation-pattern a)
-                 (alternation-pattern b))))
+       ;; This works because patterns are vectors...
+       (pattern= (patterns a)
+                 (patterns b))))
 
 (defmethod print-object ((alternation alternation) stream)
   (print-unreadable-object
       (alternation stream :type t :identity t)
-    ;; (format stream "~s" (alternation-something alternation))
-    ))
+    ;; TODO it could be nice to print very short parts of the sub
+    ;; patterns, or all of them if they're very small.
+    (format stream "~s" (length (patterns alternation)))))
 
 
 ;;; Pattern comparison
@@ -504,7 +517,7 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;; TODO add tests with and without skipp
 (defmethod match ((pattern alternation) input &key skipp)
-  (loop :for pat :across (alternation-pattern pattern)
+  (loop :for pat :across (patterns pattern)
         :for bindings = (match pat input :skipp skipp)
         :when bindings
           ;; TODO this is probably very wrong
