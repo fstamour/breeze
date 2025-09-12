@@ -12,6 +12,8 @@
            #:patterns
            #:defpattern
            #:match
+           #:any
+           #:anyp
            #:term
            #:termp
            #:term=
@@ -55,10 +57,27 @@
 ;; TODO pattern "don't care" :?_
 
 
+;;; Abstract pattern
 
 (defclass pattern ()
   ()
   (:documentation "Abstract pattern"))
+
+
+;;; Wildcard
+
+;; TODO could be useful to give this a name anyway, for debugging?
+(defclass any ()
+  ()
+  (:documentation "Pattern that matches anything"))
+
+(defun any ()
+  "Make a pattern object that matches anything"
+  (make-instance 'any))
+
+(defun anyp (x)
+  "Is X an object of class `any'?"
+  (eq (class-name (class-of x)) 'any))
 
 
 ;;; Terms
@@ -74,17 +93,21 @@
   (:documentation "Pattern that matches anything and creates a binding."))
 
 (defun term (name)
+  "Make a pattern object that matches anything and create a binding."
   (make-instance 'term :name name))
 
 (defun termp (x)
+  "Is X an object of class `term'?"
   (eq (class-name (class-of x)) 'term))
 
 (defmethod print-object ((term term) stream)
+  "Print an object of type `term'."
   (print-unreadable-object
       (term stream :type t :identity t)
     (format stream "~s" (name term))))
 
 (defun term= (a b)
+  "Test that A and B are both object of type `term' with the same name."
   (and (termp a)
        (termp b)
        (eq (name a)
@@ -116,15 +139,18 @@ successful match.")
   (:documentation "A repeated pattern."))
 
 (defun repetition (pattern &optional (min 0) max)
+  "Make a pattern object that matches a pattern repeatedly."
   (make-instance 'repetition
                  :pattern pattern
                  :minimum min
                  :maximum max))
 
 (defun repetitionp (x)
+  "Is X an object of class `repetition'?"
   (eq (class-name (class-of x)) 'repetition))
 
 (defun repetition= (a b)
+  "Test that A and B are both object of type `repetition' with the limits."
   (and (repetitionp a)
        (repetitionp b)
        (pattern= (pattern a) (pattern b))
@@ -136,6 +162,7 @@ successful match.")
                   (= ma mb))))))
 
 (defmethod print-object ((repetition repetition) stream)
+  "Print an object of type `repetition'."
   (print-unreadable-object
       (repetition stream :type t :identity t)
     (format stream "[~s-~s]"
@@ -143,9 +170,11 @@ successful match.")
             (maximum repetition))))
 
 (defun maybe (pattern)
+  "Make a pattern object that optionally matches a pattern once."
   (repetition pattern 0 1))
 
 (defun zero-or-more (pattern)
+  "Make a pattern object that optionally matches a pattern many times."
   (repetition pattern 0 nil))
 
 
@@ -160,15 +189,19 @@ successful match.")
   (:documentation "An ordered set of patterns."))
 
 (defun alternation (patterns)
+  "Make a pattern object that must match one of its subpatterns."
   (check-type patterns vector)
   ;; maybe we would also like to check that there's more than 1
   ;; pattern, perhaps even check that they are not `pattern='.
   (make-instance 'alternation :patterns patterns))
 
 (defun alternationp (x)
+  "Is X an object of class `alternation'?"
   (eq (class-name (class-of x)) 'alternation))
 
 (defun alternation= (a b)
+  "Test that A and B are both object of type `alternation=' with the same
+subpatterns."
   (and (alternationp a)
        (alternationp b)
        ;; This works because patterns are vectors...
@@ -176,6 +209,7 @@ successful match.")
                  (patterns b))))
 
 (defmethod print-object ((alternation alternation) stream)
+  "Print an object of type `alternation'."
   (print-unreadable-object
       (alternation stream :type t :identity t)
     ;; TODO it could be nice to print very short parts of the sub
@@ -185,8 +219,15 @@ successful match.")
 
 ;;; Pattern comparison
 
+(defgeneric pattern= (a b)
+  (:documentation "Test if two patterns are the same. (Note that this doesn't test for
+equivalence, just for equality."))
+
 (defmethod pattern= (a b)
   (equal a b))
+
+(defmethod pattern= ((a any) (b any))
+  t)
 
 (defmethod pattern= ((a vector) (b vector))
   (or (eq a b)
@@ -209,7 +250,12 @@ successful match.")
 ;;; Pattern compilation from lists and symbols to vectors and structs
 
 (defun term-symbol-p (x)
+  "Does the symbol X represents a \"term\" pattern?"
   (symbol-starts-with x #\?))
+
+(defun any-symbol-p (x)
+  "Does the symbol X represents an \"any\" pattern?"
+  (symbol-starts-with x #\_))
 
 (defparameter *term-pool* nil
   "A pool of terms, used to share terms across patterns created by
@@ -235,6 +281,10 @@ compile-pattern is called, a new one is created."
     ((term-symbol-p pattern)
      (or (gethash pattern *term-pool*)
          (setf (gethash pattern *term-pool*) (term pattern))))
+    ((any-symbol-p pattern)
+     ;; TODO (optimization) this creates a new "any" object everytime,
+     ;; which is not really necessary.
+     (any))
     (t pattern)))
 
 ;; Compile lists
@@ -414,16 +464,21 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Matching atoms
 
-;; Basic "equal" matching
 (defmethod match (pattern input &key &allow-other-keys)
+  "Basic \"equal\" matching"
   (equal pattern input))
 
-;; Match a term (create a binding)
+(defmethod match ((pattern any) input &key &allow-other-keys)
+  "Match anything."
+  (declare (ignore input))
+  t)
+
 (defmethod match ((pattern term) input &key)
+  "Match a term (create a binding)"
   (make-binding pattern input))
 
-;; Match a string literal
 (defmethod match ((pattern string) (input string) &key)
+  "Match a string literal"
   (string= pattern input))
 
 ;; "nil" must match "nil"
