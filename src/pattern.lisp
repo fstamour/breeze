@@ -54,7 +54,13 @@
 ;; TODO Think about (defstruct hole ...)
 ;; TODO find-partial-match
 ;; TODO fuzzy match (e.g. symbol with a low edit distance is considerded a match)
-;; TODO pattern "don't care" :?_
+
+;; TODO pattern "parens" (or "subtree") -- to explictly "go down"
+;; TODO "spliced" pattern -- not unlike :refs, but without namespace
+;;   not exactly needed if the "go down" part is done explictly
+;; TODO callbacks? instead of bindings??
+;; TODO guard (? pred pat) => match pattern, then apply pred
+;; TODO term with subpattern (? ?x . subpattern)
 
 
 ;;; Abstract pattern
@@ -64,7 +70,9 @@
   (:documentation "Abstract pattern"))
 
 
-;;; Wildcard
+;;; Wildcard / don't care
+
+;; TODO rename "wildcard"
 
 ;; TODO could be useful to give this a name anyway, for debugging?
 (defclass any ()
@@ -178,6 +186,7 @@ successful match.")
   (repetition pattern 0 nil))
 
 
+;;; TODO rename to "any"
 ;;; Alternations
 
 (defclass alternation (pattern)
@@ -505,6 +514,7 @@ bindings and keeping only those that have not conflicting bindings."
 ;;; Matching sequences
 
 (defun skip ($input skipp)
+  ;; TODO support skipp ∈ {t :whitespace :comment)
   (loop :while (and
                 (not (donep $input))
                 (funcall skipp $input))
@@ -619,7 +629,9 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;; TODO this shouldn't be needed, the (macth iterator iterator) should
 ;; be able to take care of this.
+;;; OOOORRR make this explicit by having another pattern class to represent "going down" >subtree<
 (defmethod match ((pattern vector) (input iterator) &key skipp)
+  ;; TODO should copy the iterator
   (go-down input)
   (unless (donep input)
     (match (make-pattern-iterator pattern) input :skipp skipp)))
