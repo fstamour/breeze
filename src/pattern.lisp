@@ -93,7 +93,7 @@
 
 ;;; Repetitions
 
-(defclass repetition ()
+(defclass repetition (pattern)
   ((pattern
     :initform nil
     :initarg :pattern
@@ -151,7 +151,7 @@ successful match.")
 
 ;;; Alternations
 
-(defclass alternation ()
+(defclass alternation (pattern)
   ((patterns
     :initform nil
     :initarg :patterns
