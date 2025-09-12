@@ -133,10 +133,9 @@
 
 (define-test+run make-binding
   ;; TODO export 'binding, maybe
-  (is eq
-      (find-class 'binding)
-      (class-of (make-binding :?x "a"))
-      "Make binding should return an instance of the class \"binding\".")
+  (of-type binding
+           (make-binding :?x "a")
+           "Make binding should return an instance of the class \"binding\".")
   (is equal "#<BINDING :?X → A>"
       (prin1-to-string
        (make-binding :?x 'a))
@@ -158,9 +157,8 @@
                (symbol-name (car binding-cons)))))))
 
 (define-test+run binding-set
-  (is eq
-      (find-class 'binding-set)
-      (class-of (make-binding-set))
+  (of-type binding-set
+      (make-binding-set)
       "make-binding-set should return an instance of the class \"binding-set\".")
   (true (emptyp (make-binding-set))
         "make-binding-set should return an empty set of bindings.")
@@ -281,13 +279,13 @@
   (true (match (term :?x) "x"))
   (true (match (term :?x) '(a)))
   (true (match (term :?x) (term :?x)))
-  (true (match `#(,(term :?x)) (list 42))))
+  (true (match (vector (term :?x)) #(42))))
 
 
 ;;; Sequences
 
 (define-test+run "match sequences"
-  (true (match #(a) '(a)))
+  (false (match #(a) '(a)))
   (false (match #(a b) #(a)))
   (true (match #(a b) #(a b)))
   (finish
@@ -329,17 +327,17 @@
 
 (define-test+run "match maybe"
   (test-match* "matching a? against the sequence (a)"
-              (maybe 'a) '(a) t)
+              (maybe 'a) '(a) nil)
   (test-match* "matching a? against the atom 'a"
               (maybe 'a) 'a nil)
   (test-match* "matching a? against the empty sequence"
-              (maybe 'a) nil t)
+              (maybe 'a) #() t)
   (test-match* "matching a? against the atom 'b"
               (maybe 'a) 'b nil)
   (test-match* "matching (maybe ?x) against the atom 'a"
               (maybe (term '?x)) 'a nil)
   (test-match* "matching (maybe ?x) against the empty sequence"
-              (maybe (term '?x)) nil t))
+              (maybe (term '?x)) #() t))
 
 (define-test+run "match alternations"
   (test-match* "matching (or a b) against 'a"
@@ -353,11 +351,11 @@
   (test-match* "matching (or (maybe a) b) against the atom 'a"
                '(:alternation (:maybe a) b) 'a nil)
   (test-match* "matching (or (maybe a) b) against the sequence (a)"
-               '(:alternation (:maybe a) b) '(a) '(a))
+               '(:alternation (:maybe a) b) '(a) nil)
   (test-match* "matching (or (maybe a) b) against the atom 'b"
                '(:alternation (:maybe a) b) 'b 'b)
   (test-match* "matching (or (maybe a) b) against the sequence (b)"
-               '(:alternation (:maybe a) b) '(b) '(b))
+               '(:alternation (:maybe a) b) '(b) nil)
   #++ ;; TODO non-greedy repetition
   (let ((binding (test-match pat 'b)))
     (true binding)
@@ -366,14 +364,14 @@
   (false (test-match pat 'c)))
 
 (define-test+run "match zero-or-more"
-  (true (test-match '(:zero-or-more a) nil))
-  (true (test-match '(:zero-or-more a b) '(a))
+  (true (test-match '(:zero-or-more a) #()))
+  (true (test-match '(:zero-or-more a b) #(a))
         "It should match 0 times")
-  (is eq t (test-match '(:zero-or-more a b) '(a b))
+  (is eq t (test-match '(:zero-or-more a b) #(a b))
       "It should match 1 time")
-  (is eq t (test-match '(:zero-or-more a b) '(a b a))
+  (is eq t (test-match '(:zero-or-more a b) #(a b a))
       "It should match 1 time")
-  (is eq t (test-match '(:zero-or-more a b) '(a b a b))
+  (is eq t (test-match '(:zero-or-more a b) #(a b a b))
       "It should match twice")
   (false (test-match '(:zero-or-more a b) 'a)))
 

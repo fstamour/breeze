@@ -571,6 +571,7 @@ bindings and keeping only those that have not conflicting bindings."
 ;;; Matching alternations
 
 ;; TODO add tests with and without skipp
+;; TODO input should be an iterator...
 (defmethod match ((pattern alternation) input &key skipp)
   (loop :for pat :across (patterns pattern)
         :for bindings = (match pat input :skipp skipp)
@@ -616,16 +617,12 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Convenience automatic coercions
 
+;; TODO this shouldn't be needed, the (macth iterator iterator) should
+;; be able to take care of this.
 (defmethod match ((pattern vector) (input iterator) &key skipp)
   (go-down input)
   (unless (donep input)
     (match (make-pattern-iterator pattern) input :skipp skipp)))
-
-(defmethod match ((pattern vector) (input sequence) &key skipp)
-  (match pattern (coerce input 'vector) :skipp skipp))
-
-(defmethod match ((pattern repetition) (input sequence) &key skipp)
-  (match pattern (coerce input 'vector) :skipp skipp))
 
 
 ;;; Match substitution
