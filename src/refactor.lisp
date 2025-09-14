@@ -548,7 +548,8 @@ will fix the issue and then stop the current command."
   "Given the context, suggest some applicable commands."
   (maybe-ask-to-load-system)
   #++ (check-in-package)
-  ;; TODO "flash" (pulse?) the current top-level form
+  (let ((root (root-node (current-node-iterator))))
+    (pulse (start root) (end root)))
   (maybe-apply-fixes)
   (message "Nothing to fix in the current top-level form."))
 

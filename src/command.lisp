@@ -54,6 +54,7 @@
    #:return-value-from-command
    #:return-from-command
    #:goto-char
+   #:pulse
    ;; Command discovery and documentation
    #:commandp
    #:list-all-commands
@@ -652,7 +653,12 @@ resulting string to the editor."
   (send "return" value))
 
 (defun goto-char (position)
+  "Move the point to POSITION."
   (send "goto-char" position))
+
+(defun pulse (start end)
+  "Momentarily pulse (highlight then fade) the region from START to END."
+  (send "pulse" start end))
 
 
 ;;; Command discovery and documentation
