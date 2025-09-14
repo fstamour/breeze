@@ -515,7 +515,7 @@ bindings and keeping only those that have not conflicting bindings."
   (loop :while (and
                 (not (donep $input))
                 (funcall skipp $input))
-        :do (next $input :dont-recurse-p t)))
+        :do (next $input)))
 
 ;; TODO rename $input to iterator; :with $input = copy iterator, copy
 ;; back if match is successful
@@ -541,7 +541,7 @@ bindings and keeping only those that have not conflicting bindings."
                             (if (typep $input 'breeze.lossless-reader::node-iterator)
                                 $input
                                 (value $input))))
-    :do (next $pattern) (next $input :dont-recurse-p t)
+    :do (next $pattern) (next $input)
     :if new-bindings
       ;; collect all the bindings
       :do
@@ -558,7 +558,7 @@ bindings and keeping only those that have not conflicting bindings."
        (when (and skipp
                   (not (donep $input))
                   (funcall skipp $input))
-         (next $input :dont-recurse-p t))
+         (next $input))
        (return
          ;; We want to match the whole pattern, but whether we
          ;; want to match the whole input is up to the caller.

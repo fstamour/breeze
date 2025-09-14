@@ -41,20 +41,6 @@
   (false
    (collect (make-vector-iterator #(1 2 3) :position 10))))
 
-(define-test+run selector
-  (is equal (list 0 2 4 6)
-      (collect (make-selector
-                (make-vector-iterator #(0 1 2 3 4 5 6))
-                #'evenp))
-      "Should have removed the odd values")
-  (is equal '(b d f)
-      (collect (make-selector
-                (make-vector-iterator #(a b c d e f))
-                (lambda (iterator)
-                  (oddp (slot-value iterator 'position)))
-                :apply-filter-to-iterator-p t))
-      "Should have removed the even positions"))
-
 (define-test+run tree-iterator
   (let* ((root #(1 2 3))
          (iterator (make-tree-iterator root)))

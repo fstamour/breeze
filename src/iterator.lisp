@@ -28,8 +28,6 @@ generalization of that first iteration (ha!).
   ;; Classes and Constructors
   (:export #:iterator
            #:proxy-iterator-mixin
-           #:selector
-           #:make-selector
            #:vector-iterator
            #:tree-iterator
            #:make-vector-iterator
@@ -108,7 +106,7 @@ I could also define an iterator that uses another one and skip values. So the "b
 (defgeneric donep (iterator)
   (:documentation "Check if there's any values left to iterate over."))
 
-(defgeneric next (iterator &key &allow-other-keys)
+(defgeneric next (iterator)
   (:documentation "Advance the iterator. Might return a whole new iterator, you better
 save this function's return value."))
 
@@ -157,7 +155,7 @@ save this function's return value."))
   (with-slots (position vector) iterator
     (not (< -1 position (length vector)))))
 
-(defmethod next ((iterator vector-iterator) &key)
+(defmethod next ((iterator vector-iterator))
   (with-slots (position) iterator
     (incf position)))
 
@@ -212,7 +210,7 @@ save this function's return value."))
 (defmethod donep ((iterator proxy-iterator-mixin))
   (donep (child-iterator iterator)))
 
-(defmethod next ((iterator proxy-iterator-mixin) &key &allow-other-keys)
+(defmethod next ((iterator proxy-iterator-mixin))
   (next (child-iterator iterator)))
 
 (defmethod value ((iterator proxy-iterator-mixin))
@@ -226,53 +224,6 @@ save this function's return value."))
 
 (defmethod leaf-iterator ((iterator proxy-iterator-mixin))
   (leaf-iterator (child-iterator iterator)))
-
-
-;;; Selector - iterator that skip values
-
-(defclass selector (proxy-iterator-mixin)
-  ((filter-in
-    :initform nil
-    :initarg :filter-in
-    :accessor filter-in
-    :documentation "Predicate to remove certain values. (If it returns nil for a value, that value is skipped.")))
-
-(defun make-selector (child-iterator filter-in
-                      &key
-                        dont-skip-p
-                        apply-filter-to-iterator-p)
-  "Construct a selector from CHILD-ITERATOR.
-
-If DONT-SKIP-P is non-nil, the first elements won't be skipped
-automatically even if the SKIP-VALUE-P predicate would be true for
-those values.
-
-If APPLY-FILTER-TO-ITERATOR-P is non-nil, the predicate FILTER-IN will be applied to the CHILD-ITERATOR instead of the its current value. This can be used for example to skip the last value, by accessing the iterator's state."
-  (let ((iterator (make-instance
-                   'selector
-                   :iterator child-iterator
-                   :filter-in (if apply-filter-to-iterator-p
-                                  filter-in
-                                  (lambda (iterator)
-                                    (funcall filter-in (value iterator)))))))
-    (unless dont-skip-p
-      (when (skipp iterator)
-        (next iterator)))
-    iterator))
-
-(defmethod skipp ((iterator selector))
-  "Check whether to skip the current value or not"
-  (let ((predicate (filter-in iterator)))
-    (and predicate (not (donep iterator))
-         (not (funcall predicate (leaf-iterator iterator))))))
-
-(defmethod next ((iterator selector) &key dont-skip-p)
-  (if dont-skip-p
-      (next (child-iterator iterator))
-      (loop
-        :do (next (child-iterator iterator))
-        :while (and (not (donep iterator))
-                    (skipp iterator)))))
 
 
 ;;; iterator for trees (nested vectors)
@@ -378,7 +329,7 @@ depth of the tree."))
   (with-slots (depth) iterator
     (current-depth-done-p iterator)))
 
-(defmethod next ((iterator tree-iterator) &key)
+(defmethod next ((iterator tree-iterator))
   (incf (pos iterator)))
 
 (defmethod value ((iterator tree-iterator))
@@ -514,7 +465,7 @@ depth of the tree."))
   (aref (slot-value iterator 'vector)
         (slot-value iterator 'positions)))
 
-(defmethod next ((iterator concat-iterator) &key &allow-other-keys)
+(defmethod next ((iterator concat-iterator))
   (loop :do (next (child-iterator iterator))
             (when (donep (child-iterator iterator))
               (incf (pos iterator)))
@@ -529,14 +480,13 @@ depth of the tree."))
 
 
 
-(defun collect (iterator &rest rest &key (limit) &allow-other-keys)
-  (let ((next-extra-args (alexandria:remove-from-plist rest :limit)))
-    (loop
-      with i = 0
-      while (or (null limit) (<= (incf i) limit))
-      until (donep iterator)
-      collect (value iterator)
-      do (apply #'next iterator next-extra-args))))
+(defun collect (iterator &key (limit))
+  (loop
+    with i = 0
+    while (or (null limit) (<= (incf i) limit))
+    until (donep iterator)
+    collect (value iterator)
+    do (next iterator)))
 
 (defun map-iterator (fn iterator &key (limit))
   (if limit

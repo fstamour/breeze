@@ -54,7 +54,7 @@ TODO next-alternative/previous alternative (e.g. :accessor <-> :reader <-> :writ
          (let* ((lastp (lastp node-iterator))
                 (start (if lastp (start node-iterator) point)))
            (unless lastp
-             (next node-iterator :dont-recurse-p t))
+             (next node-iterator))
            (replace-region start (maybe-include-next-node node-iterator) "")))
         ((= point (end node-iterator))
          (message "END"))

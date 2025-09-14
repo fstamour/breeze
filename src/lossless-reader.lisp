@@ -1464,7 +1464,7 @@ Returns a new node with one of these types:
                           position node)
            (return))
           (t
-           (next iterator :dont-recurse-p t))))
+           (next iterator))))
   iterator)
 
 
