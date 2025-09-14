@@ -5,17 +5,17 @@
 #+todo: TODO | DONE OBSOLETE
 
 * Tasks
+:PROPERTIES:
+:ID:       e1f105c3-24d6-42e5-a555-75885ceee25c
+:END:
 
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
-** TODO Use with-branching to define optimal-string-alignment-distance :tech_debt:
-
-Instead of having 2 definitions
-
-https://github.com/phoe/with-branching
-
 ** TODO Basic commands should send the buffer to the editor          :editor:
+:PROPERTIES:
+:ID:       f14843c3-d506-4beb-8921-eddbdebea1ba
+:END:
 
 e.g. If the common-lisp side ask the editor to insert a string, but
 the user changed buffer, the editor will insert the string in the
@@ -26,6 +26,9 @@ with on the "initial" buffer, unless stated otherwise (but that would
 add even more state on the protocol).
 
 ** DONE Remove the command ~backward-char~                 :tech_debt:editor:
+:PROPERTIES:
+:ID:       31ea9823-f0eb-44f4-8e3c-451646c338ec
+:END:
 
 I introduced the command ~backward-char~ as a hacky workaround: the
 integration with the editor edits the buffer incrementally, but then
@@ -38,41 +41,75 @@ using "backward-chard" as a crutch.
 Something like ~relative-move~ would be better.
 
 ** Showcase/demo                                                        :doc:
+:PROPERTIES:
+:ID:       07224aeb-8306-4668-8ba4-5f0c3cbb3c96
+:END:
 
 *** TODO Show the integration with quickproject            :doc:quickproject:
+:PROPERTIES:
+:ID:       9b5d5722-16a2-4b35-affb-4bb674b30cb0
+:END:
 
 *** TODO Show how breeze can help create a project from a file :doc:refactor:capture:
+:PROPERTIES:
+:ID:       46aaceb0-ca2b-4c1d-a5db-74295e7ea942
+:END:
 
 e.g. you made a "capture" with breeze, and now you want to turn that
 into a project.
 
 *** TODO Create a demo to show how to install breeze             :doc:config:
+:PROPERTIES:
+:ID:       9a339dd6-9d58-480e-9a79-fcba0eeb62a8
+:END:
 
 ** TODO Add command "go to next missing documentation"               :editor:
+:PROPERTIES:
+:ID:       d0aee83f-8560-4374-858b-23669635a68a
+:END:
 
 ** TODO Add command "got to next documentation"                      :editor:
+:PROPERTIES:
+:ID:       a4441e5d-be6d-4e0d-877c-db4cbb581b35
+:END:
 
 To help revision
 
 ** TODO Add command "next todo"                                      :editor:
+:PROPERTIES:
+:ID:       f7cf31f3-4bfb-45f4-b52d-805802400956
+:END:
 
 Don't re-implement it, just figure out which how to configure the
 editor to do that.
 
 ** TODO Use header-line in emacs to show the test results         :editor:ux:
+:PROPERTIES:
+:ID:       758f63fd-5b48-4461-854f-cee3cb617b00
+:END:
 
 Instead of a lighter
 
 The lighter could still be used though, it could be a ✓ or χ.
 
-** DONE Better explain what Breeze currently is in the readme           :doc:
+** TODO Better explain what Breeze currently is in the readme           :doc:
+:PROPERTIES:
+:ID:       6f7e4fb6-a3b9-45c1-a5a7-3c2fe33403e5
+:END:
 
 As opposed to explain the principles, goals, non-goals, etc.
 
 Actually explain what breeze *does*.
 
 ** DONE add a "What is this?" section                                   :doc:
+:PROPERTIES:
+:ID:       ece84adc-6fe2-4198-96fd-c9fc0e909028
+:END:
+
 ** OBSOLETE [#A] On first setup, the user has to (ql:quickload 'breeze) :ux:obsolete:
+:PROPERTIES:
+:ID:       3690dffe-5bba-47d0-ba51-2c7ddc5252f1
+:END:
 
 Start by documenting how to start using breeze, then automate it.
 
@@ -80,18 +117,34 @@ N.B. Since I remove the test-runner and etc. breeze doesn't really
 need to be "started". But it still needs to be loaded.
 
 ** TODO Add links to all the "TODOs" in the documentation               :doc:
+:PROPERTIES:
+:ID:       4075ff13-6333-4575-9576-f9d1c9e25c8f
+:END:
 
 grep TODO -h | to_github_url | to_html
 
 ** DONE Breeze shouldn't suggest symbol that are "too far"               :ux:
+:PROPERTIES:
+:ID:       2aad9c0b-a4c2-42b1-9a27-3253be771f23
+:END:
 
 e.g not suggest "slot-exists-p" when trying to eval
 "this-really-doesnt-exists".
 
 *** TODO Still need to add tests on this...                  :test:tech_debt:
+:PROPERTIES:
+:ID:       0316395b-1c55-4fee-ad00-2ed51a353551
+:END:
+
 ** DONE Make a "string distance" function that stops after a threshold
+:PROPERTIES:
+:ID:       4bf2a624-61b0-409a-bf6d-046cb19eec7e
+:END:
 
 ** TODO Use a heap to find the N closest matches                         :ux:
+:PROPERTIES:
+:ID:       91dd2385-d05e-42b2-9123-68e5eda38a35
+:END:
 
 - Maybe look into VP-trees (Vantage-Point trees)
 
@@ -104,11 +157,29 @@ Maybe we can refine that list of candidate based on other, perhaps
 heavier criteria?
 
 ** TODO Document (with screenshots) how to setup and use emacs integration :doc:
+:PROPERTIES:
+:ID:       74475cbe-8b31-4f21-bdb9-7935c4d4953f
+:END:
 ** TODO Document how to use quickproject integration                    :doc:
+:PROPERTIES:
+:ID:       a3188d26-6d8a-4a56-996d-1cd0c718f452
+:END:
 ** TODO Add binding to run test at point                                 :ux:
+:PROPERTIES:
+:ID:       028bec85-31dc-4cf6-8ef5-792922cdcaf6
+:END:
 ** TODO Add command to choose a test and run it                          :ux:
+:PROPERTIES:
+:ID:       abd1f951-574d-4cf6-b0ed-c00f0e3e6603
+:END:
 ** TODO [#B] When inserting a package definition in an empty buffer, evaluate the buffer :easy:ux:
-** TODO Generate the documentation in the CI                        :ops:doc:
+:PROPERTIES:
+:ID:       b276cf1d-e592-4f9a-ac29-23cac0685d2e
+:END:
+** DONE Generate the documentation in the CI                        :ops:doc:
+:PROPERTIES:
+:ID:       8b715618-f32c-4ac3-8f1b-9160cacde420
+:END:
 
 Really not a priority, even though generating the documentation
 locally and committing the result is less than ideal, it works well.
@@ -125,16 +196,23 @@ other hand (again), I've had really janky load time with GitLab, but
 that might just have been the Authentication + boatload of js.
 
 ** TODO [#C] Add a link to the GitHub repository in the documentation :doc:ux:
-** Add integration tests
+** TODO Add integration tests
+:PROPERTIES:
+:ID:       09e1f84c-a13d-47ab-848e-d0407e1fdbb4
+:END:
 *** TODO Look into emacs-director                                      :test:
 
 https://github.com/bard/emacs-director
+
 *** TODO Look into makem.sh                                        :test:ops:
 
 [[https://github.com/alphapapa/makem.sh][makem.sh]] - Makefile-like script for building and testing Emacs Lisp
 packages
 
 ** TODO Try to detect when the current buffer/file was not loaded (evaluated). :ux:
+:PROPERTIES:
+:ID:       65b74ecb-13af-457b-b70a-5663a692c99c
+:END:
 
 The goal would be to warn the user "hey, you're trying to evaluate
 that function, but the package declared in this file/buffer doesn't
@@ -148,6 +226,9 @@ Could pass the file to br:next. What if
 - the buffer is visiting a file, but there are unsaved modifications
 
 ** TODO Try to suggest new and old projects?                             :ux:
+:PROPERTIES:
+:ID:       b05affdf-fa20-43aa-a99a-dc051a939285
+:END:
 
 When the user just initialized breeze, try to find out if the user has
 any lisp project(s) already opened, help him work on it.
@@ -155,6 +236,9 @@ any lisp project(s) already opened, help him work on it.
 If not projects are found guide him through =breeze-scaffold=
 
 ** TODO Suggest corrections when typos are detected                      :ux:
+:PROPERTIES:
+:ID:       3c054b62-8c27-432d-9bab-273f635c1a96
+:END:
 
 We already suggest stuff when there's, for example, an
 undefined-function error. We could go one step further and suggest a
@@ -162,70 +246,149 @@ quickfix in the editor. We should probably suggest that quickfix only
 when the edit-distance is not too great, or we would get some wild quickfixes.
 
 ** TODO Maybe add this document (notes.org) to the documentation?       :doc:
+:PROPERTIES:
+:ID:       ae4d17b1-5446-4e99-a7ea-ed38c2150779
+:END:
 
-** TODO Maybe split the documentation in multiple pages                 :doc:
+** TODO Maybe split the "reference" documentation in multiple pages     :doc:
+:PROPERTIES:
+:ID:       0e592faa-27e3-4e31-99ed-cb537b4c82f1
+:END:
 
 ** Commands                                                          :editor:
 
 *** wrap with                                                      :refactor:
+:PROPERTIES:
+:ID:       ee92584d-5ee0-4be4-846a-0de090520d0d
+:END:
 
 **** TODO let
+:PROPERTIES:
+:ID:       bb33517d-41c1-47e9-bb01-03d7d94824bd
+:END:
 
 **** TODO multiple-value-bind
+:PROPERTIES:
+:ID:       05d41833-138f-43a5-9380-e1dd549ca5d6
+:END:
 
 *** TODO add import-from                                           :refactor:
+:PROPERTIES:
+:ID:       1d703993-ea72-4ac5-8bf7-9a7032b68274
+:END:
 
 already has a prototype in emacs lisp
 
 *** TODO move-form-into-let                                        :refactor:
+:PROPERTIES:
+:ID:       8baf278b-432e-46c2-8902-cc959213ea9d
+:END:
 
 already has a prototype in emacs lisp
 
 *** TODO Comment current form                                      :refactor:
+:PROPERTIES:
+:ID:       7c0d94e0-e1d2-4747-85e7-ab144e70038f
+:END:
 
 *** TODO Move top-level form up/down                               :refactor:
+:PROPERTIES:
+:ID:       58f9beb5-7284-4f42-80ab-e022a9b62dfc
+:END:
 
 A.k.a transpose-forms, but keep the cursor at the start of the form
 that we just moved.
 
 ** Follow up on issues                                          :3rd_parties:
+:PROPERTIES:
+:ID:       167c7d99-183c-46ae-8374-fcb727486e36
+:END:
 
 *** In [[https://github.com/slime/slime][Slime]]
 
 **** TODO [[https://github.com/slime/slime/issues/645][Is there a way to run a function when slime's repl is ready #645]]
+:PROPERTIES:
+:ID:       40438f6c-4005-482c-a2b9-9094760aa370
+:END:
 
 *** In [[https://github.com/phoe-trash/value-semantics-utils][phoe-trash/value-semantics-utils]]
+:PROPERTIES:
+:ID:       11df3174-782b-443b-831e-0dee6db947aa
+:END:
 
 **** TODO [[https://github.com/phoe-trash/value-semantics-utils/issues/4][Utilities to update a set of object while maximising structural sharing #4]]
+:PROPERTIES:
+:ID:       9ad8200c-7f7d-4d32-834c-691d8c404f08
+:END:
 
 **** TODO [[https://github.com/phoe/trivial-method-combinations/issues/4][Add method-combination-name-p #4]]
+:PROPERTIES:
+:ID:       bda9af01-24aa-4d84-a966-0d5ed27a1ef8
+:END:
 
 *** In [[https://github.com/phoe/external-symbol-not-found/][phoe/external-symbol-not-found]]
+:PROPERTIES:
+:ID:       bfaa3158-f35d-4dc7-868e-fb3a7b4b867a
+:END:
 
 **** TODO [[https://github.com/phoe/external-symbol-not-found/issues/1][Improve tests #1]]
+:PROPERTIES:
+:ID:       aa730627-bad7-4dee-ba73-7f16b4502d02
+:END:
 
 **** TODO [[https://github.com/phoe/external-symbol-not-found/issues/2][Add CI pipeline #2]]
+:PROPERTIES:
+:ID:       1f0cc2b5-78a1-41cc-a7e2-3c04fbdca08a
+:END:
 
 **** TODO [[https://github.com/phoe/external-symbol-not-found/issues/3][Add a macro that transforms the conditions into portable conditions #3]]
+:PROPERTIES:
+:ID:       c5984bd3-3240-4ebf-bd8f-5b103c0a9f90
+:END:
 
 *** In [[https://github.com/40ants/ci/issues/7][40ants/ci]]
+:PROPERTIES:
+:ID:       aa5237a7-935e-4a94-852a-c1f2aaf1fc4e
+:END:
 
 **** TODO [[https://github.com/40ants/ci/issues/7][Question: How to generate jobs to test with multiple implementation? #7]]
+:PROPERTIES:
+:ID:       49d61aff-c1c9-4889-bee2-86e0abefb530
+:END:
 
 *** In [[https://github.com/s-expressionists/Eclector][s-expressionists/Eclector]]
+:PROPERTIES:
+:ID:       f845aab2-c76f-467f-af21-3d465df49697
+:END:
 
 **** [[https://github.com/s-expressionists/Eclector/issues/28][Ensure every CST element has a SOURCE, suggest how to capture whitespace and comments #28]]
+:PROPERTIES:
+:ID:       57050bba-aa35-41c1-8fed-3ae1d9edd3ff
+:END:
 
 ** TODO Add code coverage                                          :test:ops:
+:PROPERTIES:
+:ID:       24ee6251-db60-4be3-8d57-eb39cf82ca5e
+:END:
 
 ** TODO Fake packages?                                               :reader:
+:PROPERTIES:
+:ID:       23310513-faaa-4ee8-8075-8311f7bb8f4e
+:END:
 
 - https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/package-pac.lisp
 - https://github.com/s-expressionists/Clostrum
+
 * TODO Add command to add package local nicknames
+:PROPERTIES:
+:ID:       5875c06a-d046-443c-bf22-c0a45ea08f09
+:END:
 
 #+begin_src lisp
 (add-package-local-nickname '#:jzon '#:com.inuoe.jzon)
 #+end_src
 
 * TODO command to "copy current package" / "package at point"
+:PROPERTIES:
+:ID:       7509eb33-c031-4ce7-9fb0-d3ab57c19a8b
+:END:
