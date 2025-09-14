@@ -913,6 +913,7 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 
 ;; Analogous to org-insert-structure-template
 ;; (define-key breeze-minor-mode-map (kbd "C-c C-,") 'breeze-insert)
+(keymap-set breeze-minor-mode-map "M-RET" #'breeze-quickinsert)
 
 ;; Analogous to org-goto
 (keymap-set breeze-minor-mode-map "C-c C-j" #'imenu)
@@ -1010,6 +1011,8 @@ automatically enabling breeze-minor-mode in lisp-mode."
 (define-derived-mode breeze-major-mode prog-mode
   "BRZ")
 
+
+(keymap-set breeze-major-mode-map "M-RET" #'breeze-quickinsert)
 (keymap-set breeze-major-mode-map "C-." #'breeze-quickfix)
 (keymap-set breeze-major-mode-map "C-c C-c" #'breeze-eval-defun)
 (keymap-set breeze-major-mode-map "C-c o" #'breeze-other-file-other-window)

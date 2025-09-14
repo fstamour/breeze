@@ -9,6 +9,7 @@
                 #:ends-with-subseq
                 #:if-let
                 #:when-let
+                #:when-let*
                 #:symbolicate
                 #:lastcar)
   (:import-from #:breeze.string
@@ -48,6 +49,8 @@
    #:insert-make-load-form-boilerplate
    #:insert-lambda
    ;; Other commands
+   #:quickinsert
+   ;; TODO perhaps "quickfix" should go in "lint.lisp"
    #:quickfix
    #| WIP commands |#
    #++ #:other-file))
@@ -265,7 +268,10 @@ defun."
 
 (define-command insert-class-slot ()
   "Insert a defclass slot form."
-  (declare (context cl:defclass :slot-specifier))
+  ;; TODO there's no "cl:defclass "context" just yet, so I've put
+  ;; :expression for now.
+  ;; (declare (context cl:defclass :slot-specifier))
+  (declare (context :expression))
   (read-string-then-insert
    "Name of the slot: "
    "~%  (~a~
@@ -380,17 +386,13 @@ For debugging purposes ONLY.")
         (alexandria:flatten
          (copy-seq
           (alexandria:ensure-list commands))))
-
   ;; Fallback to suggesting _all_ commands.
   (unless commands
     (setf commands (copy-seq (list-all-commands))))
-
   ;; Deduplicate commands
   (setf commands (remove-duplicates commands))
-
   ;; Augment the commands with their descriptions.
   (setf commands (mapcar #'command-description commands))
-
   ;; Save some information for debugging
   (setf *qf* `((:context . ,(context*))
                (:commands . ,commands)))
@@ -447,24 +449,17 @@ For debugging purposes ONLY.")
 
 (defun suggest-other ()
   "Otherwise"
-  ;; TODO
-  (list-all-commands)
-  #++(if
-      ;; if "at top-level"
-      (and outer-node
-           (or
-            ;; in-between forms
-            (null outer-node)
-            ;; just at the start or end of a form
-            (= point (node-start outer-node))
-            (= point (node-end outer-node))
-            ;; inside a comment (or a form disabled by a
-            ;; feature-expression)
-            #++
-            (typep outer-node
-                   'breeze.reader:skipped-node)))
-      (commands-applicable-at-toplevel)
-      (commands-applicable-in-expression-context)))
+  (let* ((current-node-iterator (current-node-iterator))
+         (current-node (value current-node-iterator))
+         ;; TODO we actually want to know if we're in a "top-level"
+         ;; form, not "at the root", becase we want the commands that
+         ;; are applicable at top-level to also be applicable in forms
+         ;; that preserves top-levelness like `progn'.
+         (root-node (root-node (current-node-iterator)))
+         (rootp (eq current-node root-node)))
+    (if rootp
+        (commands-applicable-at-toplevel)
+        (commands-applicable-in-expression-context))))
 
 
 (defun compute-suggestions ()
@@ -499,32 +494,63 @@ commands that the user might want to run."
   (let ((buffer (current-buffer)))
     (cwd)))
 
+(defun maybe-apply-fixes ()
+  "Fix the first \"applicable\" linter issue. If there is any
+automatically fixable linter issue in the current top-level form, it
+will fix the issue and then stop the current command."
+  ;; TODO cache the linter issues (in the *workspace*'s buffer)
+  ;;
+  ;; TODO It could be nice to let the user know that "there are issues
+  ;; in the current form", but that it "doesn't know how to fix
+  ;; them". Because otherwise, the "quickfix" command will show a
+  ;; message saying "there's nothing to fix", but the user will see
+  ;; the blue/yellow/red squigly in their editors and wonder why they
+  ;; didn't get fixed by quickfix. Currently the command "fix buffer"
+  ;; only returns `simple-node-conditions' that have a `replacement`.
+  (when-let* ((fixes (breeze.lint:fix-buffer (current-buffer)))
+              (current-top-level-node (root-node (current-node-iterator)))
+              (applicable-fixes
+               (remove-if-not
+                (lambda (fix)
+                  ;; keep only fixes that are part of the current top-level form
+                  (eq current-top-level-node
+                      (root-node (breeze.lint:target-node fix))))
+                fixes)))
+    ;; Apply the fix
+    (let* ((fix (first applicable-fixes))
+           (node (value (breeze.lint:target-node fix)))
+           (replacement (breeze.lint:replacement fix)))
+      (replace-region (start node) (end node)
+                      (or replacement ""))
+      (return-from-command))))
+
+;; TODO FIXME TODO FIXME This doesn't actually filter the commands that are not inserts...
+;;
+;; TODO I might want to use the name "blueprints" instead of snippets
+;; because I want these to be usable for _updating_ code, not just
+;; creating new code
+(define-command quickinsert ()
+  "Given the context, suggest applicable snippets."
+  (let* (;; Compute the applicable commands
+         (commands (sanitize-list-of-commands (compute-suggestions)))
+         ;; TODO What if there are no suggestions?
+         ;; Ask the user to choose a command
+         (choice (choose "Choose a command: "
+                         (mapcar #'second commands)))
+         (command-function (car (find choice commands
+                                      :key #'second
+                                      :test #'string=))))
+    (if command-function
+        (funcall command-function)
+        (message "~s is not a valid choice" choice))))
+
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (maybe-ask-to-load-system)
   #++ (check-in-package)
-  ;; TODO this currently only fix the first issue it finds
-  ;; TODO cache the linter issues (in the *workspace*'s buffer)
-  ;; TODO try to fix only the "current" block and/or iterate
-  (let ((fixes (breeze.lint:fix-buffer (current-buffer))))
-    (if fixes
-        (let* ((fix (first fixes))
-               (node (value (breeze.lint:target-node fix)))
-               (replacement (breeze.lint:replacement fix)))
-          (replace-region (start node) (end node)
-                          (or replacement "")))
-        (let* (;; Compute the applicable commands
-               (commands (sanitize-list-of-commands (compute-suggestions)))
-               ;; TODO What if there are no suggestions?
-               ;; Ask the user to choose a command
-               (choice (choose "Choose a command: "
-                               (mapcar #'second commands)))
-               (command-function (car (find choice commands
-                                            :key #'second
-                                            :test #'string=))))
-          (if command-function
-              (funcall command-function)
-              (message "~s is not a valid choice" choice))))))
+  ;; TODO "flash" (pulse?) the current top-level form
+  (maybe-apply-fixes)
+  (message "Nothing to fix in the current top-level form."))
 
 #|
 
@@ -534,7 +560,8 @@ TODO there's some different kind of "quickfixes":
 - code actions are contextual commands
 - contextual inserts (add a binding to a let)
 - contextual changes (move an expression into a let, change let to let*)
-  - contextual "inverts" (e.g. =x= → =(not x)=
+  - contextual "inverts" (e.g. ~x~ → ~(not x)~)
+  - or "alternatives" (e.g. ~'(a b c)~ → ~#(a b c)~)
 - non-contextual snippets
 - contextual delete (remove a binding in a let)
 - other: if point is on a (trace ...), suggest to untrace something,
