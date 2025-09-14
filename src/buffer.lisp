@@ -84,6 +84,11 @@ point.")
 
 (Technically, it represents a buffer with the mode \"lisp-mode\"..."))
 
+(defmethod print-object ((buffer buffer) stream)
+  (print-unreadable-object
+      (buffer stream :type t :identity nil)
+    (format stream "~s" (name buffer))))
+
 (defmethod update-buffer-content ((buffer buffer) new-content)
   "Update the workspace's buffer BUFFER-NAME's content"
   (when new-content
