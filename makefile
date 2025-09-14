@@ -1,3 +1,4 @@
+.SHELL=sh
 
 .PHONY: all-tests
 all-tests: test test-emacs
@@ -83,6 +84,34 @@ list-warnings: public.log
 spell:
 	codespell --write-changes --interactive 3 --ignore-words scripts/ignore-words.txt $$(fd -e lisp) README.md notes.org docs/*.md src/breeze.el
 
+# Run the tests on file change
 .PHONY: watch
 watch:
-	( fd . -e lisp src/ tests/; echo breeze.asd ) | entr time scripts/test.sh
+	# TODO include breeze.asd
+	( fd . -e lisp src/ tests/; echo breeze.asd ) | entr scripts/test.sh
+
+######################################################################
+### Targets to help configure git remotes
+
+.PHONY:
+git-setup-remotes: git-add-codeberg git-add-gitlab git-add-github
+
+.PHONY:
+git-add-codeberg: name=codeberg
+git-add-codeberg: url=ssh://git@codeberg.org/fstamour/breeze.git
+git-add-codeberg: git-add-remote
+
+.PHONY:
+git-add-gitlab: name=gitlab
+git-add-gitlab: url=git@gitlab.com:fstamour/breeze.git
+git-add-gitlab: git-add-remote
+
+.PHONY:
+git-add-github: name=github
+git-add-github: url=git@github.com:fstamour/breeze.git
+git-add-github: git-add-remote
+
+.PHONY:
+git-add-remote:
+	git remote add $(name) $(url) 2>/dev/null || git remote set-url $(name) $(url)
+	git remote -v
