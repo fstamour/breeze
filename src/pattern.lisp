@@ -12,8 +12,8 @@
            #:patterns
            #:defpattern
            #:match
-           #:any
-           #:anyp
+           #:wildcard
+           #:wildcardp
            #:term
            #:termp
            #:term=
@@ -75,17 +75,17 @@
 ;; TODO rename "wildcard"
 
 ;; TODO could be useful to give this a name anyway, for debugging?
-(defclass any ()
+(defclass wildcard ()
   ()
   (:documentation "Pattern that matches anything"))
 
-(defun any ()
+(defun wildcard ()
   "Make a pattern object that matches anything"
-  (make-instance 'any))
+  (make-instance 'wildcard))
 
-(defun anyp (x)
-  "Is X an object of class `any'?"
-  (eq (class-name (class-of x)) 'any))
+(defun wildcardp (x)
+  "Is X an object of class `wildcard'?"
+  (eq (class-name (class-of x)) 'wildcard))
 
 
 ;;; Terms
@@ -235,7 +235,7 @@ equivalence, just for equality."))
 (defmethod pattern= (a b)
   (equal a b))
 
-(defmethod pattern= ((a any) (b any))
+(defmethod pattern= ((a wildcard) (b wildcard))
   t)
 
 (defmethod pattern= ((a vector) (b vector))
@@ -262,8 +262,8 @@ equivalence, just for equality."))
   "Does the symbol X represents a \"term\" pattern?"
   (symbol-starts-with x #\?))
 
-(defun any-symbol-p (x)
-  "Does the symbol X represents an \"any\" pattern?"
+(defun wildcard-symbol-p (x)
+  "Does the symbol X represents an \"wildcard\" pattern?"
   (symbol-starts-with x #\_))
 
 (defparameter *term-pool* nil
@@ -290,10 +290,10 @@ compile-pattern is called, a new one is created."
     ((term-symbol-p pattern)
      (or (gethash pattern *term-pool*)
          (setf (gethash pattern *term-pool*) (term pattern))))
-    ((any-symbol-p pattern)
-     ;; TODO (optimization) this creates a new "any" object everytime,
+    ((wildcard-symbol-p pattern)
+     ;; TODO (optimization) this creates a new "wildcard" object everytime,
      ;; which is not really necessary.
-     (any))
+     (wildcard))
     (t pattern)))
 
 ;; Compile lists
@@ -477,7 +477,7 @@ bindings and keeping only those that have not conflicting bindings."
   "Basic \"equal\" matching"
   (equal pattern input))
 
-(defmethod match ((pattern any) input &key &allow-other-keys)
+(defmethod match ((pattern wildcard) input &key &allow-other-keys)
   "Match anything."
   (declare (ignore input))
   t)

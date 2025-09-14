@@ -17,7 +17,7 @@
   ;; importing non-exported symbols
   (:import-from #:breeze.pattern
                 #:term-symbol-p
-                #:any-symbol-p
+                #:wildcard-symbol-p
                 #:bindings
                 #:make-binding-set
                 #:copy-binding-set
@@ -27,10 +27,10 @@
 
 (in-package #:breeze.test.pattern)
 
-(define-test+run any
-  (let ((any (any)))
-    (of-type any any)
-    (true (anyp any))))
+(define-test+run wildcard
+  (let ((wildcard (wildcard)))
+    (of-type wildcard wildcard)
+    (true (wildcardp wildcard))))
 
 (define-test+run term
   (let ((term (term :x)))
@@ -91,13 +91,13 @@
   (false (term-symbol-p 'x))
   (false (term-symbol-p "?x")))
 
-(define-test+run any-symbol-p
-  (true (any-symbol-p :_x))
-  (false (any-symbol-p 'x))
-  (false (any-symbol-p "_x")))
+(define-test+run wildcard-symbol-p
+  (true (wildcard-symbol-p :_x))
+  (false (wildcard-symbol-p 'x))
+  (false (wildcard-symbol-p "_x")))
 
 (define-test+run compile-pattern
-  (is pattern= (any) (compile-pattern :_x))
+  (is pattern= (wildcard) (compile-pattern :_x))
   (is pattern= :x (compile-pattern :x))
   (is pattern= 42 (compile-pattern 42))
   (is pattern= (term :?x) (compile-pattern :?x))
@@ -262,14 +262,14 @@
   (true (match "x" "x"))
   (false (match 'x 'y)))
 
-(define-test+run "match wildcard (any)"
-  (true (match (any) nil))
-  (true (match (any) t))
-  (true (match (any) 1))
-  (true (match (any) 2))
-  (true (match (any) 'x))
-  (true (match (any) "x"))
-  (true (match (any) 'y)))
+(define-test+run "match wildcard (wildcard)"
+  (true (match (wildcard) nil))
+  (true (match (wildcard) t))
+  (true (match (wildcard) 1))
+  (true (match (wildcard) 2))
+  (true (match (wildcard) 'x))
+  (true (match (wildcard) "x"))
+  (true (match (wildcard) 'y)))
 
 ;;; TODO check the actual return values
 (define-test+run "match terms"
