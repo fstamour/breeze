@@ -382,13 +382,20 @@ depth of the tree."))
     (decf depth))
   iterator)
 
-(defmethod go-forward ((iterator tree-iterator))
-  (when (< (pos iterator) (length (subtree iterator)))
-    (incf (pos iterator))
-    t))
+;; TODO test
+(defmethod go-forward ((iterator tree-iterator) (n integer))
+  (let ((pos (pos iterator))
+        (length (length (subtree iterator))))
+    (when (< pos length)
+      (incf (pos iterator) (min n (- length pos)))
+      t)))
 
-(defmethod go-backward ((iterator tree-iterator))
-  (when (plusp (pos iterator)) (decf (pos iterator)) t))
+;; TODO test
+(defmethod go-backward ((iterator tree-iterator) (n integer))
+  (let ((pos (pos iterator)))
+    (when (plusp pos)
+      (decf (pos iterator) (min n pos))
+      t)))
 
 (defmethod go-down ((iterator tree-iterator))
   (unless (current-depth-done-p iterator)
