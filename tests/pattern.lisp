@@ -59,13 +59,13 @@
     (false (maximum zero-or-more)
            "A pattern created with the function `zero-or-more' should not have a maximum.")))
 
-(define-test+run alternation
-  (let ((alternation (alternation #(:x))))
-    (of-type alternation alternation)
-    (true (alternationp alternation))
-    (is equalp #(:x) (patterns alternation))))
+(define-test+run either
+  (let ((either (either #(:x))))
+    (of-type either either)
+    (true (eitherp either))
+    (is equalp #(:x) (patterns either))))
 
-;; TODO alternation=
+;; TODO either=
 
 (define-test+run pattern=
   (is pattern= 'x 'x)
@@ -78,11 +78,11 @@
   (is pattern= (zero-or-more 'y) (zero-or-more 'y))
   (is pattern= (zero-or-more '(x y)) (zero-or-more '(x y)))
   (is pattern= (zero-or-more (maybe 'x)) (zero-or-more (maybe 'x)))
-  (is pattern= (alternation #(y)) (alternation #(y)))
-  (is pattern= (alternation #(x y)) (alternation #(x y)))
+  (is pattern= (either #(y)) (either #(y)))
+  (is pattern= (either #(x y)) (either #(x y)))
   (is pattern=
-      (alternation (vector (maybe 'x)))
-      (alternation (vector (maybe 'x)))))
+      (either (vector (maybe 'x)))
+      (either (vector (maybe 'x)))))
 
 
 
@@ -105,8 +105,8 @@
   (is pattern= (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
   (is pattern= (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
   (is pattern= (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
-  (is pattern= (alternation #(:x)) (compile-pattern '(:alternation :x)))
-  (is pattern= (alternation #(:x :y)) (compile-pattern '(:alternation :x :y)))
+  (is pattern= (either #(:x)) (compile-pattern '(:either :x)))
+  (is pattern= (either #(:x :y)) (compile-pattern '(:either :x :y)))
   (multiple-value-bind (p terms)
       (compile-pattern '(?x ?x))
     (is eq (aref p 0) (aref p 1))
@@ -295,7 +295,7 @@
      (false (donep iterator)))))
 
 
-;;; test :maybe :zero-or-more and :alternation
+;;; test :maybe :zero-or-more and :either
 
 (defun test-match* (description pattern input expected-binding)
   (finish
@@ -339,23 +339,23 @@
   (test-match* "matching (maybe ?x) against the empty sequence"
               (maybe (term '?x)) #() t))
 
-(define-test+run "match alternations"
+(define-test+run "match eithers"
   (test-match* "matching (or a b) against 'a"
-               (alternation #(a b)) 'a 'a)
+               (either #(a b)) 'a 'a)
   (test-match* "matching (or a b) against 'b"
-               (alternation #(a b)) 'b 'b)
+               (either #(a b)) 'b 'b)
   (test-match* "matching (or a b) against 'c"
-               (alternation #(a b)) 'c nil)
+               (either #(a b)) 'c nil)
   (test-match* "matching (or ?x b) against 'c"
-               (alternation #(a b)) 'c nil)
+               (either #(a b)) 'c nil)
   (test-match* "matching (or (maybe a) b) against the atom 'a"
-               '(:alternation (:maybe a) b) 'a nil)
+               '(:either (:maybe a) b) 'a nil)
   (test-match* "matching (or (maybe a) b) against the sequence (a)"
-               '(:alternation (:maybe a) b) '(a) nil)
+               '(:either (:maybe a) b) '(a) nil)
   (test-match* "matching (or (maybe a) b) against the atom 'b"
-               '(:alternation (:maybe a) b) 'b 'b)
+               '(:either (:maybe a) b) 'b 'b)
   (test-match* "matching (or (maybe a) b) against the sequence (b)"
-               '(:alternation (:maybe a) b) '(b) nil)
+               '(:either (:maybe a) b) '(b) nil)
   #++ ;; TODO non-greedy repetition
   (let ((binding (test-match pat 'b)))
     (true binding)

@@ -27,9 +27,9 @@
            #:maximum
            #:maybe
            #:zero-or-more
-           #:alternation
-           #:alternationp
-           #:alternation=
+           #:either
+           #:eitherp
+           #:either=
            #:pattern=
            #:pattern-iterator
            #:make-pattern-iterator)
@@ -71,8 +71,6 @@
 
 
 ;;; Wildcard / don't care
-
-;; TODO rename "wildcard"
 
 ;; TODO could be useful to give this a name anyway, for debugging?
 (defclass wildcard ()
@@ -186,10 +184,9 @@ successful match.")
   (repetition pattern 0 nil))
 
 
-;;; TODO rename to "any"
-;;; Alternations
+;;; Eithers
 
-(defclass alternation (pattern)
+(defclass either (pattern)
   ((patterns
     :initform nil
     :initarg :patterns
@@ -197,33 +194,33 @@ successful match.")
     :documentation "The sequence of patterns to be tried one after the other."))
   (:documentation "An ordered set of patterns."))
 
-(defun alternation (patterns)
+(defun either (patterns)
   "Make a pattern object that must match one of its subpatterns."
   (check-type patterns vector)
   ;; maybe we would also like to check that there's more than 1
   ;; pattern, perhaps even check that they are not `pattern='.
-  (make-instance 'alternation :patterns patterns))
+  (make-instance 'either :patterns patterns))
 
-(defun alternationp (x)
-  "Is X an object of class `alternation'?"
-  (eq (class-name (class-of x)) 'alternation))
+(defun eitherp (x)
+  "Is X an object of class `either'?"
+  (eq (class-name (class-of x)) 'either))
 
-(defun alternation= (a b)
-  "Test that A and B are both object of type `alternation=' with the same
+(defun either= (a b)
+  "Test that A and B are both object of type `either' with the same
 subpatterns."
-  (and (alternationp a)
-       (alternationp b)
+  (and (eitherp a)
+       (eitherp b)
        ;; This works because patterns are vectors...
        (pattern= (patterns a)
                  (patterns b))))
 
-(defmethod print-object ((alternation alternation) stream)
-  "Print an object of type `alternation'."
+(defmethod print-object ((either either) stream)
+  "Print an object of type `either'."
   (print-unreadable-object
-      (alternation stream :type t :identity t)
+      (either stream :type t :identity t)
     ;; TODO it could be nice to print very short parts of the sub
     ;; patterns, or all of them if they're very small.
-    (format stream "~s" (length (patterns alternation)))))
+    (format stream "~s" (length (patterns either)))))
 
 
 ;;; Pattern comparison
@@ -253,7 +250,7 @@ equivalence, just for equality."))
                   (make-load-form-saving-slots s :environment environment)))))
   (def term)
   (def repetition)
-  (def alternation))
+  (def either))
 
 
 ;;; Pattern compilation from lists and symbols to vectors and structs
@@ -315,9 +312,9 @@ compile-pattern is called, a new one is created."
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
   (zero-or-more (%compile-pattern (rest pattern))))
 
-;; Compile (:alternation ...)
-(defmethod compile-compound-pattern ((token (eql :alternation)) patterns)
-  (alternation (%compile-pattern (rest patterns))))
+;; Compile (:either ...)
+(defmethod compile-compound-pattern ((token (eql :either)) patterns)
+  (either (%compile-pattern (rest patterns))))
 
 
 ;;; Bindings (e.g. the result of a successful match)
@@ -578,11 +575,11 @@ bindings and keeping only those that have not conflicting bindings."
     :skipp skipp))
 
 
-;;; Matching alternations
+;;; Matching eithers
 
 ;; TODO add tests with and without skipp
 ;; TODO input should be an iterator...
-(defmethod match ((pattern alternation) input &key skipp)
+(defmethod match ((pattern either) input &key skipp)
   (loop :for pat :across (patterns pattern)
         :for bindings = (match pat input :skipp skipp)
         :when bindings

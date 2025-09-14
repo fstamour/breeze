@@ -191,7 +191,7 @@ Design decision(s):
     :do (map-top-level-forms
          (lambda (node-iterator)
            (with-match (node-iterator
-                        (:alternation
+                        (:either
                          (cl:defpackage ?name)
                          (uiop:define-package ?name)))
              (when-let* ((package-name-node (get-bindings '?name))

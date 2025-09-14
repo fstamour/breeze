@@ -53,7 +53,7 @@ newline in the expected result."
   (let ((root-node-iterator (root-node-iterator (node-iterator buffer))))
     (breeze.analysis::with-match
         (root-node-iterator
-         ((:alternation
+         ((:either
            parachute:define-test
            parachute:define-test+run
            parachute:define-test+run-interactively) ?name))

@@ -321,7 +321,7 @@
   (true (test-match-parse #(x) "x"))
   (true (test-match-parse '((x)) "(x)")))
 
-(defun test-alternation (pattern string expected-binding
+(defun test-either (pattern string expected-binding
                          &optional skip-whitespaces-and-comments)
   (finish
    (let* (($node (make-node-iterator string))
@@ -352,18 +352,18 @@
                  pattern string)))
      binding)))
 
-(define-test+run "match alternation against parse trees"
-  (test-alternation '(:alternation a b) "a" "a")
-  (test-alternation '(:alternation a b) "  a " nil)
-  (test-alternation '(:alternation a b) "  a " "a" :skipp)
-  (test-alternation '(:alternation a b) "b" "b")
-  (test-alternation '(:alternation a b) "c" nil)
-  (test-alternation '(:alternation a b) "breeze.test.analysis::a" "breeze.test.analysis::a")
-  (test-alternation '(:alternation a b) "breeze.analysis::a" nil))
+(define-test+run "match either against parse trees"
+  (test-either '(:either a b) "a" "a")
+  (test-either '(:either a b) "  a " nil)
+  (test-either '(:either a b) "  a " "a" :skipp)
+  (test-either '(:either a b) "b" "b")
+  (test-either '(:either a b) "c" nil)
+  (test-either '(:either a b) "breeze.test.analysis::a" "breeze.test.analysis::a")
+  (test-either '(:either a b) "breeze.analysis::a" nil))
 
 
 #++
-(trace :wherein test-alternation
+(trace :wherein test-either
        match-symbol-to-token
        match
        breeze.analysis::node-string-equal)
@@ -442,36 +442,36 @@ was expected to end at position ~s (exclusive), but got ~s instead"
     (test-repetition '(:zero-or-more a) "breeze.test.analysis::a" 0 1)
     (test-repetition '(:zero-or-more a) "breeze.analysis::a" 0 0)))
 
-(define-test+run "match zero-or-more + alternation against parse trees"
+(define-test+run "match zero-or-more + either against parse trees"
   (progn
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "a" 0 1)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      " a" 1 2 :skipp)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "b" 0 1)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "c" 0 0)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "breeze.test.analysis::a" 0 1)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "breeze.analysis::a" 0 0))
   (progn
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "a a a" 0 1)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      " a a a " 1 7 :skipp)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "a b" 0 1)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "a b" 0 3 :skipp)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "a b a b b a a c" 0 14 :skipp)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "c" 0 0)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "breeze.test.analysis::b" 0 1)
-    (test-repetition '(:zero-or-more (:alternation a b))
+    (test-repetition '(:zero-or-more (:either a b))
                      "breeze.analysis::a" 0 0)))
 
 
