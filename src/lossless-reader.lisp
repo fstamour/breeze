@@ -1317,6 +1317,7 @@ Returns a new node with one of these types:
 
 ;;; Node iterators
 
+;; TODO create a mix-in class for "parser-state" (same for "name")
 (defclass node-iterator (tree-iterator)
   ((parser-state
     ;; TODO rename to parser-state
@@ -1331,15 +1332,6 @@ Returns a new node with one of these types:
   (let ((iterator (call-next-method)))
     (setf (state iterator) (state node-iterator))
     iterator))
-
-(defmethod value ((iterator node-iterator))
-  ;; TODO Ideally we wouldn't call `donep' here for performance
-  ;; reasons. But it is very convenient.
-  (unless (donep iterator)
-    (let ((node-or-vec (subtree iterator)))
-      (etypecase node-or-vec
-        (vector (aref node-or-vec (pos iterator)))
-        (node node-or-vec)))))
 
 (defmethod print-object ((node-iterator node-iterator) stream)
   (print-unreadable-object
@@ -1528,6 +1520,9 @@ Returns a new node with one of these types:
       (etypecase subtree
         (vector (aref subtree (1+ pos)))
         (t nil)))))
+
+;; TODO method "is point at start of form"
+;; TODO method "is point at end of form"
 
 
 

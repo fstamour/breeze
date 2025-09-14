@@ -266,7 +266,7 @@
 
 (in-package #:breeze.test.pattern)
 
-(test-match '(:zero-or-more a b) '(a b a b))
+(test-match '(:zero-or-more a b) #(a b a b))
 
 (trace compile-pattern)
 

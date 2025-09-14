@@ -457,7 +457,7 @@ is analogous to computing the Cartesian product of the two sets of
 bindings and keeping only those that have not conflicting bindings."
   (loop :for bindings1 :in set-of-bindings1
         :append (loop :for bindings2 :in set-of-bindings2
-                      :for merged-bindings = (breeze.pattern::merge-bindings
+                      :for merged-bindings = (merge-bindings
                                               bindings1 bindings2)
                       :when merged-bindings
                         :collect merged-bindings)))
@@ -510,69 +510,90 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;;; Matching sequences
 
+(declaim (inline skip))
 (defun skip ($input skipp)
   ;; TODO support skipp ∈ {t :whitespace :comment)
-  (loop :while (and
-                (not (donep $input))
-                (funcall skipp $input))
-        :do (next $input)))
+  (when skipp
+   (loop :while (and
+                 (not (donep $input))
+                 (funcall skipp $input))
+         :do (next $input))))
 
-;; TODO rename $input to iterator; :with $input = copy iterator, copy
-;; back if match is successful
-(defmethod match (($pattern pattern-iterator) ($input iterator) &key skipp)
-  (loop
-    :with bindings = t ;; (make-binding-set)
-    :until (or (donep $pattern) (donep $input))
-    :for new-bindings = (progn
-                          (when skipp (skip $input skipp))
-                          (when (donep $input) (return))
-                          (let ((sub-pattern (value $pattern)))
-                                (when (vectorp sub-pattern)
-                                    (push-subtree $pattern sub-pattern)
-                                    (go-down $input)
-                                    (when (donep $input) (return))))
-                          (match
-                              (value $pattern)
-                            ;; match-symbol-to-token would like an
-                            ;; iterator (to access the state, but
-                            ;; otherwise, this causes infinite
-                            ;; recursion.
-                            ;; TODO this is a very bad hack
-                            (if (typep $input 'breeze.lossless-reader::node-iterator)
-                                $input
-                                (value $input))))
-    :do (next $pattern) (next $input)
-    :if new-bindings
-      ;; collect all the bindings
-      :do
-         ;; (break)
-         (setf bindings (merge-bindings bindings new-bindings))
-         ;; The new bindings conflicted with the existing ones...
-         (unless bindings (return nil))
-    :else
-      ;; failed to match, bail out of the whole function
-      :do (return nil)
-    :finally
-       ;; We advance the input iterator to see if there are still
-       ;; values left that would not be skipped.
-       (when (and skipp
-                  (not (donep $input))
-                  (funcall skipp $input))
-         (next $input))
-       (return
-         ;; We want to match the whole pattern, but whether we
-         ;; want to match the whole input is up to the caller.
-         (when (donep $pattern)
-           (values (or bindings t)
-                   (unless (donep $input) $input))))))
+(declaim (inline maybe-stop))
+(defun maybe-stop ($input)
+  (when (donep $input)
+    (throw 'no-match nil)))
 
-(defmethod match ((pattern term) (input iterator) &key skipp)
-  (match (make-pattern-iterator (vector pattern)) input :skipp skipp))
+(declaim (inline go-down-together))
+(defun go-down-together ($pattern $input)
+  (let ((sub-pattern (value $pattern)))
+    ;; if the sub-pattern is a vector, we
+    ;; "recurse" into the sub-pattern
+    (when (vectorp sub-pattern)
+      (push-subtree $pattern sub-pattern)
+      ;; we also recurse into the input data,
+      (go-down $input)
+      ;; it's possible that there's no data to
+      ;; match against in the input's sub-tree
+      (maybe-stop $input))))
+
+(defmethod match (($pattern pattern-iterator) (iterator iterator) &key skipp)
+  (catch 'no-match
+    (loop
+      :with bindings = t ;; (make-binding-set)
+      :with $input = (copy-iterator iterator)
+      :until (or (donep $pattern) (donep $input))
+      :for new-bindings = (progn
+                            (skip $input skipp)
+                            (maybe-stop $input)
+                            (go-down-together $pattern $input)
+                            (match (value $pattern) $input))
+      :do (next $pattern) (next $input)
+      :if new-bindings
+        ;; collect all the bindings
+        :do
+           (setf bindings (merge-bindings bindings new-bindings))
+           ;; The new bindings conflicted with the existing ones...
+           (unless bindings (return nil))
+      :else
+        ;; failed to match, bail out of the whole function
+        :do (return nil)
+      :finally
+         (return
+           ;; We want to match the whole pattern, but whether we want
+           ;; to match the whole input is up to the caller.
+           (when (donep $pattern)
+             ;; update the interator
+             (copy-iterator $input iterator)
+             (or bindings t))))))
+
+(defmethod match ((pattern term) ($input iterator) &key skipp)
+  "Match a `term' pattern against the current value of an
+`iterator'. This always match, it advances the iterator and returns a
+binding."
+  (skip $input skipp)
+  (unless (donep $input)
+    (let ((binding-to (copy-iterator $input)))
+      ;; consume one element of the input
+      (next $input)
+      (make-binding pattern binding-to))))
+
+(defmethod match (($pattern t) ($input iterator) &key skipp)
+  "Fallback: match something against the current value of the `uterator'
+$INPUT."
+  (skip $input skipp)
+  (unless (donep $input)
+    (match $pattern (value $input))))
 
 (defmethod match ((pattern vector) (input vector) &key skipp)
-  (match (make-pattern-iterator pattern)
-    (make-vector-iterator input)
-    :skipp skipp))
+  "Convenience: create an iterator on INPUT, match PATTERN against it and
+return two values: the match result and the interator on the
+input (which can then be used by the caller to verify if all input
+where consumed, for example)."
+  (let (($pattern (make-pattern-iterator pattern))
+        ($input (make-tree-iterator input)))
+    (values (match $pattern $input :skipp skipp)
+            $input)))
 
 
 ;;; Matching eithers
@@ -580,6 +601,7 @@ bindings and keeping only those that have not conflicting bindings."
 ;; TODO add tests with and without skipp
 ;; TODO input should be an iterator...
 (defmethod match ((pattern either) input &key skipp)
+  "Match an `either' pattern against INPUT."
   (loop :for pat :across (patterns pattern)
         :for bindings = (match pat input :skipp skipp)
         :when bindings
@@ -593,15 +615,27 @@ bindings and keeping only those that have not conflicting bindings."
 ;;; repetitions
 
 (defmethod match ((pattern repetition) (input vector) &key skipp)
+  (match pattern (make-tree-iterator input) :skipp skipp))
+
+;; TODO handler repetition's `maximum'
+(defmethod match ((pattern repetition) (iterator iterator) &key skipp)
+  (skip iterator skipp)
+  ;; Early return: successfully match an empty input.
+  (when (and (donep iterator)
+             (zerop (minimum pattern)))
+    (return-from match t))
   (loop
-    :with bindings := t ;; (make-binding-set)
-    :with $pattern := (make-pattern-iterator
-                       (pattern pattern))
-    :with $input := (make-vector-iterator input)
-    :for i :from 0 :below 100 ;; TODO removve infinite loop guard
-    :for new-bindings = (progn
-                          (reset $pattern)
-                          (match $pattern $input :skipp skipp))
+    :with $pattern := (make-pattern-iterator (pattern pattern))
+    :with $input := (copy-iterator iterator)
+    :for $prev-input := (copy-iterator $input)
+      :then (copy-iterator $input $prev-input)
+    ;; TODO remove infinite loop guard
+    :for i :from 1 :below 1000
+    :for new-bindings = (match $pattern $input :skipp skipp)
+      :then (progn (reset $pattern)
+                   (match $pattern $input :skipp skipp))
+    :when new-bindings
+      :collect new-bindings :into bindings
     :do
        ;; No more input or, no match
        (when (or
@@ -611,19 +645,36 @@ bindings and keeping only those that have not conflicting bindings."
               (not new-bindings)
               ;; incomplete match
               (not (donep $pattern)))
-         (if (<= (minimum pattern) i)
-             (return bindings)
-             (return nil)))
-       (when new-bindings
-         ;; collect all the bindings
-         (setf bindings (merge-bindings bindings new-bindings))
-         ;; TODO check if bindings is nil after merging.
-         (unless bindings
-           (break "conflict?")))))
+         (return
+           (let ((times
+                   ;; if it was a match, count the current match,
+                   ;; otherwise count only up to the previous one.
+                   (if new-bindings i (1- i))))
+             (when (<= (minimum pattern) times)
+               (let (($start (copy-iterator iterator))
+                     ($end
+                       ;; if it was a match, include the current
+                       ;; position, otherwise stop at the previous
+                       ;; one.
+                       (if new-bindings $input $prev-input)))
+                 ;; update iterator
+                 (copy-iterator $end iterator)
+                 ;; TODO return an object (iterator-range? +
+                 ;; binding-sets???) instead of a plist
+                 (make-binding
+                  pattern
+                  ;; bindings
+                  (list
+                   :bindings bindings
+                   :$start $start
+                   :$end $end
+                   :times times)))))))))
+
 
 
 ;;; Convenience automatic coercions
 
+;; TODO delete this and fix everything that breaks 🙃
 ;; TODO this shouldn't be needed, the (macth iterator iterator) should
 ;; be able to take care of this.
 ;;; OOOORRR make this explicit by having another pattern class to represent "going down" >subtree<

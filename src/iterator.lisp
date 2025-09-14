@@ -1,8 +1,6 @@
 #|
 
-Iterator on vectors and nested vectors (tree) that:
-- helps with "recursing" into some values
-- conditionally skips some values
+Iterator on vectors and nested vectors (trees).
 
 Because both the syntax trees and the (compiled) patterns are nested
 vectors.
@@ -18,6 +16,8 @@ generalization of that first iteration (ha!).
 (uiop:define-package #:breeze.iterator
   (:documentation "Iterators for nested vectors")
   (:use #:cl)
+  (:import-from #:breeze.generics
+                #:eqv)
   ;; Generics
   (:export #:donep
            #:next
@@ -27,7 +27,6 @@ generalization of that first iteration (ha!).
            #:current-position)
   ;; Classes and Constructors
   (:export #:iterator
-           #:proxy-iterator-mixin
            #:vector-iterator
            #:tree-iterator
            #:make-vector-iterator
@@ -64,41 +63,6 @@ generalization of that first iteration (ha!).
    #:map-iterator))
 
 (in-package #:breeze.iterator)
-
-
-;;; Notes on skipping values while iterating
-
-#|
-
-I'm not sure which way to specify which values to skip...
-
-1. put a predicate in a special variable
-2. put a predicate in the iterator
-3. use a specialized method
-
-A) 1. is what I was already using in the first version of the
-iterators (in pattern.lisp, using defstruct)
-
-B) 1. and 2. are pretty flexible
-
-C) 1. means that you cannot easily have different iterators that skip
-different things at the same time (you would have to bind the special
-variable to a different function before every call that uses the
-predicate).
-
-D) 3. means that you need to create a new class for each things you might
-want to skip. this might be harder to compose that 1. or 2.
-
-Conclusion:
-
-I think I'll go with "2. put a predicate in the iterator" because of
-C) and D)
-
-=== a few weeks later ===
-
-I could also define an iterator that uses another one and skip values. So the "base" iterators are kept simple.
-
-|#
 
 
 ;;; Interface (generics)
@@ -179,8 +143,20 @@ save this function's return value."))
       (t
        (make-vector-iterator vector :position position)))))
 
+(defmethod print-object ((vector-iterator vector-iterator) stream)
+  (print-unreadable-object
+      (vector-iterator stream :type t :identity nil)
+    (with-slots (position) vector-iterator
+      (format stream "~s" position))))
+
 
 ;;; Other methods on vector-iterator
+
+(defmethod eqv ((a vector-iterator) (b vector-iterator))
+  (with-slots ((pos-a position) (vec-a vector)) a
+    (with-slots ((pos-b position) (vec-b vector)) b
+      (and (eqv vec-a vec-b)
+           (eqv pos-a pos-b)))))
 
 (defmethod firstp ((iterator vector-iterator))
   "Is the current value the first one in the vector?"
@@ -196,34 +172,6 @@ save this function's return value."))
   "Is the current value the penultimate one in the vector?"
   (with-slots (position vector) iterator
     (= position (- (length vector) 2))))
-
-
-;;; Iterators that encapsulate other iterators
-
-(defclass proxy-iterator-mixin (iterator)
-  ((child-iterator
-    :initform nil
-    :initarg :iterator
-    :accessor child-iterator
-    :documentation "Child iterator.")))
-
-(defmethod donep ((iterator proxy-iterator-mixin))
-  (donep (child-iterator iterator)))
-
-(defmethod next ((iterator proxy-iterator-mixin))
-  (next (child-iterator iterator)))
-
-(defmethod value ((iterator proxy-iterator-mixin))
-  (value (child-iterator iterator)))
-
-;; TODO test
-(defmethod reset ((iterator proxy-iterator-mixin))
-  (reset (child-iterator iterator)))
-
-(defmethod leaf-iterator (iterator) iterator)
-
-(defmethod leaf-iterator ((iterator proxy-iterator-mixin))
-  (leaf-iterator (child-iterator iterator)))
 
 
 ;;; iterator for trees (nested vectors)
@@ -274,6 +222,13 @@ depth of the tree."))
 (defun make-tree-iterator (root)
   "Create a new iterator on ROOT."
   (make-instance 'tree-iterator :root root))
+
+(defmethod eqv ((a tree-iterator) (b tree-iterator))
+  (with-slots ((depth-a depth) (pos-a positions) (subtrees-a subrees)) a
+    (with-slots ((depth-b depth) (pos-b positions) (subtrees-b subtrees)) b
+      (and (= depth-a depth-b)
+           (every #'eq subtrees-a subtrees-b)
+           (every #'= pos-a pos-b)))))
 
 (defmethod children ((iterator tree-iterator))
   (let ((value (value iterator)))
@@ -333,7 +288,13 @@ depth of the tree."))
   (incf (pos iterator)))
 
 (defmethod value ((iterator tree-iterator))
-  (aref (subtree iterator) (pos iterator)))
+  (let ((subtree (subtree iterator)))
+    (if (vectorp subtree)
+        (aref subtree (pos iterator))
+        ;; If we ever need more flexibility: replace ~subtree~ by
+        ;; ~(value subtree)~ and let the "client" define other `value'
+        ;; methods.
+        subtree)))
 
 ;; TODO test
 (defmethod reset ((iterator tree-iterator))
@@ -481,9 +442,6 @@ depth of the tree."))
 
 (defmethod value ((iterator concat-iterator))
   (value (call-next-method iterator)))
-
-(defmethod leaf-iterator ((iterator concat-iterator))
-  (leaf-iterator (value iterator)))
 
 
 

@@ -1,4 +1,8 @@
-(in-package #:breeze.workbench)
+(defpackage #:breeze.better-trace
+  (:documentation "Configuring sbcl for more readable traces.")
+  (:use #:cl))
+
+(in-package #:breeze.better-trace)
 
 (defvar *default-trace-report-default* sb-debug:*trace-report-default*)
 
