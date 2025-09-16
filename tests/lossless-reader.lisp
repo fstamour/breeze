@@ -995,61 +995,22 @@ the function read-sharpsign-dispatching-reader-macro
                      "~c is supposed to be a terminating character." char))
           '(#\; #\" #\' #\( #\) #\, #\`)))
 
+(defun test-parse-symbol (string)
+  (parse-symbol (make-node-iterator string)))
 
-(defun tsn (string &optional (start 0) (end (length string)))
-  (%token-symbol-node string start end))
-
-(defun tsn-padded (string)
-  (let* ((prefix ":  ")
-         (suffix "   ")
-         (l (length string))
-         (p (length prefix)))
-    (tsn (concatenate 'string prefix string suffix)
-         p (+ p l))))
-
-(define-test token-symbol-node
-  (progn
-    (is eqv (node 'current-package-symbol 0 1) (tsn "x"))
-    (is eqv (node 'keyword 1 2) (tsn ":x"))
-    (is eqv (node 'uninterned-symbol 2 3) (tsn "#:x"))
-    (is eqv
-        (node 'qualified-symbol 0 3
-              (nodes (node 'package-name 0 1)
-                     (node 'symbol-name 2 3)))
-        (tsn "p:x"))
-    (is eqv
-        (node 'possibly-internal-symbol 0 4
-              (nodes
-               (node 'package-name 0 1)
-               (node 'symbol-name 3 4)))
-        (tsn "p::x"))
-    (false (tsn ""))
-    (false (tsn "#:"))
-    (false (tsn "::"))
-    (false (tsn "p:::x"))
-    (false (tsn "p::"))
-    (false (tsn "::x"))
-    (false (tsn "a:a:x")))
-  (progn
-    (is eqv (node 'current-package-symbol 3 4) (tsn-padded "x"))
-    (is eqv (node 'keyword 4 5) (tsn-padded ":x"))
-    (is eqv (node 'uninterned-symbol 5 6) (tsn-padded "#:x"))
-    (is eqv (node 'qualified-symbol 3 6
-                     (nodes (node 'package-name 3 4)
-                            (node 'symbol-name 5 6)))
-        (tsn-padded "p:x"))
-    (is eqv (node 'possibly-internal-symbol 3 7
-                     (nodes (node 'package-name 3 4)
-                            (node 'symbol-name 6 7)))
-        (tsn-padded "p::x"))
-    (false (tsn-padded ""))
-    (false (tsn-padded "#:"))
-    (false (tsn-padded "::"))
-    (false (tsn-padded "p:::x"))
-    (false (tsn-padded "p::"))
-    (false (tsn-padded "::x"))
-    (false (tsn-padded "a:a:x"))))
-
+(define-test+run parse-symbol
+  (is eqv '(:current-package-symbol "X") (test-parse-symbol "x"))
+  (is eqv '(:keyword "X") (test-parse-symbol ":x"))
+  (is eqv '(:uninterned-symbol "X") (test-parse-symbol "#:x"))
+  (is eqv '(:qualified-symbol "X" "P") (test-parse-symbol "p:x"))
+  (is eqv '(:possibly-internal-symbol "X" "P") (test-parse-symbol "p::x"))
+  (false (test-parse-symbol ""))
+  (false (test-parse-symbol "#:"))
+  (false (test-parse-symbol "::"))
+  (false (test-parse-symbol "p:::x"))
+  (false (test-parse-symbol "p::"))
+  (false (test-parse-symbol "::x"))
+  (false (test-parse-symbol "a:a:x")))
 
 (defun test-read-token (input expected-end)
   (with-state (input)

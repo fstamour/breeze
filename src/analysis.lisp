@@ -28,60 +28,11 @@
                 :start1 (start node)
                 :end1 (end node))))))
 
-(defun node-string-equal (string node &optional state)
-  (when node
-    (etypecase node
-      (node-iterator (node-string-equal string (value node) (state node)))
-      (node
-       (string-equal (source state) string
-                     :start1 (start node)
-                     :end1 (end node))))))
-
-;; TODO add tests
-(defun node-symbol-name (token-node-iterator
-                         &aux (token-node (value token-node-iterator)))
-  ;; TODO would be nice to cache this
-  (when (token-node-p token-node)
-    (let ((state (state token-node-iterator)))
-      (when-let* (;; TODO would be nice to cache this
-                  (symbol-node (token-symbol-node state token-node))
-                  (symbol-name
-                   (ecase (node-type symbol-node)
-                     (current-package-symbol (node-content state token-node))
-                     ((keyword uninterned-symbol) (node-content state symbol-node))
-                     ((qualified-symbol possibly-internal-symbol)
-                      (let* ((nodes (node-children symbol-node))
-                             ;; (package-name-node (first-node nodes))
-                             (symbol-name-node (second-node nodes)))
-                        (node-content state symbol-name-node))))))
-        ;; TODO apply readtable-case rules on symbol-name
-        ;; https://www.lispworks.com/documentation/HyperSpec/Body/23_ab.htm
-        (let ((*package* (find-package '#:KEYWORD)))
-          (ignore-errors
-           (symbol-name (read-from-string symbol-name))))
-        ;; TODO this doesn't check if characters are escpaped,
-        ;; TODO this doesn't remove the escape characters...
-        #++(ecase (readtable-case *readtable*)
-             (:upcase #| this is the default |#
-              (string-upcase symbol-name))
-             (:downcase (string-downcase symbol-name))
-             (:preserve symbol-name)
-             (:invert (string-in)))))))
-
-;; TODO add tests
-(defun node-string-designator-string (node-iterator
-                                      &aux (node (value node-iterator)))
-  "Return the name of the symbol designated by node-iterator."
-  (check-type node-iterator node-iterator)
-  (cond
-    ((string-node-p node) (node-string node-iterator))
-    ((sharp-uninterned-node-p node)
-      (let ((token-node-iterator (copy-iterator node-iterator)))
-        ;; TODO there's probably a function for that...
-        (push-subtree token-node-iterator (node-children node))
-        (node-symbol-name token-node-iterator)))
-    ((token-node-p node)
-      (node-symbol-name node-iterator))))
+(defun node-string-equal (string $node)
+  (when $node
+    (string-equal (source $node) string
+                  :start1 (start $node)
+                  :end1 (end $node))))
 
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
@@ -105,39 +56,33 @@ match an empty parse tree."
   nil)
 
 
-(defun match-symbol-to-token (symbol node-iterator)
-  (check-type node-iterator node-iterator)
-  (let ((token-node (value node-iterator))
-        (state (state node-iterator)))
-    (and
-     (symbolp symbol)
-     (token-node-p token-node)
-     (let* ((name (symbol-name symbol))
-            (package (symbol-package symbol))
-            ;; TODO would be nice to cache this
-            (symbol-node (token-symbol-node state token-node)))
-       ;; TODO use node-symbol-name
-       (and
-        symbol-node
-        (ecase (node-type symbol-node)
-          (current-package-symbol (node-string-equal name token-node state))
-          (keyword
-           (and (string-equal "KEYWORD" (package-name package))
-                (node-string-equal name symbol-node state)))
-          (uninterned-symbol
-           (and (null package)
-                (node-string-equal name symbol-node state)))
-          ((qualified-symbol possibly-internal-symbol)
-           (let* ((nodes (node-children symbol-node))
-                  (package-name-node (first-node nodes))
-                  (symbol-name-node (second-node nodes)))
-             (and
-              (node-string-equal name symbol-name-node state)
-              (some (lambda (package-name)
-                      (node-string-equal package-name package-name-node state))
-                    `(,(package-name package)
+(defun match-symbol-to-token (symbol $node)
+  (check-type $node node-iterator)
+  (check-type symbol symbol)
+  (when-let ((parsed-symbol (parse-symbol $node)))
+    (destructuring-bind (type symbol-name &optional package-name)
+        parsed-symbol
+      (and
+       (let* ((name (symbol-name symbol))
+              (package (symbol-package symbol)))
+         (ecase type
+           (:current-package-symbol
+            ;; TODO check the current package too!
+            (string= name symbol-name))
+           (:keyword
+            (and (string-equal "KEYWORD" (package-name package))
+                 (string= name symbol-name)))
+           (:uninterned-symbol
+            (and (null package) (string= name symbol-name)))
+           ((:qualified-symbol :possibly-internal-symbol)
+            (and
+             (string= name symbol-name)
+             (some (lambda (name)
+                     (string= name package-name))
+                   `(,(package-name package)
+                           ;; TODO include local package nicknames
                       ,@(package-nicknames package)))))))
-        t)))))
+       t))))
 
 #|
 

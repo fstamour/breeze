@@ -48,7 +48,6 @@
                 #:read-sharpsign-plus
                 #:read-sharpsign-minus
                 #:page
-                #:%token-symbol-node
                 #:unparse)
   (:import-from #:parachute
                 #:define-test

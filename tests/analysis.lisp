@@ -33,13 +33,12 @@
   (true (match-symbol-to-token t (make-node-iterator "t")))
   (true (match-symbol-to-token nil (make-node-iterator "nil")))
   (true (match-symbol-to-token nil (make-node-iterator "common-lisp:nil")))
-  #++ ;; TODO not implemented yet
+  ;; TODO not implemented yet: need to check if common-lisp-user:nil
+  ;; is `eq' to common-lisp:nil
+  #++
   (true (match-symbol-to-token nil (make-node-iterator "common-lisp-user:nil"))))
 
-#++
-(let ((x '(eq "x")))
-  (check-type x (cons (eql eq) (cons string null))))
-
+;; this represents any symbols in the package cl
 #++
 (sym "cl" :any)
 ;; => (sym "cl" :ANY)
