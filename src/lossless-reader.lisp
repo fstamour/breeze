@@ -1137,8 +1137,6 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                   (subseq string start first))))))))
 
 ;; TODO would be nice to cache this
-;; TODO this doesn't return a node anymore, rename it. update the docstring
-;;   rename to "parse-symbol"?
 (defun parse-symbol ($node)
   "Extract information about the package-name and symbol-name of a token, if it can.
 Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).

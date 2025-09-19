@@ -263,7 +263,7 @@
   (true (match "x" "x"))
   (false (match 'x 'y)))
 
-(define-test+run "match wildcard (wildcard)"
+(define-test+run "match wildcard"
   (true (match (wildcard) nil))
   (true (match (wildcard) t))
   (true (match (wildcard) 1))

@@ -112,6 +112,7 @@
       (term stream :type t :identity t)
     (format stream "~s" (name term))))
 
+;; TODO this could be a method on eqv
 (defun term= (a b)
   "Test that A and B are both object of type `term' with the same name."
   (and (termp a)
@@ -155,8 +156,10 @@ successful match.")
   "Is X an object of class `repetition'?"
   (eq (class-name (class-of x)) 'repetition))
 
+;; TODO this could be a method on eqv
 (defun repetition= (a b)
-  "Test that A and B are both object of type `repetition' with the limits."
+  "Test that A and B are both object of type `repetition' with the same
+limits."
   (and (repetitionp a)
        (repetitionp b)
        (pattern= (pattern a) (pattern b))
@@ -205,6 +208,7 @@ successful match.")
   "Is X an object of class `either'?"
   (eq (class-name (class-of x)) 'either))
 
+;; TODO this could be a method on eqv
 (defun either= (a b)
   "Test that A and B are both object of type `either' with the same
 subpatterns."
@@ -225,6 +229,7 @@ subpatterns."
 
 ;;; Pattern comparison
 
+;; TODO this could be a method on eqv
 (defgeneric pattern= (a b)
   (:documentation "Test if two patterns are the same. (Note that this doesn't test for
 equivalence, just for equality."))
@@ -579,7 +584,7 @@ binding."
       (make-binding pattern binding-to))))
 
 (defmethod match (($pattern t) ($input iterator) &key skipp)
-  "Fallback: match something against the current value of the `uterator'
+  "Fallback: match something against the current value of the `iterator'
 $INPUT."
   (skip $input skipp)
   (unless (donep $input)

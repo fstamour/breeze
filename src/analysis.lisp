@@ -249,6 +249,8 @@ symbol nodes without having to define packages or intern symbols."))
 
 ;;; Quoting
 
+;; TODO this takes care of the ` reader-macro, but not the (quote ...) special operator :/
+;; TODO nor can if figure out if part of a macro is evaluated or not
 (defun quotedness (node-iterator)
   (let ((depth (slot-value node-iterator 'depth)))
     (loop :for d :upto depth
