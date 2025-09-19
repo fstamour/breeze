@@ -156,7 +156,15 @@
   (is equalp
       '((3 4 :warning "Extraneous trailing whitespaces.")
         (1 2 :warning "Extraneous leading whitespaces."))
-      (test-lint "( x )")))
+      (test-lint "( x )"))
+  #++
+  (is equalp
+      '((3 4 :warning "Missing indentation."))
+      (test-lint "(a~%~% x)")))
+
+#++
+(a
+x)
 
 #++
 (let ((diags))
@@ -180,6 +188,7 @@
   ;; (is equalp '(")" nil) (test-fix ")")) ; TODO if reasonable
   ;; (is equalp '("()" t) (test-fix "("))
   ;; (is equalp '("((()))" t) (test-fix "((("))
+  ;; TODO "a' ( )" => "a '()"
   (is eqv `((,(whitespace 1 2) nil)) (test-fix "( )"))
   (is eqv `((,(whitespace 1 2) nil)) (test-fix "(~%)"))
   (is eqv `((,(whitespace 1 4) nil)) (test-fix "(   ) "))

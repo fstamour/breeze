@@ -179,6 +179,19 @@ found."
        (node-style-warning
         node-iterator "Extraneous trailing whitespaces."
         :replacement nil))
+      #++
+      ((< 1 (count #\newline (source node-iterator)
+                   :start (start node-iterator)
+                   :end (end node-iterator)))
+       (let ((leading-newlines (position #\newline (source node-iterator)
+                                         :test #'char/=
+                   :start (start node-iterator)
+                                         :end (end node-iterator))))
+         (node-style-warning
+          node-iterator "Extraneous newlines."
+          :replacement (subseq (source node-iterator)
+                               (1- leading-newlines)
+                               (end node-iterator)))))
       ((and (not (or firstp lastp))
             ;; Longer than 1
             (< 1 (- (end node-iterator) (start node-iterator)))
@@ -193,6 +206,26 @@ found."
        (node-style-warning
         node-iterator "Extraneous internal whitespaces."
         :replacement " ")))))
+
+(defun warn-missing-indentation (node-iterator)
+  (node-style-warning
+   node-iterator
+   "Missing indentation"
+   :replacement (or
+                 (let ((previous-node (copy-iterator node-iterator)))
+                   ;; TODO this assumes that the node before is a
+                   ;; whitespace node with a newlind in it and the node
+                   ;; before that is anything and the node before it
+                   ;; again represents the right indentation.
+                   (go-backward previous-node 3)
+                   (let* ((whitespaces (node-string previous-node))
+                          (pos (position #\Newline whitespaces :from-end t)))
+                     (when pos
+                       (let ((indentation (subseq whitespaces (1+ pos))))
+                         ;; TODO this assumes that the node doesn't contain
+                         ;; newlines and so doesn't require other fixes.
+                         (concatenate 'string indentation (node-string node-iterator))))))
+                 'null)))
 
 ;; TODO detect #:package:symbol => package:symbol
 
@@ -220,9 +253,14 @@ found."
         :do (progn
               (error-invalid-node node-iterator)
               ;; (warn-undefined-in-package node-iterator)
-              (when (and (plusp depth)
-                         (whitespace-node-p node))
-                (warn-extraneous-whitespaces node-iterator)))
+              (when (plusp depth)
+                (cond
+                  ((whitespace-node-p node)
+                   (warn-extraneous-whitespaces node-iterator))
+                  #++
+                  ((char= #\newline
+                          (char (source node-iterator) (1- (start node))))
+                   (warn-missing-indentation node-iterator)))))
             (next-preorder node-iterator)))
 
 (defun lint-buffer (buffer &aux (*diagnostics* '()))
