@@ -300,48 +300,52 @@
 
 (defun test-match* (description pattern input expected-binding)
   "Compile pattern, match against input then validate that the bindings returned are as expected."
-  (flet((do-test-match* ()
-          (let* ((pattern (compile-pattern pattern))
-                 (bindings (match pattern input)))
-            (flet ((stop ()
-                     ;; (return-from do-test-match* bindings)
-                     )
-                   (test-binding (binding)
-                     (is eq pattern (from binding)
-                         "~a: ~&the bindings from matching the pattern ~s~&against the input~&~s~&should bind ~s,~&but got ~s instead"
-                         description pattern input pattern (from binding))))
-              ;; === bindings not null ===
-              (when expected-binding
-                (true bindings
-                      "~a: ~&matching the pattern ~s against the input ~s should been successful."
-                      description pattern input)
-                (unless bindings (stop)))
-              (cond
-                ;; === T ===
-                ((eq expected-binding t)
-                 (is eq t bindings
-                     "~a: ~&matching the pattern~&~s~&against the input~&~s~&should have created the bindings~&~s but we got~&~s instead."
-                     description pattern input expected-binding bindings))
-                ;; === binding ===
-                (expected-binding
-                 (etypecase bindings
-                   (binding (test-binding bindings))
-                   (binding-set
-                    (let ((binding (find-binding bindings pattern)))
-                      (true bindings
-                            "~a: ~&matching the pattern ~s against the input ~s return a `binding-set', but no binding for the pattenr was found."
-                            description pattern input)
-                      (unless binding (stop))
-                      (test-binding binding))))
-                 (is eqv expected-binding (to bindings)
-                     "~a: ~&the bindings from matching the pattern~&~s against the input~&~s~&should bind _to_~&~s,~&but got ~s instead"
-                     description pattern input expected-binding (to bindings)))
-                ;; === (null expected-binding) ===
-                ((null expected-binding)
-                 (false bindings
-                        "~a: ~&matching the pattern~&~s~&against the input ~s should not have matched"
-                        description pattern input))))
-            bindings)))
+  (flet ((do-test-match* ()
+           (let* ((pattern (compile-pattern pattern))
+                  (bindings (match pattern input)))
+             (flet ((stop ()
+                      ;; TODO need to see if this makes the failing
+                      ;; tests easier to understabd or not.
+                      ;; (return-from do-test-match* bindings)
+                      )
+                    (test-binding (binding)
+                      (is eq pattern (from binding)
+                          "~a: ~&the bindings from matching the pattern ~s~&against the input~&~s~&should bind ~s,~&but got ~s instead"
+                          description pattern input pattern (from binding))))
+               ;; === bindings not null ===
+               (when expected-binding
+                 (true bindings
+                       "~a: ~&matching the pattern ~s against the input ~s should been successful."
+                       description pattern input)
+                 (unless bindings (stop)))
+               (cond
+                 ;; === T ===
+                 ((eq expected-binding t)
+                  (is eq t bindings
+                      "~a: ~&matching the pattern~&~s~&against the input~&~s~&should have created the bindings~&~s but we got~&~s instead."
+                      description pattern input expected-binding bindings))
+                 ;; === expected binding ===
+                 (expected-binding
+                  (etypecase bindings
+                    ;; binding
+                    (binding (test-binding bindings))
+                    ;; binding-set
+                    (binding-set
+                     (let ((binding (find-binding bindings pattern)))
+                       (true bindings
+                             "~a: ~&matching the pattern ~s against the input ~s return a `binding-set', but no binding for the pattenr was found."
+                             description pattern input)
+                       (unless binding (stop))
+                       (test-binding binding))))
+                  (is eqv expected-binding (to bindings)
+                      "~a: ~&the bindings from matching the pattern~&~s against the input~&~s~&should bind _to_~&~s,~&but got ~s instead"
+                      description pattern input expected-binding (to bindings)))
+                 ;; === (null expected-binding) ===
+                 ((null expected-binding)
+                  (false bindings
+                         "~a: ~&matching the pattern~&~s~&against the input ~s should not have matched"
+                         description pattern input))))
+             bindings)))
     (finish (do-test-match*) description)))
 
 (define-test+run "match maybe"
@@ -381,6 +385,8 @@
     (is eq t binding))
   #++ ;; TODO non-greedy repetition
   (false (test-match pat 'c)))
+
+;; TODO test (:zero-or-more :wildcard)
 
 ;; TODO actually check the content of :$start and :$end
 (define-test+run "match zero-or-more"
