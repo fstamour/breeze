@@ -51,16 +51,14 @@
 (in-package #:breeze.pattern)
 
 ;; TODO find-match
-;; TODO Think about (defstruct hole ...)
 ;; TODO find-partial-match
 ;; TODO fuzzy match (e.g. symbol with a low edit distance is considerded a match)
 
-;; TODO pattern "parens" (or "subtree") -- to explictly "go down"
-;; TODO "spliced" pattern -- not unlike :refs, but without namespace
-;;   not exactly needed if the "go down" part is done explictly
 ;; TODO callbacks? instead of bindings??
 ;; TODO guard (? pred pat) => match pattern, then apply pred
-;; TODO term with subpattern (? ?x . subpattern)
+;; TODO term with subpattern (? ?x . subpattern)  === (group name patterm)
+;; TODO there's no syntax for "repetition", only for "maybe" and "zero-or-more"
+;; TODO maybe get some inspiration here: https://docs.racket-lang.org/reference/match.html
 
 
 ;;; Abstract pattern
