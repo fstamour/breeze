@@ -38,7 +38,7 @@
    ;; "test-file" is for parsing ERT files
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
-   (:file "iterator")
+   (:file "iterator" :depends-on ("generics"))
    (:file "lossless-reader"
     :depends-on ("utils" "generics" "iterator"))
    (:file "incremental-reader"
