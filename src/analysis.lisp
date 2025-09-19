@@ -2,12 +2,17 @@
 (uiop:define-package #:breeze.analysis
     (:documentation "Pattern matching against parse trees")
   (:use #:cl)
-  (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
+  (:use-reexport #:breeze.generics
+                 #:breeze.lossless-reader
+                 #:breeze.pattern)
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
   (:export #:node-symbol-name
            #:node-string-designator-string)
+  (:export #:sym
+           #:sym-package
+           #:qualification)
   ;; Tree/Form predicate
   (:export #:with-match
            #:define-node-matcher
@@ -55,34 +60,58 @@ match an empty parse tree."
   ;; against a list of nodes (even if that list is empty).
   nil)
 
+(defun package-names (package-name $node)
+  (declare (ignore $node)) ; see TODO
+  ;; TODO support packages that are not defined (by creating a "pak"
+  ;; object to represent those (just like `sym' for symbols).
+  ;; TODO use $node to find the current package and find if there are
+  ;; any local package nicknames for PACKAGE-NAME.
+  (let ((package (find-package package-name)))
+    `(,(package-name package)
+      ,@(package-nicknames package))))
 
-(defun match-symbol-to-token (symbol $node)
+;; TODO TESTS TESTS TESTS!!!
+;; TODO support :wild for package-name, symbol-name and qualification
+;; TODO check that "qualification" maches
+;; TODO maybe support package-name being a symbol... (or an actual package
+;; TODO perhaps rename package-name to package-designator or package-pattern? (same for symbol??)
+;; TODO maybe a better name
+(defun match-token ($node package-name symbol-name qualification)
+  "Match a parse tree's node against a set of constraints (PACKAGE-NAME,
+SYMBOL-NAME and QUALIFICATION)."
+  (declare (ignore qualification)) ; see TODO
   (check-type $node node-iterator)
-  (check-type symbol symbol)
+  (check-type symbol-name string)
   (when-let ((parsed-symbol (parse-symbol $node)))
-    (destructuring-bind (type symbol-name &optional package-name)
+    (destructuring-bind (type token-symbol-name &optional token-package-name)
         parsed-symbol
       (and
-       (let* ((name (symbol-name symbol))
-              (package (symbol-package symbol)))
-         (ecase type
-           (:current-package-symbol
-            ;; TODO check the current package too!
-            (string= name symbol-name))
-           (:keyword
-            (and (string-equal "KEYWORD" (package-name package))
-                 (string= name symbol-name)))
-           (:uninterned-symbol
-            (and (null package) (string= name symbol-name)))
-           ((:qualified-symbol :possibly-internal-symbol)
-            (and
-             (string= name symbol-name)
-             (some (lambda (name)
-                     (string= name package-name))
-                   `(,(package-name package)
-                           ;; TODO include local package nicknames
-                      ,@(package-nicknames package)))))))
+       (ecase type
+         (:current-package-symbol
+          ;; TODO check if the current package (package at point) too!
+          (string= symbol-name token-symbol-name))
+         (:keyword
+          (and (string-equal "KEYWORD" package-name)
+               (string= symbol-name token-symbol-name)))
+         (:uninterned-symbol
+          (and (null package-name) (string= symbol-name token-symbol-name)))
+         ((:qualified-symbol :possibly-internal-symbol)
+          (and
+           (string= symbol-name token-symbol-name)
+           ;; TODO extract function "match-package"
+           (some (lambda (name)
+                   (string= name token-package-name))
+                 (package-names package-name $node)))))
        t))))
+
+
+(defun match-symbol-to-token (symbol $node)
+  "Match a symbol against a parse tree's node."
+  (check-type $node node-iterator)
+  (check-type symbol symbol)
+  (let* ((name (symbol-name symbol))
+         (package (symbol-package symbol)))
+    (match-token $node (package-name package) name :wild)))
 
 #|
 
@@ -117,6 +146,7 @@ What do I want it to look like?
 
 |#
 
+;; TODO move into patterns.lisp
 (defclass sym ()
   ((name
     :initform nil
@@ -144,34 +174,30 @@ symbol nodes without having to define packages or intern symbols."))
 
 (defun sym (package name &optional qualification)
   ;; TODO validation
-  ;; nil means "don't care"
-  (check-type package (or string (member :any nil :keyword)))
-  (check-type name (or string (member :any)))
-  (check-type qualification (member nil :current :internal :uninterned))
+  ;; :wild means "don't care"
+  ;; nil means "uninterned"
+  (check-type package (or string (member :wild nil :keyword)))
+  (check-type name (or string (member :wild)))
+  (check-type qualification (member :wild :current :internal :uninterned))
   (make-instance 'sym
                  :package package
                  :name name
                  :qualification qualification))
 
 (defmethod match ((pattern symbol) (node-iterator node-iterator) &key skipp)
+  "Match a symbol against a parse tree's node."
   (breeze.pattern::skip node-iterator skipp)
   (match-symbol-to-token pattern node-iterator))
 
 (defmethod match ((pattern null) (node-iterator node-iterator) &key skipp)
+  "Match the symbol `nil' against a parse tree's node."
   (breeze.pattern::skip node-iterator skipp)
   (match-symbol-to-token pattern node-iterator))
 
+;; TODO is this even needed??
 (defmethod match ((pattern term) (state state) &key skipp)
+  "Match a term againt a parse state."
   (match-parser-state pattern state :skipp skipp))
-
-(defmethod match ((pattern term) (node-iterator node-iterator) &key skipp)
-  (breeze.pattern::skip node-iterator skipp)
-  (unless (donep node-iterator)
-    (breeze.pattern::make-binding pattern (copy-iterator node-iterator))))
-
-
-
-;; TODO package-local-nicknames
 
 ;; TODO One method per type of node
 #++
