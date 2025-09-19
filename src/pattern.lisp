@@ -266,6 +266,75 @@ equivalence, just for equality."))
   "Does the symbol X represents an \"wildcard\" pattern?"
   (symbol-starts-with x #\_))
 
+#|
+
+TODO get rid of *term-pool* and use the term's names when creating
+bindings.
+
+Explanations/rationale:
+
+Originally, I took the design decision of using the pattern objects
+themselves to serve as the "identity" of a binding. It's easier to
+explain with an example:
+
+the pattern ?x compiles to #1=(term ?x) — an object of type 'term with
+the name (slot) ?x
+
+when matched against, for example, 42, it would create the
+binding (#1# . 42) not (?x . 42) — the key is the pattern object, not
+its name
+
+so when a pattern results in a lot of bindings, you would search for
+the pattern object, not by its name.
+
+The motivation behind that design was that if you have a lot of
+pre-defined patterns, you might want to avoid name collisions, and the
+chances that you re-use a pattern object between two different
+patterns should be pretty low.
+
+But what if you _do_ want to have two patterns that share the
+same "pattern variable"?
+
+There are 2 main use cases for wanting to share pattern objects
+between multiple patterns, matching with back-references and rewrites.
+
+"back-references" use case:
+
+let's say you have 2 pre-defined patterns: "(defun ?name ...)"
+and "(funcall '?name ...)", it's possible that one would like to
+find "defuns with funcalls to itself in its body"... It's more
+efficient for the pattern matching algorithm to take care of that than
+the user checking if both ?names in both patterns are the same. But in
+order to do that, you need for both of these patterns to re-use the
+same 'term pattern object when compiling ?name.
+
+"rewrites" use case:
+
+let's say you matched a pattern against a form and you want to extract
+the values and generate a new form using them, you can use a second
+pattern and sustitute the terms in it with the values from matching
+the first pattern.
+
+pattern A: (+ ?x (- ?y))
+pattern B: (- ?x ?y)
+
+but, again, without sharing the pattern objects for terms, one would
+need to associate each terms from each patterns using the terms'
+names (that implies walking the patterns to find the terms).
+
+---
+
+I ditched the concept of re-usable pre-defined patterns (for now). I
+also think that my original motivation of avoiding conflicts was a bit
+too much (especially that the names are symbols, they can be from any
+packages...).
+
+With these requirements gone, I think it would simplify a lot of code
+if we were using the name of the terms in the bindings. That means
+that we wouldn't need the *term-pool* at all anymore. (we don't even
+need to de-duplicate pattern objects whithin one pattern.)
+
+|#
 (defparameter *term-pool* nil
   "A pool of terms, used to share terms across patterns created by
 independent calls to compile-pattern.")
