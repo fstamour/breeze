@@ -43,11 +43,128 @@
   (false (term= (term :y) (term :x)))
   (false (term= (term :y) 42)))
 
-;; this represents any symbols in the package cl
-#++
-(sym "cl" :any)
-;; => (sym "cl" :ANY)
+(define-test+run "sym print-object"
+  ;; TODO would be nice if it printed :wild instead of ':wild
+  (is string= "(sym 'cl ':wild)"
+      (format nil "~a" (sym 'cl :wild)))
+  (is string="(sym 'cl 'defun)"
+      (format nil "~a" (sym 'cl 'defun)))
+  ;; TODO sym with qualification
+  ;; TODO uninterned symbols for name or package-name
+  )
 
+(define-test+run "sym :wild symbol"
+  ;; Match against 'cl:defun
+  (is eq t (match (sym :wild :wild) 'defun))
+  (is eq t (match (sym "COMMON-LISP" :wild) 'defun))
+  (is eq t (match (sym #.*package* :wild) 'defun))
+  (is eq t (match (sym :cl :wild) 'defun))
+  (is eq t (match (sym 'cl :wild) 'defun))
+  (is eq t (match (sym '#:cl :wild) 'defun))
+  (is eq t (match (sym 'cl-user :wild) 'defun))
+  (is eq t (match (sym "CL" :wild) 'defun))
+  (is eq nil (match (sym nil :wild) 'defun))
+  ;; match against '#:defun
+  (is eq t (match (sym :wild :wild) '#:defun))
+  (is eq nil (match (sym '#:cl :wild) '#:defun))
+  (is eq nil (match (sym #.*package* :wild) '#:defun))
+  (is eq nil (match (sym "CL" :wild) '#:defun))
+  (is eq t (match (sym nil :wild) '#:defun))
+  ;; match against :defun
+  (is eq t (match (sym :wild :wild) :defun))
+  (is eq nil (match (sym '#:cl :wild) :defun))
+  (is eq nil (match (sym #.*package* :wild) :defun))
+  (is eq t (match (sym :keyword :wild) :defun))
+  (is eq t (match (sym "KEYWORD" :wild) :defun))
+  ;; match against '|defun|
+  (is eq t (match (sym :wild :wild) '|defun|))
+  (is eq t (match (sym #.*package* :wild) '|defun|))
+  (is eq nil (match (sym '#:cl :wild) '|defun|))
+  (is eq t (match (sym #.*package* :wild) '|defun|)))
+
+(define-test+run "sym :wild package"
+  ;; name = nil
+  (is eq nil (match (sym :wild nil) 'defun))
+  (is eq t (match (sym :wild nil) nil))
+  (is eq t (match (sym :wild nil) :nil))
+  ;; name = t
+  (is eq nil (match (sym :wild t) nil))
+  (is eq t (match (sym :wild t) t))
+  (is eq t (match (sym :wild t) :t))
+  ;; match against 'cl:defun
+  (is eq t (match (sym :wild "DEFUN") 'defun))
+  (is eq t (match (sym :wild :defun) 'defun))
+  (is eq t (match (sym :wild '#:defun) 'defun))
+  (is eq t (match (sym :wild 'defun) 'defun))
+  (is eq nil (match (sym :wild "defun") 'defun))
+  (is eq nil (match (sym :wild '|defun|) 'defun))
+  (is eq nil (match (sym :wild :|defun|) 'defun))
+  (is eq nil (match (sym :wild '#:|defun|) 'defun))
+  ;; match against '#:defun
+  (is eq t (match (sym :wild "DEFUN") '#:defun))
+  (is eq t (match (sym :wild :defun) '#:defun))
+  (is eq t (match (sym :wild '#:defun) '#:defun))
+  (is eq t (match (sym :wild 'defun) '#:defun))
+  (is eq nil (match (sym :wild "defun") '#:defun))
+  (is eq nil (match (sym :wild '|defun|) '#:defun))
+  (is eq nil (match (sym :wild :|defun|) '#:defun))
+  (is eq nil (match (sym :wild '#:|defun|) '#:defun))
+  ;; match against :defun
+  (is eq t (match (sym :wild "DEFUN") :defun))
+  (is eq t (match (sym :wild :defun) :defun))
+  (is eq t (match (sym :wild '#:defun) :defun))
+  (is eq t (match (sym :wild 'defun) :defun))
+  (is eq nil (match (sym :wild "defun") :defun))
+  (is eq nil (match (sym :wild '|defun|) :defun))
+  (is eq nil (match (sym :wild :|defun|) :defun))
+  (is eq nil (match (sym :wild '#:|defun|) :defun))
+  ;; match against '|defun|
+  (is eq nil (match (sym :wild "DEFUN") '|defun|))
+  (is eq nil (match (sym :wild :defun) '|defun|))
+  (is eq nil (match (sym :wild '#:defun) '|defun|))
+  (is eq nil (match (sym :wild 'defun) '|defun|))
+  (is eq t (match (sym :wild "defun") '|defun|))
+  (is eq t (match (sym :wild '|defun|) '|defun|))
+  (is eq t (match (sym :wild :|defun|) '|defun|))
+  (is eq t (match (sym :wild '#:|defun|) '|defun|))
+  ;; match against :|defun|
+  (is eq nil (match (sym :wild "DEFUN") :|defun|))
+  (is eq nil (match (sym :wild :defun) :|defun|))
+  (is eq nil (match (sym :wild '#:defun) :|defun|))
+  (is eq nil (match (sym :wild 'defun) :|defun|))
+  (is eq t (match (sym :wild "defun") :|defun|))
+  (is eq t (match (sym :wild '|defun|) :|defun|))
+  (is eq t (match (sym :wild :|defun|) :|defun|))
+  ;; match against '#:|defun|
+  (is eq nil (match (sym :wild "DEFUN") '#:|defun|))
+  (is eq nil (match (sym :wild :defun) '#:|defun|))
+  (is eq nil (match (sym :wild '#:defun) '#:|defun|))
+  (is eq nil (match (sym :wild 'defun) '#:|defun|))
+  (is eq t (match (sym :wild "defun") '#:|defun|))
+  (is eq t (match (sym :wild '|defun|) '#:|defun|))
+  (is eq t (match (sym :wild :|defun|) '#:|defun|))
+  (is eq t (match (sym :wild '#:|defun|) '#:|defun|)))
+
+(define-test+run "sym with both non :wild package and symbol"
+  ;; current package
+  (is eq t (match (sym #.*package* 'defun) 'defun))
+  (is eq nil (match (sym #.*package* 'defun) '|defun|)) ;; <=
+  (is eq t (match (sym #.*package* "defun") '|defun|))
+  (is eq nil (match (sym #.*package* 'defun) :|defun|))
+  (is eq nil (match (sym #.*package* "defun") :|defun|))
+  (is eq nil (match (sym #.*package* 'defun) '#:|defun|))
+  (is eq nil (match (sym #.*package* "defun") '#:|defun|))
+  ;; cl package
+  (is eq t (match (sym '#:cl '#:defun) 'defun))
+  (is eq nil (match (sym '#:cl '#:defun) '|defun|))
+  ;; nil package (uninterned)
+  (is eq nil (match (sym nil '#:defun) '|defun|))
+  (is eq nil (match (sym nil '#:defun) '#:|defun|)) ;; <=
+  (is eq nil (match (sym nil '#:defun) :defun))
+  ;; keyword package
+  (is eq t (match (sym :keyword '#:defun) :defun))
+  (is eq t (match (sym :keyword :defun) :defun))
+  (is eq nil (match (sym :keyword :defun) 'defun)))
 
 (define-test+run maybe
   (let ((maybe (maybe :x)))

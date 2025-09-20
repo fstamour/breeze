@@ -177,18 +177,21 @@ symbol designators without having to define packages or intern
 symbols."))
 
 (defmethod print-object ((sym sym) stream)
-  (format stream "(sym ~s ~s~@[ ~s~])"
-          (sym-package sym)
-          (name sym)
-          (qualification sym)))
+  (let ((*print-case* :downcase)
+        (*print-readably* t))
+    (format stream "(sym ~:[~;'~]~s ~:[~;'~]~s~:[~; ~s~])"
+            (symbolp (sym-package sym)) (sym-package sym)
+            (symbolp (name sym)) (name sym)
+            (not (eq :wild (qualification sym)))
+            (qualification sym))))
 
-(defun sym (package name &optional qualification)
+(defun sym (package name &optional (qualification :wild))
   ;; TODO validation
   ;; :wild means "don't care"
   ;; nil means "uninterned"
-  (check-type package (or string (member :wild nil :keyword)))
-  (check-type name (or string (member :wild)))
-  (check-type qualification (member :wild :current :internal :uninterned))
+  ;; (check-type package (or string (member :wild nil :keyword)))
+  ;; (check-type name (or string (member :wild)))
+  ;; (check-type qualification (member :wild :current :internal :uninterned))
   (make-instance 'sym
                  :package package
                  :name name
@@ -341,6 +344,10 @@ equivalence, just for equality."))
 (defun wildcard-symbol-p (x)
   "Does the symbol X represents an \"wildcard\" pattern?"
   (symbol-starts-with x #\_))
+
+(declaim (inline wildp))
+(defun wildp (x)
+  (eq x :wild))
 
 #|
 
@@ -644,6 +651,39 @@ bindings and keeping only those that have not conflicting bindings."
 (defmethod match ((pattern null) (input symbol) &key)
   "Matcho `nil' against another (non-`nil') symbol."
   nil)
+
+;; TODO could it be useful to support `term' in the `sym' 's name,
+;; package and qualification slots?
+;; TODO Or maybe just (optionaly) create some binidings here...
+;; TODO regex???
+(defmethod match ((pattern sym) (symbol symbol) &key)
+  "Match a pattern of type `sym' against a symbol."
+  (with-slots ((symbol-name-pattern name)
+               (package-name-pattern package))
+      pattern
+    (let* ((package (symbol-package symbol))
+           (package-name (and package (package-name package)))
+           (symbol-name (symbol-name symbol)))
+      (flet ((match-package ()
+               ;; assumes that package-name-pattern is not :wild
+               (cond
+                 ((null package) (null package-name-pattern))
+                 ((null package-name-pattern) nil)
+                 (t (alexandria:when-let ((pattern-package (find-package package-name-pattern)))
+                      ;; TODO package-local-nicknames
+                      (or (eq pattern-package package)
+                          ;; handle re-exported symbols
+                          (eq symbol (find-symbol symbol-name pattern-package)))))))
+             (match-symbol ()
+               ;; assumes that symbol-name-pattern is not :wild
+               (string= (string symbol-name-pattern) symbol-name)))
+        (cond
+          ((and (wildp symbol-name-pattern)
+                (wildp package-name-pattern))
+           t)
+          ((wildp symbol-name-pattern) (match-package))
+          ((wildp package-name-pattern) (match-symbol))
+          (t (and (match-package) (match-symbol))))))))
 
 
 ;;; Iterators
