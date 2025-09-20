@@ -43,6 +43,12 @@
   (false (term= (term :y) (term :x)))
   (false (term= (term :y) 42)))
 
+;; this represents any symbols in the package cl
+#++
+(sym "cl" :any)
+;; => (sym "cl" :ANY)
+
+
 (define-test+run maybe
   (let ((maybe (maybe :x)))
     (of-type repetition maybe)

@@ -38,12 +38,6 @@
   #++
   (true (match-symbol-to-token nil (make-node-iterator "common-lisp-user:nil"))))
 
-;; this represents any symbols in the package cl
-#++
-(sym "cl" :any)
-;; => (sym "cl" :ANY)
-
-
 (defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
   (finish
    (let* ((state (parse string))

@@ -18,6 +18,9 @@
            #:termp
            #:term=
            #:name
+           #:sym
+           #:sym-package
+           #:qualification
            #:maybe
            #:zero-or-more
            #:repetition
@@ -117,6 +120,79 @@
        (termp b)
        (eq (name a)
            (name b))))
+
+;;; Symbol patterns
+
+#|
+
+TODO add a special pattern type to match symbols in packages that are
+not defined in the current image.
+
+What do I want it to look like?
+
+- should probably be "compiled"
+  - (compile-pattern (sym ...))
+
+* normal/simple match: "cl:null"
+  - should match any nicknames
+  - should match any case
+  - should match current-package-symbol, qualified-symbol and possibly-internal-symbol
+
+* exact match: "^cl:null$"
+  - (eq cl) (eq null)
+  - case-insensitive: (sym '(equal cl) (equal null))
+    - default
+
+* exact package name:
+  - "^cl$:null" (= cl) null
+
+* any package
+  - '(:any "null")
+
+* any symbol
+  - '(cl :any)
+
+* qualification: nil, current, internal, :any, :or <===
+
+|#
+
+(defclass sym ()
+  ((name
+    :initform nil
+    :initarg :name
+    :accessor name
+    :documentation "The name of the symbol.")
+  (package
+    :initform nil
+    :initarg :package
+    :accessor sym-package
+    :documentation "The name of the symbol's package.")
+  (qualification
+    :initform nil
+    :initarg :qualification
+    :accessor qualification
+    :documentation "How many #\\: is there in the symbol"))
+  (:documentation "An object representing a symbol. Meant to be use for matching against
+symbol designators without having to define packages or intern
+symbols."))
+
+(defmethod print-object ((sym sym) stream)
+  (format stream "(sym ~s ~s~@[ ~s~])"
+          (sym-package sym)
+          (name sym)
+          (qualification sym)))
+
+(defun sym (package name &optional qualification)
+  ;; TODO validation
+  ;; :wild means "don't care"
+  ;; nil means "uninterned"
+  (check-type package (or string (member :wild nil :keyword)))
+  (check-type name (or string (member :wild)))
+  (check-type qualification (member :wild :current :internal :uninterned))
+  (make-instance 'sym
+                 :package package
+                 :name name
+                 :qualification qualification))
 
 
 ;;; Repetitions
@@ -561,10 +637,12 @@ bindings and keeping only those that have not conflicting bindings."
 
 ;; "nil" must match "nil"
 (defmethod match ((pattern null) (input null) &key)
+  "Match `nil' against `nil'."
   t)
 
 ;; "nil" must not match any other symbols
 (defmethod match ((pattern null) (input symbol) &key)
+  "Matcho `nil' against another (non-`nil') symbol."
   nil)
 
 
