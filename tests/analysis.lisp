@@ -29,6 +29,25 @@
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
+;; TODO rename to test-parse-symbol-node
+(defun test-parse-symbol (string)
+  (parse-symbol-node (make-node-iterator string)))
+
+(define-test+run parse-symbol
+  (is eqv '(:current-package-symbol "X") (test-parse-symbol "x"))
+  (is eqv '(:keyword "X") (test-parse-symbol ":x"))
+  (is eqv '(:uninterned-symbol "X") (test-parse-symbol "#:x"))
+  (is eqv '(:qualified-symbol "X" "P") (test-parse-symbol "p:x"))
+  (is eqv '(:possibly-internal-symbol "X" "P") (test-parse-symbol "p::x"))
+  (false (test-parse-symbol ""))
+  (false (test-parse-symbol "#:"))
+  (false (test-parse-symbol "::"))
+  (false (test-parse-symbol "p:::x"))
+  (false (test-parse-symbol "p::"))
+  (false (test-parse-symbol "::x"))
+  (false (test-parse-symbol "a:a:x")))
+
+
 (define-test+run match-symbol-to-token
   (true (match-symbol-to-token t (make-node-iterator "t")))
   (true (match-symbol-to-token nil (make-node-iterator "nil")))

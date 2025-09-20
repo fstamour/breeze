@@ -21,6 +21,7 @@
            #:sym
            #:sym-package
            #:qualification
+           #:parse-symbol
            #:maybe
            #:zero-or-more
            #:repetition
@@ -684,6 +685,49 @@ bindings and keeping only those that have not conflicting bindings."
           ((wildp symbol-name-pattern) (match-package))
           ((wildp package-name-pattern) (match-symbol))
           (t (and (match-package) (match-symbol))))))))
+
+
+;; TODO export
+;; TODO update docstring
+(defun parse-symbol (string &optional (start 0) (end (length string)))
+  "See PARSE-SYMBOL's docstring."
+  (when (and string start end
+             (< -1 start end)
+             (plusp (length string)))
+    (case (count #\: string :start start :end end)
+      (0
+       ;; "x"
+       (list :current-package-symbol (subseq string start end)))
+      (1
+       (or
+        ;; ":x"
+        (when (char= #\: (char string start))
+          (list :keyword (subseq string (1+ start) end)))
+        ;; "#:x"
+        (when (and (< 2 (- end start))
+                   (char= #\# (char string start))
+                   (char= #\: (char string (1+ start))))
+          (list :uninterned-symbol
+                (subseq string (+ 2 start) end)))
+        ;; p:x
+        (let ((position (position #\: string :start start :end end)))
+          (and (not (= position (1- end)))
+               (list :qualified-symbol
+                     ;; symbol-name
+                     (subseq string (1+ position) end)
+                     ;; package-name
+                     (subseq string start position))))))
+      ;; p::x
+      (2 (let* ((first (position #\: string :start start :end end)))
+           (and
+            (/= start first)
+            (< (1+ first) (1- end))
+            (char= #\: (char string (1+ first)))
+            (list :possibly-internal-symbol
+                  ;; symbol-name
+                  (subseq string (+ 2 first) end)
+                  ;; package-name
+                  (subseq string start first))))))))
 
 
 ;;; Iterators

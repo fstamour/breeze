@@ -9,7 +9,8 @@
                 #:when-let
                 #:when-let*)
   (:export #:node-symbol-name
-           #:node-string-designator-string)
+           #:node-string-designator-string
+           #:parse-symbol-node)
   ;; Tree/Form predicate
   (:export #:with-match
            #:define-node-matcher
@@ -57,6 +58,7 @@ match an empty parse tree."
   ;; against a list of nodes (even if that list is empty).
   nil)
 
+;; TODO maybe &optional current package
 (defun package-names (package-name $node)
   (declare (ignore $node)) ; see TODO
   ;; TODO support packages that are not defined (by creating a "pak"
@@ -66,6 +68,42 @@ match an empty parse tree."
   (let ((package (find-package package-name)))
     `(,(package-name package)
       ,@(package-nicknames package))))
+
+
+;; TODO would be nice to cache this
+(defun parse-symbol-node ($node)
+  "Extract information about the package-name and symbol-name of a token, if it can.
+Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
+PACKAGE-NAME is provided for the types :qualified-symbol and :possibly-internal-symbol.
+TYPE is one of:
+
+ - :current-package-symbol
+ - :keyword
+ - :uninterned-symbol
+ - :qualified-symbol
+ - :possibly-internal-symbol"
+  (unless (donep $node)
+    (when-let ((parsed-symbol (parse-symbol (source $node) (start $node) (end $node))))
+      (destructuring-bind (type symbol-name &optional package-name)
+          parsed-symbol
+        ;; TODO apply readtable-case rules on symbol-name
+        ;; https://www.lispworks.com/documentation/HyperSpec/Body/23_ab.htm
+        (let ((*package* (find-package '#:KEYWORD)))
+          ;; HACK: use `cl:read-from-string' to "apply" the
+          ;; case-conversion and take care ot escaping.
+          (ignore-errors
+           `(,type
+             ,(symbol-name (read-from-string symbol-name))
+             ,@(when package-name
+                 (list (symbol-name (read-from-string package-name)))))))
+        ;; TODO this doesn't check if characters are escpaped,
+        ;; TODO this doesn't remove the escape characters...
+        #++(ecase (readtable-case *readtable*)
+             (:upcase #| this is the default |#
+              (string-upcase symbol-name))
+             (:downcase (string-downcase symbol-name))
+             (:preserve symbol-name)
+             (:invert (string-in)))))))
 
 ;; TODO TESTS TESTS TESTS!!!
 ;; TODO support :wild for package-name, symbol-name and qualification
@@ -79,7 +117,7 @@ SYMBOL-NAME and QUALIFICATION)."
   (declare (ignore qualification)) ; see TODO
   (check-type $node node-iterator)
   (check-type symbol-name string)
-  (when-let ((parsed-symbol (parse-symbol $node)))
+  (when-let ((parsed-symbol (parse-symbol-node $node)))
     (destructuring-bind (type token-symbol-name &optional token-package-name)
         parsed-symbol
       (and

@@ -182,7 +182,6 @@ common lisp.")
            #:read-token
            #:read-whitespaces
            #:read-block-comment)
-  (:export #:parse-symbol)
   (:export #:node-contains-position-p
            #:node-range-contains-position-p
            #:node-children-contains-position-p)
@@ -1095,81 +1094,6 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
    read-while
    donep)
   (untrace))
-
-(defun %parse-symbol (string &optional (start 0) (end (length string)))
-  "See PARSE-SYMBOL's docstring."
-  (when (and string start end
-             (< -1 start end)
-             (plusp (length string)))
-    (case (count #\: string :start start :end end)
-      (0
-       ;; "x"
-       (list :current-package-symbol (subseq string start end)))
-      (1
-       (or
-        ;; ":x"
-        (when (char= #\: (char string start))
-          (list :keyword (subseq string (1+ start) end)))
-        ;; "#:x"
-        (when (and (< 2 (- end start))
-                   (char= #\# (char string start))
-                   (char= #\: (char string (1+ start))))
-          (list :uninterned-symbol
-                (subseq string (+ 2 start) end)))
-        ;; p:x
-        (let ((position (position #\: string :start start :end end)))
-          (and (not (= position (1- end)))
-               (list :qualified-symbol
-                     ;; symbol-name
-                     (subseq string (1+ position) end)
-                     ;; package-name
-                     (subseq string start position))))))
-      ;; p::x
-      (2 (let* ((first (position #\: string :start start :end end)))
-           (and
-            (/= start first)
-            (< (1+ first) (1- end))
-            (char= #\: (char string (1+ first)))
-            (list :possibly-internal-symbol
-                  ;; symbol-name
-                  (subseq string (+ 2 first) end)
-                  ;; package-name
-                  (subseq string start first))))))))
-
-;; TODO would be nice to cache this
-(defun parse-symbol ($node)
-  "Extract information about the package-name and symbol-name of a token, if it can.
-Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
-PACKAGE-NAME is provided for the types :qualified-symbol and :possibly-internal-symbol.
-TYPE is one of:
-
- - :current-package-symbol
- - :keyword
- - :uninterned-symbol
- - :qualified-symbol
- - :possibly-internal-symbol"
-  (unless (donep $node)
-    (when-let ((parsed-symbol (%parse-symbol (source $node) (start $node) (end $node))))
-      (destructuring-bind (type symbol-name &optional package-name)
-          parsed-symbol
-        ;; TODO apply readtable-case rules on symbol-name
-        ;; https://www.lispworks.com/documentation/HyperSpec/Body/23_ab.htm
-        (let ((*package* (find-package '#:KEYWORD)))
-          ;; HACK: use `cl:read-from-string' to "apply" the
-          ;; case-conversion and take care ot escaping.
-          (ignore-errors
-           `(,type
-             ,(symbol-name (read-from-string symbol-name))
-             ,@(when package-name
-                 (list (symbol-name (read-from-string package-name)))))))
-        ;; TODO this doesn't check if characters are escpaped,
-        ;; TODO this doesn't remove the escape characters...
-        #++(ecase (readtable-case *readtable*)
-             (:upcase #| this is the default |#
-              (string-upcase symbol-name))
-             (:downcase (string-downcase symbol-name))
-             (:preserve symbol-name)
-             (:invert (string-in)))))))
 
 (defreader read-token ()
   "Read one token."
