@@ -29,23 +29,22 @@
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp
 
-;; TODO rename to test-parse-symbol-node
-(defun test-parse-symbol (string)
+(defun test-parse-symbol-node (string)
   (parse-symbol-node (make-node-iterator string)))
 
 (define-test+run parse-symbol
-  (is eqv '(:current-package-symbol "X") (test-parse-symbol "x"))
-  (is eqv '(:keyword "X") (test-parse-symbol ":x"))
-  (is eqv '(:uninterned-symbol "X") (test-parse-symbol "#:x"))
-  (is eqv '(:qualified-symbol "X" "P") (test-parse-symbol "p:x"))
-  (is eqv '(:possibly-internal-symbol "X" "P") (test-parse-symbol "p::x"))
-  (false (test-parse-symbol ""))
-  (false (test-parse-symbol "#:"))
-  (false (test-parse-symbol "::"))
-  (false (test-parse-symbol "p:::x"))
-  (false (test-parse-symbol "p::"))
-  (false (test-parse-symbol "::x"))
-  (false (test-parse-symbol "a:a:x")))
+  (is eqv '(:current-package-symbol "X") (test-parse-symbol-node "x"))
+  (is eqv '(:keyword "X") (test-parse-symbol-node ":x"))
+  (is eqv '(:uninterned-symbol "X") (test-parse-symbol-node "#:x"))
+  (is eqv '(:qualified-symbol "X" "P") (test-parse-symbol-node "p:x"))
+  (is eqv '(:possibly-internal-symbol "X" "P") (test-parse-symbol-node "p::x"))
+  (false (test-parse-symbol-node ""))
+  (false (test-parse-symbol-node "#:"))
+  (false (test-parse-symbol-node "::"))
+  (false (test-parse-symbol-node "p:::x"))
+  (false (test-parse-symbol-node "p::"))
+  (false (test-parse-symbol-node "::x"))
+  (false (test-parse-symbol-node "a:a:x")))
 
 
 (define-test+run match-symbol-to-token

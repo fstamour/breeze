@@ -159,12 +159,28 @@
   (is eq nil (match (sym '#:cl '#:defun) '|defun|))
   ;; nil package (uninterned)
   (is eq nil (match (sym nil '#:defun) '|defun|))
-  (is eq nil (match (sym nil '#:defun) '#:|defun|)) ;; <=
+  (is eq nil (match (sym nil '#:defun) '#:|defun|))
   (is eq nil (match (sym nil '#:defun) :defun))
   ;; keyword package
   (is eq t (match (sym :keyword '#:defun) :defun))
   (is eq t (match (sym :keyword :defun) :defun))
   (is eq nil (match (sym :keyword :defun) 'defun)))
+
+(define-test+run parse-symbol
+  (is eqv '(:current-package-symbol "X") (parse-symbol "x"))
+  (is eqv '(:keyword "X") (parse-symbol ":x"))
+  (is eqv '(:uninterned-symbol "X") (parse-symbol "#:x"))
+  (is eqv '(:qualified-symbol "X" "P") (parse-symbol "p:x"))
+  (is eqv '(:possibly-internal-symbol "X" "P") (parse-symbol "p::x"))
+  (false (parse-symbol ""))
+  (false (parse-symbol "#:"))
+  (false (parse-symbol "::"))
+  (false (parse-symbol "p:::x"))
+  (false (parse-symbol "p::"))
+  (false (parse-symbol "::x"))
+  (false (parse-symbol "a:a:x")))
+
+
 
 (define-test+run maybe
   (let ((maybe (maybe :x)))
