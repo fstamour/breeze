@@ -186,7 +186,8 @@ defun."
 
 (define-command insert-defun ()
   "Insert a defun form."
-  (declare (context :top-level))
+  (declare (context :top-level)
+           #| TODO if current token is top-level and is "defun", just choose this command directly |#)
   (insert-defun-shaped "defun"))
 
 (define-command insert-setf-defun ()

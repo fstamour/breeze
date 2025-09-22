@@ -1187,6 +1187,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 (defun parse (string &optional (state (make-state string)))
   "Parse a string, stop at the end, or when there's a parse error."
   (let ((result (make-array '(0) :adjustable t :fill-pointer t)))
+    ;; TODO check if `string' starts with #!
     (loop
       ;; :for i :from 0
       :for node-start = (current-position state)

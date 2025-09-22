@@ -146,6 +146,12 @@ SYMBOL-NAME and QUALIFICATION)."
          (package (symbol-package symbol)))
     (match-token $node (package-name package) name :wild)))
 
+;; TODO WIP
+(defmethod match ((pattern sym) (node-iterator node-iterator) &key skipp)
+  (breeze.pattern::skip node-iterator skipp)
+  (when (token-node-p node-iterator)
+    ;; TODO
+    (match-symbol-to-token pattern node-iterator)))
 
 (defmethod match ((pattern symbol) (node-iterator node-iterator) &key skipp)
   "Match a symbol against a parse tree's node."

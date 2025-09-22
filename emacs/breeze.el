@@ -523,6 +523,9 @@ which will redefine the dummy command."
 
 ;;; Completion at point -- NOT IMPLEMENTED, this is just a stub for now
 
+;; TODO breeze-capfs-mode or breeze-completion-mode
+;; TODO update the documentatiob (e.g. "getting started"
+
 ;; 1. `completion-at-point' uses the variable `completion-at-point-functions'
 ;; 2. it finds and call `breeze-completion-at-point' (no "S")
 ;; 3. `breeze-completion-at-point' returns a list (START END COLLECTION)
@@ -771,6 +774,13 @@ for debugging breeze itself."
                                                        text))))))
     ;; Not connected, so we can't call breeze's linter.
     (funcall report-fn nil)))
+
+;; TODO breeze-flymake-mode
+;; TODO 1. ensure-breeze-minor-mode
+;; TODO 2. add backend
+;; TODO 3. enable flymake
+;; TODO clean up the existing flymake-related functions
+;; TODO update the "getting started" documentation
 
 (defun breeze-enable-flymake-backend ()
   "Add breeze-flymake to the list of flymake-diagnostic-functions."
