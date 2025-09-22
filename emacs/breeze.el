@@ -1106,6 +1106,8 @@ automatically enabling breeze-minor-mode in lisp-mode."
 ;;;###autoload
 (breeze--defstub breeze-kill-sexp "Kill the expression following point.")
 ;;;###autoload
+(breeze--defstub breeze-insert-parachute-define-test "Insert a parachute:define-test form")
+;;;###autoload
 (breeze--defstub breeze-insert-defconstant "Insert a defconstant form.")
 ;;;###autoload
 (breeze--defstub breeze-insert-class-slot "Insert a defclass slot form.")
@@ -1113,6 +1115,8 @@ automatically enabling breeze-minor-mode in lisp-mode."
 (breeze--defstub breeze-insert-breeze-define "Insert a breeze:define-command form.")
 ;;;###autoload
 (breeze--defstub breeze-insert-define-constant "Insert a alexandria:define-constant form.")
+;;;###autoload
+(breeze--defstub breeze-quickinsert "Given the context, suggest applicable snippets.")
 ;;;###autoload
 (breeze--defstub breeze-insert-defmethod "Insert a defmethod form.")
 ;;;###autoload

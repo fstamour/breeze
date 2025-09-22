@@ -1,7 +1,7 @@
 .SHELL=sh
 
 .PHONY: all-tests
-all-tests: test test-emacs
+all-tests: test test-emacs emacs/breeze-autoloads.el
 
 # Run the unit tests
 .PHONY: test
