@@ -13,9 +13,6 @@
 
 (in-package #:breeze.test.package)
 
-;; todo add to asd
-
-
 #++ ;; Sanity-check
 (mapcar #'read-from-string
         '("in-package"

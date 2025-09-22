@@ -23,7 +23,8 @@ point.")
            #:in-package-nodes
            #:make-buffer
            #:update-buffer-content
-           #:index-in-package-nodes))
+           #:index-in-package-nodes
+           #:current-package))
 
 (in-package #:breeze.buffer)
 
@@ -134,7 +135,7 @@ point.")
                    buffer))
                 'vector)))
 
-;; TODO add tests
+;; TODO rename to current-package-node
 (defmethod current-package ((buffer buffer))
   (let ((position (point buffer))
         (candidates (or
@@ -142,6 +143,10 @@ point.")
                      (index-in-package-nodes buffer))))
     (when (and candidates (plusp (length candidates)))
       (find-if (lambda (node) (< (end node) position)) candidates :from-end t))))
+
+
+;; TODO (see interactive-eval-command) - get the node, parse it, find the package
+;; (defmethod current-package ((buffer buffer)))
 
 (defmethod map-top-level-forms (function (buffer buffer))
   (map-top-level-forms function (parse-state buffer)))
