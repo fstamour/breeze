@@ -38,12 +38,12 @@
   (is eqv '(:uninterned-symbol "X") (test-parse-symbol-node "#:x"))
   (is eqv '(:qualified-symbol "X" "P") (test-parse-symbol-node "p:x"))
   (is eqv '(:possibly-internal-symbol "X" "P") (test-parse-symbol-node "p::x"))
+  (is eqv '(:possibly-internal-symbol "X" "KEYWORD") (test-parse-symbol-node "::x"))
   (false (test-parse-symbol-node ""))
   (false (test-parse-symbol-node "#:"))
   (false (test-parse-symbol-node "::"))
   (false (test-parse-symbol-node "p:::x"))
   (false (test-parse-symbol-node "p::"))
-  (false (test-parse-symbol-node "::x"))
   (false (test-parse-symbol-node "a:a:x")))
 
 

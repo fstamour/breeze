@@ -9,7 +9,6 @@
                 #:when-let
                 #:when-let*)
   (:export #:node-symbol-name
-           #:node-string-designator-string
            #:parse-symbol-node)
   ;; Tree/Form predicate
   (:export #:with-match

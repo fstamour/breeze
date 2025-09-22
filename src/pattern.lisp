@@ -687,7 +687,6 @@ bindings and keeping only those that have not conflicting bindings."
           (t (and (match-package) (match-symbol))))))))
 
 
-;; TODO export
 ;; TODO update docstring
 (defun parse-symbol (string &optional (start 0) (end (length string)))
   "See PARSE-SYMBOL's docstring."
@@ -720,14 +719,53 @@ bindings and keeping only those that have not conflicting bindings."
       ;; p::x
       (2 (let* ((first (position #\: string :start start :end end)))
            (and
-            (/= start first)
             (< (1+ first) (1- end))
             (char= #\: (char string (1+ first)))
             (list :possibly-internal-symbol
                   ;; symbol-name
                   (subseq string (+ 2 first) end)
                   ;; package-name
-                  (subseq string start first))))))))
+                  (if (= start first)
+                      #.(string :keyword)
+                      (subseq string start first)))))))))
+
+(defmethod match ((pattern sym) (input string) &key)
+  (with-slots ((symbol-name-pattern name)
+               (package-name-pattern package)
+               (qualification-pattern qualification))
+      pattern
+    (alexandria:when-let ((parsed-symbol (parse-symbol input)))
+      (destructuring-bind (qualification symbol-name &optional package-name)
+          parsed-symbol
+        (flet ((match-package ()
+                 (or (wildp package-name-pattern)
+                     (cond
+                       ((eq :uninterned-symbol qualification)
+                        (null package-name-pattern))
+                       ((null package-name-pattern) nil)
+                       ;; if the package pattern is "keyword"
+                       ((string= :keyword #1=(or (and (packagep package-name-pattern)
+                                                      (package-name package-name-pattern))
+                                                 package-name-pattern))
+                        (or (eq :keyword qualification)
+                            (and (eq :possibly-internal-symbol qualification)
+                                 (string= :keyword package-name))))
+                       ;; package:name or package::name
+                       ((member qualification '(:qualified-symbol :possibly-internal-symbol))
+                        ;; TODO choose between string= and
+                        ;; string-equal depending on *read-case*
+                        (string-equal package-name #1#)))))
+               (match-symbol ()
+                 (or (wildp symbol-name-pattern)
+                     ;; TODO choose between string= and string-equal
+                     ;; depending on *read-case*
+                     (string-equal symbol-name-pattern symbol-name)))
+               (match-qualification ()
+                 (or (wildp qualification-pattern)
+                     (eq qualification-pattern qualification))))
+          (and (match-package)
+               (match-symbol)
+               (match-qualification)))))))
 
 
 ;;; Iterators
