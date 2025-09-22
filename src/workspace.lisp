@@ -21,7 +21,6 @@
                 #:goto-position
                 #:map-top-level-forms)
   (:import-from #:breeze.analysis
-                #:node-string-designator-string
                 #:with-match)
   (:import-from #:breeze.package
                 #:map-top-level-in-package)
@@ -35,7 +34,8 @@
            #:parse-state
            #:point
            #:point-min
-           #:point-max)
+           #:point-max
+           #:map-workpace-buffers)
   (:export #:in-package-cl-user-p
            #:infer-package-name-from-file
            #:infer-project-name
@@ -96,7 +96,6 @@ Design decision(s):
       (setf (gethash buffer-name (buffers *workspace*))
             (make-instance 'buffer :name buffer-name))))
 
-;; TODO(bug) add to workspace fails when a file is empty: outer-node is nil
 (defmethod add-to-workspace ((context-plist cons))
   ;; TODO error or warn if name is not provided
   (when-let* ((name (getf context-plist :buffer-name))
@@ -121,6 +120,12 @@ Design decision(s):
 
 ;; TODO
 ;; (defun add-systemS-to-workspace ...)
+
+(defun map-workpace-buffers (fn &optional (workspace *workspace*))
+  (loop
+    :for buffer-name :being :the :hash-key :of (buffers workspace)
+      :using (hash-value buffer)
+    :do (funcall fn buffer)))
 
 
 
@@ -184,19 +189,24 @@ Design decision(s):
 
 ;; TODO add tests
 (defmethod locate-package-definition ((package string) #| TODO haystack |#)
-  ;; TODO don't look only in the current buffer
   ;; TODO maybe cache the "match data" on the defpackage macros
-  (loop
-    :for buffer-name :being :the :hash-key :of (buffers *workspace*) :using (hash-value buffer)
-    :do (map-top-level-forms
+  (map-workpace-buffers
+   (lambda (buffer)
+     (map-top-level-forms
          (lambda (node-iterator)
            (with-match (node-iterator
                         (:either
+                         ;; TODO instead of ?name, use (sym :wild package)
                          (cl:defpackage ?name)
+                         ;; TODO use (:symbol :uiop :define-package)
+                         ;; instead of 'uiop:define-package
                          (uiop:define-package ?name)))
+             ;; TODO no need to check the '?name if we matched against a `sym' pattern.
              (when-let* ((package-name-node (get-bindings '?name))
+                         ;; TODO node-string-designator-string doesn't exist anymore
                          (package-name (node-string-designator-string
                                         package-name-node)))
                (when (string= package package-name)
                  (return-from locate-package-definition node-iterator)))))
-         buffer)))
+         buffer))))
+

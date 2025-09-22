@@ -10,7 +10,8 @@
                 #:true
                 #:false
                 #:of-type
-                #:finish))
+                #:finish)
+  (:export #:*breeze-workspace*))
 
 (in-package #:breeze.test.workspace)
 
@@ -29,30 +30,38 @@
         (infer-project-name "some path"))
       "infer-project-name should return the name of the version control root directory when it is found"))
 
-(defun goto-all-positions (content node-iterator)
+(defun goto-all-positions ($node)
   (loop
-    :with length = (length content)
+    :with length = (length (breeze.lossless-reader:source $node))
     :for i :below length
-      :do (breeze.lossless-reader:goto-position node-iterator i)))
+      :do (breeze.lossless-reader:goto-position $node i)))
+
+(defparameter *breeze-workspace* nil)
+
+;; this tests add-to-workspace
+(define-test+run *breeze-workspace*
+  (let ((*workspace* (make-instance 'workspace)))
+    ;; TODO extract a function to "add system" into a workspace.
+    (loop
+      :with root = (breeze.utils:breeze-relative-pathname "") ; TODO use breeze.asdf:system-enough-pathname
+      :for file :in (breeze.asdf:system-files 'breeze)
+      :for name = (enough-namestring file root) ; TODO use breeze.asdf:system-enough-pathname
+      :for content = (alexandria:read-file-into-string file)
+      :do (add-to-workspace `(:buffer-name ,name
+                              :buffer-string ,content
+                              :point 1)))
+    (setf *breeze-workspace* *workspace*)
+    *workspace*))
 
 (define-test+run add-to-workspace
+  :depends-on (*breeze-workspace*)
   (finish
-   (let ((*workspace* (make-instance 'workspace)))
-     (loop
-       :with root = (breeze.utils:breeze-relative-pathname "")
-       :for file :in (breeze.asdf:system-files 'breeze)
-       :for name = (enough-namestring file root)
-       :for content = (alexandria:read-file-into-string file)
-       :for buffer = (add-to-workspace `( :buffer-name ,name
-                                          :buffer-string ,content
-                                          :point 1))
-       :for node-iterator = (breeze.lossless-reader:node-iterator buffer)
-       :do
-          (finish
+   (map-workpace-buffers
+    (lambda (buffer
+             &aux ($node (breeze.lossless-reader:node-iterator buffer)))
+      (finish
            (progn ;; time
-             (goto-all-positions content node-iterator))
-           "Should be able to \"goto\" every positions in ~s" name))
-     *workspace*)))
-
+             (goto-all-positions $node))
+           "Should be able to \"goto\" every positions in ~s" (name buffer))))))
 
 ;; TODO tests! (breeze.workspace::locate-package-definition "breeze.lossless-reader")
