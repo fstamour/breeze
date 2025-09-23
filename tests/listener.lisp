@@ -76,5 +76,35 @@ breeze.dummy.test:hjkl
             (make-buffer))
       (setf (point (current-buffer)) point)
       (update-buffer-content (current-buffer) " 'x ")
-      ;; (break)
-      (false (interactive-eval-command)))))
+      (false (interactive-eval-command))))
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("pulse" 0 9) value))
+       (mock-send-out (value)
+         (is equalp '("message" "Did you mean \"PRINT\"?") value))
+       (mock-send-out (value)
+         (is equalp '("message"
+                      "32 (6 bits, #x20, #o40, #b100000)") value))
+       (mock-send-out (value)
+         (is equalp '("done") value))
+       (mock-send-out (value)
+         (is equalp '("done") value)))
+    ;; TODO make it less painful to setup a buffer correctly,,,
+    (setf (gethash :buffer (context *command*))
+          (make-buffer))
+    (setf (point (current-buffer)) 0)
+    (update-buffer-content (current-buffer) "(prin 32)")
+    ;; input "prin" candidate: PRINT
+    (handler-bind
+        ((undefined-function
+           (lambda (condition)
+             (declare (ignore condition))
+             (let* ((restarts (compute-restarts))
+                    (first-restart (car restarts)))
+               (is eq 'breeze.listener::use-suggestion
+                   (restart-name first-restart))
+               (if (eq 'breeze.listener::use-suggestion
+                       (restart-name first-restart))
+                   (invoke-restart first-restart)
+                   (error "Not the restart I expected: ~s" first-restart))))))
+      (interactive-eval-command))))
