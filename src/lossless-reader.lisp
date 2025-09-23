@@ -1197,6 +1197,13 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
         :do (vector-push-extend node result)
       :while (and (valid-node-p node)
                   (not (donep state))))
+    ;; When the input string is empty, we insert a 0-length whitespace
+    ;; node at the root. This lets us uses the iterator's `value'
+    ;; method without bound checks. This is a trade-off: we have a
+    ;; slightly incorrect parse tree, but we avoid checks
+    ;; everywhere...
+    (when (zerop (length string))
+      (vector-push-extend (whitespace 0 0) result))
     (setf (tree state) result))
   state)
 

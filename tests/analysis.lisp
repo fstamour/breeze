@@ -283,7 +283,7 @@
   (progn
     (test-match-terms-against-parse-tree
      :?x "" nil
-     nil)
+     (whitespace 0 0))
     (test-match-terms-against-parse-tree
      :?x "" t
      nil)
@@ -299,7 +299,7 @@
   (progn
     (test-match-terms-against-parse-tree
      '(:?x) "" nil
-     nil)
+     (whitespace 0 0))
     (test-match-terms-against-parse-tree
      '(:?x) "" t
      nil)

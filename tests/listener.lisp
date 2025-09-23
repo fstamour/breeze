@@ -55,6 +55,16 @@ breeze.dummy.test:hjkl
 ;; => #<SB-INT:SIMPLE-READER-PACKAGE-ERROR "Package ~A does not exist." {1025D737E3}>
 
 (define-test+run interactive-eval-command ()
+  ;; Empty file
+  ;; TODO This should probably print a message instead...
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("pulse" 0 0) value)))
+    (setf (gethash :buffer (context *command*))
+          (make-buffer :string ""))
+    (fail (interactive-eval-command)
+        'end-of-file))
+  ;; File with only 1 space
   (with-fake-command-handler
       ((mock-send-out (value)
          (is equalp '("pulse" 0 1) value)))

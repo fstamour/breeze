@@ -548,10 +548,11 @@ will fix the issue and then stop the current command."
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
   (maybe-ask-to-load-system)
+  ;; TODO Is it the right place? maybe do that in the header-line??
   #++ (check-in-package)
   (let ((root (root-node (current-node-iterator))))
-    (pulse (start root) (end root)))
-  (maybe-apply-fixes)
+    (pulse (start root) (end root))
+    (maybe-apply-fixes))
   (message "Nothing to fix in the current top-level form."))
 
 #|
