@@ -24,6 +24,12 @@
                 #:name
                 #:node-iterator)
   (:export
+   #:*command*
+   #:send-into
+   #:recv-from
+   #:recv-into
+   #:send-out)
+  (:export
    #:start-command
    #:cancel-command
    #:continue-command

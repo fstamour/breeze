@@ -166,9 +166,136 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 ;; TODO
 (define-test point-max)
 
-;; TODO Test node-iterator
-#++
-(node-iterator
- (context-plist-to-hash-table
-  `(:buffer-string ,(string #\Newline)
-    :position 1)))
+
+
+(defclass fake-command-handler ()
+  ((context
+    :initarg :context
+    :initform (make-hash-table)
+    :accessor context
+    :documentation "The context of the command.")
+   (mocks
+    :initform nil
+    :accessor mocks)))
+
+(defmethod send-into ((command fake-command-handler) value)
+  (break "Not implemented: send-into: ~s" value))
+
+(defmethod recv-from ((command fake-command-handler))
+  (break "Not implemented: recv-from"))
+
+(defmethod recv-into ((command fake-command-handler))
+  (let ((mock (pop (mocks command))))
+    (if mock
+        (if (eq (car mock) 'mock-recv-into)
+            (funcall (cdr mock))
+            (error "Exepected a call to `recv-into' got ~s" (car mock)))
+        (error "Unexpected recv-into value."))))
+
+(defmethod send-out ((command fake-command-handler) value)
+  (let ((mock (pop (mocks command))))
+    (if mock
+        (if (eq (car mock) 'mock-send-out)
+            (funcall (cdr mock) value)
+            (error "Exepected a call to `send-out' got ~s" (car mock)))
+        (error "Unexpected send-out value: ~s" value))))
+
+(defmacro mock-recv-into (() &body body)
+  `(lambda ()
+     ,@body))
+
+(defmacro mock-send-out ((var) &body body)
+  (check-type var symbol)
+  `(lambda (,var)
+     ,@body
+     nil))
+
+(defmacro with-fake-command-handler (mocks
+                                     &body body)
+  `(let ((*command* (make-instance 'fake-command-handler)))
+     ,@(loop :for mock :in (reverse mocks)
+             :collect `(push (cons ',(car mock) ,mock)
+                             (mocks *command*)))
+     ,@body))
+
+(define-test+run insert
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("insert" "A, B, C") value)))
+    (insert "~{~a~^, ~}" '(a b c))))
+
+(define-test+run read-string
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("read-string" "> " "initial value") value))
+       (mock-recv-into ()
+         '("user input")))
+    (is equalp "user input"
+        (read-string "> " "initial value"))))
+
+(define-test+run read-string-then-insert
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("read-string" "> " nil) value))
+       (mock-recv-into ()
+         '("user input"))
+       (mock-send-out (value)
+         (is equalp '("insert" "~> \"user input\" <~") value)))
+    (read-string-then-insert "> " "~~> ~s <~~")))
+
+(define-test+run choose
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("choose" "choose one: " (a b c)) value))
+       (mock-recv-into () '("choice")))
+    (is equalp "choice"
+        (choose "choose one: " '(a b c)))))
+
+(define-test+run insert-at
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("insert-at" 32 "asdf") value)))
+
+    (insert-at 32 "~a" '|asdf|)))
+
+(define-test+run insert-at-saving-excursion
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("insert-at-saving-excursion" 32 "asdf") value)))
+    (insert-at-saving-excursion 32 "~a" '|asdf|)))
+
+(define-test+run replace-region
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("replace" 0 100 "---") value)))
+    (replace-region 0 100 "---")))
+
+(define-test+run message
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("message" "hello WORMS") value)))
+    (message "hello ~a" :worms)))
+
+(define-test+run find-file
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("find-file" "hello.lisp") value)))
+    (find-file "hello.lisp")))
+
+(define-test+run return-value-from-command
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("return" 42) value)))
+    (return-value-from-command 42)))
+
+(define-test+run goto-char
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("goto-char" 89) value)))
+    (goto-char 89)))
+
+(define-test+run pulse
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("pulse" 0 100) value)))
+    (pulse 0 100)))
