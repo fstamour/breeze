@@ -4,7 +4,8 @@
   (:documentation "Pattern matching")
   (:use #:cl #:breeze.iterator)
   (:import-from #:breeze.generics
-                #:name)
+                #:name
+                #:eqv)
   (:import-from #:breeze.string
                 #:symbol-starts-with)
   (:export #:compile-pattern)
@@ -197,6 +198,27 @@ symbols."))
                  :package package
                  :name name
                  :qualification qualification))
+
+(defmethod eqv ((a sym) (b sym))
+  (with-slots ((pak-a package) (name-a name) (qual-a qualification)) a
+    (with-slots ((pak-b package) (name-b name) (qual-b qualification)) b
+      (and
+       ;; Compare package "pattern"
+       (or
+        ;; compare by eq, in case they're both actual package objects,
+        ;; not just designators
+        (eq pak-a pak-b)
+        ;; N.B. : case-insensitive comparison
+        (cond
+          ((packagep pak-a)
+           (string-equal (package-name pak-a) pak-b))
+          ((packagep pak-b)
+           (string-equal (package-name pak-b) pak-a))
+          (t
+           (string-equal pak-a pak-b))))
+       (or (eq name-a name-b)
+           (string-equal name-a name-b))
+       (eq qual-a qual-b)))))
 
 
 ;;; Repetitions
@@ -459,18 +481,29 @@ compile-pattern is called, a new one is created."
 (defmethod compile-compound-pattern (token pattern)
   (map 'vector #'%compile-pattern pattern))
 
-;; Compile (:maybe ...)
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
+  "Compile (:maybe ...)"
   ;; TODO check the length of "pattern"
   (maybe (%compile-pattern (second pattern))))
 
-;; Compile (:zero-or-more ...)
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
+  "Compile (:zero-or-more ...)"
   (zero-or-more (%compile-pattern (rest pattern))))
 
-;; Compile (:either ...)
 (defmethod compile-compound-pattern ((token (eql :either)) patterns)
+  "Compile (:either ...)"
   (either (%compile-pattern (rest patterns))))
+
+(defmethod compile-compound-pattern ((token (eql :symbol)) pattern)
+  "Compile (:symbol ...)"
+  (destructuring-bind (symbol-name-pattern
+                       &optional
+                         (package-name-pattern :wild)
+                         (qualification-pattern :wild))
+      (rest pattern)
+    (sym package-name-pattern
+         symbol-name-pattern
+         qualification-pattern)))
 
 
 ;;; Bindings (e.g. the result of a successful match)
