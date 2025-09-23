@@ -90,7 +90,7 @@ of the instance of that had the smallest score."
     ;; invoked
     (let ((use-value (find-restart 'use-value condition)))
       (setf *last-invoked-restart* (list candidate))
-      (format *debug-io* "~&About to invoke the restart ~s with the value ~s."
+      #++ (format *debug-io* "~&About to invoke the restart ~s with the value ~s."
               use-value
               candidate)
       (invoke-restart use-value candidate))))
@@ -117,7 +117,7 @@ of the instance of that had the smallest score."
   (:method (condition)
     (cell-error-name condition))
   (:method ((condition undefined-function))
-    (format *debug-io* "~&1")
+    ;; (format *debug-io* "~&1")
     (cell-error-name condition))
   (:method ((condition package-error))
     (let ((package-designator
@@ -151,7 +151,7 @@ of the instance of that had the smallest score."
                                "~~&candidate ~(~a~): ~~s"
                                type)
                       candidate)
-              (break "input ~s candidate: ~s" input candidate)
+              ;; (break "input ~s candidate: ~s" input candidate)
               (if candidate
                   (suggest input candidate condition)
                   (error condition)))))))
