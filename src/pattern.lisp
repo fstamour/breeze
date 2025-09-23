@@ -17,7 +17,6 @@
            #:wildcardp
            #:term
            #:termp
-           #:term=
            #:name
            #:sym
            #:sym-package
@@ -27,15 +26,12 @@
            #:zero-or-more
            #:repetition
            #:repetitionp
-           #:repetition=
            #:minimum
            #:maximum
            #:maybe
            #:zero-or-more
            #:either
            #:eitherp
-           #:either=
-           #:pattern=
            #:pattern-iterator
            #:make-pattern-iterator)
   ;; Working with match results
@@ -72,6 +68,9 @@
   ()
   (:documentation "Abstract pattern"))
 
+(defmethod make-load-form ((s pattern) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
+
 
 ;;; Wildcard / don't care
 
@@ -87,6 +86,12 @@
 (defun wildcardp (x)
   "Is X an object of class `wildcard'?"
   (eq (class-name (class-of x)) 'wildcard))
+
+(defmethod eqv ((a wildcard) (b wildcard))
+  t)
+
+(defmethod make-load-form ((s wildcard) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
 
 
 ;;; Terms
@@ -115,20 +120,23 @@
       (term stream :type t :identity t)
     (format stream "~s" (name term))))
 
-;; TODO this could be a method on eqv
-(defun term= (a b)
+(defmethod eqv ((a term) (b term))
   "Test that A and B are both object of type `term' with the same name."
   (and (termp a)
        (termp b)
        (eq (name a)
            (name b))))
+
+(defmethod make-load-form ((s term) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
+
 
 ;;; Symbol patterns
 
 #|
 
-TODO add a special pattern type to match symbols in packages that are
-not defined in the current image.
+A pattern type to match symbols in packages that are not defined in
+the current image.
 
 What do I want it to look like?
 
@@ -220,6 +228,9 @@ symbols."))
            (string-equal name-a name-b))
        (eq qual-a qual-b)))))
 
+(defmethod make-load-form ((s sym) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
+
 
 ;;; Repetitions
 
@@ -256,13 +267,12 @@ successful match.")
   "Is X an object of class `repetition'?"
   (eq (class-name (class-of x)) 'repetition))
 
-;; TODO this could be a method on eqv
-(defun repetition= (a b)
+(defmethod eqv ((a repetition) (b repetition))
   "Test that A and B are both object of type `repetition' with the same
 limits."
   (and (repetitionp a)
        (repetitionp b)
-       (pattern= (pattern a) (pattern b))
+       (eqv (pattern a) (pattern b))
        (= (minimum a) (minimum b))
        (let ((ma (maximum a))
              (mb (maximum a)))
@@ -277,6 +287,9 @@ limits."
     (format stream "[~s-~s]"
             (minimum repetition)
             (maximum repetition))))
+
+(defmethod make-load-form ((s repetition) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
 
 (defun maybe (pattern)
   "Make a pattern object that optionally matches a pattern once."
@@ -301,22 +314,21 @@ limits."
   "Make a pattern object that must match one of its subpatterns."
   (check-type patterns vector)
   ;; maybe we would also like to check that there's more than 1
-  ;; pattern, perhaps even check that they are not `pattern='.
+  ;; pattern, perhaps even check that they are not `eqv'.
   (make-instance 'either :patterns patterns))
 
 (defun eitherp (x)
   "Is X an object of class `either'?"
   (eq (class-name (class-of x)) 'either))
 
-;; TODO this could be a method on eqv
-(defun either= (a b)
+(defmethod eqv ((a either) (b either))
   "Test that A and B are both object of type `either' with the same
 subpatterns."
   (and (eitherp a)
        (eitherp b)
        ;; This works because patterns are vectors...
-       (pattern= (patterns a)
-                 (patterns b))))
+       (eqv (patterns a)
+            (patterns b))))
 
 (defmethod print-object ((either either) stream)
   "Print an object of type `either'."
@@ -326,36 +338,8 @@ subpatterns."
     ;; patterns, or all of them if they're very small.
     (format stream "~s" (length (patterns either)))))
 
-
-;;; Pattern comparison
-
-;; TODO this could be a method on eqv
-(defgeneric pattern= (a b)
-  (:documentation "Test if two patterns are the same. (Note that this doesn't test for
-equivalence, just for equality."))
-
-(defmethod pattern= (a b)
-  (equal a b))
-
-(defmethod pattern= ((a wildcard) (b wildcard))
-  t)
-
-(defmethod pattern= ((a vector) (b vector))
-  (or (eq a b)
-      (and (= (length a) (length b))
-           (loop :for x :across a
-                 :for y :across b
-                 :always (pattern= x y)))))
-
-(macrolet ((def (name)
-             `(progn
-                (defmethod pattern= ((a ,name) (b ,name))
-                  (,(alexandria:symbolicate name '=) a b))
-                (defmethod make-load-form ((s ,name) &optional environment)
-                  (make-load-form-saving-slots s :environment environment)))))
-  (def term)
-  (def repetition)
-  (def either))
+(defmethod make-load-form ((s either) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
 
 
 ;;; Pattern compilation from lists and symbols to vectors and structs

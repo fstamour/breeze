@@ -22,7 +22,8 @@
   (equalp a b))
 
 (defmethod eqv ((a sequence) (b sequence))
-  (every #'eqv a b))
+  (or (eq a b)
+      (every #'eqv a b)))
 
 (defmethod eqv ((a cons) (b cons))
   (loop :for x :on a

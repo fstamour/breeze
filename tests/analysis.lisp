@@ -261,7 +261,7 @@
                       (declare (ignore term))
                       (setf binding binding*))
                     hash-table)))
-       (is breeze.pattern::term= (term :?x) (from binding)
+       (is eqv (term :?x) (from binding)
            "matching ~s against ~s (~s) should have bound the term :?x"
            pattern string state)
        (true (to binding)

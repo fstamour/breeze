@@ -38,10 +38,10 @@
     (true (termp term))
     (is eq :x (name term))))
 
-(define-test+run term=
-  (true (term= (term :x) (term :x)))
-  (false (term= (term :y) (term :x)))
-  (false (term= (term :y) 42)))
+(define-test+run "eqv term"
+  (true (eqv (term :x) (term :x)))
+  (false (eqv (term :y) (term :x)))
+  (false (eqv (term :y) 42)))
 
 (define-test+run "sym print-object"
   ;; TODO would be nice if it printed :wild instead of ':wild
@@ -600,20 +600,20 @@
 
 ;; TODO either=
 
-(define-test+run pattern=
-  (is pattern= 'x 'x)
-  (is pattern= '(x) '(x))
-  (is pattern= (term 'x) (term 'x))
-  (is pattern= (maybe 'y) (maybe 'y))
-  (is pattern= (maybe '(x y)) (maybe '(x y)))
+(define-test+run eqv
+  (is eqv 'x 'x)
+  (is eqv '(x) '(x))
+  (is eqv (term 'x) (term 'x))
+  (is eqv (maybe 'y) (maybe 'y))
+  (is eqv (maybe '(x y)) (maybe '(x y)))
   ;; TODO Maybe I should try to detect this case when compiling...
-  (is pattern= (maybe (maybe 'x)) (maybe (maybe 'x)))
-  (is pattern= (zero-or-more 'y) (zero-or-more 'y))
-  (is pattern= (zero-or-more '(x y)) (zero-or-more '(x y)))
-  (is pattern= (zero-or-more (maybe 'x)) (zero-or-more (maybe 'x)))
-  (is pattern= (either #(y)) (either #(y)))
-  (is pattern= (either #(x y)) (either #(x y)))
-  (is pattern=
+  (is eqv (maybe (maybe 'x)) (maybe (maybe 'x)))
+  (is eqv (zero-or-more 'y) (zero-or-more 'y))
+  (is eqv (zero-or-more '(x y)) (zero-or-more '(x y)))
+  (is eqv (zero-or-more (maybe 'x)) (zero-or-more (maybe 'x)))
+  (is eqv (either #(y)) (either #(y)))
+  (is eqv (either #(x y)) (either #(x y)))
+  (is eqv
       (either (vector (maybe 'x)))
       (either (vector (maybe 'x)))))
 
@@ -630,16 +630,16 @@
   (false (wildcard-symbol-p "_x")))
 
 (define-test+run compile-pattern
-  (is pattern= (wildcard) (compile-pattern :_x))
-  (is pattern= :x (compile-pattern :x))
-  (is pattern= 42 (compile-pattern 42))
-  (is pattern= (term :?x) (compile-pattern :?x))
-  (is pattern= (maybe :x) (compile-pattern '(:maybe :x)))
-  (is pattern= (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
-  (is pattern= (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
-  (is pattern= (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
-  (is pattern= (either #(:x)) (compile-pattern '(:either :x)))
-  (is pattern= (either #(:x :y)) (compile-pattern '(:either :x :y)))
+  (is eqv (wildcard) (compile-pattern :_x))
+  (is eqv :x (compile-pattern :x))
+  (is eqv 42 (compile-pattern 42))
+  (is eqv (term :?x) (compile-pattern :?x))
+  (is eqv (maybe :x) (compile-pattern '(:maybe :x)))
+  (is eqv (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
+  (is eqv (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
+  (is eqv (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
+  (is eqv (either #(:x)) (compile-pattern '(:either :x)))
+  (is eqv (either #(:x :y)) (compile-pattern '(:either :x :y)))
   (is eqv (sym :wild :defun :wild) (compile-pattern '(:symbol :defun)))
   (is eqv (sym :cl :defun :wild) (compile-pattern '(:symbol :defun :cl)))
   (is eqv (sym :cl :defun :qualified) (compile-pattern '(:symbol :defun :cl :qualified)))
@@ -1015,7 +1015,7 @@
 
 #++
 (let ((r (make-rewrite '(/ ?x ?x) 1)))
-  (list (pattern= (rewrite-pattern r) #(/ (term :?x) (term :?x)))
+  (list (eqv (rewrite-pattern r) #(/ (term :?x) (term :?x)))
         (rewrite-template r)))
 
 #++
