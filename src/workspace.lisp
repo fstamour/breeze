@@ -111,10 +111,6 @@ Design decision(s):
       (setf (point-max buffer) point-max))
     (when-let ((new-content (getf context-plist :buffer-string)))
       (update-buffer-content buffer new-content))
-    ;; update the node-iterator's position
-    (when-let ((node-iterator (node-iterator buffer))
-               (point (point buffer)))
-      (goto-position node-iterator point))
     ;; return the buffer
     buffer))
 

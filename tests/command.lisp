@@ -23,7 +23,11 @@
                 #:is
                 #:true
                 #:false)
-  (:export #:drive-command))
+  (:export #:drive-command)
+  (:export #:fake-command-handler
+           #:mock-send-out
+           #:mock-recv-into
+           #:with-fake-command-handler))
 
 (in-package #:breeze.test.command)
 
@@ -216,7 +220,10 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
      ,@(loop :for mock :in (reverse mocks)
              :collect `(push (cons ',(car mock) ,mock)
                              (mocks *command*)))
-     ,@body))
+     ,@body
+     ;; TODO check that there are no mocks left
+     ;; (fasle (mocks *command*) "...")
+     ))
 
 (define-test+run insert
   (with-fake-command-handler

@@ -99,6 +99,10 @@ point.")
         (setf (node-iterator buffer) (make-node-iterator new-content)))
       (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
              (setf (node-iterator buffer) (make-node-iterator new-content))))
+    ;; update the node-iterator's position
+    (when-let ((node-iterator (node-iterator buffer))
+               (point (point buffer)))
+      (goto-position node-iterator point))
     (index-in-package-nodes buffer))
   buffer)
 
