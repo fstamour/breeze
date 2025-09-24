@@ -209,34 +209,30 @@ SYMBOL-NAME and QUALIFICATION)."
 ;; TODO match-case
 
 (defmacro with-match ((node-iterator pattern) &body body)
-  (multiple-value-bind (compiled-pattern term-pool)
-      (compile-pattern pattern)
-    (let ((bindings (intern (symbol-name '#:bindings) *package*))
-          (get-bindings (intern (symbol-name '#:get-bindings) *package*)))
-      `(let* ((,bindings (match ,compiled-pattern (copy-iterator ,node-iterator)
-                                :skipp #'whitespace-or-comment-node-p)))
-         (flet ((,get-bindings (name)
-                  (when ,bindings
-                    (when-let* ((term (gethash name ,term-pool))
-                                (binding (find-binding ,bindings term)))
-                      (to binding)))))
-           (declare (ignorable (function ,get-bindings)))
-           ,@body)))))
+  (let* ((compiled-pattern (compile-pattern pattern))
+         (bindings (intern (symbol-name '#:bindings)))
+         (get-bindings (intern (symbol-name '#:get-bindings))))
+    `(let* ((,bindings (match ,compiled-pattern (copy-iterator ,node-iterator)
+                         :skipp #'whitespace-or-comment-node-p)))
+       (flet ((,get-bindings (name)
+                (when ,bindings
+                  (when-let ((binding (find-binding ,bindings name)))
+                    (to binding)))))
+         (declare (ignorable (function ,get-bindings)))
+         ,@body))))
 
 ;; TODO be able to name the "node-iterator" argument
 ;; TODO maybe, be able to do some checks _before_ trying to match
 ;; TODO maybe, add some options for common stuff ... e.g. "don't match if quoted"
 (defmacro define-node-matcher (name (pattern) &body body)
-  (multiple-value-bind (compiled-pattern term-pool)
-      (compile-pattern pattern)
+  (let ((compiled-pattern (compile-pattern pattern)))
     `(defun ,name (node-iterator)
        ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
        (let* ((bindings (match ,compiled-pattern (copy-iterator node-iterator)
                           :skipp #'whitespace-or-comment-node-p)))
          (flet ((get-bindings (name)
                   (when bindings
-                    (when-let* ((term (gethash name ,term-pool))
-                                (binding (find-binding bindings term)))
+                    (when-let ((binding (find-binding bindings name)))
                       (to binding)))))
            (declare (ignorable (function get-bindings)))
            ,@body)))))

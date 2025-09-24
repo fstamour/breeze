@@ -261,7 +261,7 @@
                       (declare (ignore term))
                       (setf binding binding*))
                     hash-table)))
-       (is eqv (term :?x) (from binding)
+       (is eq :?x (from binding)
            "matching ~s against ~s (~s) should have bound the term :?x"
            pattern string state)
        (true (to binding)

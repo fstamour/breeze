@@ -643,10 +643,8 @@
   (is eqv (sym :wild :defun :wild) (compile-pattern '(:symbol :defun)))
   (is eqv (sym :cl :defun :wild) (compile-pattern '(:symbol :defun :cl)))
   (is eqv (sym :cl :defun :qualified) (compile-pattern '(:symbol :defun :cl :qualified)))
-  (multiple-value-bind (p terms)
-      (compile-pattern '(?x ?x))
-    (is eq (aref p 0) (aref p 1))
-    (is eq (aref p 0) (gethash '?x terms))))
+  (let ((p (compile-pattern '(?x ?x))))
+    (is eq (name (aref p 0)) (name (aref p 1)))))
 
 
 ;;; Pattern iterators...
@@ -978,9 +976,8 @@
 ;;; Match substitution
 
 (defun test-pattern-substitute (pattern bindings)
-  (multiple-value-bind (compiled-pattern term-pool)
-      (breeze.pattern:compile-pattern pattern)
-    (values (pattern-substitute compiled-pattern bindings) term-pool)))
+  (let ((compiled-pattern (compile-pattern pattern)))
+    (pattern-substitute compiled-pattern bindings)))
 
 (defun make-binding-set* (bindings)
   (loop
@@ -1003,9 +1000,8 @@
     (is eq t (test-pattern-substitute t t))
     (is eq 'x (test-pattern-substitute 'x t)))
   (progn
-    (multiple-value-bind (substituted-pattern term-pool)
-        (test-pattern-substitute :?x (make-binding-set* '((:?x . 42))))
-      (is eq (gethash :?x term-pool) substituted-pattern))
+    (is eql 42 (test-pattern-substitute
+                :?x (make-binding-set* '((:?x . 42)))))
     (is eq t (test-pattern-substitute t t))
     (is eq 'x (test-pattern-substitute 'x t))))
 

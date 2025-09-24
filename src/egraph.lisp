@@ -575,7 +575,7 @@ eclass-id."
   (etypecase pattern
     (breeze.pattern:term
      ;; The whole class "matches"
-     (list (breeze.pattern::make-binding pattern eclass)))
+     (list (breeze.pattern::make-binding (name pattern) eclass)))
     ((or vector symbol number)
      ;; Find every enode that matches the pattern
      (loop :for enode :across (enodes eclass)

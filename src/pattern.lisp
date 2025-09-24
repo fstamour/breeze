@@ -358,11 +358,6 @@ subpatterns."
 
 #|
 
-TODO get rid of *term-pool* and use the term's names when creating
-bindings.
-
-Explanations/rationale:
-
 Originally, I took the design decision of using the pattern objects
 themselves to serve as the "identity" of a binding. It's easier to
 explain with an example:
@@ -425,20 +420,10 @@ that we wouldn't need the *term-pool* at all anymore. (we don't even
 need to de-duplicate pattern objects whithin one pattern.)
 
 |#
-(defparameter *term-pool* nil
-  "A pool of terms, used to share terms across patterns created by
-independent calls to compile-pattern.")
-
-(defun make-term-pool () (make-hash-table))
 
 (defun compile-pattern (pattern)
-  "Compiles a PATTERN (specified as a list). Returns 2 values: the
-compiled pattern and *term-pool*. If *term-pool* is nil when
-compile-pattern is called, a new one is created."
-  (if *term-pool*
-      (values (%compile-pattern pattern) *term-pool*)
-      (let ((*term-pool* (make-term-pool)))
-        (compile-pattern pattern))))
+  "Compiles a PATTERN (specified as a list)"
+  (%compile-pattern pattern))
 
 ;; Default: leave as-is
 (defmethod %compile-pattern (pattern) pattern)
@@ -446,9 +431,7 @@ compile-pattern is called, a new one is created."
 ;; Compile symbols
 (defmethod %compile-pattern ((pattern symbol))
   (cond
-    ((term-symbol-p pattern)
-     (or (gethash pattern *term-pool*)
-         (setf (gethash pattern *term-pool*) (term pattern))))
+    ((term-symbol-p pattern) (term pattern))
     ((wildcard-symbol-p pattern)
      ;; TODO (optimization) this creates a new "wildcard" object everytime,
      ;; which is not really necessary.
@@ -654,7 +637,7 @@ bindings and keeping only those that have not conflicting bindings."
 
 (defmethod match ((pattern term) input &key)
   "Match a term (create a binding)"
-  (make-binding pattern input))
+  (make-binding (name pattern) input))
 
 (defmethod match ((pattern string) (input string) &key)
   "Match a string literal"
@@ -865,7 +848,7 @@ binding."
     (let ((binding-to (copy-iterator $input)))
       ;; consume one element of the input
       (next $input)
-      (make-binding pattern binding-to))))
+      (make-binding (name pattern) binding-to))))
 
 (defmethod match (($pattern t) ($input iterator) &key skipp)
   "Fallback: match something against the current value of the `iterator'
@@ -983,7 +966,7 @@ where consumed, for example)."
     (flet ((substitute1 (x)
              (etypecase x
                (term
-                (alexandria:if-let ((binding (find-binding bindings x)))
+                (alexandria:if-let ((binding (find-binding bindings (name x))))
                   (to binding)
                   ;; TODO this could signal a condition (binding not
                   ;; found)
@@ -1016,22 +999,19 @@ where consumed, for example)."
       (defclass rule (abstract-rule) ())
 
       (defun make-rule (a b)
-        (let ((*term-pool* (make-term-pool)))
-          (list :rule
-                (compile-pattern a)
-                (compile-pattern b))))
+        (list :rule
+              (compile-pattern a)
+              (compile-pattern b)))
 
       (defun make-rewrite (a b)
-        (let ((*term-pool* (make-term-pool)))
-          (list :rewrite
-                (compile-pattern a)
-                (compile-pattern b)))))
+        (list :rewrite
+              (compile-pattern a)
+              (compile-pattern b))))
 
 (defun make-rewrite (pattern template)
-  (let ((*term-pool* (make-hash-table)))
-    (cons ;; TODO use a class instead
-     (compile-pattern pattern)
-     (compile-pattern template))))
+  (cons ;; TODO use a class instead
+   (compile-pattern pattern)
+   (compile-pattern template)))
 
 (defun rewrite-pattern (rewrite)
   "Get the pattern of a REWRITE rule."
