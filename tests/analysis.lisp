@@ -252,7 +252,7 @@
        (true binding
              "matching ~s against ~s (~s) should have bound something"
              pattern string state)
-       (parachute:of-type '(or binding binding-set) binding)
+       (parachute:of-type '(or binding binding-set (eql t)) binding)
        (when (binding-set-p binding)
          (let ((hash-table (breeze.pattern::bindings binding)))
            (is = 1 (hash-table-count hash-table)
@@ -325,7 +325,25 @@
      (token 1 3))
     (test-match-terms-against-parse-tree
      '((:?x)) "(42)" nil
-     (token 1 3))))
+     (token 1 3))
+    (test-match-terms-against-parse-tree
+     '(defun :?x) "(defun f)" t
+     (token 7 8))
+    (test-match-terms-against-parse-tree
+     '(defun :?x) "(defun fgh (x) (* x x x))" t
+     (token 7 10))
+    (test-match-terms-against-parse-tree
+     '((:either defun defmethod) :?x) "(defun fgh (x) (* x x x))" t
+     (token 7 10))
+    (test-match-terms-against-parse-tree
+     '((:either defun defmethod) :?x) "(defmethod g (x) (1+ x))" t
+     (token 11 12))
+    (test-match-terms-against-parse-tree
+     '(defun (:either :?x (setf :?x))) "(defun fgh (x) (* x x x))" t
+     (token 7 10))
+    (test-match-terms-against-parse-tree
+     '(defun (:either :?x (setf :?x))) "(defun (setf x) (* x x x))" t
+     (parens 7 15 (vector (token 8 12) (whitespace 12 13) (token 13 14))))))
 
 (define-test+run "match vector against parse trees"
   (false (test-match-parse 'x "x"))
@@ -333,7 +351,7 @@
   (true (test-match-parse '((x)) "(x)")))
 
 (defun test-either (pattern string expected-binding
-                         &optional skip-whitespaces-and-comments)
+                    &optional skip-whitespaces-and-comments)
   (finish
    (let* (($node (make-node-iterator string))
           (pattern (compile-pattern pattern))
@@ -341,6 +359,10 @@
                      :skipp (when skip-whitespaces-and-comments
                               #'whitespace-or-comment-node-p))))
      (cond
+       ((eq expected-binding t)
+        (is eq t binding
+            "matching the pattern ~s against the parse tree of ~s should return T, got ~s (of type ~s) instead."
+            pattern string binding (type-of binding)))
        (expected-binding
         (and
          (true binding
@@ -364,12 +386,12 @@
      binding)))
 
 (define-test+run "match either against parse trees"
-  (test-either '(:either a b) "a" "a")
+  (test-either '(:either a b) "a" t)
   (test-either '(:either a b) "  a " nil)
-  (test-either '(:either a b) "  a " "a" :skipp)
-  (test-either '(:either a b) "b" "b")
+  (test-either '(:either a b) "  a " t :skipp)
+  (test-either '(:either a b) "b" t)
   (test-either '(:either a b) "c" nil)
-  (test-either '(:either a b) "breeze.test.analysis::a" "breeze.test.analysis::a")
+  (test-either '(:either a b) "breeze.test.analysis::a" t)
   (test-either '(:either a b) "breeze.analysis::a" nil))
 
 

@@ -860,6 +860,9 @@
                       description pattern input expected-binding bindings))
                  ;; === expected binding ===
                  (expected-binding
+                  (isnt eq t bindings
+                        "~a: ~&matching the pattern~&~s~&against the input~&~s~&should not return T as bindings"
+                        description pattern input)
                   (etypecase bindings
                     ;; binding
                     (binding (test-binding bindings))
@@ -898,9 +901,9 @@
 
 (define-test+run "match eithers"
   (test-match* "matching (or a b) against 'a"
-               (either #(a b)) 'a 'a)
+               (either #(a b)) 'a t)
   (test-match* "matching (or a b) against 'b"
-               (either #(a b)) 'b 'b)
+               (either #(a b)) 'b t)
   (test-match* "matching (or a b) against 'c"
                (either #(a b)) 'c nil)
   (test-match* "matching (or ?x b) against 'c"
@@ -910,9 +913,13 @@
   (test-match* "matching (or (maybe a) b) against the sequence (a)"
                '(:either (:maybe a) b) '(a) nil)
   (test-match* "matching (or (maybe a) b) against the atom 'b"
-               '(:either (:maybe a) b) 'b 'b)
+               '(:either (:maybe a) b) 'b t)
   (test-match* "matching (or (maybe a) b) against the sequence (b)"
                '(:either (:maybe a) b) '(b) nil)
+  (is eq 'a (value (to (find-binding
+                        (match (compile-pattern '(:either (x ?x) (y ?y)))
+                          #(x a))
+                        '?x))))
   #++ ;; TODO non-greedy repetition
   (let ((binding (test-match pat 'b)))
     (true binding)

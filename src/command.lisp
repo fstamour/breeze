@@ -463,11 +463,17 @@ uses the throw tag to stop the command immediately."
              ;;
              ;; TODO this assumes we have incremental parsing, which we
              ;; don't...
-             (when (and buffer
-                        (not (breeze.lossless-reader:node-iterator buffer)))
-               (send "buffer-string")
-               (let ((buffer-string (recv1)))
-                 (breeze.buffer:update-buffer-content buffer buffer-string)))
+             (cond
+               ((and buffer
+                     (not (breeze.lossless-reader:node-iterator buffer)))
+                (send "buffer-string")
+                (let ((buffer-string (recv1)))
+                  (breeze.buffer:update-buffer-content buffer buffer-string)))
+               (buffer
+                ;; update buffer's point
+                (breeze.lossless-reader:goto-position
+                 (breeze.lossless-reader:node-iterator buffer)
+                 (current-point))))
              (apply fn extra-args)))))))
     (send-sync command)
     (wait-for-started-message command)

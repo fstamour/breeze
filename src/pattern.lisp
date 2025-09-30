@@ -663,7 +663,6 @@ bindings and keeping only those that have not conflicting bindings."
                (package-name-pattern package))
       pattern
     (let* ((package (symbol-package symbol))
-           (package-name (and package (package-name package)))
            (symbol-name (symbol-name symbol)))
       (flet ((match-package ()
                ;; assumes that package-name-pattern is not :wild
@@ -877,11 +876,7 @@ where consumed, for example)."
   (loop :for pat :across (patterns pattern)
         :for bindings = (match pat input :skipp skipp)
         :when bindings
-          ;; TODO this is probably very wrong
-          :return (make-binding pattern
-                                (if (eq t bindings)
-                                    input
-                                    bindings))))
+          :return (values bindings pat)))
 
 
 ;;; repetitions
