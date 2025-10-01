@@ -40,9 +40,10 @@
 
 start
 end
-source
 emptyp
 donep
+
+source: TODO use in "reader" and "buffer" (buffer -> node-iterator -> parser-state -> source)
 
 |#
 

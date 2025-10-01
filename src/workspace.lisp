@@ -21,6 +21,7 @@
                 #:goto-position
                 #:map-top-level-forms)
   (:import-from #:breeze.analysis
+                #:node-string-designator
                 #:with-match)
   (:import-from #:breeze.package
                 #:map-top-level-in-package)
@@ -35,7 +36,8 @@
            #:point
            #:point-min
            #:point-max
-           #:map-workpace-buffers)
+           #:map-workpace-buffers
+           #:locate-package-definition)
   (:export #:in-package-cl-user-p
            #:infer-package-name-from-file
            #:infer-project-name
@@ -183,26 +185,30 @@ Design decision(s):
 
 ;;; Definitions-related utilities
 
-;; TODO add tests
-(defmethod locate-package-definition ((package string) #| TODO haystack |#)
-  ;; TODO maybe cache the "match data" on the defpackage macros
+;; TODO this code should be easily made into something (new
+;; functions/methods) that locates _all_ package definitions, and
+;; cache them into the *workspace*
+(defmethod locate-package-definition ((package string))
+  ;; TODO maybe cache the "match data" on the defpackage macros (that
+  ;; would be hard to do correctly since the "match data" contains
+  ;; iterator, and that there will be incremental parsing eventually).
   (map-workpace-buffers
    (lambda (buffer)
      (map-top-level-forms
-         (lambda (node-iterator)
-           (with-match (node-iterator
-                        (:either
-                         ;; TODO instead of ?name, use (sym :wild package)
-                         (cl:defpackage ?name)
-                         ;; TODO use (:symbol :uiop :define-package)
-                         ;; instead of 'uiop:define-package
-                         (uiop:define-package ?name)))
-             ;; TODO no need to check the '?name if we matched against a `sym' pattern.
-             (when-let* ((package-name-node (get-bindings '?name))
-                         ;; TODO node-string-designator-string doesn't exist anymore
-                         (package-name (node-string-designator-string
-                                        package-name-node)))
-               (when (string= package package-name)
-                 (return-from locate-package-definition node-iterator)))))
-         buffer))))
-
+      (lambda (node-iterator)
+        (with-match (node-iterator
+                     (:either
+                      (cl:defpackage ?name)
+                      ;; TODO matching uiop:define-package is
+                      ;; currently broken/not implemented.
+                      ((:symbol :define-package :uiop) ?name)))
+          (when-let* ((package-name-node (get-bindings '?name))
+                      (package-name (node-string-designator
+                                     package-name-node)))
+            (when (string-equal package package-name)
+              (return-from locate-package-definition
+                ;; TODO this should probably be yet another
+                ;; object/class... "location" perhaps?
+                (list :buffer buffer
+                      :node-iterator node-iterator))))))
+      buffer))))

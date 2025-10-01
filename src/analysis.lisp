@@ -8,7 +8,7 @@
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
-  (:export #:node-symbol-name
+  (:export #:node-string-designator
            #:parse-symbol-node)
   ;; Tree/Form predicate
   (:export #:with-match
@@ -35,6 +35,20 @@
     (string-equal (source $node) string
                   :start1 (start $node)
                   :end1 (end $node))))
+
+(defun node-string-designator (node-iterator)
+  "Return the string designated by node-iterator."
+  (check-type node-iterator node-iterator)
+  (unless (donep node-iterator)
+    (let ((node (value node-iterator)))
+      (cond
+        ((string-node-p node) (node-string node-iterator))
+        ((sharp-uninterned-node-p node)
+         (let (($node (copy-iterator node-iterator)))
+           (go-down $node)
+           (second (parse-symbol-node $node))))
+        ((token-node-p node)
+         (second (parse-symbol-node node-iterator)))))))
 
 
 ;;; Integrating pattern.lisp and lossless-parser.lisp

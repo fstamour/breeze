@@ -248,6 +248,10 @@
   (let ((binding (test-match-parse pattern string skip-whitespaces-and-comments))
         (state (parse string)))
     (cond
+      ((eq t expected-binding)
+       (is eq t binding
+           "matching ~s against ~s (~s) should have returned T, got ~s."
+           pattern string state binding))
       (expected-binding
        (true binding
              "matching ~s against ~s (~s) should have bound something"
@@ -272,12 +276,6 @@
            pattern string state expected-binding))
       (t
        (false binding)))))
-
-#++
-(trace :wherein test-match-terms-against-parse-tree
-       match-symbol-to-token
-       match
-       breeze.analysis::node-string-equal)
 
 (define-test+run "match terms against parse trees"
   (progn
