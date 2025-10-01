@@ -1,0 +1,129 @@
+:PROPERTIES:
+:ID:       a7e572ba-a80b-44cf-9fd8-91f50307c675
+:END:
+#+title: breeze's eval v.s. sly's and slime's eval
+
+The command ~interactive-eval-command~ (=M-x breeze-interactive-eval=)
+uses breeze's parse tree to determine the current package and to
+figure out which part of the buffer to evaluate.
+
+It doesn't get confused by strings like ~"This docstring contains an
+example code with an (in-package) form"~.
+
+Is correctly finds the top-level form regardless of the indentation.
+
+Similar to ~slime-compile-defun~ and ~sly-compile-defun~,
+~breeze-interactive-eval~ "pulses" (highlight) the region that is
+going to be evaluated before evaluating it.
+
+~breeze-interactive-eval~ provide hooks on the common lisp side
+~breeze.listener:*interactive-eval-hooks*~. These could be used, for
+example, to automatically run some tests after something is evaluated.
+
+~breeze-interactive-eval~ installs condition handlers (see
+~call-with-correction-suggestion~) to detect uses of undefined
+packages, symbols or classes; find the closest package, symbol or
+class; show a message in the editor saying =Did you mean "..."?=; and
+re-signal the error with a new restart that lets the user use this
+"correction". This is very useful when evaluating code that contains
+typo. (This feature is pretty experimental.)
+
+On the other hand, ~breeze-interactive-eval~ doesn't currently (as of
+2025-09-30) support prefixes (~C-u~ to insert the result, ~C--~ to
+save the result in the kill ring) and interactively reading the string
+to evaluate. But it should in the future.
+
+* The future
+
+- before reading and evaluating the form
+  - it should warn the user if no ~in-package~ form is found
+  - it should warn the user if an ~in-pacakge~ form is found, but the
+    corresponding package doesn't exist in the lisp image.
+    - (also discussed below) it should check if the corresponding
+      ~defpackage~ can be found, and provide restart(s) to evaluate or
+      load forms or file to fix that.
+- be able to provide multiple restarts, and/or have a restart that
+  lets the user see more candidate
+- provide a restart to actually fix the source code when an undefined
+  function, package or class is used, not just temporarily ~use-value~
+  - this is more complex, because it needs to find _where_ is the
+    issue.
+    - as a starting point, it should try to fix only the errors that
+      happened at read-time.
+- when an error is signaled, be able to detect when it's probably
+  because some other piece of code was not loaded in the image.
+  - for example, the form being evaluated is using a function that is
+    part of a new file that was never loaded
+  - for example, the form being evaluated is using a function whose
+    lambda list was recently changed. If an error is signaled about a
+    missing or argument, then it could be a good idea to provide a
+    restart to evaluate that other function and retry to evaluate the
+    current form.
+  - a similar situation can happen if a package was not defined yet,
+    but the ~defpackage~ form can be found
+- when an error is signaled because something tries to use a symbol
+  from a package, but that symbol is not exported:
+  - provide a restart to update the ~defpackage~ to add an ~:export~
+  - if the ~defpackage~ already has an ~:export~ for that symbol,
+    provide a restart to evaluate that ~defpackage~ and retry to
+    evaluate the current form.
+  - (less recommended) provide a restart to edit the code to use the
+    ~::~ syntax.
+
+Here are some other ideas that for which I have not done any
+proof-of-concept yet:
+
+- provide a restart to try to compute a "progam slice" that get to
+  this situation (a program slice is kind of like a stack trace, but
+  instead of function calls, you have the whole sequence of forms that
+  needs to be evaluated...)
+  - from that program slice, maybe it could be possible to generate a
+    test case
+  - I think we can try to compute a program slice by starting from the
+    stack trace.
+    - It is also possible to gather the actual values of many
+      arguments and local variables (if they haven't been optimized
+      out).
+    - For the arguments and local variables that have been optimized
+      out, it might be possible to infer them from those that have not
+      been optimized out (along with the source code)
+    - I'm pretty sure that symbolic execution can help here...
+    - test case reduction algorithms (like ddmin) might also help?
+- provide a restart to try to automatically fix the bug... as in
+  "automatic repair"
+
+* Under the hood
+
+- ~sly-rex~ and ~slime-rex~ are the =RPC primitive which is used to
+  implement both `slime-eval' and `slime-eval-async'=
+  - I'm pretty sure "rex" stands for "Remote EXecution"
+- ~sly-eval~ and ~slime-eval~
+  - ="Evaluate EXPR on the superior Lisp and return the result."=
+- ~sly-eval-async~ and ~slime-eval-async~ are the same as ~sly-eval~
+  and ~slime-eval~, but they are async (duh!) and the result is passed
+  to a continuation (a callback) instead of being returned.
+  - eval v.s. interactive eval v.s. async eval
+
+It's important to note that sly and slime's ~-eval~ and ~eval-async~
+takes an s-expression to evaluate and not a string. This is
+convenient, but it means that the s-exp must be valid emacs lisp _and_
+valid common lisp at the same time.
+
+- ~breeze-%eval~ and ~breeze-%eval-async~ are just wrappers on top of
+  ~sly-eval~ and ~sly-eval-async~ or ~slime-eval~ and
+  ~slime-eval-async~.
+ - These takes a **form** to evaluate.
+- ~breeze-eval~ and ~breeze-eval-async~ uses their counterpart
+  ~breeze-%eval~ and ~breeze-%eval-async~ to evaluate a **string**
+  using ~breeze.listener:rpc-eval~
+- ~breeze.listener:rpc-eval~ uses ~cl:read-from-string~ and ~cl:eval~
+  to evaluate the string in the =cl-user= package and with the
+  standard read-table.
+  - "rpc" stands for "remote procedure call"
+- breeze's commands are built on top of ~breeze-eval~
+  - see ~breeze-command-start~, ~breeze-command-continue~ and ~breeze-command-cancel~
+- ~breeze-interactive-eval~ is actually a breeze command, which means
+  that there are many "rpc" calls between the editor and the lisp
+  image.
+
+** TODO sly-interactive-eval and slime-interactive-eval
