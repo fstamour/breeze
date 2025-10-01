@@ -44,14 +44,17 @@
   (false (eqv (term :y) 42)))
 
 (define-test+run "sym print-object"
-  ;; TODO would be nice if it printed :wild instead of ':wild
-  (is string= "(sym 'cl ':wild)"
+  (is string= "(sym 'cl :wild)"
       (format nil "~a" (sym 'cl :wild)))
-  (is string="(sym 'cl 'defun)"
+  (is string= "(sym 'cl 'defun)"
       (format nil "~a" (sym 'cl 'defun)))
-  ;; TODO sym with qualification
-  ;; TODO uninterned symbols for name or package-name
-  )
+  (is string= "(sym 'cl '#:defun :possibly-internal-symbol)"
+      (format nil "~a" (sym 'cl '#:defun :possibly-internal-symbol)))
+  (is string=
+      "(sym (find-package '#:UIOP/PACKAGE) \"DEFINE-PACKAGE\")"
+      (let ((symbol 'uiop:define-package))
+        (princ-to-string (sym (symbol-package symbol)
+                              (symbol-name symbol))))))
 
 (define-test+run "sym :wild symbol"
   ;; Match against 'cl:defun

@@ -188,12 +188,20 @@ symbols."))
 
 (defmethod print-object ((sym sym) stream)
   (let ((*print-case* :downcase)
-        (*print-readably* t))
-    (format stream "(sym ~:[~;'~]~s ~:[~;'~]~s~:[~; ~s~])"
-            (symbolp (sym-package sym)) (sym-package sym)
-            (symbolp (name sym)) (name sym)
-            (not (eq :wild (qualification sym)))
-            (qualification sym))))
+        (*print-readably* nil))
+    (flet ((pp (x)
+             (cond
+               ((packagep x)
+                (format nil "(find-package '#:~a)"
+                        (package-name x)))
+               ((keywordp x) (prin1-to-string x))
+               ((symbolp x) (format nil "'~s" x))
+               (t (prin1-to-string x)))))
+      (format stream "(sym ~a ~a~:[~; ~s~])"
+              (pp (sym-package sym))
+              (pp (name sym))
+              (not (eq :wild (qualification sym)))
+              (qualification sym)))))
 
 (defun sym (package name &optional (qualification :wild))
   ;; TODO validation
