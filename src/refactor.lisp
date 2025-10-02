@@ -361,6 +361,93 @@ defun."
               :element-type <>
               :adjustable t
               :fill-pointer t)")))
+
+;; DSL:
+#++
+((sym "make-array" "cl")
+ '(0)
+ :element-type <>
+ :adjustable t
+ :fill-pointer t)
+
+
+#|
+
+This is a proof-of-concept on how to take account of the indentation
+when inserting something.
+
+|#
+#++
+(let* ((indentation 2)
+       (input "(make-array '(0)
+       :element-type <>
+:adjustable t
+              :fill-pointer t)")
+       (stream *standard-output*)
+       (parser-state (parse input))
+       (indentation
+         (+ indentation
+            (let (($node (make-node-iterator parser-state)))
+              (go-down $node)
+              (next $node)
+              (breeze.pattern::skip $node #'whitespace-or-comment-node-p)
+              (start $node)))))
+  (declare (ignorable indentation))
+  (let (($node (make-node-iterator parser-state)))
+    (format t "~&  ")
+    (loop
+      :until (donep $node)
+      :for node := (value $node)
+      :repeat 100
+      :do
+         ;; (format t "~&~s: " (node-type (value $node)))
+         (cond
+           ;; ((quotep ))
+           ;; do nothing for nodes with children
+           ((node-children node))
+           ((and (whitespace-node-p node)
+                 (position #\Newline
+                           input
+                           :start (start node)
+                           :end (end node)))
+            (let ((position (position #\Newline
+                                      input
+                                      :start (start node)
+                                      :end (end node))))
+              (unless (zerop position)
+                (write-string input stream
+                              :start (start node)
+                              :end position))
+              (write-char #\Newline stream)
+              ;; Assumming there's only one newline
+              (loop :repeat indentation
+                    :do (write-char #\Space stream))))
+           (t
+            (format t (node-string $node))))
+         ;; (next $node)
+         (breeze.iterator::next-preorder*
+          $node
+          ;; This hook is called after `go-down' is called on $node.
+          (lambda ()
+            ;; write [parent-start to current start]
+            (write-string
+             input ;; could be (source $node)
+             stream
+             :start (start (parent-node $node))
+             :end (start $node))
+            ;; (write-char #\()
+            )
+          ;; This hook is called after `pop-subtree' is called. The
+          ;; hook is called only once, even if `pop-subtree' was
+          ;; called many times
+          (lambda ()
+            ;; node-end to current start
+            (write-string
+             input ;; could be (source $node)
+             stream
+             :start (end node)
+             :end (unless (donep $node) (start $node))))))))
+
 
 ;;;
 

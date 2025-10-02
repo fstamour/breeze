@@ -383,6 +383,25 @@ depth of the tree."))
            ;; go-forward
            (next iterator)))
 
+;; WIP this is used by the "proof-of-concept on how to take account of
+;; the indentation when inserting something." in src/refactor.lisp
+(defun next-preorder* (iterator hook-down hook-up)
+  (if (go-down iterator)
+      (funcall hook-down)
+      (next iterator))
+  (loop
+    :with went-down
+    :while (and (current-depth-done-p iterator)
+                (plusp (slot-value iterator 'depth)))
+    :do
+       ;; go-up
+       (pop-subtree iterator)
+       ;; go-forward
+       (next iterator)
+       (setf went-down t)
+    :finally (when went-down
+               (funcall hook-up))))
+
 ;; TODO add tests
 (defmethod subtree-at-depth ((iterator tree-iterator) depth)
   (with-slots (subtrees) iterator
