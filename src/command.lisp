@@ -355,9 +355,14 @@ uses the throw tag to stop the command immediately."
   (tagbody
    :retry
      (restart-case
+         (funcall thunk)
+       ;; for breeze interactive-eval, I need the errors to
+       ;; propagate...
+         #++
          (handler-case (funcall thunk)
              (error (condition)
-               (log-error "~&An error occurred: ~a" condition)
+               (let ((actor (find-actor id :errorp t)))
+                 (log-error "~&An error occurred in ~a:~%  ~a" actor condition))
                (cancel-command id condition)
                (send "done")))
        (retry-command ()
