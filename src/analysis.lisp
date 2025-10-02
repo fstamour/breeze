@@ -176,9 +176,14 @@ TYPE is one of:
 (defmacro with-match ((node-iterator pattern) &body body)
   (let* ((compiled-pattern (compile-pattern pattern))
          (bindings (intern (symbol-name '#:bindings)))
-         (get-bindings (intern (symbol-name '#:get-bindings))))
-    `(let* ((,bindings (match ,compiled-pattern (copy-iterator ,node-iterator)
-                         :skipp #'whitespace-or-comment-node-p)))
+         (get-bindings (intern (symbol-name '#:get-bindings)))
+         ($node (gensym "$node")))
+    `(let* ((,$node ,node-iterator)
+            (,bindings
+              (and ,$node
+                   (not (donep ,$node))
+                   (match ,compiled-pattern (copy-iterator ,$node)
+                     :skipp #'whitespace-or-comment-node-p))))
        (flet ((,get-bindings (name)
                 (when ,bindings
                   (when-let ((binding (find-binding ,bindings name)))
@@ -229,7 +234,6 @@ TYPE is one of:
 
 TODO
 
-- loop-form-p
 - mapcar-form-p
 - defpackage-form-p
 - uiop/package--define-package-form-p
@@ -247,12 +251,12 @@ TODO
 |#
 
 
-(defun child-of-mapcar-node-p (node-iterator)
-  (declare (ignorable node-iterator))
-  ;; TODO with-match 'mapcar
-  )
+(defun child-of-mapcar-node-p ($node)
+  (with-match ($node ((cl:mapcar)))
+    ;; TODO also check _where_ is node in the "mapcar" form
+    bindings))
 
-
+;; TODO figure out what kind of bindings (:zero-or-more ?x) should produce.
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
 (define-node-matcher malformed-if-node-p
@@ -261,3 +265,9 @@ TODO
   (when bindings
     ;; (destructuring-bind (&key ?cond ?then ?else ?extra) bindings)
     t))
+
+;; TODO export
+;; TODO test
+(defun loop-form-p ($node)
+  (with-match ($node ((cl:loop)))
+    bindings))

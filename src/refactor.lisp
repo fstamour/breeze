@@ -562,10 +562,10 @@ For debugging purposes ONLY.")
 
 (defun suggest-loop-clauses ()
   "When inside a loop form."
-  nil #++  ;; TODO
-  (when (and inner-node
-             (loop-form-p inner-node))
-    (shortcircuit (commands-applicable-in-a-loop-form))))
+  (let* ((buffer (current-buffer))
+         (node-iterator (node-iterator buffer)))
+    (when (breeze.analysis::loop-form-p (parent node-iterator))
+      (shortcircuit (commands-applicable-in-a-loop-form)))))
 
 (defun suggest-package-definition-clauses ()
   "When inside a package definition form."

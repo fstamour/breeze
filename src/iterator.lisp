@@ -52,7 +52,9 @@ generalization of that first iteration (ha!).
    #:goto-root
    #:value-at-depth
    #:parent-value
-   #:root-value)
+   #:parent
+   #:root-value
+   #:root)
   ;; Other utility functions
   (:export
    #:firstp
@@ -426,14 +428,31 @@ depth of the tree."))
       (aref subtree pos))))
 
 ;; TODO add tests
+(defmethod iterator-at-depth ((iterator tree-iterator) depth)
+  ;; TODO _maybe_ some checks
+  (let ((new (copy-iterator iterator)))
+    (setf (slot-value new 'depth) depth)
+    new))
+
+;; TODO add tests
 (defmethod parent-value ((iterator tree-iterator))
   (with-slots (depth) iterator
     (when (plusp depth)
       (value-at-depth iterator (1- depth)))))
 
 ;; TODO add tests
+(defmethod parent ((iterator tree-iterator))
+  (with-slots (depth) iterator
+    (when (plusp depth)
+      (iterator-at-depth iterator (1- depth)))))
+
+;; TODO add tests
 (defmethod root-value ((iterator tree-iterator))
   (value-at-depth iterator 0))
+
+;; TODO add tests
+(defmethod root ((iterator tree-iterator))
+  (iterator-at-depth iterator 0))
 
 
 ;;; Concat iterator

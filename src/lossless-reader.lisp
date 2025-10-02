@@ -1429,6 +1429,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 (defmethod root-node ((iterator node-iterator))
   (root-value iterator))
 
+;; TODO deprecated, use iterator:root instead
 (defmethod root-node-iterator ((iterator node-iterator))
   (let ((root (copy-iterator iterator)))
     (goto-root root)))
