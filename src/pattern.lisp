@@ -736,7 +736,74 @@ bindings and keeping only those that have not conflicting bindings."
                       #.(string :keyword)
                       (subseq string start first)))))))))
 
+(defun find-package* (package-designator)
+  (or (find-package package-designator)
+      ;; TODO only string-upcase if *read-case* is :upcase
+      (and (or (symbolp package-designator)
+               (stringp package-designator))
+           (find-package (string-upcase package-designator)))))
+
+(defun same-package-p (package-designator1 package-designator2)
+  "Check if both package-designators designates the same package.
+The designators can be strings, symbols or packages."
+  (or
+   (eq package-designator1 package-designator2)
+   (and
+    (not (packagep package-designator1))
+    (not (packagep package-designator2))
+    ;; TODO choose between string= and string-equal depending on
+    ;; *read-case*
+    (string-equal package-designator1 package-designator2))
+   (alexandria:when-let ((p1 (find-package* package-designator1))
+                         (p2 (find-package* package-designator2)))
+     (eq p1 p2))))
+
+(defun same-symbol-p (symbol-name package-designator1 package-designator2)
+  "Check if a symbol-name designate the same symbol in two different packages."
+  (or (same-package-p package-designator1 package-designator2)
+      (alexandria:when-let ((p1 (find-package* package-designator1))
+                            (p2 (find-package* package-designator2)))
+        (let ((s1 (find-symbol symbol-name p1))
+              (s2 (find-symbol symbol-name p2)))
+          ;; this makes sure we don't compare s1 and s2 if they are
+          ;; nil, unless NIL was the symbol we were looking for.
+          (and (string= symbol-name s1)
+               (string= symbol-name s2)
+               (eq s1 s2))))))
+
+(defun match-symbol (symbol-name-pattern symbol-name)
+  (or (wildp symbol-name-pattern)
+      ;; TODO choose between string= and string-equal
+      ;; depending on *read-case*
+      (string-equal symbol-name-pattern symbol-name)))
+
+(defun match-qualification (qualification-pattern qualification)
+  (or (wildp qualification-pattern)
+      (eq qualification-pattern qualification)))
+
+(defun match-package (package-name-pattern package-name qualification)
+  (cond
+    ((wildp package-name-pattern) t)
+    ((eq :uninterned-symbol qualification)
+     (null package-name-pattern))
+    ((null package-name-pattern) nil)
+    ;; if the package pattern is "keyword"
+    ;; TODO keyword-package-p
+    ((string= :keyword (or (and (packagep package-name-pattern)
+                                (package-name package-name-pattern))
+                           package-name-pattern))
+     (or (eq :keyword qualification)
+         (and (eq :possibly-internal-symbol qualification)
+              (string= :keyword package-name))))
+    ;; package:name or package::name
+    ((member qualification '(:qualified-symbol :possibly-internal-symbol))
+     (same-package-p package-name package-name-pattern))
+    ((eq qualification :current-package-symbol)
+     ;; TODO check the current-package
+     t)))
+
 (defmethod match ((pattern sym) (input string) &key)
+  "Match a `sym' pattern against a string."
   (with-slots ((symbol-name-pattern name)
                (package-name-pattern package)
                (qualification-pattern qualification))
@@ -744,35 +811,17 @@ bindings and keeping only those that have not conflicting bindings."
     (alexandria:when-let ((parsed-symbol (parse-symbol input)))
       (destructuring-bind (qualification symbol-name &optional package-name)
           parsed-symbol
-        (flet ((match-package ()
-                 (or (wildp package-name-pattern)
-                     (cond
-                       ((eq :uninterned-symbol qualification)
-                        (null package-name-pattern))
-                       ((null package-name-pattern) nil)
-                       ;; if the package pattern is "keyword"
-                       ((string= :keyword #1=(or (and (packagep package-name-pattern)
-                                                      (package-name package-name-pattern))
-                                                 package-name-pattern))
-                        (or (eq :keyword qualification)
-                            (and (eq :possibly-internal-symbol qualification)
-                                 (string= :keyword package-name))))
-                       ;; package:name or package::name
-                       ((member qualification '(:qualified-symbol :possibly-internal-symbol))
-                        ;; TODO choose between string= and
-                        ;; string-equal depending on *read-case*
-                        (string-equal package-name #1#)))))
-               (match-symbol ()
-                 (or (wildp symbol-name-pattern)
-                     ;; TODO choose between string= and string-equal
-                     ;; depending on *read-case*
-                     (string-equal symbol-name-pattern symbol-name)))
-               (match-qualification ()
-                 (or (wildp qualification-pattern)
-                     (eq qualification-pattern qualification))))
-          (and (match-package)
-               (match-symbol)
-               (match-qualification)))))))
+        (and (match-symbol symbol-name-pattern symbol-name)
+             (match-qualification qualification-pattern qualification)
+             ;; package:name or package::name
+             (if (and
+                  (not (wildp symbol-name-pattern))
+                  (not (wildp package-name-pattern))
+                  (member qualification '(:qualified-symbol :possibly-internal-symbol)))
+                 (same-symbol-p (string-upcase symbol-name)
+                                package-name package-name-pattern)
+                 (match-package package-name-pattern package-name
+                                qualification)))))))
 
 
 ;;; Iterators

@@ -71,18 +71,6 @@ match an empty parse tree."
   ;; against a list of nodes (even if that list is empty).
   nil)
 
-;; TODO maybe &optional current package
-(defun package-names (package-name $node)
-  (declare (ignore $node)) ; see TODO
-  ;; TODO support packages that are not defined (by creating a "pak"
-  ;; object to represent those (just like `sym' for symbols).
-  ;; TODO use $node to find the current package and find if there are
-  ;; any local package nicknames for PACKAGE-NAME.
-  (let ((package (find-package package-name)))
-    `(,(package-name package)
-      ,@(package-nicknames package))))
-
-
 ;; TODO would be nice to cache this
 (defun parse-symbol-node ($node)
   "Extract information about the package-name and symbol-name of a token, if it can.
@@ -103,7 +91,7 @@ TYPE is one of:
         ;; https://www.lispworks.com/documentation/HyperSpec/Body/23_ab.htm
         (let ((*package* (find-package '#:KEYWORD)))
           ;; HACK: use `cl:read-from-string' to "apply" the
-          ;; case-conversion and take care ot escaping.
+          ;; case-conversion and take care of escaping.
           (ignore-errors
            `(,type
              ,(symbol-name (read-from-string symbol-name))
@@ -118,54 +106,18 @@ TYPE is one of:
              (:preserve symbol-name)
              (:invert (string-in)))))))
 
-;; TODO TESTS TESTS TESTS!!!
-;; TODO support :wild for package-name, symbol-name and qualification
-;; TODO check that "qualification" maches
-;; TODO maybe support package-name being a symbol... (or an actual package
-;; TODO perhaps rename package-name to package-designator or package-pattern? (same for symbol??)
-;; TODO maybe a better name
-(defun match-token ($node package-name symbol-name qualification)
-  "Match a parse tree's node against a set of constraints (PACKAGE-NAME,
-SYMBOL-NAME and QUALIFICATION)."
-  (declare (ignore qualification)) ; see TODO
-  (check-type $node node-iterator)
-  (check-type symbol-name string)
-  (when-let ((parsed-symbol (parse-symbol-node $node)))
-    (destructuring-bind (type token-symbol-name &optional token-package-name)
-        parsed-symbol
-      (and
-       (ecase type
-         (:current-package-symbol
-          ;; TODO check if the current package (package at point) too!
-          (string= symbol-name token-symbol-name))
-         (:keyword
-          (and (string-equal "KEYWORD" package-name)
-               (string= symbol-name token-symbol-name)))
-         (:uninterned-symbol
-          (and (null package-name) (string= symbol-name token-symbol-name)))
-         ((:qualified-symbol :possibly-internal-symbol)
-          (and
-           (string= symbol-name token-symbol-name)
-           ;; TODO extract function "match-package"
-           (some (lambda (name)
-                   (string= name token-package-name))
-                 (package-names package-name $node)))))
-       t))))
-
 (defun match-symbol-to-token (symbol $node)
   "Match a symbol against a parse tree's node."
   (check-type $node node-iterator)
   (check-type symbol symbol)
-  (let* ((name (symbol-name symbol))
-         (package (symbol-package symbol)))
-    (match-token $node (package-name package) name :wild)))
+  (match (sym (symbol-package symbol)
+              (symbol-name symbol))
+    (node-string $node)))
 
-;; TODO WIP
 (defmethod match ((pattern sym) (node-iterator node-iterator) &key skipp)
   (breeze.pattern::skip node-iterator skipp)
-  (when (token-node-p node-iterator)
-    ;; TODO
-    (match-symbol-to-token pattern node-iterator)))
+  ;; TODO ensure *current-package* ??
+  (match pattern (node-string node-iterator)))
 
 (defmethod match ((pattern symbol) (node-iterator node-iterator) &key skipp)
   "Match a symbol against a parse tree's node."
@@ -177,7 +129,6 @@ SYMBOL-NAME and QUALIFICATION)."
   (breeze.pattern::skip node-iterator skipp)
   (match-symbol-to-token pattern node-iterator))
 
-;; TODO is this even needed??
 (defmethod match ((pattern term) (state state) &key skipp)
   "Match a term againt a parse state."
   (match-parser-state pattern state :skipp skipp))
@@ -282,6 +233,16 @@ TODO
 - mapcar-form-p
 - defpackage-form-p
 - uiop/package--define-package-form-p
+
+- current-root-node
+- current-top-level-node
+- "how many nodes are there before? (a.k.a. the current node is which
+  nth child of its parent?)
+- how many nodes after? (useful to lint e.g. an `if')
+- nth-child-p node-iterator n
+  - not "tree-iterator" because I want to skip stuff (not sure if it's a valid reason)
+- nth-child-< node-iterator from to : return true if (<= from node's-position (1- to))
+- before-current-node
 
 |#
 

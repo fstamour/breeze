@@ -181,6 +181,7 @@
   (is eqv '(:qualified-symbol "X" "KEYWORD") (parse-symbol "keyword:x"))
   (is eqv '(:possibly-internal-symbol "X" "P") (parse-symbol "p::x"))
   (is eqv '(:possibly-internal-symbol "X" "KEYWORD") (parse-symbol "::x"))
+  ;; TODO (parse-symbol "()")
   (false (parse-symbol ""))
   (false (parse-symbol "#:"))
   ;; below, these could perhaps returns a "diagnostic" instead of
@@ -195,6 +196,9 @@
 (symbol-name
  (read-from-string ":|asdf:fe|"))
 ;; => "asdf:fe"
+
+(define-test+run "match sym: regression tests"
+  (is eq t (match (sym "UIOP" "DEFINE-PACKAGE") "uiop:define-package")))
 
 (define-test+run "match sym against string: :wild symbol-name and package-name"
   (is eq t (match (sym :wild :wild :wild) "x"))
@@ -473,9 +477,9 @@
     (is eq nil (match (sym :keyword :wild :current-package-symbol) "x"))
     (is eq nil (match (sym :keyword :wild :qualified-symbol) "x"))
     (is eq nil (match (sym :keyword :wild :possibly-internal-symbol) "x"))
-    ;; not sure: this assumes that the current package is not the
-    ;; correct one, but it could be
-    (is eq nil (match (sym :cl :wild :current-package-symbol) "x"))
+    ;; not sure: this assumes that the current package is the correct
+    ;; one, but it might not be
+    (is eq t (match (sym :cl :wild :current-package-symbol) "x"))
     (is eq nil (match (sym :cl :wild :qualified-symbol) "x"))
     (is eq nil (match (sym :cl :wild :possibly-internal-symbol) "x")))
 ;;; :keyword
@@ -524,7 +528,6 @@
     (is eq t (match (sym "cl" :wild :possibly-internal-symbol) "cl::x"))
     (is eq t (match (sym "CL" :wild :possibly-internal-symbol) "cl::x"))))
 
-;; TODO
 (define-test+run "match sym against string: :wild qualification"
 ;;; :current-package-symbol
   (progn
@@ -532,9 +535,9 @@
     (is eq nil (match (sym nil "y" :wild) "x"))
     (is eq nil (match (sym :keyword "x" :wild) "x"))
     (is eq nil (match (sym :keyword "y" :wild) "x"))
-    (is eq nil (match (sym #.*package* 'x :wild) "x"))
+    (is eq t (match (sym #.*package* 'x :wild) "x"))
     (is eq nil (match (sym #.*package* 'y :wild) "x"))
-    (is eq nil (match (sym :cl 'defun :wild) "defun"))
+    (is eq t (match (sym :cl 'defun :wild) "defun"))
     (is eq nil (match (sym :cl 'defmacro :wild) "defun")))
 ;;; :keyword
   (progn

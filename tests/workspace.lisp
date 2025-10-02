@@ -75,13 +75,23 @@
       (true (getf location :node-iterator)
             "Should have returned a plist that contains the key :node-iterator.")
       (destructuring-bind (&key buffer node-iterator) location
-        (is string= "src/string-utils.lisp" (name buffer))
-        (is string= #1="(defpackage #:breeze.string
+        (when (and buffer node-iterator)
+          (is string= "src/string-utils.lisp" (name buffer))
+          (is string= #1="(defpackage #:breeze.string
   (:documentation \"String manipulation utilities\")"
-            (subseq (breeze.lossless-reader:node-string node-iterator)
-                    0 (length #1#)))))
-    ;; TODO FIXME: locate-package-definition can't find
-    ;; breeze.lossless-reader because the package is defined with
-    ;; uiop:define-package.
-    ;; (is eq t (locate-package-definition "breeze.lossless-reader"))
-    ))
+              (subseq (breeze.lossless-reader:node-string node-iterator)
+                      0 (length #1#))))))
+    (let ((location (finish (locate-package-definition "breeze.lossless-reader"))))
+      (true location
+            "Should have been able to find the breeze.lossless-reader's package definition.")
+      (true (getf location :buffer)
+            "Should have returned a plist that contains the key :buffer.")
+      (true (getf location :node-iterator)
+            "Should have returned a plist that contains the key :node-iterator.")
+      (destructuring-bind (&key buffer node-iterator) location
+        (when (and buffer node-iterator)
+          (is string= "src/lossless-reader.lisp" (name buffer))
+          (is string= #2="(uiop:define-package #:breeze.lossless-reader
+    (:documentation \"A fast, lossless, robust and "
+              (subseq (breeze.lossless-reader:node-string node-iterator)
+                      0 (length #2#))))))))

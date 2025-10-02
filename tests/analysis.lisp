@@ -46,15 +46,14 @@
   (false (test-parse-symbol-node "p::"))
   (false (test-parse-symbol-node "a:a:x")))
 
-
 (define-test+run match-symbol-to-token
   (true (match-symbol-to-token t (make-node-iterator "t")))
   (true (match-symbol-to-token nil (make-node-iterator "nil")))
   (true (match-symbol-to-token nil (make-node-iterator "common-lisp:nil")))
-  ;; TODO not implemented yet: need to check if common-lisp-user:nil
-  ;; is `eq' to common-lisp:nil
-  #++
-  (true (match-symbol-to-token nil (make-node-iterator "common-lisp-user:nil"))))
+  (true (match-symbol-to-token nil (make-node-iterator "common-lisp-user:nil")))
+  (true (match-symbol-to-token 'defun (make-node-iterator "defun")))
+  (true (match-symbol-to-token 'uiop:define-package
+                               (make-node-iterator "uiop:define-package"))))
 
 (defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
   (finish
@@ -79,9 +78,7 @@
     (false (test-match-parse nil "cl::nil" nil))
     (false (test-match-parse nil "common-lisp:nil" nil))
     (false (test-match-parse nil "common-lisp::nil" nil))
-    #++ ;; TODO not implemented yet
     (false (test-match-parse nil "common-lisp-user::nil" nil))
-    #++ ;; TODO not implemented yet
     (false (test-match-parse nil "common-lisp-user:nil" nil)))
   (progn
     (false (test-match-parse nil "")
@@ -96,9 +93,7 @@
     (false (test-match-parse nil "cl::nil" t))
     (false (test-match-parse nil "common-lisp:nil" t))
     (false (test-match-parse nil "common-lisp::nil" t))
-    #++ ;; TODO not implemented yet
     (false (test-match-parse nil "common-lisp-user::nil" t))
-    #++ ;; TODO not implemented yet
     (false (test-match-parse nil "common-lisp-user:nil" t)))
   (progn
     (false (test-match-parse '(nil) ""))
@@ -112,10 +107,8 @@
     (true (test-match-parse '(nil) "cl::nil"))
     (true (test-match-parse '(nil) "common-lisp:nil"))
     (true (test-match-parse '(nil) "common-lisp::nil"))
-    #++ ;; TODO not implemented yet
-    (false (test-match-parse '(nil) "common-lisp-user::nil"))
-    #++ ;; TODO not implemented yet
-    (false (test-match-parse '(nil) "common-lisp-user:nil")))
+    (true (test-match-parse '(nil) "common-lisp-user::nil"))
+    (true (test-match-parse '(nil) "common-lisp-user:nil")))
   (progn
     (false (test-match-parse '(nil) "" t))
     (false (test-match-parse '(nil) "  " t))
@@ -131,10 +124,8 @@
     (true (test-match-parse '(nil) " #||# cl::nil" t))
     (true (test-match-parse '(nil) " #|;;|# common-lisp:nil " t))
     (true (test-match-parse '(nil) " common-lisp::nil " t))
-    #++ ;; TODO not implemented yet
-    (false (test-match-parse '(nil) "common-lisp-user::nil" t))
-    #++ ;; TODO not implemented yet
-    (false (test-match-parse '(nil) "common-lisp-user:nil" t))))
+    (true (test-match-parse '(nil) "common-lisp-user::nil" t))
+    (true (test-match-parse '(nil) "common-lisp-user:nil" t))))
 
 (define-test+run "match the patterns t and (t) against parse trees"
   ;; These should return nil because we're trying to match 1 symbol
@@ -152,9 +143,7 @@
       (false (test-match-parse t "cl::t" nil))
       (false (test-match-parse t "common-lisp:t" nil))
       (false (test-match-parse t "common-lisp::t" nil))
-      #++ ;; TODO not implemented yet
       (false (test-match-parse t "common-lisp-user::t" nil))
-      #++ ;; TODO not implemented yet
       ;; t (and nil) is not exported from common-lisp-user
       (false (test-match-parse t "common-lisp-user:t" nil))
       (progn
@@ -177,9 +166,7 @@
       (false (test-match-parse t "cl::t" t))
       (false (test-match-parse t "common-lisp:t" t))
       (false (test-match-parse t "common-lisp::t" t))
-      #++ ;; TODO not implemented yet
       (false (test-match-parse t "common-lisp-user::t" t))
-      #++ ;; TODO not implemented yet
       (false (test-match-parse t "common-lisp-user:t" t))
       (progn
         (false (test-match-parse t "  t" t))
@@ -203,10 +190,8 @@
         (true (test-match-parse '(t) "cl::t" nil))
         (true (test-match-parse '(t) "common-lisp:t" nil))
         (true (test-match-parse '(t) "common-lisp::t" nil))
-
-        #++ ;; TODO not implemented yet
-        (false (test-match-parse '(t) "common-lisp-user::t" nil))
-        (false (test-match-parse '(t) "common-lisp-user:t" nil)))
+        (true (test-match-parse '(t) "common-lisp-user::t" nil))
+        (true (test-match-parse '(t) "common-lisp-user:t" nil)))
       (progn
         (false (test-match-parse '(t) "" t))
         (false (test-match-parse '(t) "  " t))
@@ -219,10 +204,8 @@
         (true (test-match-parse '(t) "cl::t" t))
         (true (test-match-parse '(t) "common-lisp:t" t))
         (true (test-match-parse '(t) "common-lisp::t" t))
-        #++ ;; TODO not implemented yet
-        (false (test-match-parse '(t) "common-lisp-user::t" t))
-        #++ ;; TODO not implemented yet
-        (false (test-match-parse '(t) "common-lisp-user:t" t))))
+        (true (test-match-parse '(t) "common-lisp-user::t" t))
+        (true (test-match-parse '(t) "common-lisp-user:t" t))))
     (progn
       (true (test-match-parse '(t) "t ; hi"))
       (true (test-match-parse '(t) "t  "))
@@ -341,7 +324,10 @@
      (token 7 10))
     (test-match-terms-against-parse-tree
      '(defun (:either :?x (setf :?x))) "(defun (setf x) (* x x x))" t
-     (parens 7 15 (vector (token 8 12) (whitespace 12 13) (token 13 14))))))
+     (parens 7 15 (vector (token 8 12) (whitespace 12 13) (token 13 14))))
+    (test-match-terms-against-parse-tree
+     '((:symbol :define-package :uiop) :?x) "(uiop:define-package foo)" t
+     (token 21 24))))
 
 (define-test+run "match vector against parse trees"
   (false (test-match-parse 'x "x"))
@@ -391,13 +377,6 @@
   (test-either '(:either a b) "c" nil)
   (test-either '(:either a b) "breeze.test.analysis::a" t)
   (test-either '(:either a b) "breeze.analysis::a" nil))
-
-
-#++
-(trace :wherein test-either
-       match-symbol-to-token
-       match
-       breeze.analysis::node-string-equal)
 
 (defun test-repetition (pattern string pos-start pos-end
                         &optional skip-whitespaces-and-comments)

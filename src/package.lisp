@@ -47,4 +47,4 @@
 
 ;; TODO add tests
 (defmethod locate-package-definition ((package node-iterator) #| TODO haystack |#)
-  (locate-package-definition (node-string-designator-string package)))
+  (locate-package-definition (node-string-designator package)))

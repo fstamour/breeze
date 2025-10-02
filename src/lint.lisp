@@ -154,7 +154,7 @@ found."
 ;; TODO this rule only make sense when "in-image"
 (defun warn-undefined-in-package (node-iterator)
   (alexandria:when-let* ((package-designator-node (in-package-node-p node-iterator))
-                         (package-name (node-string-designator-string
+                         (package-name (node-string-designator
                                         package-designator-node)))
     (unless (find-package package-name)
       (breeze.lint::node-style-warning

@@ -263,7 +263,6 @@
 
 (untrace)
 
-
 (in-package #:breeze.test.pattern)
 
 (test-match '(:zero-or-more a b) #(a b a b))
@@ -311,6 +310,18 @@
 (trace
  :wherein breeze.analysis::match-symbol-to-token
  breeze.analysis::node-string-equal)
+
+(trace match-symbol-to-token match
+       breeze.pattern::match-symbol
+       breeze.pattern::match-qualification
+       breeze.pattern::match-package
+       breeze.pattern::same-package-p
+       breeze.pattern::same-symbol-p)
+
+(trace :wherein test-either
+       match-symbol-to-token
+       match
+       breeze.analysis::node-string-equal)
 
 (untrace)
 
