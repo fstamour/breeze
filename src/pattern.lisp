@@ -502,6 +502,10 @@ need to de-duplicate pattern objects whithin one pattern.)
 (defmethod to ((_ null)))
 (defmethod from ((_ null)))
 
+(defmethod eqv ((a binding) (b binding))
+  (and (eqv (from a) (from b))
+       (eqv (to a) (to b))))
+
 (defclass binding-set ()
   ((bindings
     :initform (make-hash-table)
@@ -523,6 +527,9 @@ need to de-duplicate pattern objects whithin one pattern.)
         ((zerop size) (write-string "(empty)" stream))
         ((= 1 size) (prin1 (alexandria:hash-table-alist bindings) stream))
         (t (format stream "(~d bindings)" size))))))
+
+(defmethod eqv ((a binding-set) (b binding-set))
+  (eqv (bindings a) (bindings b)))
 
 (defmethod emptyp ((binding-set binding-set))
   (zerop (hash-table-count (bindings binding-set))))

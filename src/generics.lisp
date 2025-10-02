@@ -30,6 +30,16 @@
         :for y :on b
         :always (eqv (car x) (car y))))
 
+;; TODO this is utterly untested (not even in the repl)
+(defmethod eqv ((a hash-table) (b hash-table))
+  (and
+   (= (hash-table-count a) (hash-table-count b))
+   (loop :for key :being :the :hash-key :of a :using (hash-value value-a)
+         :always (multiple-value-bind (value-b value-b-p)
+                     (gethash key b)
+                   (and value-b-p
+                        (eqv value-a value-b))))))
+
 #++
 (progn
   (eqv '(?var . a) '(?var . a))
