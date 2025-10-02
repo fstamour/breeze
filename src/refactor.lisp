@@ -48,7 +48,9 @@
    #:insert-print-unreadable-object-boilerplate
    #:insert-make-load-form-boilerplate
    #:insert-lambda
+   #:insert-make-array
    ;; Other commands
+   #:declaim-inline
    #:quickinsert
    ;; TODO perhaps "quickfix" should go in "lint.lisp"
    #:quickfix
@@ -344,11 +346,50 @@ defun."
 
 ;; TODO quick-insert (format *debug-io* "~&")
 
+(define-command insert-make-array ()
+  "Insert a make-array form."
+  (declare (context :expression))
+  (let* ((current-node (node-iterator (current-buffer)))
+         (source (source current-node))
+         (indentation (or
+                       (position #\newline source
+                                 :end (current-point)
+                                 :from-end t)
+                       0)))
+    (declare (ignorable indentation))
+    (insert "(make-array '(0)
+              :element-type <>
+              :adjustable t
+              :fill-pointer t)")))
 
 ;;;
 
 ;; TODO "Move the current form into the nearest parent \"let\" form."
 ;; TODO "Add or update defpackage to \"import-from\" the symbol at point."
+
+
+;;;
+
+;; TODO it shouldn't be too hard to re-use this code to insert other
+;; kind of `declaim's.
+(define-command declaim-inline ()
+  "Declaim inline the current top-level function."
+  (let* (($current-node (node-iterator (current-buffer)))
+         ;; TODO get the "top-level" node, not the root
+         ($root (root-node-iterator $current-node)))
+    (with-match ($root (defun ?name))
+      (let (($name (get-bindings '?name)))
+        (cond
+          ($name
+           ;; TODO make a function `pulse-node'
+           (pulse (start $name) (end $name))
+           (insert-at
+            (start $root)
+            "(declaim (inline ~a))~%" (node-string $name)))
+          (t
+           ;; TODO make a function `pulse-node'
+           (pulse (start $root) (end $root))
+           (message "Unable to find the current top-level function's name.")))))))
 
 
 ;;; Quickfix
