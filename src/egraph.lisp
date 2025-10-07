@@ -575,7 +575,7 @@ eclass-id."
   (etypecase pattern
     (breeze.pattern:term
      ;; The whole class "matches"
-     (list (breeze.pattern::make-binding (name pattern) eclass)))
+     (list (make-binding (name pattern) eclass)))
     ((or vector symbol number)
      ;; Find every enode that matches the pattern
      (loop :for enode :across (enodes eclass)
@@ -587,7 +587,8 @@ eclass-id."
   "Match 1 rewrite against an egraph, returns a list of substituted
 forms."
   (loop
-    :with (pattern . substitution) := rewrite
+    :with pattern := (rewrite-pattern rewrite)
+    :with substitution := (rewrite-template rewrite)
     :for eclass-id :being :the :hash-key :of (eclasses egraph)
       :using (hash-value eclass)
     ;;    :for eclass :in (eclasses egraph)
@@ -742,12 +743,6 @@ past the last element of the sequence."
 
 ;;; Streaming terms out of egraphs
 
-(defun stream-eclass (egraph eclass)
-  (stream-concat
-   (map 'vector
-        (lambda (enode) (stream-enode egraph enode))
-        (enodes eclass))))
-
 (defun stream-equivalent-eclasses (egraph eclass-id)
   "Create a stream that will iterate over all the eclasses that are
 equivalent to eclass-id."
@@ -772,6 +767,30 @@ equivalent to eclass-id."
           (:done (<= l id))
           ((nil) id))))))
 
+(defun %stream-eclass (egraph eclass)
+  "Stream every enodes in the eclasses, one after the other."
+  (stream-concat
+   (map 'vector
+        (lambda (enode) (stream-enode egraph enode))
+        (enodes eclass))))
+
+(defun stream-eclass (egraph eclass)
+  "Stream every equivalent classes of eclass"
+  (let* ((canonical-id (eclass-find egraph (id eclass)))
+         (union-find (union-find egraph))
+         (length (length union-find)))
+    (stream-concat
+     (map 'vector
+          (lambda (eclass-id)
+            (%stream-eclass egraph (eclass egraph eclass-id)))
+          ;; Find all the equivalent id in the union-find data structure.
+          (loop
+            :for i :from 0
+            :while (< i length)
+            :for eclass-id = (aref union-find i)
+            :when (= canonical-id eclass-id)
+              :collect i)))))
+
 (defun stream-enode (egraph enode)
   (etypecase enode
     ((or symbol number) (stream-constant enode))
@@ -784,7 +803,7 @@ equivalent to eclass-id."
                         (t (incf i) (stream-constant eclass-id-or-constant))))
                     enode))))))
 
-(defun map-egraph (fn egraph &key limit)
+(defun map-egraph (fn egraph &key limit #| TODO maybe add argument `eclasses-ids' and use that instead of (root-eclasses egraph) |#)
   (map-stream
    fn
    (stream-concat

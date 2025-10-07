@@ -485,7 +485,12 @@ need to de-duplicate pattern objects whithin one pattern.)
 
 (defclass binding ()
   ((from :initarg :from :reader from)
-   (to :initarg :to :reader to))
+   (to :initarg :to :reader to)
+   ;; TODO source/location: optional slot to register where this
+   ;; information came from. This would come in handy for error
+   ;; messages; especially if we try to use the paaterns for
+   ;; unification, and use unification for type checking.
+   )
   (:documentation "A binding"))
 
 (defun make-binding (term input)
@@ -542,6 +547,8 @@ need to de-duplicate pattern objects whithin one pattern.)
 
 (defmethod emptyp ((binding binding))
   nil)
+
+;; TODO rename "binding-set" to "substitutions"
 
 (defun make-binding-set (&key bindings)
   (if bindings
@@ -612,11 +619,10 @@ need to de-duplicate pattern objects whithin one pattern.)
      ;; N.B. a disjoint-set data structure could help detect cycles in
      ;; the bindings.
      (let ((result (copy-binding-set bindings1)))
-       (loop :for from2 :being :the :hash-key :of bindings2 :using (hash-value binding2)
+       (loop :for from2 :being :the :hash-key :of (bindings bindings2) :using (hash-value binding2)
              :for successp = (add-binding result binding2)
              :unless successp :do (return))
        result))))
-
 
 (defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
   "Merge two set of bindings (list of list of bindings), returns a new
@@ -1019,29 +1025,32 @@ where consumed, for example)."
 ;;; Match substitution
 
 (defun pattern-substitute (pattern bindings &optional (result-type 'vector))
-  (when pattern
-    ;; Patterns are never compiled to lists
-    (check-type pattern atom)
-    (flet ((substitute1 (x)
-             (etypecase x
-               (term
-                (alexandria:if-let ((binding (find-binding bindings (name x))))
-                  (to binding)
-                  ;; TODO this could signal a condition (binding not
-                  ;; found)
-                  x))
-               ((or symbol number) x))))
-      (if (vectorp pattern)
-          (map result-type
-               ;; Note: we could've use map to recurse directly into
-               ;; pattern-subtitute, but not doing so make tracing
-               ;; (and debugging) tremenduously easier.
-               #'(lambda (subpattern)
-                   (if (vectorp subpattern)
-                       (pattern-substitute subpattern bindings result-type)
-                       (substitute1 subpattern)))
-               pattern)
-          (substitute1 pattern)))))
+  (cond
+    ((and pattern (null bindings)) pattern)
+    ((null pattern) nil)
+    ((and pattern bindings)
+     (check-type pattern atom)
+     (check-type bindings (or binding binding-set (eql t)))
+     (flet ((substitute1 (x)
+              (etypecase x
+                (term
+                 (alexandria:if-let ((binding (find-binding bindings (name x))))
+                   (to binding)
+                   ;; TODO this could signal a condition (binding not
+                   ;; found)
+                   x))
+                ((or symbol number) x))))
+       (if (vectorp pattern)
+           (map result-type
+                ;; Note: we could've recurse directly into
+                ;; pattern-subtitute, but not doing so make tracing
+                ;; (and debugging) tremenduously easier.
+                #'(lambda (subpattern)
+                    (if (vectorp subpattern)
+                        (pattern-substitute subpattern bindings result-type)
+                        (substitute1 subpattern)))
+                pattern)
+           (substitute1 pattern))))))
 
 
 

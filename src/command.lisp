@@ -479,6 +479,7 @@ uses the throw tag to stop the command immediately."
                 (breeze.lossless-reader:goto-position
                  (breeze.lossless-reader:node-iterator buffer)
                  (current-point))))
+             ;; TODO use "call-with-correction-suggestion" here too!
              (apply fn extra-args)))))))
     (send-sync command)
     (wait-for-started-message command)

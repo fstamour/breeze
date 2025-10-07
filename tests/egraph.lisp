@@ -294,6 +294,19 @@ comparison."
                :eclasses ((:eclass-id 0 :enodes #(x) :root)
                           (:eclass-id 1 :enodes #(y) :root := 0)))))))
 
+#|
+
+TODO add a test to show that redundant eclasses are removed
+1. add-form (+ a 2)
+2. add-form (+ b 2)
+3. assert a == b
+
+check that there's only one eclass to represent both (+ a 2) and (+ b
+2), and that it has only 1 enode (+ <eclass {a,b}> <eclass {2}>)
+
+|#
+
+
 (define-test+run "add enode(s) - snapshot tests - 1 + 1 = 2"
   (let ((egraph (make-egraph)))
     (macrolet ((check (when expected)
@@ -328,7 +341,7 @@ comparison."
 
 
 ;; TODO add 2; add (+ (+ 1 1) 1); assert 2 = (+ 1 1) then eclass for
-;; the value "2" should have the same parent all the equivalent
+;; the value "2" should have the same parent as all the equivalent
 ;; classes. Perhaphs only keep track of the parents in the class
 ;; representative?
 (define-test+run "add enode(s) - snapshot tests - 1 + 1 = 2 & 3 + (1 + 1)"
@@ -567,101 +580,212 @@ comparison."
     (rebuild egraph)
     egraph))
 
+
+
+
+(defun ensure-egraph (input)
+  (if (typep input 'egraph) input (make-egraph* input)))
+
+(defun collect-eclass-forms (egraph eclass-id)
+  "Return a list of all the forms represented by the e-class ECLASS-ID."
+  (let (forms)
+    (map-stream
+     #'(lambda (form) (push form forms))
+     (stream-eclass egraph (eclass egraph eclass-id)))
+    forms))
+
+(defun eclasses-forms (egraph eclass-ids)
+  "Returns all the forms represented by the eclasses ECLASS-IDS in
+EGRAPH."
+  ;; for each eclasses, collect the forms it represents.
+  (loop :for eclass-id :in eclass-ids
+        :append (collect-eclass-forms egraph eclass-id)))
+
+(defun dump-input-eclasses-forms (egraph)
+  (eclasses-forms
+   egraph
+   ;; cannonicalize and de-duplicate the input eclasses
+   (remove-duplicates
+    (mapcar (lambda (eclass-id)
+              (eclass-find egraph eclass-id))
+            (input-eclasses egraph)))))
+
+(defun test-rewrite (input rewrite
+                     &optional expected-equivalent-forms)
+  "Takes an INPUT form, tries to apply REWRITE to it."
+
+  (let* ((egraph (ensure-egraph input))
+         (before (dump-input-eclasses-forms egraph))
+         (after (progn (apply-rewrite egraph rewrite)
+                       (rebuild egraph)
+                       (dump-input-eclasses-forms egraph))))
+    (when expected-equivalent-forms
+      (is equalp
+          expected-equivalent-forms
+          after
+          "Applying the rewrite ~%~s to ~%~s was expected to result in the forms ~%~s, got ~%~s instead"
+          rewrite before expected-equivalent-forms after))
+    egraph))
+
+(defun test-rewrite-chain (input &rest rewrites-and-expected-forms)
+  (loop
+    :for (rewrite expected-forms) :on rewrites-and-expected-forms
+    :by #'cddr
+    :for egraph := (test-rewrite input rewrite expected-forms)
+      :then (test-rewrite egraph rewrite expected-forms)))
+
+(define-test+run rewrites
+  (test-rewrite '(= 0 a)
+                (make-rewrite '(= 0 ?x) '(zerop ?x))
+                '((zerop a)
+                  (= 0 a)))
+  (test-rewrite '(/ a a)
+                (make-rewrite '(/ ?x ?x) 1)
+                '(1 (/ a a)))
+  (test-rewrite '(/ a a)
+                (make-rewrite '(/ ?x ?y) '(* ?x (/ 1 ?y)))
+                '((* a (/ 1 a)) (/ a a)))
+  (test-rewrite '(* a (/ 1 a))
+                (make-rewrite '(* ?x (/ 1 ?y)) '(/ ?x ?y))
+                '((/ a a) (* a (/ 1 a))))
+  ;; TODO this rewrites produce a cyclic e-graph, which causes an
+  ;; infite recursion when dumping all the forms reprented by the
+  ;; egraph.
+  #++
+  (test-rewrite '(* a (/ 1 a))
+                (make-rewrite '(* ?x (/ 1 ?y)) 1)
+                '((* a (/ 1 a)) 1))
+  (test-rewrite '(* a b)
+                (make-rewrite '(* ?x ?y) '(* ?y ?x))
+                '((* b a) (* a b)))
+  (test-rewrite '(+ a b c)
+                (make-rewrite '(+ ?x ?y ?z) '(+ ?x (+ ?y ?z)))
+                '((+ a (+ b c)) (+ a b c)))
+  (test-rewrite '(* a 2)
+                (make-rewrite '(* ?x 2) '(ash ?x 1))
+                '((ash a 1) (* a 2)))
+  ;; TODO these rewrites produce a cyclic e-graph, which causes an
+  ;; infite recursion when dumping all the forms reprented by the
+  ;; egraph.
+  #++
+  (test-rewrite-chain
+   '(/ a a)
+   (make-rewrite '(/ ?x ?x) 1)
+   '(1 (/ a a))
+   (make-rewrite '(/ ?x ?y) '(* ?x (/ 1 ?y))))
+  (test-rewrite-chain
+   '(+ a b c)
+   (make-rewrite '(+ ?x ?y ?z) '(+ ?x (+ ?y ?z)))
+   '((+ a (+ b c)) (+ a b c))
+   (make-rewrite '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
+   '((+ (+ a b) c) (+ a (+ b c)) (+ a b c))
+   (make-rewrite '(+ ?x ?y) '(+ ?y ?x))
+   '((+ c (+ b a)) (+ c (+ a b))
+     (+ (+ c b) a) (+ (+ b c) a)
+     (+ (+ b a) c) (+ (+ a b) c)
+     (+ a (+ c b)) (+ a (+ b c))
+     (+ a b c)))
+  ;; This one doesn't work because the code to dump the forms doens't
+  ;; look at equivalent classes (except for the "root" (the "input
+  ;; eclasses")).
+  (test-rewrite-chain
+   '(+ 1 (* a 2))
+   (make-rewrite '(* ?x 2) '(ash ?x 1))
+   '((+ 1 (ash a 1)) (+ 1 (* a 2)))))
+
+#++
+(trace :wherein test-rewrite-chain
+       match
+       breeze.egraph::match-rewrite
+       breeze.egraph::match-eclass
+       breeze.egraph::match-enode)
+
+
+
+(defun test-simple-rewrite (input pattern template)
+  "Takes an INPUT form, match it against PATTERN, if successful, use the resulting bindings to fill TEMPLATE.
+
+This is for interactive use, it logs a loooot of stuff."
+  (test-simple-rewrite* input (make-rewrite pattern template)))
+
+(defun test-simple-rewrite* (input rewrite)
+  "Takes an INPUT form, tries to apply REWRITE to it.
+
+This is for interactive use, it logs a loooot of stuff."
+  (format t "~%~%")
+  (let ((egraph (if (typep input 'egraph) input (make-egraph* input))))
+    (map-egraph #'print egraph :limit 100)
+    (format t "~%~%")
+    (let ((before (dump-egraph egraph))
+          (after (progn (apply-rewrite egraph rewrite)
+                        (rebuild egraph)
+                        (dump-egraph egraph))))
+      (progn
+        (format t "~%~%")
+        (format t "~&Applying the rewrite rule:~&    ~s~&    ~s"
+                (rewrite-pattern rewrite)
+                (rewrite-template rewrite))
+        (format t "~%~%")
+        (format t "~&Enodes before:~%~{    ~s~^~%~}" (second before))
+        (format t "~&Enodes after :~%~{    ~s~^~%~}" (second after))
+        (format t "~%~%")
+        (format t "~&Eclasses before:~%~{    ~s~^~%~}" (fourth before))
+        ;; (format t "~&Eclasses after :~%~{    ~s~^~%~}" (fourth after))
+        (format t "~&Eclasses after:")
+        (dolist (eclass-ish (fourth after))
+          (format t "~&    ~s's forms:" eclass-ish)
+          (let ((eclass-id (second eclass-ish)))
+            (map-stream #'(lambda (form)
+                            (format t "~&        ~a" form))
+                        (stream-eclass egraph (eclass egraph eclass-id)))))
+        (format t "~%~%")
+        (loop
+          :for input-eclass-id :in (input-eclasses egraph)
+          :do
+             (format t "~&Forms in input e-class ~d:" input-eclass-id)
+             (map-stream
+              (lambda (eclass-id)
+                (map-stream #'(lambda (form)
+                                (format t "~&-> ~a" form))
+                            (stream-eclass egraph (eclass egraph eclass-id))))
+              (stream-equivalent-eclasses egraph input-eclass-id)
+              :limit 100)
+             ;; (map-egraph #'print egraph :limit 100)
+          ))
+      egraph)))
+
 #++
 (progn
-  (defun test-simple-rewrite (input pattern template)
-    (test-simple-rewrite* input (make-rewrite pattern template)))
-  (defun test-simple-rewrite* (input rewrite)
-    (format t "~%~%")
-    (let ((egraph (if (typep input 'egraph) input (make-egraph* input))))
-      (map-egraph #'print egraph :limit 100)
-      (format t "~%~%")
-      (let ((before (dump-egraph egraph))
-            (after (progn (apply-rewrite egraph rewrite)
-                          (rebuild egraph)
-                          (dump-egraph egraph))))
-        (progn
-          (format t "~%~%")
-          (format t "~&Applying the rewrite rule:~&    ~s~&    ~s"
-                  (rewrite-pattern rewrite)
-                  (rewrite-template rewrite))
-          (format t "~%~%")
-          (format t "~&Enodes before:~%~{    ~s~^~%~}" (second before))
-          (format t "~&Enodes after :~%~{    ~s~^~%~}" (second after))
-          (format t "~%~%")
-          (format t "~&Eclasses before:~%~{    ~s~^~%~}" (fourth before))
-          ;; (format t "~&Eclasses after :~%~{    ~s~^~%~}" (fourth after))
-          (format t "~&Eclasses after:")
-          (dolist (eclass-ish (fourth after))
-            (format t "~&    ~s's forms:" eclass-ish)
-            (let ((eclass-id (second eclass-ish)))
-              (map-stream #'(lambda (form)
-                              (format t "~&        ~a" form))
-                          (stream-eclass egraph (eclass egraph eclass-id)))))
-          (format t "~%~%")
-          (loop
-            :for input-eclass-id :in (input-eclasses egraph)
-            :do
-               (format t "~&Forms in input e-class ~d:" input-eclass-id)
-               (map-stream
-                (lambda (eclass-id)
-                  (map-stream #'(lambda (form)
-                                  (format t "~&-> ~a" form))
-                              (stream-eclass egraph (eclass egraph eclass-id))))
-                (stream-equivalent-eclasses egraph input-eclass-id)
-                :limit 100)
-               ;; (map-egraph #'print egraph :limit 100)
-            ))
-        egraph)))
+ (untrace)
+ (trace
+    wherein test-simple-rewrite
+  pattern-substitute
+  breeze.egraph::match-rewrite
+  breeze.egraph::match-eclass
+  breeze.egraph::match-enode
+  merge-eclass
+  add-form
+  breeze.egraph::egraph-add-enode
+  breeze.egraph::form-to-enode
+  breeze.egraph::sequence-to-enode
+  breeze.egraph::atom-to-enode
+  match
+  ;; add-parent
+  merge-sets-of-bindings))
 
-  #++
-  (let ((egraph (test-simple-rewrite '(/ a a) '(/ ?x ?x) 1)))
-    (test-simple-rewrite egraph 1 '(/ ?x ?x)))
-
-  #++
-  ((untrace)
-   (trace
-    ;; :wherein test-simple-rewrite
-    pattern-substitute
-    breeze.egraph::match-rewrite
-    breeze.egraph::match-eclass
-    breeze.egraph::match-enode
-    ;; merge-eclass
-    add-form
-    breeze.egraph::egraph-add-enode
-    breeze.egraph::form-to-enode
-    breeze.egraph::sequence-to-enode
-    breeze.egraph::atom-to-enode
-    ;; match
-    ;; add-parent
-    ))
-
-  ;; #++
-  (let ((egraph (test-simple-rewrite '(+ a b c) '(+ ?x ?y ?z) '(+ ?x (+ ?y ?z)))))
-    (test-simple-rewrite egraph '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
-    (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
-    (setf *e* egraph))
-
-  #++
-  (let ((egraph (test-simple-rewrite '(* a 2) '(* ?x 2) '(ash ?x 1))))
-    ;; (test-simple-rewrite egraph '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
-    ;; (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
-    (setf *e* egraph))
-
-  #++
-  (let ((egraph (test-simple-rewrite '(+ 1 (* a 2)) '(* ?x 2) '(ash ?x 1))))
-    (test-simple-rewrite egraph '(* ?x 2) '(ash ?x 1))
-    ;; (test-simple-rewrite egraph '(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z))
-    ;; (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
-    (setf *e* egraph))
-
-  #++
-  (let ((egraph (test-simple-rewrite '(/ (* a 2) 2) '(/ (* ?x ?y) ?y) '?x)))
-    (setf *e* egraph))
-
-  ;; '(/ (* a 2) 2)
-  ;; (untrace)
+#++
+(let ((egraph (test-simple-rewrite '(+ 1 (* a 2)) '(* ?x 2) '(ash ?x 1))))
+  ;; (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
+  ;; (setf *e* egraph)
   )
+
+#++
+(let ((egraph (test-simple-rewrite '(/ (* a 2) 2) '(/ (* ?x ?y) ?y) '?x)))
+  (setf *e* egraph))
+
+;; '(/ (* a 2) 2)
+;; (untrace)
+
 
 #|
 Input:
