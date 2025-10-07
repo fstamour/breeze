@@ -248,6 +248,9 @@ TODO
 - nth-child-< node-iterator from to : return true if (<= from node's-position (1- to))
 - before-current-node
 
+- method "is point at start of form"
+- method "is point at end of form"
+
 |#
 
 

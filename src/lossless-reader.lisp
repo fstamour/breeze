@@ -1476,9 +1476,6 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
         (vector (aref subtree (1+ pos)))
         (t nil)))))
 
-;; TODO method "is point at start of form"
-;; TODO method "is point at end of form"
-
 
 
 #++

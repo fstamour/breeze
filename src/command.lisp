@@ -363,6 +363,7 @@ uses the throw tag to stop the command immediately."
              (error (condition)
                (let ((actor (find-actor id :errorp t)))
                  (log-error "~&An error occurred in ~a:~%  ~a" actor condition))
+               ;; TODO print the backtrace if possible
                (cancel-command id condition)
                (send "done")))
        (retry-command ()
