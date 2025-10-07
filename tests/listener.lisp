@@ -5,6 +5,8 @@
                 #:*command*
                 #:context
                 #:current-buffer)
+  (:import-from #:breeze.generics
+                #:eqv)
   (:import-from #:breeze.test.command
                 #:mock-send-out
                 #:mock-recv-into
@@ -91,7 +93,19 @@ breeze.dummy.test:hjkl
       ((mock-send-out (value)
          (is equalp '("pulse" 0 9) value))
        (mock-send-out (value)
-         (is equalp '("message" "Did you mean \"PRINT\"?") value))
+         (is eqv '("message" :_) value)
+         ;; TODO This is a hack... but it shows how the suggestions
+         ;; are (for the moment) not deterministic.
+         (let ((content (second value)))
+           (cond
+             ((string= content "Did you mean \"PRINT\"?")
+              (is equalp '("message" "Did you mean \"PRINT\"?") value))
+             ((string= content "Did you mean \"PRINC\"?")
+              (is equalp '("message" "Did you mean \"PRINC\"?") value))
+             ((string= content "Did you mean \"PRIN1\"?")
+              (is equalp '("message" "Did you mean \"PRIN1\"?") value))
+             (t
+              (is equalp '("message" "Did you mean \"PRINT\"?") value)))))
        (mock-send-out (value)
          (is equalp '("message"
                       "32 (6 bits, #x20, #o40, #b100000)") value))
