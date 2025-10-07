@@ -1,5 +1,9 @@
 # Breeze
 
+- [codeberg](https://codeberg.com/fstamour/breeze)
+- [gitlab](https://gitlab.com/fstamour/breeze)
+- [github](https://github.com/fstamour/breeze)
+
 Breeze is a set of tools that aims to make lisp development a breeze
 (hence the name).
 
