@@ -118,6 +118,7 @@ differences between swank and slynk."
         (setf *package* (find-package package-name))))
     (when-let* (($node (root-node-iterator $node))
                 (node (value $node)))
+      ;; TODO use pulse-node
       (pulse (start node) (end node))
       (let ((string (node-string $node)))
         (interactive-eval string)

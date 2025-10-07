@@ -117,4 +117,7 @@ breeze.dummy.test:hjkl
                        (restart-name first-restart))
                    (invoke-restart first-restart)
                    (error "Not the restart I expected: ~s" first-restart))))))
-      (interactive-eval-command))))
+      (handler-bind
+          ((style-warning (lambda (condition)
+                            (muffle-warning condition))))
+        (interactive-eval-command)))))
