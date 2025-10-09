@@ -40,6 +40,9 @@
                    (and value-b-p
                         (eqv value-a value-b))))))
 
+(defmethod eqv ((a string) (b string))
+  (string= a b))
+
 #++
 (progn
   (eqv '(?var . a) '(?var . a))
