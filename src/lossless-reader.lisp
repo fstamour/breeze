@@ -4,7 +4,7 @@
     (:documentation "A fast, lossless, robust and superficial reader for a superset of
 common lisp.")
   (:use #:cl #:breeze.logging)
-  (:use-reexport #:breeze.iterator)
+  (:use-reexport #:breeze.iterator #:breeze.generics)
   (:import-from #:breeze.generics
                 #:eqv)
   (:import-from #:breeze.string
@@ -85,39 +85,6 @@ common lisp.")
            #:uninterned-symbol
            #:qualified-symbol
            #:possibly-internal-symbol)
-  ;; Node copiers
-  (:export #:copy-block-comment
-           #:copy-parens
-           #:copy-sharpsign
-           #:copy-punctuation
-           #:copy-token
-           #:copy-whitespace
-           #:copy-line-comment
-           #:copy-string
-           #:copy-quote
-           #:copy-quasiquote
-           #:copy-dot
-           #:copy-comma
-           #:copy-sharp
-           #:copy-sharp-char
-           #:copy-sharp-function
-           #:copy-sharp-vector
-           #:copy-sharp-bitvector
-           #:copy-sharp-uninterned
-           #:copy-sharp-eval
-           #:copy-sharp-binary
-           #:copy-sharp-octal
-           #:copy-sharp-hexa
-           #:copy-sharp-complex
-           #:copy-sharp-structure
-           #:copy-sharp-pathname
-           #:copy-sharp-feature
-           #:copy-sharp-feature-not
-           #:copy-sharp-radix
-           #:copy-sharp-array
-           #:copy-sharp-label
-           #:copy-sharp-reference
-           #:copy-sharp-unknown)
   ;; Node predicates
   (:export #:block-comment-node-p
            #:parens-node-p
@@ -152,6 +119,10 @@ common lisp.")
            #:sharp-label-node-p
            #:sharp-reference-node-p
            #:sharp-unknown-node-p)
+  ;; Accessors
+  (:export
+   #:package-prefix
+   #:package-marker)
   ;; State utilities
   #++ ;; not exporting, those are somewhat internals...
   ;; TODO split this package
@@ -268,6 +239,11 @@ common lisp.")
 (defun range (start end)
   (make-instance 'range :start start :end end))
 
+(defmethod print-object ((range range) stream)
+  (print-unreadable-object
+      (range stream :type t :identity nil)
+    (format stream "~s-~s" (start range) (end range))))
+
 (declaim (inline range=))
 (defun range= (a b)
   (and (= (start a) (start b))
@@ -375,98 +351,119 @@ common lisp.")
 
 ;;; Constructors
 
-(macrolet ((aux (type
-                 &key
-                   children
-                   (name type)
-                   no-constructor-p)
-             `(progn
-                ;; predicate
-                (defun
-                    ;; name of the predicate
-                    ,(alexandria:symbolicate type '-node-p)
-                    ;; lambda list
-                    (node)
-                  ;; docstring
-                  ,(format nil "Is this a node of type ~s" type)
-                  ;; predicate's implementation
-                  (and (nodep node)
-                       (eq (node-type node) ',type)
-                       node))
-                ;; constructor
-                ,(unless no-constructor-p
-                   `(defun
-                        ;; name of the constructor function
-                        ,name
-                        ;; lambda list
-                        (start end
-                         ,@(when children
-                             (case children
-                               ;; :children &optional
-                               (&optional (list '&optional 'children))
-                               ;; :children t
-                               ((t) (list 'children))
-                               ;; :children some-name
-                               (t (alexandria:ensure-list children)))))
-                      ,(format nil "Make a node of type ~s" type)
-                      ;; constructor's implementation
-                      ,(cond
-                         ((null children)
-                          `(node ',type start end))
-                         ((eq t children)
-                          `(node ',type start end children))
-                         (t
-                          `(node ',type start end ,@(list children))))))
-                ;; copier
-                (defun
-                    ;; name of the copier function
-                    ,(alexandria:symbolicate 'copy- name)
-                    ;; lambda list
-                    (node &key
-                            (start nil startp)
-                            (end nil endp)
-                            ,@(when children
-                                (list `(children nil childrenp))))
-                  ;; docstring
-                  ,(format nil "Make a shallow copy of a node of type ~s, possibly replacing one of the attributes." type)
-                  ;; copier's implementation
-                  (node ',type
-                        (if startp start (node-start node))
-                        (if endp end (node-end node))
-                        ;; N.B. This is just a shallow copy
-                        ,@(when children
-                            `((if childrenp children (node-children node)))))))))
-  (aux whitespace)
-  (aux block-comment)
-  (aux line-comment)
-  (aux token)
-  (aux parens :children &optional :no-constructor-p t)
-  (aux punctuation :no-constructor-p t)
-  (aux string :name string-node)
-  (aux quote :name quote-node)
-  (aux quasiquote)
-  (aux dot)
-  (aux comma)
-  (aux sharp)
-  (aux sharp-char :children t)
-  (aux sharp-function :children t)
-  (aux sharp-vector)
-  (aux sharp-bitvector)
-  (aux sharp-uninterned :children token)
-  (aux sharp-eval)
-  (aux sharp-binary)
-  (aux sharp-octal)
-  (aux sharp-hexa)
-  (aux sharp-complex)
-  (aux sharp-structure)
-  (aux sharp-pathname :children t)
-  (aux sharp-feature :children t)
-  (aux sharp-feature-not :children t)
-  (aux sharp-radix)
-  (aux sharp-array)
-  (aux sharp-label :children t)
-  (aux sharp-reference :children label)
-  (aux sharp-unknown))
+(defmethod make-node-instance (class start end &rest args &key &allow-other-keys)
+  (apply #'make-instance class :type class
+                               :start start
+                               :end end
+                               args))
+
+;; TODO
+(defgeneric copy-node (node))
+
+(defmacro define-node-type (type
+                            &key
+                              class
+                              children
+                              (name type)
+                              no-constructor-p)
+  (let* ((children-&key-p (and (listp children)
+                               (eq '&key (car children))))
+         (children-&optional-p (eq '&optional children))
+         (children-t-p (eq t children))
+         (children-plist (when children-&key-p
+                           (mapcan (lambda (symbol)
+                                     `(,(intern (symbol-name symbol) :keyword)
+                                       ,symbol))
+                                   (rest children))))
+         (children (cond
+                     ((or children-&optional-p children-t-p)
+                      (list 'children))
+                     (children-&key-p (rest children))
+                     (children (list children)))))
+    `(progn
+       ;; predicate
+       (defun
+           ;; name of the predicate
+           ,(alexandria:symbolicate type '-node-p)
+           ;; lambda list
+           (node)
+         ;; docstring
+         ,(format nil "Is this a node of type ~s" type)
+         ;; predicate's implementation
+         ,(if class
+              `(typep node ',class)
+              `(and (nodep node)
+                    (eq (node-type node) ',type)
+                    node)))
+       ;; constructor
+       ,(unless no-constructor-p
+          `(defun
+               ;; name of the constructor function
+               ,name
+               ;; lambda list
+               (start end
+                ,@(cond
+                    (children-&optional-p `(&optional))
+                    (children-&key-p `(&key)))
+                ,@(alexandria:ensure-list children))
+             ,(format nil "Make a node of type ~s" type)
+             ;; constructor's implementation
+             (,@(if class
+                    `(make-node-instance ',class)
+                    `(node ',type))
+              start end
+              ,@(if children-&key-p children-plist children)))))))
+
+(define-node-type whitespace)
+(define-node-type block-comment)
+(define-node-type line-comment)
+(define-node-type token
+  :class token
+  :children (&key package-prefix package-marker name))
+(define-node-type parens :children &optional :no-constructor-p t)
+(define-node-type punctuation :no-constructor-p t)
+(define-node-type string :name string-node)
+(define-node-type quote :name quote-node)
+(define-node-type quasiquote)
+(define-node-type dot)
+(define-node-type comma)
+(define-node-type sharp)
+(define-node-type sharp-char :children t)
+(define-node-type sharp-function :children t)
+(define-node-type sharp-vector)
+(define-node-type sharp-bitvector)
+(define-node-type sharp-uninterned :children token)
+(define-node-type sharp-eval)
+(define-node-type sharp-binary)
+(define-node-type sharp-octal)
+(define-node-type sharp-hexa)
+(define-node-type sharp-complex)
+(define-node-type sharp-structure)
+(define-node-type sharp-pathname :children t)
+(define-node-type sharp-feature :children t)
+(define-node-type sharp-feature-not :children t)
+(define-node-type sharp-radix)
+(define-node-type sharp-array)
+(define-node-type sharp-label :children t)
+(define-node-type sharp-reference :children label)
+(define-node-type sharp-unknown)
+
+(defclass token (node)
+  ((package-prefix
+    :initform nil
+    :initarg :package-prefix
+    :accessor package-prefix
+    :documentation "The package prefix of the token.")
+   (package-marker
+    :initform nil
+    :initarg :package-marker
+    :accessor package-marker
+    :documentation "The package marker that separate the package prefix and the symbol's name.")
+   (name
+    :initform nil
+    :initarg :name
+    :accessor name
+    :documentation "Name of the symbol.")))
 
 (defun punctuation (type position)
   (node type position (1+ position)))
@@ -659,8 +656,7 @@ the occurrence of STRING."
           (setf (current-position state) end))
         (list start end)))))
 
-;; 2023-05-20 only used in read-token
-;; 2024-01-03 and read- dispatch reader macro
+;; 2025-10-07 only used in read-number
 (defun read-while (state predicate &key (advance-position-p t)
                                      (start (current-position state)))
   "Returns nil or (list start end)"
@@ -1031,24 +1027,33 @@ is ESCAPE. Optionally check if the characters is valid if VALIDP is
 provided."
   (let ((start (current-position state)))
     (when (at= state (current-position state) delimiter)
-      (loop
-        ;; :for guard :upto 10
-        :for pos :from (1+ (current-position state))
-        :for c = (at state pos)
-        :do
-           ;; (format *debug-io* "~%~A ~A" pos c)
-           (cond
-             ((null c)
-              (setf (current-position state) pos)
-              (return (range start +end+)))
-             ((char= c delimiter)
-              (setf (current-position state) (1+ pos))
-              (return (range start (1+ pos))))
-             ((char= c escape) (incf pos))
-             ((and validp
-                   (not (funcall validp c)))
-              (setf (current-position state) pos)
-              (return (range start +end+))))))))
+      (let ((out (make-string-output-stream)))
+        (values
+         (loop
+           ;; :for guard :upto 10
+                  :for pos :from (1+ (current-position state))
+           :for c = (at state pos)
+           :do
+              ;; (format *debug-io* "~%~A ~A" pos c)
+              (cond
+                ((null c)
+                 (setf (current-position state) pos)
+                 (return (range start +end+)))
+                ((char= c delimiter)
+                 (setf (current-position state) (1+ pos))
+                 (return (range start (1+ pos))))
+                ((char= c escape)
+                 (incf pos)
+                 (let ((escaped-char (current-char state)))
+                   (when escaped-char
+                     (write-char escaped-char out))))
+                ((and validp
+                      (not (funcall validp c)))
+                 (setf (current-position state) pos)
+                 (return (range start +end+)))
+                (t
+                 (write-char c out))))
+         (get-output-stream-string out))))))
 
 (defreader read-string ()
   "Read \"\""
@@ -1074,48 +1079,53 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                          +whitespaces+)
                       :test #'char=))))
 
-(defreader read-backslash ()
-  (when (read-char* state #\\)
-    (when (read-char* state)
-      (range start (current-position state)))))
-
-(defreader read-pipe ()
-  (when (current-char= state #\|)
-    (read-quoted-string state #\| #\\)))
-
-#++
-(progn
-  (trace
-   not-terminatingp
-   not-terminatingp-nor-pipe
-   read-token
-   read-backslash
-   read-pipe
-   read-while
-   donep)
-  (untrace))
-
 (defreader read-token ()
   "Read one token."
-  (loop
-    :with escape-once
-    :for char = (current-char state)
-    :while (not-terminatingp char)
-    :for part = (or
-                 (read-backslash state)
-                 (read-pipe state)
-                 (read-while state #'not-terminatingp-nor-escape))
-    :while (and part
-                (not-terminatingp (current-char state))
-                (not (donep state)))
-    :finally (return (unless (= start (current-position state))
-                       (let ((end (if part (end part) +end+)))
-                         (token start end)
-                         ;; for debugging
-                         #++
-                         (node 'token start end
-                               ;; Only for debugging
-                               (source-substring state start end)))))))
+  (let ((prefix (make-string-output-stream))
+        (marker (make-string-output-stream))
+        (name (make-string-output-stream))
+        end)
+    (loop
+      :for char = (current-char state)
+      :while (not-terminatingp char)
+      :do (cond
+            ((char= char #\|)
+             (multiple-value-bind (range string)
+                 (read-quoted-string state #\| #\\)
+               (write-string string name)
+               (when (no-end-p range)
+                 (setf end (end range))))
+             (decf (slot-value (iterator state) 'position)))
+            ((char= char #\\)
+             (next (iterator state))
+             (let ((escaped-char (current-char state)))
+               (when escaped-char
+                 (write-char escaped-char name))))
+            ((char= char #\:)
+             (write-string (get-output-stream-string name) prefix)
+             (write-char char marker))
+            (t
+             (write-char
+              ;; TODO this assumes *read-case* is :upcase
+              (char-upcase char)
+              name)))
+          (next (iterator state))
+      :while (and (not-terminatingp (current-char state))
+                  (not (donep state)))
+      :finally (return
+                 (unless (= start (current-position state))
+                   (let ((prefix (get-output-stream-string prefix))
+                         (marker (get-output-stream-string marker))
+                         (name (get-output-stream-string name))
+                         (end (or end (current-position state))))
+                     ;; (format t "~%PARTS: ~s ~s ~s")
+                     (token start end
+                            :package-prefix (unless (zerop (length prefix))
+                                              prefix)
+                            :package-marker (unless (zerop (length marker))
+                                              marker)
+                            :name (unless (zerop (length name))
+                                              name))))))))
 
 
 

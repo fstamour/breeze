@@ -995,11 +995,21 @@ the function read-sharpsign-dispatching-reader-macro
                      "~c is supposed to be a terminating character." char))
           '(#\; #\" #\' #\( #\) #\, #\`)))
 
-(defun test-read-token (input expected-end)
+(defun test-read-token (input expected-end
+                        &optional
+                        expected-name
+                        expected-package-prefix
+                        expected-package-marker)
   (with-state (input)
-    (test* (read-token state)
-           (when expected-end
-             (token 0 expected-end)))))
+    (let ((token (read-token state)))
+      (test* token
+             (when expected-end
+               (token 0 expected-end)))
+      (when token
+        (list token
+         (test* (name token) expected-name)
+         (test* (package-prefix token) expected-package-prefix)
+         (test* (package-marker token) expected-package-marker))))))
 
 (define-test+run read-token
   :depends-on (current-char
@@ -1008,22 +1018,30 @@ the function read-sharpsign-dispatching-reader-macro
                read-while)
   (test-read-token "" nil)
   (test-read-token " " nil)
-  (test-read-token "+-*/" 4)
-  (test-read-token "123" 3)
-  (test-read-token "| asdf |" 8)
-  (test-read-token "| a\\|sdf |" 10)
-  (test-read-token "| asdf |qwer#" 13)
-  (test-read-token "arg| asdf | " 11)
-  (test-read-token "arg| asdf |more" 15)
-  (test-read-token "arg| asdf |more|" +end+)
-  (test-read-token "arg| asdf |more|mmoooore|done" 29)
-  (test-read-token "arg| asdf |no  |mmoooore|done" 13)
-  (test-read-token "look|another\\| case\\| didn't think of| " 38)
-  (test-read-token "this.is.normal..." 17)
-  (test-read-token "\\asdf" 5)
-  (test-read-token "\\;" 2)
-  (test-read-token "a\\;" 3))
-
+  (test-read-token "+-*/" 4 "+-*/")
+  (test-read-token "123" 3 "123")
+  (test-read-token "| asdf |" 8 " asdf ")
+  (test-read-token "| a\\|sdf |" 10 " a|sdf ")
+  (test-read-token "| asdf |qwer#" 13 " asdf QWER#")
+  (test-read-token "arg| asdf | " 11 "ARG asdf ")
+  (test-read-token "arg| asdf |more" 15 "ARG asdf MORE")
+  (test-read-token "arg| asdf |more|" +end+ "ARG asdf MORE")
+  (test-read-token "arg| asdf |more|mmoooore|done" 29
+                   "ARG asdf MOREmmooooreDONE")
+  (test-read-token "arg| asdf |no  |mmoooore|done" 13
+                   "ARG asdf NO")
+  (test-read-token "look|another\\| case\\|I didn't think of| " 39
+                   "LOOKanother| case|I didn't think of")
+  (test-read-token "this.is.normal..." 17 "THIS.IS.NORMAL...")
+  (test-read-token "\\asdf" 5 "aSDF")
+  (test-read-token "\\;" 2 ";")
+  (test-read-token "a\\;" 3 "A;")
+  (test-read-token "a\\:b" 4 "A:B")
+  (test-read-token "a:b" 3 "B" "A" ":")
+  (test-read-token "a::b" 4 "B" "A" "::")
+  (test-read-token "a:::b" 4 "B" "A" ":::")
+  ;; TODO FIXME: this is wrong, the marker is not ":",  it's '(":" ":")...
+  (test-read-token "a:b:c" 4 "C" "AB" "::"))
 
 ;; TODO read-extraneous-closing-parens
 

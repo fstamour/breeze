@@ -32,7 +32,7 @@
 (defun test-parse-symbol-node (string)
   (parse-symbol-node (make-node-iterator string)))
 
-(define-test+run parse-symbol
+(define-test+run parse-symbol-node
   (is eqv '(:current-package-symbol "X") (test-parse-symbol-node "x"))
   (is eqv '(:keyword "X") (test-parse-symbol-node ":x"))
   (is eqv '(:uninterned-symbol "X") (test-parse-symbol-node "#:x"))
