@@ -2,8 +2,8 @@
 (uiop:define-package #:breeze.incremental-reader
     (:documentation "Parsing lisp code incrementally")
   (:use #:cl)
-  (:use-reexport #:breeze.lossless-reader)
-  (:import-from #:breeze.lossless-reader
+  (:use-reexport #:breeze.parser)
+  (:import-from #:breeze.parser
                 #:reparse)
   (:import-from #:breeze.workspace
                 #:find-buffer)
@@ -107,7 +107,7 @@
             ;; - (first rest) is unchanged
             ;; - (second rest) is the first node to re-parse
             ;; - (third rest) is the first node that we might be able to reuse
-            (let ((new-node (breeze.lossless-reader::read-any state)))
+            (let ((new-node (breeze.parser::read-any state)))
               (cond
                 ((and
                   (third rest)

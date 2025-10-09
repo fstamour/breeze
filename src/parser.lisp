@@ -1,6 +1,6 @@
 (cl:in-package #:cl-user)
 
-(uiop:define-package #:breeze.lossless-reader
+(uiop:define-package #:breeze.parser
     (:documentation "A fast, lossless, robust and superficial reader for a superset of
 common lisp.")
   (:use #:cl #:breeze.logging)
@@ -171,7 +171,7 @@ common lisp.")
    ;; top-level parsing
    #:parse))
 
-(in-package #:breeze.lossless-reader)
+(in-package #:breeze.parser)
 
 
 ;;; Reader state
@@ -481,7 +481,7 @@ common lisp.")
 (defmethod print-object ((node node) stream)
   (let ((*print-case* :downcase)
         (children (node-children node)))
-    (format stream "(~:[node '~;~]~s ~d ~d~:[ ~s~;~@[ ~/breeze.lossless-reader::print-nodes/~]~])"
+    (format stream "(~:[node '~;~]~s ~d ~d~:[ ~s~;~@[ ~/breeze.parser::print-nodes/~]~])"
             (member (node-type node)
                     '(parens
                       token

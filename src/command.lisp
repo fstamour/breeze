@@ -471,14 +471,14 @@ uses the throw tag to stop the command immediately."
              ;; don't...
              (cond
                ((and buffer
-                     (not (breeze.lossless-reader:node-iterator buffer)))
+                     (not (breeze.parser:node-iterator buffer)))
                 (send "buffer-string")
                 (let ((buffer-string (recv1)))
                   (breeze.buffer:update-buffer-content buffer buffer-string)))
                (buffer
                 ;; update buffer's point
-                (breeze.lossless-reader:goto-position
-                 (breeze.lossless-reader:node-iterator buffer)
+                (breeze.parser:goto-position
+                 (breeze.parser:node-iterator buffer)
                  (current-point))))
              ;; TODO use "call-with-correction-suggestion" here too!
              (apply fn extra-args)))))))

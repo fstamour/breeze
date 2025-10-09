@@ -39,15 +39,15 @@
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
    (:file "iterator" :depends-on ("generics"))
-   (:file "lossless-reader"
+   (:file "parser"
     :depends-on ("utils" "generics" "iterator"))
-   (:file "incremental-reader"
-    :depends-on ("lossless-reader" "workspace"))
-   (:file "buffer" :depends-on ("lossless-reader" "package"))
-   (:file "workspace" :depends-on ("lossless-reader" "buffer"))
+   (:file "incremental-parser"
+    :depends-on ("parser" "workspace"))
+   (:file "buffer" :depends-on ("parser" "package"))
+   (:file "workspace" :depends-on ("parser" "buffer"))
    (:file "pattern" :depends-on ("iterator" "generics"))
    (:file "egraph")
-   (:file "analysis" :depends-on ("lossless-reader" "pattern"))
+   (:file "analysis" :depends-on ("parser" "pattern"))
    (:file "command"
     :depends-on ("utils"
                  "configuration"
@@ -143,8 +143,8 @@
    (:file "lint")
    (:file "listener" :depends-on ("command"))
    (:file "logging")
-   (:file "lossless-reader" :depends-on ("lossless-reader.randomized"))
-   (:file "lossless-reader.randomized")
+   (:file "parser" :depends-on ("parser.randomized"))
+   (:file "parser.randomized")
    (:file "package")
    (:file "package-commands")
    (:file "pattern")

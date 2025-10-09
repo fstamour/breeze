@@ -2,7 +2,7 @@
 (defpackage #:breeze.buffer
   (:documentation "Data structure to hold and manage lisp source code, its parse tree and
 point.")
-  (:use #:cl #:breeze.lossless-reader)
+  (:use #:cl #:breeze.parser)
   (:import-from #:breeze.generics
                 #:name)
   (:import-from #:breeze.package

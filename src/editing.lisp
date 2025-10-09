@@ -1,7 +1,7 @@
 (defpackage #:breeze.editing
   (:documentation "Text and structural editing")
   (:use #:cl
-        #:breeze.lossless-reader
+        #:breeze.parser
         #:breeze.command
         #:breeze.buffer)
   (:export #:kill-sexp))

@@ -694,7 +694,7 @@ strings get concatenated."
 (let* ((input
         "(uiop:define-package #:package
     (:use #:cl)
-  (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
+  (:use-reexport #:breeze.parser #:breeze.pattern)
   ;; Category A
   (:export
    #:a
@@ -708,7 +708,7 @@ strings get concatenated."
        (expected-output
         "(uiop:define-package #:package
     (:use #:cl)
-  (:use-reexport #:breeze.lossless-reader #:breeze.pattern)
+  (:use-reexport #:breeze.parser #:breeze.pattern)
   ;; Category A
   (:export
    #:a

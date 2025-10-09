@@ -12,7 +12,7 @@
                 #:indirect)
   (:import-from #:breeze.utils
                 #:find-version-control-root)
-  (:import-from #:breeze.lossless-reader
+  (:import-from #:breeze.parser
                 #:node-iterator
                 #:copy-iterator
                 #:make-node-iterator

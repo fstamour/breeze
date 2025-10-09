@@ -3,7 +3,7 @@
     (:documentation "Pattern matching against parse trees")
   (:use #:cl)
   (:use-reexport #:breeze.generics
-                 #:breeze.lossless-reader
+                 #:breeze.parser
                  #:breeze.pattern)
   (:import-from #:alexandria
                 #:when-let
@@ -51,7 +51,7 @@
          (second (parse-symbol-node node-iterator)))))))
 
 
-;;; Integrating pattern.lisp and lossless-parser.lisp
+;;; Integrating pattern.lisp and parser.lisp
 
 (defun match-parser-state (pattern state &key skipp)
   (match pattern (make-node-iterator state) :skipp skipp))

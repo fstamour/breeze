@@ -2,7 +2,7 @@
 
 (cl:defpackage #:refactor-scratch
   (:use :cl)
-  (:import-from #:breeze.lossless-reader
+  (:import-from #:breeze.parser
                 #:parse))
 
 (cl:in-package #:refactor-scratch)

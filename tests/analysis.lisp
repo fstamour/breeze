@@ -27,7 +27,7 @@
 (in-package #:breeze.test.analysis)
 
 
-;;; Integrating pattern.lisp and lossless-parser.lisp
+;;; Integrating pattern.lisp and parser.lisp
 
 (defun test-parse-symbol-node (string)
   (parse-symbol-node (make-node-iterator string)))

@@ -1,13 +1,13 @@
 
 (cl:in-package #:cl-user)
 
-(defpackage #:breeze.test.lossless-reader
-  (:documentation "Test package for #:breeze.lossless-reader")
-  (:use #:cl #:breeze.lossless-reader)
+(defpackage #:breeze.test.parser
+  (:documentation "Test package for #:breeze.parser")
+  (:use #:cl #:breeze.parser)
   (:import-from #:breeze.generics
                 #:eqv)
   ;; Importing non-exported symbols
-  (:import-from #:breeze.lossless-reader
+  (:import-from #:breeze.parser
                 #:make-node
                 #:at
                 #:at=
@@ -60,7 +60,7 @@
                 #:is-equalp*
                 #:is-equalp))
 
-(in-package #:breeze.test.lossless-reader)
+(in-package #:breeze.test.parser)
 
 (defvar *test-strings* (make-hash-table :test 'equal))
 
@@ -173,10 +173,10 @@
 
 
 
-; file: /home/fstamour/dev/breeze/tests/lossless-reader.randomized.lisp
+; file: /home/fstamour/dev/breeze/tests/parser.randomized.lisp
 ; in:
-;      PARACHUTE:DEFINE-TEST+RUN BREEZE.TEST.LOSSLESS-READER::PARSE-RANDOMIZED
-;     (REMHASH STRING BREEZE.TEST.LOSSLESS-READER::*TEST-STRINGS*)
+;      PARACHUTE:DEFINE-TEST+RUN BREEZE.TEST.PARSER::PARSE-RANDOMIZED
+;     (REMHASH STRING BREEZE.TEST.PARSER::*TEST-STRINGS*)
 ;
 ; caught WARNING:
 ;   undefined variable: COMMON-LISP:STRING

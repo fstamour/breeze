@@ -23,7 +23,7 @@
 ;; Find empty tests
 #++
 (loop
-  :for test :in (parachute:package-tests '#:breeze.test.lossless-reader)
+  :for test :in (parachute:package-tests '#:breeze.test.parser)
   :for children = (parachute:children test)
   :for tests = (parachute:tests test)
   :when (and (null children)
@@ -33,7 +33,7 @@
 ;; Find tests whose name is a string (I usually use symbols)
 #++
 (loop
-  :for test :in (parachute:package-tests '#:breeze.test.lossless-reader)
+  :for test :in (parachute:package-tests '#:breeze.test.parser)
   :for name = (parachute:name test)
   :when (stringp name)
     :do (parachute:remove-test test))

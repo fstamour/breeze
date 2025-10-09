@@ -202,9 +202,9 @@
  next)
 
 
-;;; lossless-reader.lisp
+;;; parser.lisp
 
-(in-package #:breeze.lossless-reader)
+(in-package #:breeze.parser)
 
 (trace
  read-string*
@@ -226,15 +226,15 @@
  parse)
 
 (trace children
-       :wherein breeze.test.lossless-reader::goto-position/all)
+       :wherein breeze.test.parser::goto-position/all)
 
 (trace value next donep
-       :wherein breeze.test.lossless-reader::goto-position/all)
+       :wherein breeze.test.parser::goto-position/all)
 
 (trace goto-position
-       :wherein breeze.test.lossless-reader::goto-position/all)
+       :wherein breeze.test.parser::goto-position/all)
 
-(trace breeze.test.lossless-reader::goto-position/all)
+(trace breeze.test.parser::goto-position/all)
 
 (untrace)
 

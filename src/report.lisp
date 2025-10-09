@@ -20,7 +20,7 @@ TODO Split comment/paragraphs when the line starts with "TODO"
 
 (defpackage #:breeze.report
   (:documentation "Using breeze's code to generate report to improve breeze.")
-  (:use #:cl #:breeze.lossless-reader)
+  (:use #:cl #:breeze.parser)
   (:import-from #:breeze.utils
                 #:nrun)
   (:export #:report
@@ -113,7 +113,7 @@ newlines or more marks the start of a new paragraph)."
 
 (defun page-node-p (node)
   "Is the node (from the lossless parser) a new-page (^L) character?"
-  (eq 'breeze.lossless-reader::page (node-type node)))
+  (eq 'breeze.parser::page (node-type node)))
 
 (defun pages (state)
   "Split a parse-tree by top-level new-page character (^L)"
@@ -142,7 +142,7 @@ newlines or more marks the start of a new paragraph)."
 
 
 (defun parse-system (system)
-  "Parse (with lossless-reader) all files we want to include."
+  "Parse all files we want to include."
   ;; TODO include all files that are tracked under git...
   (format t "~&Parsing the system ~S 's files..." system)
   (prog1

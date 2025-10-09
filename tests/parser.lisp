@@ -1,7 +1,7 @@
 
 (cl:in-package #:cl-user)
 
-(in-package #:breeze.test.lossless-reader)
+(in-package #:breeze.test.parser)
 
 #|
 
@@ -366,7 +366,7 @@ the function read-sharpsign-dispatching-reader-macro
                              expected-children))
              (got
                (is-equalp
-                :comparator #'breeze.lossless-reader::eqv
+                :comparator 'eqv
                 :input input
                 :got (funcall sharpsing-reader-function
                               state

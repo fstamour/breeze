@@ -4,7 +4,7 @@
   (:use #:cl
         #:breeze.string
         #:breeze.command
-        #:breeze.lossless-reader
+        #:breeze.parser
         #:breeze.pattern
         #:breeze.workspace)
   (:import-from #:alexandria

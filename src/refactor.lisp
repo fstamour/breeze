@@ -753,9 +753,9 @@ TODO there's some different kind of "quickfixes":
              (format nil "~a ~a" (current-point)
                      (let ((node-iterator (current-node-iterator)))
                        (if node-iterator
-                           (let* ((state (breeze.lossless-reader:state node-iterator))
+                           (let* ((state (breeze.parser:state node-iterator))
                                   (node (breeze.iterator:value node-iterator)))
-                             (breeze.lossless-reader:node-content state node))
+                             (breeze.parser:node-content state node))
                            "NODE-ITERATOR is nil")))
            (error (condition) (apply #'format nil (simple-condition-format-control condition)
                                      (simple-condition-format-arguments condition))))

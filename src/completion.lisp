@@ -58,7 +58,7 @@ fiind-sym
                 #:define-command
                 #:current-buffer
                 #:return-value-from-command)
-  (:import-from #:breeze.lossless-reader
+  (:import-from #:breeze.parser
                 #:node-iterator)
   (:export #:completions-at-point))
 
@@ -72,13 +72,13 @@ fiind-sym
   (let* (($node (node-iterator (current-buffer)))
          (node (breeze.iterator:value $node)))
     (declare (ignorable node))
-    ;; (break "~s" (breeze.lossless-reader:node-string $node))
+    ;; (break "~s" (breeze.parser:node-string $node))
     (return-value-from-command
      (list "prin1" "print")
      #++
      (when (or
-            (breeze.lossless-reader:token-node-p node)
-            (breeze.lossless-reader:symbol-node-p node))
+            (breeze.parser:token-node-p node)
+            (breeze.parser:symbol-node-p node))
 
        '("asfd" "qwer" "uiop")))))
 

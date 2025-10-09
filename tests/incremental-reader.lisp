@@ -1,11 +1,11 @@
 
 (cl:in-package #:cl-user)
 
-(defpackage #:breeze.test.incremental-reader
-  (:documentation "Test package for #:breeze.incremental-reader")
-  (:use #:cl #:breeze.lossless-reader #:breeze.incremental-reader)
+(defpackage #:breeze.test.incremental-parser
+  (:documentation "Test package for #:breeze.incremental-parser")
+  (:use #:cl #:breeze.parser #:breeze.incremental-parser)
   ;; importing non-exported symbols
-  (:import-from #:breeze.incremental-reader
+  (:import-from #:breeze.incremental-parser
                 #:edit-and-parse
                 #:check-edit
                 #:apply-edit-to-source)
@@ -21,7 +21,7 @@
                 #:is-equalp*
                 #:is-equalp))
 
-(in-package #:breeze.test.incremental-reader)
+(in-package #:breeze.test.incremental-parser)
 
 (define-test+run check-edit
   (progn
