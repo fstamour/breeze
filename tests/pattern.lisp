@@ -173,8 +173,8 @@
 (define-test+run parse-symbol
   ;; N.B.: parse-symbol assume the string (token) is inded a symbol:
   ;; TODO remove the suffix -symbol
-  (is eqv '(:current-package-symbol "42") (parse-symbol "42"))
-  (is eqv '(:current-package-symbol "X") (parse-symbol "x"))
+  (is eqv '(:current "42") (parse-symbol "42"))
+  (is eqv '(:current "X") (parse-symbol "x"))
   (is eqv '(:keyword "X") (parse-symbol ":x"))
   (is eqv '(:uninterned-symbol "X") (parse-symbol "#:x"))
   (is eqv '(:qualified-symbol "X" "P") (parse-symbol "p:x"))
@@ -202,13 +202,13 @@
 
 (define-test+run "match sym against string: :wild symbol-name and package-name"
   (is eq t (match (sym :wild :wild :wild) "x"))
-;;; :current-package-symbol
+;;; :current
   (progn
-    (is eq t (match (sym :wild :wild :current-package-symbol) "x"))
-    (is eq nil (match (sym :wild :wild :current-package-symbol) ":x"))
-    (is eq nil (match (sym :wild :wild :current-package-symbol) "#:x"))
-    (is eq nil (match (sym :wild :wild :current-package-symbol) "p:x"))
-    (is eq nil (match (sym :wild :wild :current-package-symbol) "p::x")))
+    (is eq t (match (sym :wild :wild :current) "x"))
+    (is eq nil (match (sym :wild :wild :current) ":x"))
+    (is eq nil (match (sym :wild :wild :current) "#:x"))
+    (is eq nil (match (sym :wild :wild :current) "p:x"))
+    (is eq nil (match (sym :wild :wild :current) "p::x")))
 ;;; :keyword
   (progn
     (is eq nil (match (sym :wild :wild :keyword) "x"))
@@ -240,7 +240,7 @@
 
 
 (define-test+run "match sym against string: :wild symbol-name and qualification"
-;;; :current-package-symbol
+;;; :current
   (progn
     (is eq nil (match (sym nil :wild :wild) "x"))
     (is eq nil (match (sym :keyword :wild :wild) "x"))
@@ -290,7 +290,7 @@
 
 (define-test+run "match sym against string: :wild package-name and qualification"
   ;; N.B. the third :wild is optional
-;;; :current-package-symbol
+;;; :current
   (progn
     (is eq t (match (sym :wild "X" :wild) "X"))
     (is eq t (match (sym :wild 'x :wild) "X"))
@@ -337,12 +337,12 @@
     (is eq t (match (sym :wild "x" :wild) "p::X"))))
 
 (define-test+run "match sym against string: :wild package-name"
-;;; :current-package-symbol
+;;; :current
   (progn
     (progn
-      (is eq t (match (sym :wild :x :current-package-symbol) "x"))
-      (is eq t (match (sym :wild "x" :current-package-symbol) "x"))
-      (is eq t (match (sym :wild "X" :current-package-symbol) "x")))
+      (is eq t (match (sym :wild :x :current) "x"))
+      (is eq t (match (sym :wild "x" :current) "x"))
+      (is eq t (match (sym :wild "X" :current) "x")))
     (progn
       (is eq nil (match (sym :wild :x :keyword) "x"))
       (is eq nil (match (sym :wild "x" :keyword) "x"))
@@ -362,9 +362,9 @@
 ;;; :keyword
   (progn
     (progn
-      (is eq nil (match (sym :wild :x :current-package-symbol) ":x"))
-      (is eq nil (match (sym :wild "x" :current-package-symbol) ":x"))
-      (is eq nil (match (sym :wild "X" :current-package-symbol) ":x")))
+      (is eq nil (match (sym :wild :x :current) ":x"))
+      (is eq nil (match (sym :wild "x" :current) ":x"))
+      (is eq nil (match (sym :wild "X" :current) ":x")))
     (progn
       (is eq t (match (sym :wild :x :keyword) ":x"))
       (is eq t (match (sym :wild "x" :keyword) ":x"))
@@ -384,9 +384,9 @@
 ;;; :uninterned-symbol
   (progn
     (progn
-      (is eq nil (match (sym :wild :x :current-package-symbol) "#:x"))
-      (is eq nil (match (sym :wild "x" :current-package-symbol) "#:x"))
-      (is eq nil (match (sym :wild "X" :current-package-symbol) "#:x")))
+      (is eq nil (match (sym :wild :x :current) "#:x"))
+      (is eq nil (match (sym :wild "x" :current) "#:x"))
+      (is eq nil (match (sym :wild "X" :current) "#:x")))
     (progn
       (is eq nil (match (sym :wild :x :keyword) "#:x"))
       (is eq nil (match (sym :wild "x" :keyword) "#:x"))
@@ -406,9 +406,9 @@
 ;;; :qualified-symbol
   (progn
     (progn
-      (is eq nil (match (sym :wild :x :current-package-symbol) "p:x"))
-      (is eq nil (match (sym :wild "x" :current-package-symbol) "p:x"))
-      (is eq nil (match (sym :wild "X" :current-package-symbol) "p:x")))
+      (is eq nil (match (sym :wild :x :current) "p:x"))
+      (is eq nil (match (sym :wild "x" :current) "p:x"))
+      (is eq nil (match (sym :wild "X" :current) "p:x")))
     (progn
       (is eq nil (match (sym :wild :x :keyword) "p:x"))
       (is eq nil (match (sym :wild "x" :keyword) "p:x"))
@@ -428,9 +428,9 @@
 ;;; :possibly-internal-symbol
   (progn
     (progn
-      (is eq nil (match (sym :wild :x :current-package-symbol) "p::x"))
-      (is eq nil (match (sym :wild "x" :current-package-symbol) "p::x"))
-      (is eq nil (match (sym :wild "X" :current-package-symbol) "p::x")))
+      (is eq nil (match (sym :wild :x :current) "p::x"))
+      (is eq nil (match (sym :wild "x" :current) "p::x"))
+      (is eq nil (match (sym :wild "X" :current) "p::x")))
     (progn
       (is eq nil (match (sym :wild :x :keyword) "p::x"))
       (is eq nil (match (sym :wild "x" :keyword) "p::x"))
@@ -453,7 +453,7 @@
   (;; Notes:
    ;; These combinations don't make sense:
    (progn
-     (sym nil :wild :current-package-symbol)
+     (sym nil :wild :current)
      (sym nil :wild :keyword)
      (sym nil :wild :qualified-symbol)
      (sym nil :wild :possibly-internal-symbol)
@@ -465,51 +465,51 @@
      (sym :keyword :wild :keyword))
    ;; These combinations are actually useful:
    (progn
-     (sym :apackage :wild :current-package-symbol)
+     (sym :apackage :wild :current)
      (sym :apackage :wild :qualified-symbol)
      (sym :apackage :wild :possibly-internal-symbol)))
-;;; :current-package-symbol
+;;; :current
   (progn
     (is eq nil (match (sym nil :wild :uninterned-symbol) "x"))
     (is eq nil (match (sym :keyword :wild :keyword) "x"))
     ;; not sure: this assumes that the current package is not the
     ;; correct one, but it could be
-    (is eq nil (match (sym :keyword :wild :current-package-symbol) "x"))
+    (is eq nil (match (sym :keyword :wild :current) "x"))
     (is eq nil (match (sym :keyword :wild :qualified-symbol) "x"))
     (is eq nil (match (sym :keyword :wild :possibly-internal-symbol) "x"))
     ;; not sure: this assumes that the current package is the correct
     ;; one, but it might not be
-    (is eq t (match (sym :cl :wild :current-package-symbol) "x"))
+    (is eq t (match (sym :cl :wild :current) "x"))
     (is eq nil (match (sym :cl :wild :qualified-symbol) "x"))
     (is eq nil (match (sym :cl :wild :possibly-internal-symbol) "x")))
 ;;; :keyword
   (progn
     (is eq nil (match (sym nil :wild :uninterned-symbol) ":x"))
     (is eq t (match (sym :keyword :wild :keyword) ":x"))
-    (is eq nil (match (sym :keyword :wild :current-package-symbol) ":x"))
+    (is eq nil (match (sym :keyword :wild :current) ":x"))
     (is eq nil (match (sym :keyword :wild :qualified-symbol) ":x"))
     (is eq nil (match (sym :keyword :wild :possibly-internal-symbol) ":x"))
-    (is eq nil (match (sym :cl :wild :current-package-symbol) ":x"))
+    (is eq nil (match (sym :cl :wild :current) ":x"))
     (is eq nil (match (sym :cl :wild :qualified-symbol) ":x"))
     (is eq nil (match (sym :cl :wild :possibly-internal-symbol) ":x")))
 ;;; :uninterned-symbol
   (progn
     (is eq t (match (sym nil :wild :uninterned-symbol) "#:x"))
     (is eq nil (match (sym :keyword :wild :keyword) "#:x"))
-    (is eq nil (match (sym :keyword :wild :current-package-symbol) "#:x"))
+    (is eq nil (match (sym :keyword :wild :current) "#:x"))
     (is eq nil (match (sym :keyword :wild :qualified-symbol) "#:x"))
     (is eq nil (match (sym :keyword :wild :possibly-internal-symbol) "#:x"))
-    (is eq nil (match (sym :cl :wild :current-package-symbol) "#:x"))
+    (is eq nil (match (sym :cl :wild :current) "#:x"))
     (is eq nil (match (sym :cl :wild :qualified-symbol) "#:x"))
     (is eq nil (match (sym :cl :wild :possibly-internal-symbol) "#:x")))
 ;;; :qualified-symbol
   (progn
     (is eq nil (match (sym nil :wild :uninterned-symbol) "p:x"))
     (is eq nil (match (sym :keyword :wild :keyword) "p:x"))
-    (is eq nil (match (sym :keyword :wild :current-package-symbol) "p:x"))
+    (is eq nil (match (sym :keyword :wild :current) "p:x"))
     (is eq nil (match (sym :keyword :wild :qualified-symbol) "p:x"))
     (is eq nil (match (sym :keyword :wild :possibly-internal-symbol) "p:x"))
-    (is eq nil (match (sym :cl :wild :current-package-symbol) "cl:x"))
+    (is eq nil (match (sym :cl :wild :current) "cl:x"))
     ;; TODO these should match depending on *read-case*
     (is eq t (match (sym "cl" :wild :qualified-symbol) "cl:x"))
     (is eq t (match (sym :cl :wild :qualified-symbol) "cl:x"))
@@ -518,18 +518,19 @@
   (progn
     (is eq nil (match (sym nil :wild :uninterned-symbol) "p::x"))
     (is eq nil (match (sym :keyword :wild :keyword) "p::x"))
-    (is eq nil (match (sym :keyword :wild :current-package-symbol) "p::x"))
+    (is eq nil (match (sym :keyword :wild :current) "p::x"))
     (is eq nil (match (sym :keyword :wild :qualified-symbol) "p::x"))
     (is eq nil (match (sym :keyword :wild :possibly-internal-symbol) "p::x"))
-    (is eq nil (match (sym :cl :wild :current-package-symbol) "cl::x"))
+    (is eq nil (match (sym :cl :wild :current) "cl::x"))
     (is eq nil (match (sym "cl" :wild :qualified-symbol) "cl::x"))
     ;; TODO these should match depending on *read-case*
     (is eq t (match (sym :cl :wild :possibly-internal-symbol) "cl::x"))
     (is eq t (match (sym "cl" :wild :possibly-internal-symbol) "cl::x"))
     (is eq t (match (sym "CL" :wild :possibly-internal-symbol) "cl::x"))))
 
+#++
 (define-test+run "match sym against string: :wild qualification"
-;;; :current-package-symbol
+;;; :current
   (progn
     (is eq nil (match (sym nil "x" :wild) "x"))
     (is eq nil (match (sym nil "y" :wild) "x"))

@@ -811,10 +811,11 @@ The designators can be strings, symbols or packages."
     ;; package:name or package::name
     ((member qualification '(:qualified-symbol :possibly-internal-symbol))
      (same-package-p package-name package-name-pattern))
-    ((eq qualification :current-package-symbol)
+    ((eq qualification :current)
      ;; TODO check the current-package
      t)))
 
+#++
 (defmethod match ((pattern sym) (input string) &key)
   "Match a `sym' pattern against a string."
   (with-slots ((symbol-name-pattern name)

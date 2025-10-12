@@ -269,6 +269,7 @@ newline or +end+)
                            expected-pos
                            expected-children
                            expected-errors
+                           extra-initargs
                            given-numeric-argument)
   "Helps testing the read-sharp-* functions.
 
@@ -306,12 +307,13 @@ the function read-sharp-dispatching-reader-macro
                                 expected-children)))
     (with-state (input)
       (setf (current-position state) starting-position)
-      (let* ((expected (make-instance
-                        node-type
-                        :start 0
-                        :end expected-end
-                        :children expected-children
-                        :errors expected-errors))
+      (let* ((expected (apply #'make-instance
+                              node-type
+                              :start 0
+                              :end expected-end
+                              :children expected-children
+                              :errors expected-errors
+                              extra-initargs))
              (got
                (is-equalp
                 :comparator 'eqv
@@ -570,13 +572,9 @@ the function read-sharp-dispatching-reader-macro
      :input input
      :expected-end end
      ;; :expected-children child
+     :extra-initargs `(:radix ,numeric-argument)
      :expected-errors errors
      :given-numeric-argument numeric-argument)))
-
- (parse-integer
-  "#" :start 1 :junk-allowed t)
-
-;; (trace read-sharp-r)
 
 (define-test+run read-sharp-r
   ;; no radix
@@ -693,9 +691,9 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-s "#s" :end +end+)
   (test-read-sharp-s "#S" :end +end+)
   (test-read-sharp-s "#S(node)"
-                         :child (nodes (parens 2 8 (token 3 7))))
+                         :child (nodes (parens 2 8 (nodes (token 3 7)))))
   (test-read-sharp-s "#S(node) foo"
-                         :child (nodes (parens 2 8 (token 3 7)))
+                         :child (nodes (parens 2 8 (nodes (token 3 7))))
                          :end 8))
 
 
@@ -722,48 +720,51 @@ the function read-sharp-dispatching-reader-macro
 
 ;;; #n=
 
-(defun test-read-sharp-equal (input &key child end)
+(defun test-read-sharp-equal (input &key child end label)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-equal
    :node-type 'sharp-label
    :input input
    :expected-end end
    :expected-children child
-   :given-numeric-argument (let ((first-child (first-node child)))
-                             (when (integerp first-child)
-                               first-child))))
+   :given-numeric-argument label
+   :extra-initargs `(:label ,label)))
 
 (define-test+run read-sharp-equal
   (progn
     (test-read-sharp-equal
      "#="
      :end +end+
-     :child (vector nil nil))
+     :child nil)
     (test-read-sharp-equal
      '("#1" "=")
-     :child (vector 1 nil)
-     :end +end+)
+     :child nil
+     :end +end+
+     :label 1)
     (test-read-sharp-equal
      '("#2" "= ")
-     :child (vector 2 (nodes (whitespace 3 4)))
-     :end +end+)
+     :child (nodes (whitespace 3 4))
+     :end +end+
+     :label 2)
     (test-read-sharp-equal
      '("#3" "=(foo)")
-     :child (vector 3 (nodes (parens 3 8 (token 4 7)))))
+     :child (nodes (parens 3 8 (nodes (token 4 7))))
+     :label 3)
     (test-read-sharp-equal
      '("#4" "= (foo)")
-     :child (vector 4 (nodes (whitespace 3 4) (parens 4 9 (token 5 8))))))
+     :child (nodes (whitespace 3 4) (parens 4 9 (nodes (token 5 8))))
+     :label 4))
   (progn
     (test-read-sharp-equal
      '("#" "=")
-     :child (vector nil nil)
+     :child nil
      :end +end+)
     (test-read-sharp-equal
      '("#" "=(bar)")
-     :child (vector nil (nodes (parens 2 7 (token 3 6)))))
+     :child (nodes (parens 2 7 (nodes (token 3 6)))))
     (test-read-sharp-equal
      '("#" "= (bar)")
-     :child (vector nil (nodes (whitespace 2 3) (parens 3 8 (token 4 7)))))))
+     :child (nodes (whitespace 2 3) (parens 3 8 (nodes (token 4 7)))))))
 
 
 
