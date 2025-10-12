@@ -144,18 +144,6 @@ newline or +end+)
 
 ;;; Node object
 
-(define-test+run node-constructor
-  (is eqv (node 'x 0 0) (node 'x 0 0))
-  (is eqv (node 'x 0 2 (node 'y 1 2)) (node 'x 0 2 (node 'y 1 2)))
-  (is eqv
-      (node 'x 0 3 (node 'y 1 2) (node 'z 2 3))
-      (node 'x 0 3 (nodes (node 'y 1 2) (node 'z 2 3))))
-  (is eqv (node 'parens 1 2) (parens 1 2))
-  (is eqv (parens 1 2 'x) (parens 1 2 'x))
-  (is eqv
-      (parens 1 2 (node 'x 3 4))
-      (parens 1 2 (nodes (node 'x 3 4)))))
-
 (defun test-node-print-object (node &optional expected)
   (is-equalp
    :input node
@@ -163,26 +151,10 @@ newline or +end+)
    :form `(prin1-to-string ,node)
    :expected expected))
 
+;; TODO might need more tests (it used to have more, before I refactor the nodes to be classes.
 (define-test+run node-print-object
-  (test-node-print-object (node 'asdf 1 3) "(node 'asdf 1 3)")
-  (test-node-print-object (make-node :type 'boo :start 1 :end 2) "(node 'boo 1 2)")
   (test-node-print-object
-   (list (make-node :type 'boo :start 1 :end 2))
-   "((node 'boo 1 2))")
-  (test-node-print-object
-   (node 'asdf 1 3 (node 'qwer 3 5))
-   "(node 'asdf 1 3 (node 'qwer 3 5))")
-  (test-node-print-object
-   (node 'asdf 1 3 (list (node 'qwer 3 5) (node 'uiop 6 8)))
-   "(node 'asdf 1 3 (list (node 'qwer 3 5) (node 'uiop 6 8)))")
-  (test-node-print-object
-   (node 'asdf 1 3 (nodes (node 'qwer 3 5) (node 'uiop 6 8)))
-   "(node 'asdf 1 3 #((node 'qwer 3 5) (node 'uiop 6 8)))")
-  (test-node-print-object
-   (node 'asdf 1 3 #((node 'qwer 3 5) (node 'uiop 6 8)))
-   "(node 'asdf 1 3 #((node 'qwer 3 5) (node 'uiop 6 8)))")
-  (test-node-print-object
-   (parens 3 5) "(parens 3 5)")
+   (parens 3 5 nil) "(parens 3 5 nil)")
   (test-node-print-object
    (parens 3 5 'x) "(parens 3 5 x)"))
 
@@ -214,33 +186,6 @@ newline or +end+)
     ("c"
      (test* (list (read-char* state) (current-position state)) '(#\c 1))
      (test* (list (read-char* state #\d) (current-position state)) '(nil 0)))))
-
-(define-test+run read-string*
-  :depends-on (valid-position-p)
-  (with-state* ()
-    (""
-     (test*
-      (list
-       (read-string* state "")
-       (current-position state))
-      '(nil 0))
-     (test*
-      (list
-       (read-string* state "#")
-       (current-position state))
-      '(nil 0)))
-    (";"
-     (test*
-      (list
-       (read-string* state ";;")
-       (current-position state))
-      '(nil 0)))
-    (";;"
-     (test*
-      (list
-       (read-string* state ";;")
-       (current-position state))
-      '((0 2) 2)))))
 
 ;; TODO test read-while
 (define-test+run read-while)
@@ -287,7 +232,6 @@ newline or +end+)
      :comparator 'eqv)))
 
 (define-test+run read-block-comment
-  :depends-on (read-string*)
   (test-read-block-comment "" nil)
   (test-read-block-comment "#|" +end+)
   (test-read-block-comment "#| " +end+)
@@ -315,17 +259,18 @@ newline or +end+)
 
 
 
-(defparameter *sharpsign-reader-test-cases* (make-hash-table :test 'equal))
+(defparameter *sharp-reader-test-cases* (make-hash-table :test 'equal))
 
-(defun test-read-sharpsign* (&key
-                               sharpsing-reader-function
-                               node-type
-                               input
-                               expected-end
-                               expected-pos
-                               expected-children
-                               given-numeric-argument)
-  "Helps testing the read-sharpsign-* functions.
+(defun test-read-sharp* (&key
+                           sharpsing-reader-function
+                           node-type
+                           input
+                           expected-end
+                           expected-pos
+                           expected-children
+                           expected-errors
+                           given-numeric-argument)
+  "Helps testing the read-sharp-* functions.
 
 SHARPSING-READER-FUNCTION is the function under test.
 
@@ -347,7 +292,7 @@ EXPECTED-CHILDREN is the expected list of node's children
 
 GIVEN-NUMERIC-ARGUMENT is passed to SHARPSING-READER-FUNCTION as the
 \"optional sequence of digits\" (in the hyperspec's words) read by
-the function read-sharpsign-dispatching-reader-macro
+the function read-sharp-dispatching-reader-macro
 "
   (let* ((starting-position (if (listp input) (length (first input)) 1))
          (input (if (listp input) (apply 'concatenate 'string input) input))
@@ -361,9 +306,12 @@ the function read-sharpsign-dispatching-reader-macro
                                 expected-children)))
     (with-state (input)
       (setf (current-position state) starting-position)
-      (let* ((expected (node node-type 0
-                             expected-end
-                             expected-children))
+      (let* ((expected (make-instance
+                        node-type
+                        :start 0
+                        :end expected-end
+                        :children expected-children
+                        :errors expected-errors))
              (got
                (is-equalp
                 :comparator 'eqv
@@ -378,7 +326,7 @@ the function read-sharpsign-dispatching-reader-macro
                             state 0 given-numeric-argument)
                 :expected expected)))
         ;; Collecting samples for further tests
-        (setf (gethash input *sharpsign-reader-test-cases*) expected)
+        (setf (gethash input *sharp-reader-test-cases*) expected)
         (when (and got (plusp expected-end))
           (is-equalp
            :input input
@@ -391,107 +339,109 @@ the function read-sharpsign-dispatching-reader-macro
 
 ;;; #\
 
-(defun test-read-sharpsign-backslash (input expected-end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-backslash
+(defun test-read-sharp-backslash (input expected-end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-backslash
    :node-type 'sharp-char
    :input input
    :expected-end expected-end
    :expected-children (unless (= +end+ expected-end)
                         (token 1 expected-end))))
 
-(define-test+run read-sharpsign-backslash
-  (test-read-sharpsign-backslash "#\\" +end+)
-  (test-read-sharpsign-backslash "#\\ " 3)
-  (test-read-sharpsign-backslash "#\\  " 3)
-  (test-read-sharpsign-backslash "#\\Space" 7)
-  (test-read-sharpsign-backslash "#\\Space  " 7)
-  (test-read-sharpsign-backslash "#\\ Space" 8)
-  (test-read-sharpsign-backslash "#\\bell" 6)
-  (test-read-sharpsign-backslash "#\\;" 3))
+(define-test+run read-sharp-backslash
+  (test-read-sharp-backslash "#\\" +end+)
+  (test-read-sharp-backslash "#\\ " 3)
+  (test-read-sharp-backslash "#\\  " 3)
+  (test-read-sharp-backslash "#\\Space" 7)
+  (test-read-sharp-backslash "#\\Space  " 7)
+  (test-read-sharp-backslash "#\\ Space" 8)
+  (test-read-sharp-backslash "#\\bell" 6)
+  (test-read-sharp-backslash "#\\;" 3))
 
 
 
 ;;; #'
 
-(defun test-read-sharpsign-quote (input child expected-end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function #'read-sharpsign-quote
+(defun test-read-sharp-quote (input child expected-end)
+  (test-read-sharp*
+   :sharpsing-reader-function #'read-sharp-quote
    :node-type 'sharp-function
    :input input
    :expected-end expected-end
    :expected-children child))
 
-(define-test+run read-sharpsign-quote
-  (test-read-sharpsign-quote "#'" nil +end+)
-  (test-read-sharpsign-quote "#' " (nodes (whitespace 2 3)) +end+)
-  (test-read-sharpsign-quote "#'a" (nodes (token 2 3)) 3)
-  (test-read-sharpsign-quote "#' a" (nodes (whitespace 2 3)
+(define-test+run read-sharp-quote
+  (test-read-sharp-quote "#'" nil +end+)
+  (test-read-sharp-quote "#' " (nodes (whitespace 2 3)) +end+)
+  (test-read-sharp-quote "#'a" (nodes (token 2 3)) 3)
+  (test-read-sharp-quote "#' a" (nodes (whitespace 2 3)
                                            (token 3 4))
                              4)
-  (test-read-sharpsign-quote "#'(lambda...)" (nodes (parens 2 13
-                                                            (token 3 12)))
+  (test-read-sharp-quote "#'(lambda...)" (nodes (parens 2 13
+                                                        (nodes (token 3 12 :name "LAMBDA..."))))
                              13))
 
 
 ;;; #(
 
-(defun test-read-sharpsign-left-parens (input child expected-end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function #'read-sharpsign-left-parens
+(defun test-read-sharp-left-parens (input child expected-end)
+  (test-read-sharp*
+   :sharpsing-reader-function #'read-sharp-left-parens
    :node-type 'sharp-vector
    :input input
    :expected-end expected-end
    :expected-children child))
 
-(define-test+run read-sharpsign-left-parens
-  (test-read-sharpsign-left-parens "#()" (parens 1 3) 3)
-  (test-read-sharpsign-left-parens "#( )" (parens 1 4 (whitespace 2 3)) 4)
-  (test-read-sharpsign-left-parens '("#1" "()") (parens 2 4) 4)
-  (test-read-sharpsign-left-parens '("#2" "( )") (parens 2 5 (whitespace 3 4)) 5))
+(define-test+run read-sharp-left-parens
+  (test-read-sharp-left-parens "#()" (parens 1 3 nil) 3)
+  (test-read-sharp-left-parens "#( )" (parens 1 4 (nodes (whitespace 2 3))) 4)
+  (test-read-sharp-left-parens '("#1" "()") (parens 2 4 nil) 4)
+  (test-read-sharp-left-parens '("#2" "( )") (parens 2 5 (nodes (whitespace 3 4))) 5))
 
 
 ;;; #*
 
-(defun test-read-sharpsign-asterisk (input &key child end n)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-asterisk
+(defun test-read-sharp-asterisk (input &key child end n)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-asterisk
    :node-type 'sharp-bitvector
    :input input
    :expected-end end
    :expected-children child
    :given-numeric-argument n))
 
-(define-test+run read-sharpsign-asterisk
-  (test-read-sharpsign-asterisk '("#" "*"))
-  (test-read-sharpsign-asterisk '("#" "* ") :end 2)
-  (test-read-sharpsign-asterisk '("#" "*0") :child 0)
-  (test-read-sharpsign-asterisk '("#0" "*") :n 0)
-  (test-read-sharpsign-asterisk '("#2" "*0") :child 0)
-  (test-read-sharpsign-asterisk '("#2" "*0") :n 2 :child 0)
+(define-test+run read-sharp-asterisk
+  (test-read-sharp-asterisk '("#" "*"))
+  (test-read-sharp-asterisk '("#" "* ") :end 2)
+  (test-read-sharp-asterisk '("#" "*0") :child 0)
+  (test-read-sharp-asterisk '("#0" "*") :n 0)
+  (test-read-sharp-asterisk '("#2" "*0") :child 0)
+  (test-read-sharp-asterisk '("#2" "*0") :n 2 :child 0)
   ;; TODO this is actually a syntax error, as "101" is longer than 2
-  (test-read-sharpsign-asterisk '("#2" "*101") :child 5 :n 2))
+  (test-read-sharp-asterisk '("#2" "*101") :child 5 :n 2))
 
 
 ;;; #:
 
-(defun test-read-sharpsign-colon (input child &optional expected-end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-colon
+(defun test-read-sharp-colon (input child expected-end
+                              &optional expected-errors)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-colon
    :node-type 'sharp-uninterned
    :input input
    :expected-end expected-end
-   :expected-children child))
+   :expected-children child
+   :expected-errors expected-errors))
 
 
-(define-test+run read-sharpsign-colon
-  (test-read-sharpsign-colon "#:" (token 2 2) 2)
-  (test-read-sharpsign-colon "#: " (token 2 2) 2)
-  (test-read-sharpsign-colon "#:||" (token 2 4) 4)
-  (test-read-sharpsign-colon "#:|| " (token 2 4) 4)
-  (test-read-sharpsign-colon "#: a" (token 2 2) 2)
-  (test-read-sharpsign-colon "#: a " (token 2 2) 2)
-  (test-read-sharpsign-colon "#:asdf" (token 2 6)))
+(define-test+run read-sharp-colon
+  (test-read-sharp-colon "#:" nil 2 `(("Failed to read a symbol name at position ~d" 2)))
+  (test-read-sharp-colon "#: " nil 2 `(("Failed to read a symbol name at position ~d" 2)))
+  (test-read-sharp-colon "#:||" (token 2 4) 4)
+  (test-read-sharp-colon "#:|| " (token 2 4) 4)
+  (test-read-sharp-colon "#: a" nil 2 `(("Failed to read a symbol name at position ~d" 2)))
+  (test-read-sharp-colon "#: a " nil 2 `(("Failed to read a symbol name at position ~d" 2)))
+  (test-read-sharp-colon "#:asdf" (token 2 6) nil))
 
 #++
 (progn
@@ -504,40 +454,40 @@ the function read-sharpsign-dispatching-reader-macro
 
 ;;; #.
 
-(defun test-read-sharpsign-dot (input child expected-end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-dot
+(defun test-read-sharp-dot (input child expected-end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-dot
    :node-type 'sharp-eval
    :input input
    :expected-end expected-end
    :expected-children child))
 
-(define-test+run read-sharpsign-dot
-  (test-read-sharpsign-dot "#." nil +end+)
-  (test-read-sharpsign-dot "#.a" (nodes (token 2 3)) 3)
-  (test-read-sharpsign-dot "#. a" (nodes (whitespace 2 3)
+(define-test+run read-sharp-dot
+  (test-read-sharp-dot "#." nil +end+)
+  (test-read-sharp-dot "#.a" (nodes (token 2 3)) 3)
+  (test-read-sharp-dot "#. a" (nodes (whitespace 2 3)
                                          (token 3 4))
                            4))
 
 ;;; #b sharp-binary
 
-(defun test-read-sharpsign-b (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-b
+(defun test-read-sharp-b (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-b
    :node-type 'sharp-binary
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-b
-  (test-read-sharpsign-b "#b" :end +end+)
-  (test-read-sharpsign-b "#B" :end +end+)
-  (test-read-sharpsign-b "#bx" :end +end+)
-  (test-read-sharpsign-b "#Bx" :end +end+)
-  (test-read-sharpsign-b "#b1")
-  (test-read-sharpsign-b "#B1")
-  (test-read-sharpsign-b "#b666" :end +end+)
-  (test-read-sharpsign-b "#b9" :end +end+))
+(define-test+run read-sharp-b
+  (test-read-sharp-b "#b" :end +end+)
+  (test-read-sharp-b "#B" :end +end+)
+  (test-read-sharp-b "#bx" :end +end+)
+  (test-read-sharp-b "#Bx" :end +end+)
+  (test-read-sharp-b "#b1")
+  (test-read-sharp-b "#B1")
+  (test-read-sharp-b "#b666" :end +end+)
+  (test-read-sharp-b "#b9" :end +end+))
 
 ;; TODO this in invalid (float binary): (read-from-string "#b0.1")
 ;; TODO this in invalid (ratinal binary): (read-from-string "#b0/2")
@@ -546,23 +496,23 @@ the function read-sharpsign-dispatching-reader-macro
 
 ;;; #o sharp-octal
 
-(defun test-read-sharpsign-o (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-o
+(defun test-read-sharp-o (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-o
    :node-type 'sharp-octal
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-o
-  (test-read-sharpsign-o "#o" :end +end+)
-  (test-read-sharpsign-o "#O" :end +end+)
-  (test-read-sharpsign-o "#ox" :end +end+)
-  (test-read-sharpsign-o "#Ox" :end +end+)
-  (test-read-sharpsign-o "#o1")
-  (test-read-sharpsign-o "#O1")
-  (test-read-sharpsign-o "#o666")
-  (test-read-sharpsign-o "#o9" :end +end+))
+(define-test+run read-sharp-o
+  (test-read-sharp-o "#o" :end +end+)
+  (test-read-sharp-o "#O" :end +end+)
+  (test-read-sharp-o "#ox" :end +end+)
+  (test-read-sharp-o "#Ox" :end +end+)
+  (test-read-sharp-o "#o1")
+  (test-read-sharp-o "#O1")
+  (test-read-sharp-o "#o666")
+  (test-read-sharp-o "#o9" :end +end+))
 
 ;; TODO this in invalid (float octal): (read-from-string "#o0.1")
 ;; TODO this is valid (rational octal): (read-from-string "#o0/3")
@@ -570,25 +520,25 @@ the function read-sharpsign-dispatching-reader-macro
 
 ;;; #x sharp-hexa
 
-(defun test-read-sharpsign-x (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-x
+(defun test-read-sharp-x (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-x
    :node-type 'sharp-hexa
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-x
-  (test-read-sharpsign-x "#x" :end +end+)
-  (test-read-sharpsign-x "#X" :end +end+)
-  (test-read-sharpsign-x "#xx" :end +end+)
-  (test-read-sharpsign-x "#Xx" :end +end+)
-  (test-read-sharpsign-x "#x1")
-  (test-read-sharpsign-x "#X1")
-  (test-read-sharpsign-x "#x666")
-  (test-read-sharpsign-x "#xF")
-  (test-read-sharpsign-x "#xf")
-  (test-read-sharpsign-x "#xz" :end +end+))
+(define-test+run read-sharp-x
+  (test-read-sharp-x "#x" :end +end+)
+  (test-read-sharp-x "#X" :end +end+)
+  (test-read-sharp-x "#xx" :end +end+)
+  (test-read-sharp-x "#Xx" :end +end+)
+  (test-read-sharp-x "#x1")
+  (test-read-sharp-x "#X1")
+  (test-read-sharp-x "#x666")
+  (test-read-sharp-x "#xF")
+  (test-read-sharp-x "#xf")
+  (test-read-sharp-x "#xz" :end +end+))
 
 ;; TODO this in invalid (float hex): (read-from-string "#x0.1")
 ;; TODO this is valid (rational hex): (read-from-string "#x0/3")
@@ -606,7 +556,7 @@ the function read-sharpsign-dispatching-reader-macro
 ;; (split-at "#01r23" #\r)
 ;; => ("#01" "r23")
 
-(defun test-read-sharpsign-r (input &key end)
+(defun test-read-sharp-r (input &key end errors)
   (check-type input string)
   (let* (;; assumes input is a string
          (input (split-at input #\r))
@@ -614,165 +564,167 @@ the function read-sharpsign-dispatching-reader-macro
          (numeric-argument (let ((prefix (first input)))
                              (when (< 2 (length prefix))
                                (parse-integer prefix :start 1)))))
-    (test-read-sharpsign*
-     :sharpsing-reader-function 'read-sharpsign-r
+    (test-read-sharp*
+     :sharpsing-reader-function 'read-sharp-r
      :node-type 'sharp-radix
      :input input
      :expected-end end
      ;; :expected-children child
+     :expected-errors errors
      :given-numeric-argument numeric-argument)))
 
  (parse-integer
   "#" :start 1 :junk-allowed t)
 
-;; (trace read-sharpsign-r)
+;; (trace read-sharp-r)
 
-(define-test+run read-sharpsign-r
+(define-test+run read-sharp-r
   ;; no radix
   (progn
-    (test-read-sharpsign-r "#r" :end +end+)
-    (test-read-sharpsign-r "#R" :end +end+)
-    (test-read-sharpsign-r "#rr" :end +end+)
-    (test-read-sharpsign-r "#Rr" :end +end+)
-    (test-read-sharpsign-r "#r1" :end +end+)
-    (test-read-sharpsign-r "#R1" :end +end+)
-    (test-read-sharpsign-r "#r666" :end +end+)
-    (test-read-sharpsign-r "#rF" :end +end+)
-    (test-read-sharpsign-r "#rf" :end +end+)
-    (test-read-sharpsign-r "#rz" :end +end+))
+    (test-read-sharp-r "#r" :end +end+ :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r "#R" :end +end+)
+    (test-read-sharp-r "#rr" :end +end+)
+    (test-read-sharp-r "#Rr" :end +end+)
+    (test-read-sharp-r "#r1" :end +end+)
+    (test-read-sharp-r "#R1" :end +end+)
+    (test-read-sharp-r "#r666" :end +end+)
+    (test-read-sharp-r "#rF" :end +end+)
+    (test-read-sharp-r "#rf" :end +end+)
+    (test-read-sharp-r "#rz" :end +end+))
   ;; bad radix
   (progn
-    (test-read-sharpsign-r "#1r0" :end +end+)
-    (test-read-sharpsign-r "#37R0" :end +end+))
+    (test-read-sharp-r "#1r0" :end +end+)
+    (test-read-sharp-r "#37R0" :end +end+
+                               :errors '(("Illegal radix ~s, must be an integer between 2 and 36 (inclusively)." 37))))
   ;; good radix
   (progn
-    (test-read-sharpsign-r "#2r" :end +end+)
-    (test-read-sharpsign-r "#2R" :end +end+)
-    (test-read-sharpsign-r "#2rr" :end +end+)
-    (test-read-sharpsign-r "#2Rr" :end +end+)
+    (test-read-sharp-r "#2r" :end +end+)
+    (test-read-sharp-r "#2R" :end +end+)
+    (test-read-sharp-r "#2rr" :end +end+)
+    (test-read-sharp-r "#2Rr" :end +end+)
     ;; TODO WIP those tests don't passes just yet
     #++
-    (test-read-sharpsign-r "#2r1")
+    (test-read-sharp-r "#2r1")
     #++
-    (test-read-sharpsign-r "#2R1")
+    (test-read-sharp-r "#2R1")
     #|
-    (test-read-sharpsign-r "#2r666" :end +end+)
-    (test-read-sharpsign-r "#rF")
-    (test-read-sharpsign-r "#rf")
-    (test-read-sharpsign-r "#rz" :end +end+)
+    (test-read-sharp-r "#2r666" :end +end+)
+    (test-read-sharp-r "#rF")
+    (test-read-sharp-r "#rf")
+    (test-read-sharp-r "#rz" :end +end+)
     |#))
 
 
 ;;; #c sharp-complex
 
-(defun test-read-sharpsign-c (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-c
+(defun test-read-sharp-c (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-c
    :node-type 'sharp-complex
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-c
-  (test-read-sharpsign-c "#c" :end +end+)
-  (test-read-sharpsign-c "#C" :end +end+)
-  (test-read-sharpsign-c "#cx" :end +end+)
-  (test-read-sharpsign-c "#Cx" :end +end+)
-  (test-read-sharpsign-c "#c1" :end +end+)
-  (test-read-sharpsign-c "#C1" :end +end+)
+(define-test+run read-sharp-c
+  (test-read-sharp-c "#c" :end +end+)
+  (test-read-sharp-c "#C" :end +end+)
+  (test-read-sharp-c "#cx" :end +end+)
+  (test-read-sharp-c "#Cx" :end +end+)
+  (test-read-sharp-c "#c1" :end +end+)
+  (test-read-sharp-c "#C1" :end +end+)
   ;; N.B. #c(1) is actually invalid
-  (test-read-sharpsign-c "#c(1)"
-                         :child (parens 2 5 (node 'token 3 4)))
-  (test-read-sharpsign-c "#C(1)"
-                         :child (parens 2 5 (node 'token 3 4)))
-  (test-read-sharpsign-c "#c(1 2) a"
+  (test-read-sharp-c "#c(1)"
+                         :child (parens 2 5 (nodes (token 3 4))))
+  (test-read-sharp-c "#C(1)"
+                         :child (parens 2 5 (nodes (token 3 4))))
+  (test-read-sharp-c "#c(1 2) a"
                          :child (parens 2 7
-                                        (nodes (node 'token 3 4)
-                                               (node 'whitespace 4 5)
-                                               (node 'token 5 6)))
+                                        (nodes (token 3 4)
+                                               (whitespace 4 5)
+                                               (token 5 6)))
                          :end 7)
-  (test-read-sharpsign-c "#C(1 2) a"
-                         :child (node 'parens 2 7
-                                      (nodes (node 'token 3 4)
-                                             (node 'whitespace 4 5)
-                                             (node 'token 5 6)))
+  (test-read-sharp-c "#C(1 2) a"
+                         :child (parens 2 7
+                                      (nodes (token 3 4)
+                                             (whitespace 4 5)
+                                             (token 5 6)))
                          :end 7))
 
 
 ;;; #a
 
-(defun test-read-sharpsign-a (input &key child end n)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-a
+(defun test-read-sharp-a (input &key child end n)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-a
    :node-type 'sharp-array
    :input input
    :expected-end end
    :expected-children child
    :given-numeric-argument n))
 
-(define-test+run read-sharpsign-a
-  (test-read-sharpsign-a '("#" "a") :end +end+)
-  (test-read-sharpsign-a '("#" "a ") :end +end+)
-  (test-read-sharpsign-a '("#" "a0") :end +end+)
-  (test-read-sharpsign-a '("#0" "a") :end +end+)
-  (test-read-sharpsign-a '("#2" "a0") :end +end+)
-  (test-read-sharpsign-a '("#2" "a0") :end +end+)
+(define-test+run read-sharp-a
+  (test-read-sharp-a '("#" "a") :end +end+)
+  (test-read-sharp-a '("#" "a ") :end +end+)
+  (test-read-sharp-a '("#" "a0") :end +end+)
+  (test-read-sharp-a '("#0" "a") :end +end+)
+  (test-read-sharp-a '("#2" "a0") :end +end+)
+  (test-read-sharp-a '("#2" "a0") :end +end+)
   ;; TODO this is actually a syntax error, as "101" is longer than 2
-  (test-read-sharpsign-a '("#2" "a()") :child (parens 3 5))
-  (test-read-sharpsign-a '("#2" "a(1 2)")
+  (test-read-sharp-a '("#2" "a()") :child (parens 3 5 nil))
+  (test-read-sharp-a '("#2" "a(1 2)")
                          :child (parens 3 8
                                         (nodes (token 4 5)
                                                (whitespace 5 6)
                                                (token 6 7))))
-  (test-read-sharpsign-a '("#2" "A()") :child (parens 3 5)))
+  (test-read-sharp-a '("#2" "A()") :child (parens 3 5 nil)))
 
 
 ;;; #s
 
-(defun test-read-sharpsign-s (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-s
+(defun test-read-sharp-s (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-s
    :node-type 'sharp-structure
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-s
-  (test-read-sharpsign-s "#s" :end +end+)
-  (test-read-sharpsign-s "#S" :end +end+)
-  (test-read-sharpsign-s "#S(node)"
+(define-test+run read-sharp-s
+  (test-read-sharp-s "#s" :end +end+)
+  (test-read-sharp-s "#S" :end +end+)
+  (test-read-sharp-s "#S(node)"
                          :child (nodes (parens 2 8 (token 3 7))))
-  (test-read-sharpsign-s "#S(node) foo"
+  (test-read-sharp-s "#S(node) foo"
                          :child (nodes (parens 2 8 (token 3 7)))
                          :end 8))
 
 
 ;;; #p
 
-(defun test-read-sharpsign-p (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-p
+(defun test-read-sharp-p (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-p
    :node-type 'sharp-pathname
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-p
-  (test-read-sharpsign-p "#p" :end +end+)
-  (test-read-sharpsign-p "#P" :end +end+)
-  (test-read-sharpsign-p "#p\"/root/\""
-                         :child (nodes (node 'string 2 10))
+(define-test+run read-sharp-p
+  (test-read-sharp-p "#p" :end +end+)
+  (test-read-sharp-p "#P" :end +end+)
+  (test-read-sharp-p "#p\"/root/\""
+                         :child (nodes (string-node 2 10))
                          :end 10)
-  (test-read-sharpsign-p "#p\"/root/\"  foo"
-                         :child (nodes (node 'string 2 10))
+  (test-read-sharp-p "#p\"/root/\"  foo"
+                         :child (nodes (string-node 2 10))
                          :end 10))
 
 
 ;;; #n=
 
-(defun test-read-sharpsign-equal (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-equal
+(defun test-read-sharp-equal (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-equal
    :node-type 'sharp-label
    :input input
    :expected-end end
@@ -781,35 +733,35 @@ the function read-sharpsign-dispatching-reader-macro
                              (when (integerp first-child)
                                first-child))))
 
-(define-test+run read-sharpsign-equal
+(define-test+run read-sharp-equal
   (progn
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      "#="
      :end +end+
      :child (vector nil nil))
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      '("#1" "=")
      :child (vector 1 nil)
      :end +end+)
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      '("#2" "= ")
      :child (vector 2 (nodes (whitespace 3 4)))
      :end +end+)
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      '("#3" "=(foo)")
      :child (vector 3 (nodes (parens 3 8 (token 4 7)))))
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      '("#4" "= (foo)")
      :child (vector 4 (nodes (whitespace 3 4) (parens 4 9 (token 5 8))))))
   (progn
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      '("#" "=")
      :child (vector nil nil)
      :end +end+)
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      '("#" "=(bar)")
      :child (vector nil (nodes (parens 2 7 (token 3 6)))))
-    (test-read-sharpsign-equal
+    (test-read-sharp-equal
      '("#" "= (bar)")
      :child (vector nil (nodes (whitespace 2 3) (parens 3 8 (token 4 7)))))))
 
@@ -817,35 +769,35 @@ the function read-sharpsign-dispatching-reader-macro
 
 ;;; #n#
 
-(defun test-read-sharpsign-sharpsign (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-sharpsign
+(defun test-read-sharp-sharp (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-sharp
    :node-type 'sharp-reference
    :input input
    :expected-end end
    :expected-children child
    :given-numeric-argument child))
 
-(define-test+run read-sharpsign-sharpsign
-  (test-read-sharpsign-sharpsign "##" :end +end+)
-  (test-read-sharpsign-sharpsign '("#1" "#") :child 1)
-  (test-read-sharpsign-sharpsign '("#2" "# ") :child 2 :end 3))
+(define-test+run read-sharp-sharp
+  (test-read-sharp-sharp "##" :end +end+)
+  (test-read-sharp-sharp '("#1" "#") :child 1)
+  (test-read-sharp-sharp '("#2" "# ") :child 2 :end 3))
 
 
 ;;; #+
 
-(defun test-read-sharpsign-plus (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-plus
+(defun test-read-sharp-plus (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-plus
    :node-type 'sharp-feature
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-plus
-  (test-read-sharpsign-plus "#+" :end +end+)
-  (test-read-sharpsign-plus "#++" :child (nodes (token 2 3)))
-  (test-read-sharpsign-plus
+(define-test+run read-sharp-plus
+  (test-read-sharp-plus "#+" :end +end+)
+  (test-read-sharp-plus "#++" :child (nodes (token 2 3)))
+  (test-read-sharp-plus
    "#+ #+ x"
    :child (nodes (whitespace 2 3)
                  (sharp-feature 3 7
@@ -855,18 +807,18 @@ the function read-sharpsign-dispatching-reader-macro
 
 ;;; #-
 
-(defun test-read-sharpsign-minus (input &key child end)
-  (test-read-sharpsign*
-   :sharpsing-reader-function 'read-sharpsign-minus
+(defun test-read-sharp-minus (input &key child end)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-minus
    :node-type 'sharp-feature-not
    :input input
    :expected-end end
    :expected-children child))
 
-(define-test+run read-sharpsign-minus
-  (test-read-sharpsign-minus "#-" :end +end+)
-  (test-read-sharpsign-minus "#--" :child (nodes (token 2 3)))
-  (test-read-sharpsign-minus
+(define-test+run read-sharp-minus
+  (test-read-sharp-minus "#-" :end +end+)
+  (test-read-sharp-minus "#--" :child (nodes (token 2 3)))
+  (test-read-sharp-minus
    "#- #- x"
    :child (nodes (whitespace 2 3)
                  (sharp-feature-not 3 7
@@ -875,28 +827,30 @@ the function read-sharpsign-dispatching-reader-macro
 
 
 
-(defun test-read-sharpsign (input expected-type expected-end
+(defun test-read-sharp (input expected-type expected-end
                             &optional (expected-pos expected-end))
   (with-state (input)
     (let ((got (is-equalp* input
-                           (read-sharpsign-dispatching-reader-macro state)
-                           (node expected-type 0 expected-end)
+                           (read-sharp-dispatching-reader-macro state)
+                           (make-instance expected-type
+                                          :start 0
+                                          :end expected-end)
                            #'eqv)))
       (when got
         (is-equalp* input
                     expected-pos
                     (current-position state))))))
 
-(define-test+run read-sharpsign-dispatching-reader-macro
+(define-test+run read-sharp-dispatching-reader-macro
   (loop :for input :being
-          :the :hash-key :of *sharpsign-reader-test-cases*
+          :the :hash-key :of *sharp-reader-test-cases*
             :using (hash-value expected)
         :do (with-state (input)
               (is-equalp
                :input input
-               :got (read-sharpsign-dispatching-reader-macro state)
+               :got (read-sharp-dispatching-reader-macro state)
                :expected expected
-               :form `(read-sharpsign-dispatching-reader-macro ,state)
+               :form `(read-sharp-dispatching-reader-macro ,state)
                :comparator 'eqv
                ;; :description description
                ;; :format-args format-args
@@ -913,7 +867,11 @@ the function read-sharpsign-dispatching-reader-macro
   (with-state (input)
     (test* (read-quote state)
            (when expected-type
-             (node expected-type 0 expected-end (ensure-nodes children))))))
+             (make-instance
+              expected-type
+              :start 0
+              :end expected-end
+              :children (ensure-nodes children))))))
 
 (define-test+run read-quote
   (test-read-quote "" nil)
@@ -943,20 +901,19 @@ the function read-sharpsign-dispatching-reader-macro
 
 
 
-(defun test-read-punctuation (input expected-type)
+(defun test-read-dot (input expected-type)
   (with-state (input)
     (is-equalp* input
                 (read-punctuation state)
                 (when expected-type
-                  (punctuation expected-type 0))
+                  (dot 0 1))
                 'eqv)))
 
-(define-test+run read-punctuation
+(define-test+run read-dot
   :depends-on (current-char)
-  (test-read-punctuation "" nil)
-  (test-read-punctuation " " nil)
-  (test-read-punctuation "." 'dot)
-  (test-read-punctuation (format nil "~c" #\page) 'page))
+  (test-read-dot "" nil)
+  (test-read-dot " " nil)
+  (test-read-dot "." t))
 
 
 ;; TODO Add tests with VALIDP
@@ -979,7 +936,7 @@ the function read-sharpsign-dispatching-reader-macro
   (with-state (input)
     (test* (read-string state)
            (when expected-end
-             (node 'string 0 expected-end)))))
+             (string-node 0 expected-end)))))
 
 (define-test+run read-string
   :depends-on (read-quoted-string)
@@ -1041,7 +998,8 @@ the function read-sharpsign-dispatching-reader-macro
   (test-read-token "a::b" 4 "B" "A" "::")
   (test-read-token "a:::b" 4 "B" "A" ":::")
   ;; TODO FIXME: this is wrong, the marker is not ":",  it's '(":" ":")...
-  (test-read-token "a:b:c" 4 "C" "AB" "::"))
+  (test-read-token "a:b:c" 4 "C" "AB" "::")
+  (test-read-token ":a" 3 "A" nil ":"))
 
 ;; TODO read-extraneous-closing-parens
 
@@ -1057,10 +1015,10 @@ the function read-sharpsign-dispatching-reader-macro
   (test-read-parens "(" +end+)
   (test-read-parens "()" 2)
   (test-read-parens "(x)" 3 (token 1 2))
-  (test-read-parens "(.)" 3 (punctuation 'dot 1))
+  (test-read-parens "(.)" 3 (dot 1 2))
   (test-read-parens "( () )" 6
                     (whitespace 1 2)
-                    (parens 2 4)
+                    (parens 2 4 nil)
                     (whitespace 4 5)))
 
 ;; TODO read-any
@@ -1080,7 +1038,7 @@ the function read-sharpsign-dispatching-reader-macro
 (define-test+run "parse"
   :depends-on (read-parens)
   (eq (parse "") nil)
-  (test-parse " (" (whitespace 0 1) (parens 1 +end+))
+  (test-parse " (" (whitespace 0 1) (parens 1 +end+ nil))
   (test-parse "  " (whitespace 0 2))
   (test-parse "#|" (block-comment 0 +end+))
   (test-parse " #| "
@@ -1091,9 +1049,9 @@ the function read-sharpsign-dispatching-reader-macro
   (test-parse "#||#" (block-comment 0 4))
   (test-parse "#|#||#" (block-comment 0 +end+))
   (test-parse "#| #||# |#" (block-comment 0 10))
-  (test-parse "'" (node 'quote 0 +end+))
-  (test-parse "`" (node 'quasiquote 0 +end+))
-  (test-parse "," (node 'comma 0 +end+))
+  (test-parse "'" (quote-node 0 +end+ nil))
+  (test-parse "`" (quasiquote 0 +end+ nil))
+  (test-parse "," (comma 0 +end+ nil))
   (test-parse "+-*/" (token 0 4))
   (test-parse "123" (token 0 3))
   (test-parse "asdf#" (token 0 5))
@@ -1107,19 +1065,19 @@ the function read-sharpsign-dispatching-reader-macro
   (test-parse (format nil ";~%") (line-comment 0 1) (whitespace 1 2))
   (test-parse (format nil ";~%;") (line-comment 0 1) (whitespace 1 2) (line-comment 2 3))
   (test-parse "(12" (parens 0 +end+ (token 1 3)))
-  (test-parse "\"" (node 'string 0 +end+))
-  (test-parse "\"\"" (node 'string 0 2))
+  (test-parse "\"" (string-node 0 +end+))
+  (test-parse "\"\"" (string-node 0 2))
   (test-parse "#:asdf"
-              (node 'sharp-uninterned 0 6
-                    (node 'token 2 6)))
+              (sharp-uninterned 0 6
+                                (token 2 6)))
   (test-parse "#2()"
-              (node 'sharp-vector 0 4
-                    (node 'parens 2 4)))
-  (test-parse "#<>" (node 'sharp-unknown 0 +end+))
-  (test-parse "#+ x" (node 'sharp-feature 0 4
-                           (nodes
-                            (whitespace 2 3)
-                            (token 3 4))))
+              (sharp-vector 0 4
+                            (parens 2 4 nil)))
+  (test-parse "#<>" (sharp-unknown 0 +end+))
+  (test-parse "#+ x" (sharp-feature 0 4
+                                    (nodes
+                                     (whitespace 2 3)
+                                     (token 3 4))))
   (test-parse "(char= #\\; c)"
               (parens 0 13
                       (nodes (token 1 6)
@@ -1131,12 +1089,11 @@ the function read-sharpsign-dispatching-reader-macro
                                (nodes (sharp-char 1 4 (token 2 4)))))
   (test-parse "#\\; " (sharp-char 0 3 (token 1 3)) (whitespace 3 4))
   (test-parse "`( asdf)"
-              (node 'quasiquote 0 8
-                    (nodes
-                     (parens 1 8
-                             (nodes
-                              (whitespace 2 3)
-                              (token 3 7))))))
+              (quasiquote 0 8
+                          (parens 1 8
+                                  (nodes
+                                   (whitespace 2 3)
+                                   (token 3 7)))))
   (test-parse "#\\Linefeed" (sharp-char 0 10 (token 1 10)))
   (test-parse "#\\: asd" (sharp-char 0 3 (token 1 3)) (whitespace 3 4) (token 4 7))
   (test-parse "(((  )))" (parens 0 8 (parens 1 7 (parens 2 6 (whitespace 3 5)))))
@@ -1150,10 +1107,10 @@ the function read-sharpsign-dispatching-reader-macro
                0 +end+
                (sharp-function
                 1 +end+
-                (nodes (node ':extraneous-closing-parens 3 +end+)))))
+                (nodes (extraneous-closing-parens 3 +end+)))))
   (test-parse "#1=#1#"
               (sharp-label 0 6
-                           (nodes 1 (nodes (sharp-reference 3 6 1)))))
+                           1 (nodes (sharp-reference 3 6 1))))
   (test-parse "(;)" (parens 0 -1 (line-comment 1 3)))
   ;; TODO This is wrong
   (test-parse "#+;;" (sharp-feature 0 4 (nodes (line-comment 2 4))))
@@ -1166,6 +1123,8 @@ the function read-sharpsign-dispatching-reader-macro
                                        (nodes (token 1 11)
                                               (whitespace 11 12)
                                               (sharp-unknown 12 -1)))))
+
+;; (test-parse "#!" (shebang 0 2))
 
 #++ ;; this is cursed
 (read-from-string "cl-user::; wtf

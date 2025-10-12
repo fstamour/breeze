@@ -2,10 +2,12 @@
 (defpackage #:breeze.generics
   (:documentation "Declare some generic interfaces.")
   (:use #:cl)
-  (:export #:eqv #:name))
+  (:export #:eqv #:name #:source))
 
 (in-package #:breeze.generics)
 
+(defgeneric source (x)
+  (:documentation "Get the source (usually a string) of x."))
 
 (defgeneric eqv (a b)
   (:documentation "Test whether A and B are equivalent."))

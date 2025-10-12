@@ -244,7 +244,7 @@ newlines or more marks the start of a new paragraph)."
              (min (1+ depth) 6))
      (map nil (lambda (node)
                 (render-node out state node (1+ depth)))
-          (node-children node))
+          (children node))
      (format out "</span>)</span>"))
     (t (format out "<span class=\"~a\">~a</span>"
                (string-downcase (node-type node))

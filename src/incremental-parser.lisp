@@ -97,8 +97,9 @@
             (setf (cdr last-node) new-nodes)))
          ;; Inserts in the middle
          (t
-          ;; TODO use goto-position
-          (let ((rest (find-node* position (tree state)))
+          (let ((rest (goto-position
+                       (make-node-iterator state)
+                       position))
                 #++ (suffix-before (subseq (source state)
                                            (node-end (second rest)))))
             (apply-edit-to-source state edit)

@@ -71,7 +71,6 @@ match an empty parse tree."
   ;; against a list of nodes (even if that list is empty).
   nil)
 
-;; TODO would be nice to cache this
 (defun parse-symbol-node ($node)
   "Extract information about the package-name and symbol-name of a token, if it can.
 Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).

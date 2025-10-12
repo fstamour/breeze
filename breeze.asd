@@ -39,8 +39,12 @@
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
    (:file "iterator" :depends-on ("generics"))
+   (:file "parser-state"
+          :depends-on ("generics" "iterator" "utils"))
+   (:file "parse-tree"
+    :depends-on ("parser-state"))
    (:file "parser"
-    :depends-on ("utils" "generics" "iterator"))
+    :depends-on ("parse-tree"))
    (:file "incremental-parser"
     :depends-on ("parser" "workspace"))
    (:file "buffer" :depends-on ("parser" "package"))

@@ -76,9 +76,7 @@ fiind-sym
     (return-value-from-command
      (list "prin1" "print")
      #++
-     (when (or
-            (breeze.parser:token-node-p node)
-            (breeze.parser:symbol-node-p node))
+     (when (breeze.parser:token-node-p node)
 
        '("asfd" "qwer" "uiop")))))
 

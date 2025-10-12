@@ -404,7 +404,7 @@ when inserting something.
          (cond
            ;; ((quotep ))
            ;; do nothing for nodes with children
-           ((node-children node))
+           ((children node))
            ((and (whitespace-node-p node)
                  (position #\Newline
                            input

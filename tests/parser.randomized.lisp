@@ -7,20 +7,18 @@
   (:import-from #:breeze.generics
                 #:eqv)
   ;; Importing non-exported symbols
+  (:import-from #:breeze.parse-tree
+                #:%nodes)
+  ;; Importing non-exported symbols
   (:import-from #:breeze.parser
-                #:make-node
-                #:at
-                #:at=
-                #:valid-position-p
                 #:read-char*
                 #:read-string
-                #:read-string*
                 #:read-parens
                 #:find-all
                 #:read-token
                 #:read-whitespaces
                 #:read-line-comment
-                #:read-sharpsign-dispatching-reader-macro
+                #:read-sharp-dispatching-reader-macro
                 #:read-quote
                 #:read-punctuation
                 #:read-block-comment
@@ -28,25 +26,24 @@
                 #:not-terminatingp
                 #:*state-control-string*
                 #:state-context
-                #:%nodes
-                #:read-sharpsign-backslash
-                #:read-sharpsign-quote
-                #:read-sharpsign-left-parens
-                #:read-sharpsign-asterisk
-                #:read-sharpsign-colon
-                #:read-sharpsign-dot
-                #:read-sharpsign-b
-                #:read-sharpsign-o
-                #:read-sharpsign-x
-                #:read-sharpsign-r
-                #:read-sharpsign-c
-                #:read-sharpsign-a
-                #:read-sharpsign-s
-                #:read-sharpsign-p
-                #:read-sharpsign-equal
-                #:read-sharpsign-sharpsign
-                #:read-sharpsign-plus
-                #:read-sharpsign-minus
+                #:read-sharp-backslash
+                #:read-sharp-quote
+                #:read-sharp-left-parens
+                #:read-sharp-asterisk
+                #:read-sharp-colon
+                #:read-sharp-dot
+                #:read-sharp-b
+                #:read-sharp-o
+                #:read-sharp-x
+                #:read-sharp-r
+                #:read-sharp-c
+                #:read-sharp-a
+                #:read-sharp-s
+                #:read-sharp-p
+                #:read-sharp-equal
+                #:read-sharp-sharp
+                #:read-sharp-plus
+                #:read-sharp-minus
                 #:page
                 #:unparse)
   (:import-from #:parachute

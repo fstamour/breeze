@@ -131,37 +131,6 @@
 
 (list-all-commands)
 
-(let* ((context (cdr (assoc :context *qf*)))
-       (inner-node (gethash 'BREEZE.COMMAND::INNER-NODE context))
-       (nodes (gethash 'BREEZE.COMMAND::NODEs context)))
-  ;; context
-  ;; (mapcar-form-p inner-node)
-  (values nodes
-          (nodes-emptyp nodes))
-  ;; (node-symbol= 'uiop:define-package inner-node)
-  )
-
-(let* ((*standard-output* *debug-io*)
-       (nodes)
-       (path)
-       (outer-node)
-       (parent-node)
-       (inner-node))
-  (loop :for (node . index) :in path
-        :for i :from 0
-        :do (format t "~%=== Path part #~d, index ~d ===~%~s"
-                    i index node))
-  (format t "~%innore-node source: ~d-~d"
-          (node-start inner-node)
-          (node-end inner-node))
-  (format t "~%unparsed inner-node: ~s"
-          (breeze.reader:unparse-to-string inner-node))
-  (format t "~%nearest in-package: ~a" (find-nearest-in-package-form nodes outer-node))
-  (format t "~%parent node: ~a" parent-node))
-
-(cdr (assoc :context *qf*))
-
-
 (trace
  shortcircuit
  compute-suggestions
@@ -207,7 +176,6 @@
 (in-package #:breeze.parser)
 
 (trace
- read-string*
  read-char*
  read-while)
 
@@ -215,7 +183,7 @@
  read-whitespaces
  read-block-comment
  read-line-comment
- read-sharpsign-dispatching-reader-macro
+ read-sharp-dispatching-reader-macro
  read-punctuation
  ;; read-quoted-string
  read-string
