@@ -77,33 +77,37 @@ Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
 PACKAGE-NAME is provided for the types :qualified-symbol and :possibly-internal-symbol.
 TYPE is one of:
 
- - :current-package-symbol
+ - :current
  - :keyword
  - :uninterned-symbol
  - :qualified-symbol
  - :possibly-internal-symbol"
-  (unless (donep $node)
-    (when-let ((parsed-symbol (parse-symbol (source $node) (start $node) (end $node))))
-      (destructuring-bind (type symbol-name &optional package-name)
-          parsed-symbol
-        ;; TODO apply readtable-case rules on symbol-name
-        ;; https://www.lispworks.com/documentation/HyperSpec/Body/23_ab.htm
-        (let ((*package* (find-package '#:KEYWORD)))
-          ;; HACK: use `cl:read-from-string' to "apply" the
-          ;; case-conversion and take care of escaping.
-          (ignore-errors
-           `(,type
-             ,(symbol-name (read-from-string symbol-name))
-             ,@(when package-name
-                 (list (symbol-name (read-from-string package-name)))))))
-        ;; TODO this doesn't check if characters are escpaped,
-        ;; TODO this doesn't remove the escape characters...
-        #++(ecase (readtable-case *readtable*)
-             (:upcase #| this is the default |#
-              (string-upcase symbol-name))
-             (:downcase (string-downcase symbol-name))
-             (:preserve symbol-name)
-             (:invert (string-in)))))))
+  (unless (or (donep $node)
+              (not (valid-node-p (value $node))))
+    (cond
+      ;; TODO support () === nil
+      ;; ((parens-node-p (value $node)))
+      ((sharp-uninterned-node-p (value $node))
+       `(:uninterned-symbol ,(name (children $node))))
+      ((token-node-p (value $node))
+       (with-slots (package-prefix package-marker name)
+           (value $node)
+         (let ((marker-length (length package-marker)))
+           (cond
+             ((and (null package-prefix)
+                   (null package-marker))
+              `(:current ,name))
+             ((and package-marker
+                   (= 1 marker-length)
+                   (or (null package-prefix)
+                       (string= "KEYWORD" package-prefix)))
+              `(:keyword ,name))
+             ((and package-marker
+                   (= 1 marker-length))
+              `(:qualified-symbol ,name))
+             ((and package-marker
+                   (= 2 marker-length))
+              `(:possibly-internal-symbol ,name)))))))))
 
 (defun match-symbol-to-token (symbol $node)
   "Match a symbol against a parse tree's node."
