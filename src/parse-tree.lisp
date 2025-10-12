@@ -36,9 +36,10 @@
   ;; Node constructors
   (:export #:block-comment
            #:parens
-           #:punctuation
            #:token
+           #:ignorable-node
            #:whitespace
+           #:comment
            #:line-comment
            #:string-node
            #:quote-node
@@ -73,8 +74,8 @@
   ;; Node predicates
   (:export #:block-comment-node-p
            #:parens-node-p
-           #:punctuation-node-p
            #:token-node-p
+           #:ignorable-node-p
            #:whitespace-node-p
            #:line-comment-node-p
            #:comment-node-p
@@ -350,9 +351,14 @@
                           :by #'cddr
                           :collect `(eqv (,arg a) (,arg b)))))))))
 
-(define-node-type whitespace ())
+(define-node-type ignorable (:no-constructor-p t
+                             :name ignorable-node))
 
-(define-node-type comment (:no-constructor-p t))
+(define-node-type whitespace (:superclass ignorable-node))
+(define-node-type page (:superclass whitespace))
+
+(define-node-type comment (:no-constructor-p t
+                           :superclass ignorable-node))
 (define-node-type block-comment (:superclass comment))
 (define-node-type line-comment (:superclass comment))
 
@@ -379,7 +385,6 @@
 (define-node-type quote (:name quote-node :children t))
 (define-node-type quasiquote (:children t))
 (define-node-type dot ())
-(define-node-type page ())
 (define-node-type comma (:children t))
 (define-node-type comma-dot (:children t))
 (define-node-type comma-at (:children t))
@@ -437,14 +442,9 @@
 
 (defun whitespace-or-comment-node-p (node)
   "Is this node a whitespace, a block comment or line comment?"
-  (etypecase node
-    (node-iterator (whitespace-or-comment-node-p
-                    (value node)))
-    (node
-     (or (whitespace-node-p node)
-         (comment-node-p node)
-         ;; TODO get rid of this hack
-         (eq 'page (node-type node))))))
+  (ignorable-node-p (etypecase node
+                      (node-iterator (value node))
+                      (node node))))
 
 
 
