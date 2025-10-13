@@ -348,25 +348,35 @@ the function read-sharp-dispatching-reader-macro
 
 ;;; #\
 
-(defun test-read-sharp-backslash (input expected-end)
+(defun test-read-sharp-backslash (input expected-end expected-token-name)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-backslash
    :node-type 'sharp-char
    :input input
    :expected-end expected-end
    :expected-children (unless (= +end+ expected-end)
-                        (token 1 expected-end))))
+                        (token 1 expected-end
+                               :name expected-token-name))))
+
 
 (define-test+run read-sharp-backslash
-  (test-read-sharp-backslash "#\\" +end+)
-  (test-read-sharp-backslash "#\\ " 3)
-  (test-read-sharp-backslash "#\\  " 3)
-  (test-read-sharp-backslash "#\\Space" 7)
-  (test-read-sharp-backslash "#\\Space  " 7)
-  (test-read-sharp-backslash "#\\ Space" 8)
-  (test-read-sharp-backslash "#\\bell" 6)
-  (test-read-sharp-backslash "#\\;" 3))
-
+  (test-read-sharp-backslash "#\\a" 3 "a")
+  (test-read-sharp-backslash "#\\A" 3 "A")
+  (test-read-sharp-backslash "#\\b " 3 "b")
+  (test-read-sharp-backslash "#\\B " 3 "B")
+  (test-read-sharp-backslash "#\\c(" 3 "c")
+  (test-read-sharp-backslash "#\\C(" 3 "C")
+  (test-read-sharp-backslash "#\\de" 4 "dE")
+  (test-read-sharp-backslash "#\\De" 4 "DE")
+  (test-read-sharp-backslash "#\\" +end+ nil)
+  (test-read-sharp-backslash "#\\ " 3 " ")
+  (test-read-sharp-backslash "#\\  " 3 " ")
+  (test-read-sharp-backslash "#\\Space" 7 "SPACE")
+  (test-read-sharp-backslash "#\\Space  " 7 "SPACE")
+  (test-read-sharp-backslash "#\\  Space" 3 " ")
+  (test-read-sharp-backslash "#\\ Space" 8 " SPACE")
+  (test-read-sharp-backslash "#\\bell" 6 "bELL")
+  (test-read-sharp-backslash "#\\;" 3 ";"))
 
 
 ;;; #'
