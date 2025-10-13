@@ -612,8 +612,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
       :when node
         :do (vector-push-extend node result)
-      :while (and (valid-node-p node)
-                  (not (donep state))))
+      :until (or (null node) (no-end-p node) (donep state)))
     ;; When the input string is empty, we insert a 0-length whitespace
     ;; node at the root. This lets us uses the iterator's `value'
     ;; method without bound checks. This is a trade-off: we have a
