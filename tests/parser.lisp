@@ -307,11 +307,18 @@ the function read-sharp-dispatching-reader-macro
                                 expected-children)))
     (with-state (input)
       (setf (current-position state) starting-position)
+      ;;  make sure expected-children is nil for node types that don't
+      ;; support children.
+      (if (member node-type '(sharp-reference))
+          (when expected-children
+            (error "Node type ~s doesn't have a \"children\" slot, but expected-children is not nil, got: ~s."
+                   node-type expected-children))
+          (setf extra-initargs
+                `(:children ,expected-children ,@extra-initargs)))
       (let* ((expected (apply #'make-instance
                               node-type
                               :start 0
                               :end expected-end
-                              :children expected-children
                               :errors expected-errors
                               extra-initargs))
              (got
@@ -564,14 +571,21 @@ the function read-sharp-dispatching-reader-macro
          (input (split-at input #\r))
          ;; assumes input starts with #
          (numeric-argument (let ((prefix (first input)))
-                             (when (< 2 (length prefix))
-                               (parse-integer prefix :start 1)))))
+                             (when (< 1 (length prefix))
+                               ;; :start 1 to skip the "#"
+                               (parse-integer prefix :start 1))))
+         (child (let ((suffix (second input)))
+                  (when (< 1 (length suffix))
+                    ;; :start 1 to skip the "r"
+                    (ignore-errors
+                     (parse-integer suffix :start 1
+                                    :radix numeric-argument))))))
     (test-read-sharp*
      :sharpsing-reader-function 'read-sharp-r
      :node-type 'sharp-radix
      :input input
      :expected-end end
-     ;; :expected-children child
+     :expected-children child
      :extra-initargs `(:radix ,numeric-argument)
      :expected-errors errors
      :given-numeric-argument numeric-argument)))
@@ -579,7 +593,10 @@ the function read-sharp-dispatching-reader-macro
 (define-test+run read-sharp-r
   ;; no radix
   (progn
-    (test-read-sharp-r "#r" :end +end+ :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#r"
+     :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
     (test-read-sharp-r "#R" :end +end+)
     (test-read-sharp-r "#rr" :end +end+)
     (test-read-sharp-r "#Rr" :end +end+)
@@ -591,7 +608,10 @@ the function read-sharp-dispatching-reader-macro
     (test-read-sharp-r "#rz" :end +end+))
   ;; bad radix
   (progn
-    (test-read-sharp-r "#1r0" :end +end+)
+    (test-read-sharp-r
+     "#1r0"
+     :end +end+
+     :errors '(("Illegal radix ~s, must be an integer between 2 and 36 (inclusively)." 1)))
     (test-read-sharp-r "#37R0" :end +end+
                                :errors '(("Illegal radix ~s, must be an integer between 2 and 36 (inclusively)." 37))))
   ;; good radix
@@ -600,17 +620,12 @@ the function read-sharp-dispatching-reader-macro
     (test-read-sharp-r "#2R" :end +end+)
     (test-read-sharp-r "#2rr" :end +end+)
     (test-read-sharp-r "#2Rr" :end +end+)
-    ;; TODO WIP those tests don't passes just yet
-    #++
     (test-read-sharp-r "#2r1")
-    #++
     (test-read-sharp-r "#2R1")
-    #|
     (test-read-sharp-r "#2r666" :end +end+)
-    (test-read-sharp-r "#rF")
-    (test-read-sharp-r "#rf")
-    (test-read-sharp-r "#rz" :end +end+)
-    |#))
+    (test-read-sharp-r "#rF" :end +end+)
+    (test-read-sharp-r "#rf" :end +end+)
+    (test-read-sharp-r "#rz" :end +end+)))
 
 
 ;;; #c sharp-complex
@@ -770,19 +785,23 @@ the function read-sharp-dispatching-reader-macro
 
 ;;; #n#
 
-(defun test-read-sharp-sharp (input &key child end)
+(defun test-read-sharp-sharp (input &key label end errors)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-sharp
    :node-type 'sharp-reference
    :input input
    :expected-end end
-   :expected-children child
-   :given-numeric-argument child))
+   :expected-errors errors
+   :extra-initargs `(:label ,label)
+   :given-numeric-argument label))
 
 (define-test+run read-sharp-sharp
-  (test-read-sharp-sharp "##" :end +end+)
-  (test-read-sharp-sharp '("#1" "#") :child 1)
-  (test-read-sharp-sharp '("#2" "# ") :child 2 :end 3))
+  (test-read-sharp-sharp
+   "##"
+   :end +end+
+   :errors `(("Illegal radix ~s, must be an integer between 2 and 36 (inclusively)." 1)))
+  (test-read-sharp-sharp '("#1" "#") :label 1)
+  (test-read-sharp-sharp '("#2" "# ") :label 2 :end 3))
 
 
 ;;; #+
