@@ -1076,24 +1076,26 @@ the function read-sharp-dispatching-reader-macro
   (test-parse "'" (quote-node 0 +end+ nil))
   (test-parse "`" (quasiquote 0 +end+ nil))
   (test-parse "," (comma 0 +end+ nil))
-  (test-parse "+-*/" (token 0 4))
-  (test-parse "123" (token 0 3))
-  (test-parse "asdf#" (token 0 5))
-  (test-parse "| asdf |" (token 0 8))
-  (test-parse "arg| asdf | " (token 0 11) (whitespace 11 12))
-  (test-parse "arg| asdf |more" (token 0 15))
-  (test-parse "arg| asdf |more|" (token 0 +end+))
-  (test-parse "arg| asdf " (token 0 +end+))
+  (test-parse "+-*/" (token 0 4 :name "+-*/"))
+  (test-parse "123" (token 0 3 :name "123"))
+  (test-parse "asdf#" (token 0 5 :name "ASDF#"))
+  (test-parse "| asdf |" (token 0 8 :name " asdf "))
+  (test-parse "arg| asdf | "
+              (token 0 11 :name "ARG asdf ")
+              (whitespace 11 12))
+  (test-parse "arg| asdf |more" (token 0 15 :name "ARG asdf MORE"))
+  (test-parse "arg| asdf |more|" (token 0 +end+ :name "ARG asdf MORE"))
+  (test-parse "arg| asdf " (token 0 +end+ :name "ARG asdf "))
   (test-parse ";" (line-comment 0 1))
   (test-parse "; " (line-comment 0 2))
   (test-parse (format nil ";~%") (line-comment 0 1) (whitespace 1 2))
   (test-parse (format nil ";~%;") (line-comment 0 1) (whitespace 1 2) (line-comment 2 3))
-  (test-parse "(12" (parens 0 +end+ (token 1 3)))
+  (test-parse "(12" (parens 0 +end+ (nodes (token 1 3 :name "12"))))
   (test-parse "\"" (string-node 0 +end+))
   (test-parse "\"\"" (string-node 0 2))
   (test-parse "#:asdf"
               (sharp-uninterned 0 6
-                                (token 2 6)))
+                                (token 2 6 :name "ASDF")))
   (test-parse "#2()"
               (sharp-vector 0 4
                             (parens 2 4 nil)))
@@ -1101,41 +1103,41 @@ the function read-sharp-dispatching-reader-macro
   (test-parse "#+ x" (sharp-feature 0 4
                                     (nodes
                                      (whitespace 2 3)
-                                     (token 3 4))))
+                                     (token 3 4 :name "X"))))
   (test-parse "(char= #\\; c)"
               (parens 0 13
-                      (nodes (token 1 6)
+                      (nodes (token 1 6 :name "CHAR=")
                              (whitespace 6 7)
                              (sharp-char 7 10 (token 8 10))
                              (whitespace 10 11)
-                             (token 11 12))))
+                             (token 11 12 :name "C"))))
   (test-parse "(#\\;)" (parens 0 5
                                (nodes (sharp-char 1 4 (token 2 4)))))
   (test-parse "#\\; " (sharp-char 0 3 (token 1 3)) (whitespace 3 4))
   (test-parse "`( asdf)"
               (quasiquote 0 8
-                          (parens 1 8
-                                  (nodes
-                                   (whitespace 2 3)
-                                   (token 3 7)))))
+                          (nodes (parens 1 8
+                                         (nodes
+                                          (whitespace 2 3)
+                                          (token 3 7))))))
   (test-parse "#\\Linefeed" (sharp-char 0 10 (token 1 10)))
   (test-parse "#\\: asd" (sharp-char 0 3 (token 1 3)) (whitespace 3 4) (token 4 7))
-  (test-parse "(((  )))" (parens 0 8 (parens 1 7 (parens 2 6 (whitespace 3 5)))))
-  (test-parse "(#" (parens 0 +end+ (sharp-unknown 1 +end+)))
-  (test-parse "(#)" (parens 0 +end+ (sharp-unknown 1 +end+)))
+  (test-parse "(((  )))" (parens 0 8 (nodes (parens 1 7 (nodes (parens 2 6 (nodes (whitespace 3 5))))))))
+  (test-parse "(#" (parens 0 +end+ (nodes (sharp-unknown 1 +end+))))
+  (test-parse "(#)" (parens 0 +end+ (nodes (sharp-unknown 1 +end+))))
   (test-parse "(#) "
-              (parens 0 +end+ (sharp-unknown 1 +end+))
+              (parens 0 +end+ (nodes (sharp-unknown 1 +end+)))
               #++ (whitespace 3 4))
   (test-parse "(#') "
               (parens
                0 +end+
-               (sharp-function
-                1 +end+
-                (nodes (extraneous-closing-parens 3 +end+)))))
+               (nodes (sharp-function
+                       1 +end+
+                       (nodes (extraneous-closing-parens 3 +end+))))))
   (test-parse "#1=#1#"
               (sharp-label 0 6
                            1 (nodes (sharp-reference 3 6 1))))
-  (test-parse "(;)" (parens 0 -1 (line-comment 1 3)))
+  (test-parse "(;)" (parens 0 -1 (nodes (line-comment 1 3))))
   ;; TODO This is wrong
   (test-parse "#+;;" (sharp-feature 0 4 (nodes (line-comment 2 4))))
   ;; TODO Is that what I want?
