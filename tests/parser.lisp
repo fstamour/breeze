@@ -1023,7 +1023,9 @@ the function read-sharp-dispatching-reader-macro
   ;; the symbol is "AB", even though it doesn't really make sense.
   (test-read-token "a:b:c" 5 "C" "AB" '(3 1)
                    '(("Invalid package marker.")))
-  (test-read-token ":a" 2 "A" nil '(0)))
+  (test-read-token ":a" 2 "A" nil '(0))
+  (test-read-token "p:" 2 nil "P" '(1)
+                   '(("Missing name after package marker."))))
 
 ;; TODO read-extraneous-closing-parens
 

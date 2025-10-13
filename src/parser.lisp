@@ -512,28 +512,28 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
               name)))
           (next (iterator state))
       :while (and (not-terminatingp (current-char state))
-                  (not (donep state)))
-      :finally (return
-                 (let ((end (or end (current-position state))))
-                   (unless (= start end)
-                     (let ((prefix (get-output-stream-string prefix))
-                           (name (get-output-stream-string name))
-                           (valid-marker-p (or
-                                            (null markers)
-                                            (= 1 (length markers))
-                                            (and (= 2 (length markers))
-                                                 (= (1- (first markers))
-                                                    (second markers))))))
-                       ;; (format t "~%PARTS: ~s ~s ~s")
-                       (token start end
-                              :package-prefix (unless (zerop (length prefix))
-                                                prefix)
-                              :package-marker markers
-                              :name (unless (zerop (length name))
-                                      name)
-                              :errors `(,@(unless valid-marker-p
-                                             `(("Invalid package marker."))))))))))))
-
+                  (not (donep state))))
+    (let ((end (or end (current-position state))))
+      (unless (= start end)
+        (let* ((prefix (get-output-stream-string prefix))
+               (prefix (unless (zerop (length prefix))
+                         prefix))
+               (name (get-output-stream-string name))
+               (name (unless (zerop (length name)) name))
+               (valid-marker-p (or
+                                (null markers)
+                                (= 1 (length markers))
+                                (and (= 2 (length markers))
+                                     (= (1- (first markers))
+                                        (second markers))))))
+          (token start end
+                 :package-prefix prefix
+                 :package-marker markers
+                 :name name
+                 :errors `(,@(unless valid-marker-p
+                               `(("Invalid package marker.")))
+                           ,@(unless name
+                               `(("Missing name after package marker."))))))))))
 
 
 ;; TODO Do something with this, to help error recovery, or at least
