@@ -91,25 +91,25 @@
     (is eq nil (test-match-parse (sym :wild :wild :keyword) "p::x")))
 ;;; :uninterned-symbol
   (progn
-    (is eq nil (test-match-parse (sym :wild :wild :uninterned-symbol) "x"))
-    (is eq nil (test-match-parse (sym :wild :wild :uninterned-symbol) ":x"))
-    (is eq t (test-match-parse (sym :wild :wild :uninterned-symbol) "#:x"))
-    (is eq nil (test-match-parse (sym :wild :wild :uninterned-symbol) "p:x"))
-    (is eq nil (test-match-parse (sym :wild :wild :uninterned-symbol) "p::x")))
+    (is eq nil (test-match-parse (sym :wild :wild :uninterned) "x"))
+    (is eq nil (test-match-parse (sym :wild :wild :uninterned) ":x"))
+    (is eq t (test-match-parse (sym :wild :wild :uninterned) "#:x"))
+    (is eq nil (test-match-parse (sym :wild :wild :uninterned) "p:x"))
+    (is eq nil (test-match-parse (sym :wild :wild :uninterned) "p::x")))
 ;;; :qualified-symbol
   (progn
-    (is eq nil (test-match-parse (sym :wild :wild :qualified-symbol) "x"))
-    (is eq nil (test-match-parse (sym :wild :wild :qualified-symbol) ":x"))
-    (is eq nil (test-match-parse (sym :wild :wild :qualified-symbol) "#:x"))
-    (is eq t (test-match-parse (sym :wild :wild :qualified-symbol) "p:x"))
-    (is eq nil (test-match-parse (sym :wild :wild :qualified-symbol) "p::x")))
+    (is eq nil (test-match-parse (sym :wild :wild :qualified) "x"))
+    (is eq nil (test-match-parse (sym :wild :wild :qualified) ":x"))
+    (is eq nil (test-match-parse (sym :wild :wild :qualified) "#:x"))
+    (is eq t (test-match-parse (sym :wild :wild :qualified) "p:x"))
+    (is eq nil (test-match-parse (sym :wild :wild :qualified) "p::x")))
 ;;; :possibly-internal-symbol
   (progn
-    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal-symbol) "x"))
-    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal-symbol) ":x"))
-    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal-symbol) "#:x"))
-    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal-symbol) "p:x"))
-    (is eq t (test-match-parse (sym :wild :wild :possibly-internal-symbol) "p::x"))))
+    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal) "x"))
+    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal) ":x"))
+    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal) "#:x"))
+    (is eq nil (test-match-parse (sym :wild :wild :possibly-internal) "p:x"))
+    (is eq t (test-match-parse (sym :wild :wild :possibly-internal) "p::x"))))
 
 (define-test+run "match sym - :wild symbol-name and qualification"
 ;;; :current
@@ -219,17 +219,17 @@
       (is eq nil (test-match-parse (sym :wild "x" :keyword) "x"))
       (is eq nil (test-match-parse (sym :wild "X" :keyword) "x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :uninterned-symbol) "x"))
-      (is eq nil (test-match-parse (sym :wild "x" :uninterned-symbol) "x"))
-      (is eq nil (test-match-parse (sym :wild "X" :uninterned-symbol) "x")))
+      (is eq nil (test-match-parse (sym :wild :x :uninterned) "x"))
+      (is eq nil (test-match-parse (sym :wild "x" :uninterned) "x"))
+      (is eq nil (test-match-parse (sym :wild "X" :uninterned) "x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :qualified-symbol) "x"))
-      (is eq nil (test-match-parse (sym :wild "x" :qualified-symbol) "x"))
-      (is eq nil (test-match-parse (sym :wild "X" :qualified-symbol) "x")))
+      (is eq nil (test-match-parse (sym :wild :x :qualified) "x"))
+      (is eq nil (test-match-parse (sym :wild "x" :qualified) "x"))
+      (is eq nil (test-match-parse (sym :wild "X" :qualified) "x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :possibly-internal-symbol) "x"))
-      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal-symbol) "x"))
-      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal-symbol) "x"))))
+      (is eq nil (test-match-parse (sym :wild :x :possibly-internal) "x"))
+      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal) "x"))
+      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal) "x"))))
 ;;; :keyword
   (progn
     (progn
@@ -241,17 +241,17 @@
       (is eq t (test-match-parse (sym :wild "x" :keyword) ":x"))
       (is eq t (test-match-parse (sym :wild "X" :keyword) ":x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :uninterned-symbol) ":x"))
-      (is eq nil (test-match-parse (sym :wild "x" :uninterned-symbol) ":x"))
-      (is eq nil (test-match-parse (sym :wild "X" :uninterned-symbol) ":x")))
+      (is eq nil (test-match-parse (sym :wild :x :uninterned) ":x"))
+      (is eq nil (test-match-parse (sym :wild "x" :uninterned) ":x"))
+      (is eq nil (test-match-parse (sym :wild "X" :uninterned) ":x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :qualified-symbol) ":x"))
-      (is eq nil (test-match-parse (sym :wild "x" :qualified-symbol) ":x"))
-      (is eq nil (test-match-parse (sym :wild "X" :qualified-symbol) ":x")))
+      (is eq nil (test-match-parse (sym :wild :x :qualified) ":x"))
+      (is eq nil (test-match-parse (sym :wild "x" :qualified) ":x"))
+      (is eq nil (test-match-parse (sym :wild "X" :qualified) ":x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :possibly-internal-symbol) ":x"))
-      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal-symbol) ":x"))
-      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal-symbol) ":x"))))
+      (is eq nil (test-match-parse (sym :wild :x :possibly-internal) ":x"))
+      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal) ":x"))
+      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal) ":x"))))
 ;;; :uninterned-symbol
   (progn
     (progn
@@ -263,17 +263,17 @@
       (is eq nil (test-match-parse (sym :wild "x" :keyword) "#:x"))
       (is eq nil (test-match-parse (sym :wild "X" :keyword) "#:x")))
     (progn
-      (is eq t (test-match-parse (sym :wild :x :uninterned-symbol) "#:x"))
-      (is eq t (test-match-parse (sym :wild "x" :uninterned-symbol) "#:x"))
-      (is eq t (test-match-parse (sym :wild "X" :uninterned-symbol) "#:x")))
+      (is eq t (test-match-parse (sym :wild :x :uninterned) "#:x"))
+      (is eq t (test-match-parse (sym :wild "x" :uninterned) "#:x"))
+      (is eq t (test-match-parse (sym :wild "X" :uninterned) "#:x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :qualified-symbol) "#:x"))
-      (is eq nil (test-match-parse (sym :wild "x" :qualified-symbol) "#:x"))
-      (is eq nil (test-match-parse (sym :wild "X" :qualified-symbol) "#:x")))
+      (is eq nil (test-match-parse (sym :wild :x :qualified) "#:x"))
+      (is eq nil (test-match-parse (sym :wild "x" :qualified) "#:x"))
+      (is eq nil (test-match-parse (sym :wild "X" :qualified) "#:x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :possibly-internal-symbol) "#:x"))
-      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal-symbol) "#:x"))
-      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal-symbol) "#:x"))))
+      (is eq nil (test-match-parse (sym :wild :x :possibly-internal) "#:x"))
+      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal) "#:x"))
+      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal) "#:x"))))
 ;;; :qualified-symbol
   (progn
     (progn
@@ -285,17 +285,17 @@
       (is eq nil (test-match-parse (sym :wild "x" :keyword) "p:x"))
       (is eq nil (test-match-parse (sym :wild "X" :keyword) "p:x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :uninterned-symbol) "p:x"))
-      (is eq nil (test-match-parse (sym :wild "x" :uninterned-symbol) "p:x"))
-      (is eq nil (test-match-parse (sym :wild "X" :uninterned-symbol) "p:x")))
+      (is eq nil (test-match-parse (sym :wild :x :uninterned) "p:x"))
+      (is eq nil (test-match-parse (sym :wild "x" :uninterned) "p:x"))
+      (is eq nil (test-match-parse (sym :wild "X" :uninterned) "p:x")))
     (progn
-      (is eq t (test-match-parse (sym :wild :x :qualified-symbol) "p:x"))
-      (is eq t (test-match-parse (sym :wild "x" :qualified-symbol) "p:x"))
-      (is eq t (test-match-parse (sym :wild "X" :qualified-symbol) "p:x")))
+      (is eq t (test-match-parse (sym :wild :x :qualified) "p:x"))
+      (is eq t (test-match-parse (sym :wild "x" :qualified) "p:x"))
+      (is eq t (test-match-parse (sym :wild "X" :qualified) "p:x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :possibly-internal-symbol) "p:x"))
-      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal-symbol) "p:x"))
-      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal-symbol) "p:x"))))
+      (is eq nil (test-match-parse (sym :wild :x :possibly-internal) "p:x"))
+      (is eq nil (test-match-parse (sym :wild "x" :possibly-internal) "p:x"))
+      (is eq nil (test-match-parse (sym :wild "X" :possibly-internal) "p:x"))))
 ;;; :possibly-internal-symbol
   (progn
     (progn
@@ -307,17 +307,17 @@
       (is eq nil (test-match-parse (sym :wild "x" :keyword) "p::x"))
       (is eq nil (test-match-parse (sym :wild "X" :keyword) "p::x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :uninterned-symbol) "p::x"))
-      (is eq nil (test-match-parse (sym :wild "x" :uninterned-symbol) "p::x"))
-      (is eq nil (test-match-parse (sym :wild "X" :uninterned-symbol) "p::x")))
+      (is eq nil (test-match-parse (sym :wild :x :uninterned) "p::x"))
+      (is eq nil (test-match-parse (sym :wild "x" :uninterned) "p::x"))
+      (is eq nil (test-match-parse (sym :wild "X" :uninterned) "p::x")))
     (progn
-      (is eq nil (test-match-parse (sym :wild :x :qualified-symbol) "p::x"))
-      (is eq nil (test-match-parse (sym :wild "x" :qualified-symbol) "p::x"))
-      (is eq nil (test-match-parse (sym :wild "X" :qualified-symbol) "p::x")))
+      (is eq nil (test-match-parse (sym :wild :x :qualified) "p::x"))
+      (is eq nil (test-match-parse (sym :wild "x" :qualified) "p::x"))
+      (is eq nil (test-match-parse (sym :wild "X" :qualified) "p::x")))
     (progn
-      (is eq t (test-match-parse (sym :wild :x :possibly-internal-symbol) "p::x"))
-      (is eq t (test-match-parse (sym :wild "x" :possibly-internal-symbol) "p::x"))
-      (is eq t (test-match-parse (sym :wild "X" :possibly-internal-symbol) "p::x")))))
+      (is eq t (test-match-parse (sym :wild :x :possibly-internal) "p::x"))
+      (is eq t (test-match-parse (sym :wild "x" :possibly-internal) "p::x"))
+      (is eq t (test-match-parse (sym :wild "X" :possibly-internal) "p::x")))))
 
 (define-test+run "match sym - :wild symbol-name"
   #++
@@ -326,78 +326,78 @@
    (progn
      (sym nil :wild :current)
      (sym nil :wild :keyword)
-     (sym nil :wild :qualified-symbol)
-     (sym nil :wild :possibly-internal-symbol)
-     (sym :apackage :wild :uninterned-symbol)
+     (sym nil :wild :qualified)
+     (sym nil :wild :possibly-internal)
+     (sym :apackage :wild :uninterned)
      (sym :apackage :wild :keyword))
    ;; These combinations are redundant:
    (progn
-     (sym nil :wild :uninterned-symbol)
+     (sym nil :wild :uninterned)
      (sym :keyword :wild :keyword))
    ;; These combinations are actually useful:
    (progn
      (sym :apackage :wild :current)
-     (sym :apackage :wild :qualified-symbol)
-     (sym :apackage :wild :possibly-internal-symbol)))
+     (sym :apackage :wild :qualified)
+     (sym :apackage :wild :possibly-internal)))
 ;;; :current
   (progn
-    (is eq nil (test-match-parse (sym nil :wild :uninterned-symbol) "x"))
+    (is eq nil (test-match-parse (sym nil :wild :uninterned) "x"))
     (is eq nil (test-match-parse (sym :keyword :wild :keyword) "x"))
     ;; not sure: this assumes that the current package is not the
     ;; correct one, but it could be
     (is eq nil (test-match-parse (sym :keyword :wild :current) "x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :qualified-symbol) "x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal-symbol) "x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :qualified) "x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal) "x"))
     ;; not sure: this assumes that the current package is the correct
     ;; one, but it might not be
     (is eq t (test-match-parse (sym :cl :wild :current) "x"))
-    (is eq nil (test-match-parse (sym :cl :wild :qualified-symbol) "x"))
-    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal-symbol) "x")))
+    (is eq nil (test-match-parse (sym :cl :wild :qualified) "x"))
+    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal) "x")))
 ;;; :keyword
   (progn
-    (is eq nil (test-match-parse (sym nil :wild :uninterned-symbol) ":x"))
+    (is eq nil (test-match-parse (sym nil :wild :uninterned) ":x"))
     (is eq t (test-match-parse (sym :keyword :wild :keyword) ":x"))
     (is eq nil (test-match-parse (sym :keyword :wild :current) ":x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :qualified-symbol) ":x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal-symbol) ":x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :qualified) ":x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal) ":x"))
     (is eq nil (test-match-parse (sym :cl :wild :current) ":x"))
-    (is eq nil (test-match-parse (sym :cl :wild :qualified-symbol) ":x"))
-    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal-symbol) ":x")))
+    (is eq nil (test-match-parse (sym :cl :wild :qualified) ":x"))
+    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal) ":x")))
 ;;; :uninterned-symbol
   (progn
-    (is eq t (test-match-parse (sym nil :wild :uninterned-symbol) "#:x"))
+    (is eq t (test-match-parse (sym nil :wild :uninterned) "#:x"))
     (is eq nil (test-match-parse (sym :keyword :wild :keyword) "#:x"))
     (is eq nil (test-match-parse (sym :keyword :wild :current) "#:x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :qualified-symbol) "#:x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal-symbol) "#:x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :qualified) "#:x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal) "#:x"))
     (is eq nil (test-match-parse (sym :cl :wild :current) "#:x"))
-    (is eq nil (test-match-parse (sym :cl :wild :qualified-symbol) "#:x"))
-    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal-symbol) "#:x")))
+    (is eq nil (test-match-parse (sym :cl :wild :qualified) "#:x"))
+    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal) "#:x")))
 ;;; :qualified-symbol
   (progn
-    (is eq nil (test-match-parse (sym nil :wild :uninterned-symbol) "p:x"))
+    (is eq nil (test-match-parse (sym nil :wild :uninterned) "p:x"))
     (is eq nil (test-match-parse (sym :keyword :wild :keyword) "p:x"))
     (is eq nil (test-match-parse (sym :keyword :wild :current) "p:x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :qualified-symbol) "p:x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal-symbol) "p:x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :qualified) "p:x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal) "p:x"))
     (is eq nil (test-match-parse (sym :cl :wild :current) "cl:x"))
     ;; TODO these should match depending on *read-case*
-    (is eq t (test-match-parse (sym "cl" :wild :qualified-symbol) "cl:x"))
-    (is eq t (test-match-parse (sym :cl :wild :qualified-symbol) "cl:x"))
-    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal-symbol) "cl:x")))
+    (is eq t (test-match-parse (sym "cl" :wild :qualified) "cl:x"))
+    (is eq t (test-match-parse (sym :cl :wild :qualified) "cl:x"))
+    (is eq nil (test-match-parse (sym :cl :wild :possibly-internal) "cl:x")))
 ;;; :possibly-internal-symbol
   (progn
-    (is eq nil (test-match-parse (sym nil :wild :uninterned-symbol) "p::x"))
+    (is eq nil (test-match-parse (sym nil :wild :uninterned) "p::x"))
     (is eq nil (test-match-parse (sym :keyword :wild :keyword) "p::x"))
     (is eq nil (test-match-parse (sym :keyword :wild :current) "p::x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :qualified-symbol) "p::x"))
-    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal-symbol) "p::x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :qualified) "p::x"))
+    (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal) "p::x"))
     (is eq nil (test-match-parse (sym :cl :wild :current) "cl::x"))
-    (is eq nil (test-match-parse (sym "cl" :wild :qualified-symbol) "cl::x"))
+    (is eq nil (test-match-parse (sym "cl" :wild :qualified) "cl::x"))
     ;; TODO these should match depending on *read-case*
-    (is eq t (test-match-parse (sym :cl :wild :possibly-internal-symbol) "cl::x"))
-    (is eq t (test-match-parse (sym "cl" :wild :possibly-internal-symbol) "cl::x"))
-    (is eq t (test-match-parse (sym "CL" :wild :possibly-internal-symbol) "cl::x"))))
+    (is eq t (test-match-parse (sym :cl :wild :possibly-internal) "cl::x"))
+    (is eq t (test-match-parse (sym "cl" :wild :possibly-internal) "cl::x"))
+    (is eq t (test-match-parse (sym "CL" :wild :possibly-internal) "cl::x"))))
 
 (define-test+run "match sym - :wild qualification"
 ;;; :current
