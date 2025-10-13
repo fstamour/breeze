@@ -111,13 +111,6 @@ TYPE is one of:
                    (= 2 marker-length))
               `(:possibly-internal ,name ,package-prefix)))))))))
 
-(defun find-package* (package-designator)
-  (or (find-package package-designator)
-      ;; TODO only string-upcase if *read-case* is :upcase
-      (and (or (symbolp package-designator)
-               (stringp package-designator))
-           (find-package (string-upcase package-designator)))))
-
 (defun same-package-p (package-designator1 package-designator2)
   "Check if both package-designators designates the same package.
 The designators can be strings, symbols or packages."
@@ -129,15 +122,15 @@ The designators can be strings, symbols or packages."
     ;; TODO choose between string= and string-equal depending on
     ;; *read-case*
     (string-equal package-designator1 package-designator2))
-   (alexandria:when-let ((p1 (find-package* package-designator1))
-                         (p2 (find-package* package-designator2)))
+   (when-let ((p1 (find-package package-designator1))
+                         (p2 (find-package package-designator2)))
      (eq p1 p2))))
 
 (defun same-symbol-p (symbol-name package-designator1 package-designator2)
   "Check if a symbol-name designate the same symbol in two different packages."
   (or (same-package-p package-designator1 package-designator2)
-      (alexandria:when-let ((p1 (find-package* package-designator1))
-                            (p2 (find-package* package-designator2)))
+      (when-let ((p1 (find-package package-designator1))
+                            (p2 (find-package package-designator2)))
         (let ((s1 (find-symbol symbol-name p1))
               (s2 (find-symbol symbol-name p2)))
           ;; this makes sure we don't compare s1 and s2 if they are
@@ -185,7 +178,7 @@ The designators can be strings, symbols or packages."
                (package-name-pattern package)
                (qualification-pattern qualification))
       pattern
-    (alexandria:when-let ((parsed-symbol (parse-symbol-node $node)))
+    (when-let ((parsed-symbol (parse-symbol-node $node)))
       (destructuring-bind (qualification symbol-name &optional package-name)
           parsed-symbol
         (and (match-symbol symbol-name-pattern symbol-name)
@@ -194,7 +187,7 @@ The designators can be strings, symbols or packages."
              (if (and
                   (not (wildp symbol-name-pattern))
                   (not (wildp package-name-pattern))
-                  (member qualification '(:qualified-symbol :possibly-internal-symbol)))
+                  (member qualification '(:qualified :possibly-internal)))
                  (same-symbol-p symbol-name
                                 package-name package-name-pattern)
                  (match-package package-name-pattern package-name

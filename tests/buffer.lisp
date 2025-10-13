@@ -32,7 +32,7 @@
                 (buffer (make-buffer :string string)))
            (setf (point buffer) 10)
            (current-package buffer)))
-  (is equalp '(:uninterned-symbol "CL-USER")
+  (is equalp '(:uninterned "CL-USER")
       (let* ((string "(in-package #:cl-user)")
                 (buffer (make-buffer :string string)))
            (setf (point buffer) (length string))
