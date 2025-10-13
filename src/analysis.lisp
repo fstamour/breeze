@@ -76,21 +76,21 @@ match an empty parse tree."
 (defun parse-symbol-node ($node)
   "Extract information about the package-name and symbol-name of a token, if it can.
 Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
-PACKAGE-NAME is provided for the types :qualified-symbol and :possibly-internal-symbol.
+PACKAGE-NAME is provided for the types :qualified and :possibly-internal.
 TYPE is one of:
 
  - :current
  - :keyword
- - :uninterned-symbol
- - :qualified-symbol
- - :possibly-internal-symbol"
+ - :uninterned
+ - :qualified
+ - :possibly-internal"
   (unless (or (donep $node)
               (not (valid-node-p (value $node))))
     (cond
       ;; TODO support () === nil
       ;; ((parens-node-p (value $node)))
       ((sharp-uninterned-node-p (value $node))
-       `(:uninterned-symbol ,(name (children $node))))
+       `(:uninterned ,(name (children $node))))
       ((token-node-p (value $node))
        (with-slots (package-prefix package-marker name)
            (value $node)
@@ -106,10 +106,10 @@ TYPE is one of:
               `(:keyword ,name))
              ((and package-marker
                    (= 1 marker-length))
-              `(:qualified-symbol ,name))
+              `(:qualified ,name ,package-prefix))
              ((and package-marker
                    (= 2 marker-length))
-              `(:possibly-internal-symbol ,name)))))))))
+              `(:possibly-internal ,name ,package-prefix)))))))))
 
 (defun find-package* (package-designator)
   (or (find-package package-designator)
@@ -159,7 +159,7 @@ The designators can be strings, symbols or packages."
 (defun match-package (package-name-pattern package-name qualification)
   (cond
     ((wildp package-name-pattern) t)
-    ((eq :uninterned-symbol qualification)
+    ((eq :uninterned qualification)
      (null package-name-pattern))
     ((null package-name-pattern) nil)
     ;; if the package pattern is "keyword"
@@ -168,10 +168,10 @@ The designators can be strings, symbols or packages."
                                 (package-name package-name-pattern))
                            package-name-pattern))
      (or (eq :keyword qualification)
-         (and (eq :possibly-internal-symbol qualification)
+         (and (eq :possibly-internal qualification)
               (string= :keyword package-name))))
     ;; package:name or package::name
-    ((member qualification '(:qualified-symbol :possibly-internal-symbol))
+    ((member qualification '(:qualified :possibly-internal))
      (same-package-p package-name package-name-pattern))
     ((eq qualification :current)
      ;; TODO check the current-package
@@ -195,7 +195,7 @@ The designators can be strings, symbols or packages."
                   (not (wildp symbol-name-pattern))
                   (not (wildp package-name-pattern))
                   (member qualification '(:qualified-symbol :possibly-internal-symbol)))
-                 (same-symbol-p (string-upcase symbol-name)
+                 (same-symbol-p symbol-name
                                 package-name package-name-pattern)
                  (match-package package-name-pattern package-name
                                 qualification)))))))

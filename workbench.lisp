@@ -280,11 +280,11 @@
  breeze.analysis::node-string-equal)
 
 (trace match-symbol-to-token match
-       breeze.pattern::match-symbol
-       breeze.pattern::match-qualification
-       breeze.pattern::match-package
-       breeze.pattern::same-package-p
-       breeze.pattern::same-symbol-p)
+       breeze.analysis::match-symbol
+       breeze.analysis::match-qualification
+       breeze.analysis::match-package
+       breeze.analysis::same-package-p
+       breeze.analysis::same-symbol-p)
 
 (trace :wherein test-either
        match-symbol-to-token
