@@ -896,24 +896,26 @@ the function read-sharp-dispatching-reader-macro
 (define-test+run read-quote
   (test-read-quote "" nil)
   (test-read-quote " " nil)
-  (test-read-quote "'" 'quote +end+)
-  (test-read-quote "' " 'quote +end+ (whitespace 1 2))
-  (test-read-quote "'a" 'quote 2 (token 1 2))
-  (test-read-quote "' a" 'quote 3 (whitespace 1 2) (token 2 3))
-  (test-read-quote "'(a" 'quote +end+ (parens 1 +end+ (token 2 3)))
-  (test-read-quote "'(a)" 'quote 4 (parens 1 4 (token 2 3)))
-  (test-read-quote "' #||# (a)" 'quote 10
+  (test-read-quote "'" 'quote-node +end+)
+  (test-read-quote "' " 'quote-node +end+ (whitespace 1 2))
+  (test-read-quote "'a" 'quote-node 2 (token 1 2))
+  (test-read-quote "' a" 'quote-node 3 (whitespace 1 2) (token 2 3 :name "A"))
+  (test-read-quote "'(a" 'quote-node +end+
+                   (parens 1 +end+ (nodes
+                                    (token 2 3 :name "A"))))
+  (test-read-quote "'(a)" 'quote-node 4 (parens 1 4 (nodes (token 2 3 :name "A"))))
+  (test-read-quote "' #||# (a)" 'quote-node 10
                    (whitespace 1 2)
                    (block-comment 2 6)
                    (whitespace 6 7)
-                   (parens 7 10 (token 8 9)))
+                   (parens 7 10 (nodes (token 8 9) :name "A")))
   (test-read-quote "` #||# (a)" 'quasiquote 10
                    (whitespace 1 2)
                    (block-comment 2 6)
                    (whitespace 6 7)
-                   (parens 7 10 (token 8 9)))
+                   (parens 7 10 (nodes (token 8 9 :name "A"))))
   (test-read-quote "," 'comma +end+)
-  (test-read-quote ",a" 'comma 2 (token 1 2))
+  (test-read-quote ",a" 'comma 2 (token 1 2 :name "A"))
   (test-read-quote ",@" 'comma-at +end+)
   (test-read-quote ",@a" 'comma-at 3 (token 2 3))
   (test-read-quote ",." 'comma-dot +end+)

@@ -42,6 +42,8 @@
   (unless (donep node-iterator)
     (let ((node (value node-iterator)))
       (cond
+        ;; TODO handle "`a" "' #| 🤯 |# a" (quote-node and quasiquote
+        ;; TODO (hard) handle "#."
         ((string-node-p node) (node-string node-iterator))
         ((sharp-uninterned-node-p node)
          (let (($node (copy-iterator node-iterator)))

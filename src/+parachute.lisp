@@ -86,7 +86,7 @@ that message to *trace-output* and return it as a second value.
         (control
           (concatenate 'string
                        "For "
-                       "«~a»"
+                       "«~a» "
                        (if description "~1{~?~}" "~*")
                        "~%"
                        "~tgot:~%"
