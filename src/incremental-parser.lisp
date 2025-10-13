@@ -101,9 +101,9 @@
                        (make-node-iterator state)
                        position))
                 #++ (suffix-before (subseq (source state)
-                                           (node-end (second rest)))))
+                                           (end (second rest)))))
             (apply-edit-to-source state edit)
-            (setf (pos state) (node-start (second rest)))
+            (setf (pos state) (start (second rest)))
             ;; TODO note the lack of reuse xD
             ;; - (first rest) is unchanged
             ;; - (second rest) is the first node to re-parse
@@ -114,11 +114,11 @@
                   (third rest)
                   ;; we stopped parsing the new node at an analogous
                   ;; location
-                  (= (+ (length detail) (node-start (third rest)))
-                     (node-end new-node))
+                  (= (+ (length detail) (start (third rest)))
+                     (end new-node))
                   ;; the parser would've been at the same state
-                  (char= (char (source state) (+ (length detail) (node-start (third rest))))
-                         (char (source state) (node-end new-node)))
+                  (char= (char (source state) (+ (length detail) (start (third rest))))
+                         (char (source state) (end new-node)))
                   ;; if there were more edits, it would be more complex...
                   )
                  (setf (pos state) (length (source state)))

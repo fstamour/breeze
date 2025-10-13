@@ -169,8 +169,8 @@ newlines or more marks the start of a new paragraph)."
 
 (defun group-line-comments (nodes)
   (let* ((run (nrun nodes #'line-comment-or-ws))
-         (start (node-start (first run)))
-         (end (node-end (first nodes))))
+         (start (start (first run)))
+         (end (end (first nodes))))
     (values start end)))
 
 #++
