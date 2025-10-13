@@ -83,33 +83,37 @@ TYPE is one of:
  - :keyword
  - :uninterned
  - :qualified
- - :possibly-internal"
+ - :possibly-internal
+ - :nil"
   (unless (or (donep $node)
               (not (valid-node-p (value $node))))
-    (cond
-      ;; TODO support () === nil
-      ;; ((parens-node-p (value $node)))
-      ((sharp-uninterned-node-p (value $node))
-       `(:uninterned ,(name (children $node))))
-      ((token-node-p (value $node))
-       (with-slots (package-prefix package-marker name)
-           (value $node)
-         (let ((marker-length (length package-marker)))
-           (cond
-             ((and (null package-prefix)
-                   (null package-marker))
-              `(:current ,name))
-             ((and package-marker
-                   (= 1 marker-length)
-                   (or (null package-prefix)
-                       (string= "KEYWORD" package-prefix)))
-              `(:keyword ,name))
-             ((and package-marker
-                   (= 1 marker-length))
-              `(:qualified ,name ,package-prefix))
-             ((and package-marker
-                   (= 2 marker-length))
-              `(:possibly-internal ,name ,package-prefix)))))))))
+    (let ((node (value $node)))
+     (cond
+       ;; () === nil
+       ((and (parens-node-p node)
+             (every #'ignorable-node-p (children node)))
+        `(:nil "()" (symbol-name :cl)))
+       ((sharp-uninterned-node-p node)
+        `(:uninterned ,(name (children $node))))
+       ((token-node-p node)
+        (with-slots (package-prefix package-marker name)
+            node
+          (let ((marker-length (length package-marker)))
+            (cond
+              ((and (null package-prefix)
+                    (null package-marker))
+               `(:current ,name))
+              ((and package-marker
+                    (= 1 marker-length)
+                    (or (null package-prefix)
+                        #++ (string= "KEYWORD" package-prefix)))
+               `(:keyword ,name))
+              ((and package-marker
+                    (= 1 marker-length))
+               `(:qualified ,name ,package-prefix))
+              ((and package-marker
+                    (= 2 marker-length))
+               `(:possibly-internal ,name ,package-prefix))))))))))
 
 (defun same-package-p (package-designator1 package-designator2)
   "Check if both package-designators designates the same package.

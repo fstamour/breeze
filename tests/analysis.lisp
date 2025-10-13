@@ -44,7 +44,7 @@
   (is eqv '(:qualified "X" "KEYWORD") (test-parse-symbol-node "keyword:x"))
   (is eqv '(:possibly-internal "X" "KEYWORD") (test-parse-symbol-node "keyword::x"))
   (is eqv '(:qualified "NIL" "COMMON-LISP") (test-parse-symbol-node "common-lisp:nil"))
-  (is eqv :todo (test-parse-symbol-node "()"))
+  (is eqv '(:nil "()" (symbol-name :cl)) (test-parse-symbol-node "()"))
   (is eqv '(:keyword "asdf:fe") (test-parse-symbol-node ":|asdf:fe|"))
   (false (test-parse-symbol-node ""))
   (false (test-parse-symbol-node "#:"))
