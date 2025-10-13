@@ -252,6 +252,8 @@ found."
         :for depth = (slot-value node-iterator 'depth)
         :do (progn
               (error-invalid-node node-iterator)
+              ;; TODO warn about using non-exported symbols
+              ;; token-node-p && length package-marker == 2
               ;; (warn-undefined-in-package node-iterator)
               (when (plusp depth)
                 (cond
