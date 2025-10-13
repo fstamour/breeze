@@ -1025,6 +1025,8 @@ the function read-sharp-dispatching-reader-macro
                    '(("Invalid package marker.")))
   (test-read-token ":a" 2 "A" nil '(0))
   (test-read-token "p:" 2 nil "P" '(1)
+                   '(("Missing name after package marker.")))
+  (test-read-token "::" 2 nil nil '(1 0)
                    '(("Missing name after package marker."))))
 
 ;; TODO read-extraneous-closing-parens
