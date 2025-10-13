@@ -976,19 +976,18 @@ the function read-sharp-dispatching-reader-macro
 
 (defun test-read-token (input expected-end
                         &optional
-                        expected-name
-                        expected-package-prefix
-                        expected-package-marker)
+                          expected-name
+                          expected-package-prefix
+                          expected-package-marker
+                          expected-errors)
   (with-state (input)
-    (let ((token (read-token state)))
-      (test* token
-             (when expected-end
-               (token 0 expected-end)))
-      (when token
-        (list token
-         (test* (name token) expected-name)
-         (test* (package-prefix token) expected-package-prefix)
-         (test* (package-marker token) expected-package-marker))))))
+    (test* (read-token state)
+           (when expected-end
+             (token 0 expected-end
+                    :package-prefix expected-package-prefix
+                    :package-marker expected-package-marker
+                    :name expected-name
+                    :errors expected-errors)))))
 
 (define-test+run read-token
   :depends-on (current-char
@@ -1016,12 +1015,15 @@ the function read-sharp-dispatching-reader-macro
   (test-read-token "\\;" 2 ";")
   (test-read-token "a\\;" 3 "A;")
   (test-read-token "a\\:b" 4 "A:B")
-  (test-read-token "a:b" 3 "B" "A" ":")
-  (test-read-token "a::b" 4 "B" "A" "::")
-  (test-read-token "a:::b" 4 "B" "A" ":::")
-  ;; TODO FIXME: this is wrong, the marker is not ":",  it's '(":" ":")...
-  (test-read-token "a:b:c" 4 "C" "AB" "::")
-  (test-read-token ":a" 3 "A" nil ":"))
+  (test-read-token "a:b" 3 "B" "A" '(1))
+  (test-read-token "a::b" 4 "B" "A" '(2 1))
+  (test-read-token "a:::b" 5 "B" "A" '(3 2 1)
+                   '(("Invalid package marker.")))
+  ;; N.B. here, because of the weird package-markers, the "name" of
+  ;; the symbol is "AB", even though it doesn't really make sense.
+  (test-read-token "a:b:c" 5 "C" "AB" '(3 1)
+                   '(("Invalid package marker.")))
+  (test-read-token ":a" 2 "A" nil '(0)))
 
 ;; TODO read-extraneous-closing-parens
 

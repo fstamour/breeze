@@ -522,7 +522,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                             (null markers)
                                             (= 1 (length markers))
                                             (and (= 2 (length markers))
-                                                 (= (1+ (first markers))
+                                                 (= (1- (first markers))
                                                     (second markers))))))
                        ;; (format t "~%PARTS: ~s ~s ~s")
                        (token start end
