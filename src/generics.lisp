@@ -20,6 +20,12 @@
   "Don't care."
   t)
 
+(defmethod eqv ((a symbol) b)
+  (eq a b))
+
+(defmethod eqv (a (b symbol))
+  (eq a b))
+
 (defmethod eqv (a b)
   (equalp a b))
 
