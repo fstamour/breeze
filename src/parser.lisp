@@ -545,7 +545,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 ;; tell the user something.
 (defreader read-extraneous-closing-parens ()
   (when (read-char* state #\))
-    (extraneous-closing-parens start +end+)))
+    (extraneous-closing-parens start +end+ :errors `(("Extraneous closing parenthesis.")))))
 
 
 (defparameter *state-control-string*

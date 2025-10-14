@@ -1179,7 +1179,8 @@ the function read-sharp-dispatching-reader-macro
                0 +end+
                (nodes (sharp-function
                        1 +end+
-                       (nodes (extraneous-closing-parens 3 +end+))))))
+                       (nodes (extraneous-closing-parens 3 +end+
+                                                         :errors '(("Extraneous closing parenthesis."))))))))
   (test-parse "#1=#1#"
               (sharp-label 0 6
                            1 (nodes (sharp-reference 3 6 1))))
