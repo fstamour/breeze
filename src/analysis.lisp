@@ -123,9 +123,7 @@ The designators can be strings, symbols or packages."
    (and
     (not (packagep package-designator1))
     (not (packagep package-designator2))
-    ;; TODO choose between string= and string-equal depending on
-    ;; *read-case*
-    (string-equal package-designator1 package-designator2))
+    (string= package-designator1 package-designator2))
    (when-let ((p1 (find-package package-designator1))
                          (p2 (find-package package-designator2)))
      (eq p1 p2))))

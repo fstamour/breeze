@@ -144,7 +144,7 @@
     (is eq nil (test-match-parse (sym #.*package* :wild :wild) "p:x"))
     (is eq nil (test-match-parse (sym "p:" :wild :wild) "p:x"))
     (is eq t (test-match-parse (sym "P" :wild :wild) "p:x"))
-    (is eq t (test-match-parse (sym "p" :wild :wild) "p:x"))
+    (is eq nil (test-match-parse (sym "p" :wild :wild) "p:x"))
     (is eq t (test-match-parse (sym :P :wild :wild) "p:x"))
     (is eq t (test-match-parse (sym :P :wild :wild) "P:x")))
 ;;; :possibly-internal-symbol
@@ -155,7 +155,7 @@
     (is eq nil (test-match-parse (sym #.*package* :wild :wild) "p::x"))
     (is eq nil (test-match-parse (sym "p:" :wild :wild) "p::x"))
     (is eq t (test-match-parse (sym "P" :wild :wild) "p::x"))
-    (is eq t (test-match-parse (sym "p" :wild :wild) "p::x"))
+    (is eq nil (test-match-parse (sym "p" :wild :wild) "p::x"))
     (is eq t (test-match-parse (sym :P :wild :wild) "p::x"))
     (is eq t (test-match-parse (sym :P :wild :wild) "P::x"))))
 
@@ -381,8 +381,8 @@
     (is eq nil (test-match-parse (sym :keyword :wild :qualified) "p:x"))
     (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal) "p:x"))
     (is eq nil (test-match-parse (sym :cl :wild :current) "cl:x"))
-    ;; TODO these should match depending on *read-case*
-    (is eq t (test-match-parse (sym "cl" :wild :qualified) "cl:x"))
+    (is eq nil (test-match-parse (sym "cl" :wild :qualified) "cl:x"))
+    (is eq t (test-match-parse (sym "CL" :wild :qualified) "cl:x"))
     (is eq t (test-match-parse (sym :cl :wild :qualified) "cl:x"))
     (is eq nil (test-match-parse (sym :cl :wild :possibly-internal) "cl:x")))
 ;;; :possibly-internal-symbol
@@ -394,9 +394,9 @@
     (is eq nil (test-match-parse (sym :keyword :wild :possibly-internal) "p::x"))
     (is eq nil (test-match-parse (sym :cl :wild :current) "cl::x"))
     (is eq nil (test-match-parse (sym "cl" :wild :qualified) "cl::x"))
-    ;; TODO these should match depending on *read-case*
+    (is eq nil (test-match-parse (sym "CL" :wild :qualified) "cl::x"))
     (is eq t (test-match-parse (sym :cl :wild :possibly-internal) "cl::x"))
-    (is eq t (test-match-parse (sym "cl" :wild :possibly-internal) "cl::x"))
+    (is eq nil (test-match-parse (sym "cl" :wild :possibly-internal) "cl::x"))
     (is eq t (test-match-parse (sym "CL" :wild :possibly-internal) "cl::x"))))
 
 (define-test+run "match sym - :wild qualification"
