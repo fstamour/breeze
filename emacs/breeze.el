@@ -325,11 +325,9 @@ receiving the data it requested."
      (cl-destructuring-bind
          (point-from point-to replacement-string)
          (cdr request)
-       (let ((point (point)))
-         (delete-region (1+ point-from) (1+ point-to))
-         (goto-char (1+ point-from))
-         (insert replacement-string)
-         (goto-char point))))
+       (delete-region (1+ point-from) (1+ point-to))
+       (save-excursion (goto-char (1+ point-from))
+                       (insert replacement-string))))
     ("message"
      (breeze-message "%s" (cl-second request)))
     ("find-file"
