@@ -392,9 +392,9 @@ the function read-sharp-dispatching-reader-macro
 (define-test+run read-sharp-quote
   (test-read-sharp-quote "#'" nil +end+)
   (test-read-sharp-quote "#' " (nodes (whitespace 2 3)) +end+)
-  (test-read-sharp-quote "#'a" (nodes (token 2 3)) 3)
+  (test-read-sharp-quote "#'a" (nodes (token 2 3 :name "A")) 3)
   (test-read-sharp-quote "#' a" (nodes (whitespace 2 3)
-                                           (token 3 4))
+                                           (token 3 4 :name "A"))
                              4)
   (test-read-sharp-quote "#'(lambda...)" (nodes (parens 2 13
                                                         (nodes (token 3 12 :name "LAMBDA..."))))
@@ -454,13 +454,13 @@ the function read-sharp-dispatching-reader-macro
 
 
 (define-test+run read-sharp-colon
-  (test-read-sharp-colon "#:" nil 2 `(("Failed to read a symbol name at position ~d" 2)))
-  (test-read-sharp-colon "#: " nil 2 `(("Failed to read a symbol name at position ~d" 2)))
-  (test-read-sharp-colon "#:||" (token 2 4) 4)
-  (test-read-sharp-colon "#:|| " (token 2 4) 4)
-  (test-read-sharp-colon "#: a" nil 2 `(("Failed to read a symbol name at position ~d" 2)))
-  (test-read-sharp-colon "#: a " nil 2 `(("Failed to read a symbol name at position ~d" 2)))
-  (test-read-sharp-colon "#:asdf" (token 2 6) nil))
+  (test-read-sharp-colon "#:" (token 2 2 :name "") 2)
+  (test-read-sharp-colon "#: " (token 2 2 :name "") 2)
+  (test-read-sharp-colon "#:||" (token 2 4 :name "") 4)
+  (test-read-sharp-colon "#:|| " (token 2 4 :name "") 4)
+  (test-read-sharp-colon "#: a" (token 2 2 :name "") 2)
+  (test-read-sharp-colon "#: a " (token 2 2 :name "") 2)
+  (test-read-sharp-colon "#:asdf" (token 2 6 :name "ASDF") nil))
 
 #++
 (progn
@@ -483,10 +483,9 @@ the function read-sharp-dispatching-reader-macro
 
 (define-test+run read-sharp-dot
   (test-read-sharp-dot "#." nil +end+)
-  (test-read-sharp-dot "#.a" (nodes (token 2 3)) 3)
+  (test-read-sharp-dot "#.a" (nodes (token 2 3 :name "A")) 3)
   (test-read-sharp-dot "#. a" (nodes (whitespace 2 3)
-                                         (token 3 4))
-                           4))
+                                         (token 3 4 :name "A")) 4))
 
 ;;; #b sharp-binary
 
@@ -604,18 +603,35 @@ the function read-sharp-dispatching-reader-macro
   ;; no radix
   (progn
     (test-read-sharp-r
-     "#r"
-     :end +end+
+     "#r" :end +end+
      :errors '(("Missing radix in #nR reader macro.")))
-    (test-read-sharp-r "#R" :end +end+)
-    (test-read-sharp-r "#rr" :end +end+)
-    (test-read-sharp-r "#Rr" :end +end+)
-    (test-read-sharp-r "#r1" :end +end+)
-    (test-read-sharp-r "#R1" :end +end+)
-    (test-read-sharp-r "#r666" :end +end+)
-    (test-read-sharp-r "#rF" :end +end+)
-    (test-read-sharp-r "#rf" :end +end+)
-    (test-read-sharp-r "#rz" :end +end+))
+    (test-read-sharp-r
+     "#R" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#rr" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#Rr" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#r1" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#R1" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#r666" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#rF" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#rf" :end +end+
+     :errors '(("Missing radix in #nR reader macro.")))
+    (test-read-sharp-r
+     "#rz" :end +end+
+     :errors '(("Missing radix in #nR reader macro."))))
   ;; bad radix
   (progn
     (test-read-sharp-r
@@ -632,10 +648,12 @@ the function read-sharp-dispatching-reader-macro
     (test-read-sharp-r "#2Rr" :end +end+)
     (test-read-sharp-r "#2r1")
     (test-read-sharp-r "#2R1")
+    ;; TODO add an error for this: the radix is valid, but the digits
+    ;; don't match
     (test-read-sharp-r "#2r666" :end +end+)
-    (test-read-sharp-r "#rF" :end +end+)
-    (test-read-sharp-r "#rf" :end +end+)
-    (test-read-sharp-r "#rz" :end +end+)))
+    (test-read-sharp-r "#16rF")
+    (test-read-sharp-r "#16rf")
+    (test-read-sharp-r "#36rz")))
 
 
 ;;; #c sharp-complex
@@ -657,20 +675,20 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-c "#C1" :end +end+)
   ;; N.B. #c(1) is actually invalid
   (test-read-sharp-c "#c(1)"
-                         :child (parens 2 5 (nodes (token 3 4))))
+                         :child (parens 2 5 (nodes (token 3 4 :name "1"))))
   (test-read-sharp-c "#C(1)"
-                         :child (parens 2 5 (nodes (token 3 4))))
+                         :child (parens 2 5 (nodes (token 3 4 :name "1"))))
   (test-read-sharp-c "#c(1 2) a"
                          :child (parens 2 7
-                                        (nodes (token 3 4)
+                                        (nodes (token 3 4 :name "1")
                                                (whitespace 4 5)
-                                               (token 5 6)))
+                                               (token 5 6 :name "2")))
                          :end 7)
   (test-read-sharp-c "#C(1 2) a"
                          :child (parens 2 7
-                                      (nodes (token 3 4)
+                                      (nodes (token 3 4 :name "1")
                                              (whitespace 4 5)
-                                             (token 5 6)))
+                                             (token 5 6 :name "2")))
                          :end 7))
 
 
@@ -696,9 +714,9 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-a '("#2" "a()") :child (parens 3 5 nil))
   (test-read-sharp-a '("#2" "a(1 2)")
                          :child (parens 3 8
-                                        (nodes (token 4 5)
+                                        (nodes (token 4 5 :name "1")
                                                (whitespace 5 6)
-                                               (token 6 7))))
+                                               (token 6 7 :name "2"))))
   (test-read-sharp-a '("#2" "A()") :child (parens 3 5 nil)))
 
 
@@ -716,9 +734,9 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-s "#s" :end +end+)
   (test-read-sharp-s "#S" :end +end+)
   (test-read-sharp-s "#S(node)"
-                         :child (nodes (parens 2 8 (nodes (token 3 7)))))
+                         :child (nodes (parens 2 8 (nodes (token 3 7 :name "NODE")))))
   (test-read-sharp-s "#S(node) foo"
-                         :child (nodes (parens 2 8 (nodes (token 3 7))))
+                         :child (nodes (parens 2 8 (nodes (token 3 7 :name "NODE"))))
                          :end 8))
 
 
@@ -773,11 +791,11 @@ the function read-sharp-dispatching-reader-macro
      :label 2)
     (test-read-sharp-equal
      '("#3" "=(foo)")
-     :child (nodes (parens 3 8 (nodes (token 4 7))))
+     :child (nodes (parens 3 8 (nodes (token 4 7 :name "FOO"))))
      :label 3)
     (test-read-sharp-equal
      '("#4" "= (foo)")
-     :child (nodes (whitespace 3 4) (parens 4 9 (nodes (token 5 8))))
+     :child (nodes (whitespace 3 4) (parens 4 9 (nodes (token 5 8 :name "FOO"))))
      :label 4))
   (progn
     (test-read-sharp-equal
@@ -786,10 +804,10 @@ the function read-sharp-dispatching-reader-macro
      :end +end+)
     (test-read-sharp-equal
      '("#" "=(bar)")
-     :child (nodes (parens 2 7 (nodes (token 3 6)))))
+     :child (nodes (parens 2 7 (nodes (token 3 6 :name "BAR")))))
     (test-read-sharp-equal
      '("#" "= (bar)")
-     :child (nodes (whitespace 2 3) (parens 3 8 (nodes (token 4 7)))))))
+     :child (nodes (whitespace 2 3) (parens 3 8 (nodes (token 4 7 :name "BAR")))))))
 
 
 
@@ -826,13 +844,13 @@ the function read-sharp-dispatching-reader-macro
 
 (define-test+run read-sharp-plus
   (test-read-sharp-plus "#+" :end +end+)
-  (test-read-sharp-plus "#++" :child (nodes (token 2 3)))
+  (test-read-sharp-plus "#++" :child (nodes (token 2 3 :name "+")))
   (test-read-sharp-plus
    "#+ #+ x"
    :child (nodes (whitespace 2 3)
                  (sharp-feature 3 7
                                 (nodes (whitespace 5 6)
-                                       (token 6 7))))))
+                                       (token 6 7 :name "X"))))))
 
 
 ;;; #-
@@ -847,13 +865,13 @@ the function read-sharp-dispatching-reader-macro
 
 (define-test+run read-sharp-minus
   (test-read-sharp-minus "#-" :end +end+)
-  (test-read-sharp-minus "#--" :child (nodes (token 2 3)))
+  (test-read-sharp-minus "#--" :child (nodes (token 2 3 :name "-")))
   (test-read-sharp-minus
    "#- #- x"
    :child (nodes (whitespace 2 3)
                  (sharp-feature-not 3 7
                                     (nodes (whitespace 5 6)
-                                           (token 6 7))))))
+                                           (token 6 7 :name "X"))))))
 
 
 
@@ -908,7 +926,7 @@ the function read-sharp-dispatching-reader-macro
   (test-read-quote " " nil)
   (test-read-quote "'" 'quote-node +end+)
   (test-read-quote "' " 'quote-node +end+ (whitespace 1 2))
-  (test-read-quote "'a" 'quote-node 2 (token 1 2))
+  (test-read-quote "'a" 'quote-node 2 (token 1 2 :name "A"))
   (test-read-quote "' a" 'quote-node 3 (whitespace 1 2) (token 2 3 :name "A"))
   (test-read-quote "'(a" 'quote-node +end+
                    (parens 1 +end+ (nodes
@@ -918,7 +936,7 @@ the function read-sharp-dispatching-reader-macro
                    (whitespace 1 2)
                    (block-comment 2 6)
                    (whitespace 6 7)
-                   (parens 7 10 (nodes (token 8 9) :name "A")))
+                   (parens 7 10 (nodes (token 8 9 :name "A"))))
   (test-read-quote "` #||# (a)" 'quasiquote 10
                    (whitespace 1 2)
                    (block-comment 2 6)
@@ -927,9 +945,9 @@ the function read-sharp-dispatching-reader-macro
   (test-read-quote "," 'comma +end+)
   (test-read-quote ",a" 'comma 2 (token 1 2 :name "A"))
   (test-read-quote ",@" 'comma-at +end+)
-  (test-read-quote ",@a" 'comma-at 3 (token 2 3))
+  (test-read-quote ",@a" 'comma-at 3 (token 2 3 :name "A"))
   (test-read-quote ",." 'comma-dot +end+)
-  (test-read-quote ",.a" 'comma-dot 3 (token 2 3)))
+  (test-read-quote ",.a" 'comma-dot 3 (token 2 3 :name "A")))
 
 
 
@@ -999,6 +1017,17 @@ the function read-sharp-dispatching-reader-macro
                     :name expected-name
                     :errors expected-errors)))))
 
+;; Just making sure that `eqv' seems implemented correctly for the
+;; `token` nodes. It should be a good indicator that it is implemented
+;; correctly for the other types of nodes, as they are all generated
+;; by the same macro.
+(define-test+run eqv-token-node
+  (true (eqv (token 0 1) (token 0 1)))
+  (true (eqv (token 0 1 :name "A") (token 0 1 :name "A")))
+  (false (eqv (token 0 1 :name "a") (token 0 1 :name "A")))
+  (true (eqv (token 0 1 :errors '(("qwer")))
+             (token 0 1 :errors '(("qwer"))))))
+
 (define-test+run read-token
   :depends-on (current-char
                not-terminatingp
@@ -1052,7 +1081,7 @@ the function read-sharp-dispatching-reader-macro
   (test-read-parens ")" nil)
   (test-read-parens "(" +end+)
   (test-read-parens "()" 2)
-  (test-read-parens "(x)" 3 (token 1 2))
+  (test-read-parens "(x)" 3 (token 1 2 :name "X"))
   (test-read-parens "(.)" 3 (dot 1 2))
   (test-read-parens "( () )" 6
                     (whitespace 1 2)
@@ -1122,20 +1151,23 @@ the function read-sharp-dispatching-reader-macro
               (parens 0 13
                       (nodes (token 1 6 :name "CHAR=")
                              (whitespace 6 7)
-                             (sharp-char 7 10 (token 8 10))
+                             (sharp-char 7 10 (token 8 10 :name ";"))
                              (whitespace 10 11)
                              (token 11 12 :name "C"))))
   (test-parse "(#\\;)" (parens 0 5
-                               (nodes (sharp-char 1 4 (token 2 4)))))
-  (test-parse "#\\; " (sharp-char 0 3 (token 1 3)) (whitespace 3 4))
+                               (nodes (sharp-char 1 4 (token 2 4 :name ";")))))
+  (test-parse "#\\; " (sharp-char 0 3 (token 1 3 :name ";")) (whitespace 3 4))
   (test-parse "`( asdf)"
               (quasiquote 0 8
                           (nodes (parens 1 8
                                          (nodes
                                           (whitespace 2 3)
-                                          (token 3 7))))))
-  (test-parse "#\\Linefeed" (sharp-char 0 10 (token 1 10)))
-  (test-parse "#\\: asd" (sharp-char 0 3 (token 1 3)) (whitespace 3 4) (token 4 7))
+                                          (token 3 7 :name "ASDF"))))))
+  (test-parse "#\\Linefeed" (sharp-char 0 10 (token 1 10 :name "LINEFEED")))
+  (test-parse "#\\: asd"
+              (sharp-char 0 3 (token 1 3 :name ":"))
+              (whitespace 3 4)
+              (token 4 7 :name "ASD"))
   (test-parse "(((  )))" (parens 0 8 (nodes (parens 1 7 (nodes (parens 2 6 (nodes (whitespace 3 5))))))))
   (test-parse "(#" (parens 0 +end+ (nodes (sharp-unknown 1 +end+))))
   (test-parse "(#)" (parens 0 +end+ (nodes (sharp-unknown 1 +end+))))
@@ -1155,12 +1187,18 @@ the function read-sharp-dispatching-reader-macro
   ;; TODO This is wrong
   (test-parse "#+;;" (sharp-feature 0 4 (nodes (line-comment 2 4))))
   ;; TODO Is that what I want?
-  (test-parse "#++;;" (sharp-feature 0 3 (nodes (token 2 3))) (line-comment 3 5))
+  (test-parse "#++;;" (sharp-feature 0 3 (nodes (token 2 3 :name "+"))) (line-comment 3 5))
   ;; TODO This is wrong... but _OMG_
   (test-parse (format nil "cl-user::; wtf~%reaally?")
-              (token 0 9) (line-comment 9 14) (whitespace 14 15) (token 15 23))
+              (token 0 9
+                     :package-prefix "CL-USER"
+                     :package-marker '(8 7)
+                     :errors '(("Missing name after package marker.")))
+              (line-comment 9 14)
+              (whitespace 14 15)
+              (token 15 23 :name "REAALLY?"))
   (test-parse "(in-package #)" (parens 0 -1
-                                       (nodes (token 1 11)
+                                       (nodes (token 1 11 :name "IN-PACKAGE")
                                               (whitespace 11 12)
                                               (sharp-unknown 12 -1)))))
 

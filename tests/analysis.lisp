@@ -47,7 +47,7 @@
   (is eqv '(:nil "()" (symbol-name :cl)) (test-parse-symbol-node "()"))
   (is eqv '(:keyword "asdf:fe") (test-parse-symbol-node ":|asdf:fe|"))
   (false (test-parse-symbol-node ""))
-  (false (test-parse-symbol-node "#:"))
+  (is eqv '(:uninterned "") (test-parse-symbol-node "#:"))
   (false (test-parse-symbol-node "::"))
   (false (test-parse-symbol-node "p:::x"))
   (false (test-parse-symbol-node "p::"))
@@ -658,10 +658,10 @@
      nil)
     (test-match-terms-against-parse-tree
      :?x "x" nil
-     (token 0 1))
+     (token 0 1 :name "X"))
     (test-match-terms-against-parse-tree
      :?x "x" t
-     (token 0 1))
+     (token 0 1 :name "X"))
     (test-match-terms-against-parse-tree
      :?x " x" nil
      (whitespace 0 1)))
@@ -674,16 +674,16 @@
      nil)
     (test-match-terms-against-parse-tree
      '(:?x) "x" nil
-     (token 0 1))
+     (token 0 1 :name "X"))
     (test-match-terms-against-parse-tree
      '(:?x) "x" t
-     (token 0 1))
+     (token 0 1 :name "X"))
     (test-match-terms-against-parse-tree
      '(:?x) " x" nil
      (whitespace 0 1))
     (test-match-terms-against-parse-tree
      '(:?x) " x" t
-     (token 1 2))
+     (token 1 2 :name "X"))
     ;; TODO I'm not sure I like the behaviour of these last 2:
     ;; A. (match '(:?x) (parens 0 4 #((token 1 3))))
     ;; B. (match '((:?x)) (parens 0 4 #((token 1 3))))
@@ -691,31 +691,31 @@
     ;; if A bound :?x to (parens ...)
     (test-match-terms-against-parse-tree
      '(:?x) "(42)" nil
-     (token 1 3))
+     (token 1 3 :name "42"))
     (test-match-terms-against-parse-tree
      '((:?x)) "(42)" nil
-     (token 1 3))
+     (token 1 3 :name "42"))
     (test-match-terms-against-parse-tree
      '(defun :?x) "(defun f)" t
-     (token 7 8))
+     (token 7 8 :name "F"))
     (test-match-terms-against-parse-tree
      '(defun :?x) "(defun fgh (x) (* x x x))" t
-     (token 7 10))
+     (token 7 10 :name "FGH"))
     (test-match-terms-against-parse-tree
      '((:either defun defmethod) :?x) "(defun fgh (x) (* x x x))" t
-     (token 7 10))
+     (token 7 10 :name "FGH"))
     (test-match-terms-against-parse-tree
      '((:either defun defmethod) :?x) "(defmethod g (x) (1+ x))" t
-     (token 11 12))
+     (token 11 12 :name "G"))
     (test-match-terms-against-parse-tree
      '(defun (:either :?x (setf :?x))) "(defun fgh (x) (* x x x))" t
-     (token 7 10))
+     (token 7 10 :name "FGH"))
     (test-match-terms-against-parse-tree
      '(defun (:either :?x (setf :?x))) "(defun (setf x) (* x x x))" t
-     (parens 7 15 (vector (token 8 12) (whitespace 12 13) (token 13 14))))
+     (parens 7 15 (vector (token 8 12 :name "SETF") (whitespace 12 13) (token 13 14 :name "X"))))
     (test-match-terms-against-parse-tree
      '((:symbol :define-package :uiop) :?x) "(uiop:define-package foo)" t
-     (token 21 24))))
+     (token 21 24 :name "FOO"))))
 
 (define-test+run "match vector against parse trees"
   (false (test-match-parse 'x "x"))

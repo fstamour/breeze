@@ -217,13 +217,11 @@ first node being whitespaces.)"
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\:)
     (let* ((token-start (current-position state))
-           (token (read-token state))
+           (token (or (read-token state)
+                      (token token-start token-start :name "")))
            (end (current-position state))
            (sharp-uninterned
              (sharp-uninterned start end token)))
-      (unless token
-        (push (list "Failed to read a symbol name at position ~d" token-start)
-              (errors sharp-uninterned)))
       sharp-uninterned)))
 
 (defun read-sharp-dot (state start number)
@@ -532,7 +530,11 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                  :name name
                  :errors `(,@(unless valid-marker-p
                                `(("Invalid package marker.")))
-                           ,@(unless name
+                           ,@(when (and (null name)
+                                          markers
+                                          ;; the rightmost marker is
+                                          ;; at the end of the token.
+                                          (= (1+ (car markers)) end))
                                `(("Missing name after package marker."))))))))))
 
 
