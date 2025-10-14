@@ -16,7 +16,7 @@
                 #:finish)
   ;; importing non-exported symbols
   (:import-from #:breeze.pattern
-                #:term-symbol-p
+                #:var-symbol-p
                 #:wildcard-symbol-p
                 #:bindings
                 #:make-binding-set
@@ -32,16 +32,16 @@
     (of-type wildcard wildcard)
     (true (wildcardp wildcard))))
 
-(define-test+run term
-  (let ((term (term :x)))
-    (of-type term term)
-    (true (termp term))
-    (is eq :x (name term))))
+(define-test+run var
+  (let ((var (var :x)))
+    (of-type var var)
+    (true (varp var))
+    (is eq :x (name var))))
 
-(define-test+run "eqv term"
-  (true (eqv (term :x) (term :x)))
-  (false (eqv (term :y) (term :x)))
-  (false (eqv (term :y) 42)))
+(define-test+run "eqv var"
+  (true (eqv (var :x) (var :x)))
+  (false (eqv (var :y) (var :x)))
+  (false (eqv (var :y) 42)))
 
 (define-test+run "sym print-object"
   (is string= "(sym 'cl :wild)"
@@ -199,7 +199,7 @@
 (define-test+run eqv
   (is eqv 'x 'x)
   (is eqv '(x) '(x))
-  (is eqv (term 'x) (term 'x))
+  (is eqv (var 'x) (var 'x))
   (is eqv (maybe 'y) (maybe 'y))
   (is eqv (maybe '(x y)) (maybe '(x y)))
   ;; TODO Maybe I should try to detect this case when compiling...
@@ -215,10 +215,10 @@
 
 
 
-(define-test+run term-symbol-p
-  (true (term-symbol-p :?x))
-  (false (term-symbol-p 'x))
-  (false (term-symbol-p "?x")))
+(define-test+run var-symbol-p
+  (true (var-symbol-p :?x))
+  (false (var-symbol-p 'x))
+  (false (var-symbol-p "?x")))
 
 (define-test+run wildcard-symbol-p
   (true (wildcard-symbol-p :_x))
@@ -229,7 +229,7 @@
   (is eqv (wildcard) (compile-pattern :_x))
   (is eqv :x (compile-pattern :x))
   (is eqv 42 (compile-pattern 42))
-  (is eqv (term :?x) (compile-pattern :?x))
+  (is eqv (var :?x) (compile-pattern :?x))
   (is eqv (maybe :x) (compile-pattern '(:maybe :x)))
   (is eqv (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
   (is eqv (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
@@ -368,15 +368,15 @@
   (is equal '((:?x . a) (:?y . b))
       (bindings-alist (merge-bindings (make-binding :?x 'a) (make-binding :?y 'b))))
   (finish
-   (let ((term (term 'a))
+   (let ((var (var 'a))
          (bs (make-binding-set)))
-     (add-binding bs (make-binding term 42))
-     (is eq bs (merge-bindings bs (make-binding term 42)))))
+     (add-binding bs (make-binding var 42))
+     (is eq bs (merge-bindings bs (make-binding var 42)))))
   (finish
-   (let ((term (term 'a))
+   (let ((var (var 'a))
          (bs (make-binding-set)))
-     (add-binding bs (make-binding term 42))
-     (is eq bs (merge-bindings bs (make-binding term 42))))))
+     (add-binding bs (make-binding var 42))
+     (is eq bs (merge-bindings bs (make-binding var 42))))))
 
 (defun test-match (pattern input)
   "Compile pattern then match against input."
@@ -403,14 +403,14 @@
   (true (match (wildcard) 'y)))
 
 ;;; TODO check the actual return values
-(define-test+run "match terms"
-  (true (match (term :?x) nil))
-  (true (match (term :?x) 1))
-  (true (match (term :?x) 'x))
-  (true (match (term :?x) "x"))
-  (true (match (term :?x) '(a)))
-  (true (match (term :?x) (term :?x)))
-  (true (match (vector (term :?x)) #(42))))
+(define-test+run "match vars"
+  (true (match (var :?x) nil))
+  (true (match (var :?x) 1))
+  (true (match (var :?x) 'x))
+  (true (match (var :?x) "x"))
+  (true (match (var :?x) '(a)))
+  (true (match (var :?x) (var :?x)))
+  (true (match (vector (var :?x)) #(42))))
 
 
 ;;; Sequences
@@ -491,9 +491,9 @@
   (test-match* "matching a? against the atom 'b"
               (maybe 'a) 'b nil)
   (test-match* "matching (maybe ?x) against the atom 'a"
-              (maybe (term '?x)) 'a nil)
+              (maybe (var '?x)) 'a nil)
   (test-match* "matching (maybe ?x) against the empty sequence"
-              (maybe (term '?x)) #() t))
+              (maybe (var '?x)) #() t))
 
 (define-test+run "match eithers"
   (test-match* "matching (or a b) against 'a"
@@ -614,7 +614,7 @@
 
 #++
 (let ((r (make-rewrite '(/ ?x ?x) 1)))
-  (list (eqv (rewrite-pattern r) #(/ (term :?x) (term :?x)))
+  (list (eqv (rewrite-pattern r) #(/ (var :?x) (var :?x)))
         (rewrite-template r)))
 
 #++

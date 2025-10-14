@@ -212,8 +212,8 @@ The designators can be strings, symbols or packages."
   (breeze.pattern::skip node-iterator skipp)
   (match-symbol-to-token pattern node-iterator))
 
-(defmethod match ((pattern term) (state state) &key skipp)
-  "Match a term againt a parse state."
+(defmethod match ((pattern var) (state state) &key skipp)
+  "Match a var againt a parse state."
   (match-parser-state pattern state :skipp skipp))
 
 ;; TODO One method per type of node

@@ -15,8 +15,8 @@
            #:match
            #:wildcard
            #:wildcardp
-           #:term
-           #:termp
+           #:var
+           #:varp
            #:name
            #:sym
            #:sym-package
@@ -57,7 +57,7 @@
 
 ;; TODO callbacks? instead of bindings??
 ;; TODO guard (? pred pat) => match pattern, then apply pred
-;; TODO term with subpattern (? ?x . subpattern)  === (group name patterm)
+;; TODO var with subpattern (? ?x . subpattern)  === (group name pattern)
 ;; TODO there's no syntax for "repetition", only for "maybe" and "zero-or-more"
 ;; TODO maybe get some inspiration here: https://docs.racket-lang.org/reference/match.html
 
@@ -94,40 +94,38 @@
   (make-load-form-saving-slots s :environment environment))
 
 
-;;; Terms
+;;; Vars
 
-;; Decision: I chose "term" and not "variable" to avoid clashes with
-;; cl:variable
-(defclass term (pattern)
+(defclass var (pattern)
   ((name
     :initform nil
     :initarg :name
     :accessor name
-    :documentation "The name of the term."))
+    :documentation "The name of the var."))
   (:documentation "Pattern that matches anything and creates a binding."))
 
-(defun term (name)
+(defun var (name)
   "Make a pattern object that matches anything and create a binding."
-  (make-instance 'term :name name))
+  (make-instance 'var :name name))
 
-(defun termp (x)
-  "Is X an object of class `term'?"
-  (eq (class-name (class-of x)) 'term))
+(defun varp (x)
+  "Is X an object of class `var'?"
+  (eq (class-name (class-of x)) 'var))
 
-(defmethod print-object ((term term) stream)
-  "Print an object of type `term'."
+(defmethod print-object ((var var) stream)
+  "Print an object of type `var'."
   (print-unreadable-object
-      (term stream :type t :identity t)
-    (format stream "~s" (name term))))
+      (var stream :type t :identity t)
+    (format stream "~s" (name var))))
 
-(defmethod eqv ((a term) (b term))
-  "Test that A and B are both object of type `term' with the same name."
-  (and (termp a)
-       (termp b)
+(defmethod eqv ((a var) (b var))
+  "Test that A and B are both object of type `var' with the same name."
+  (and (varp a)
+       (varp b)
        (eq (name a)
            (name b))))
 
-(defmethod make-load-form ((s term) &optional environment)
+(defmethod make-load-form ((s var) &optional environment)
   (make-load-form-saving-slots s :environment environment))
 
 
@@ -352,8 +350,8 @@ subpatterns."
 
 ;;; Pattern compilation from lists and symbols to vectors and structs
 
-(defun term-symbol-p (x)
-  "Does the symbol X represents a \"term\" pattern?"
+(defun var-symbol-p (x)
+  "Does the symbol X represents a \"var\" pattern?"
   (symbol-starts-with x #\?))
 
 (defun wildcard-symbol-p (x)
@@ -370,7 +368,7 @@ Originally, I took the design decision of using the pattern objects
 themselves to serve as the "identity" of a binding. It's easier to
 explain with an example:
 
-the pattern ?x compiles to #1=(term ?x) — an object of type 'term with
+the pattern ?x compiles to #1=(var ?x) — an object of type 'var with
 the name (slot) ?x
 
 when matched against, for example, 42, it would create the
@@ -399,21 +397,21 @@ find "defuns with funcalls to itself in its body"... It's more
 efficient for the pattern matching algorithm to take care of that than
 the user checking if both ?names in both patterns are the same. But in
 order to do that, you need for both of these patterns to re-use the
-same 'term pattern object when compiling ?name.
+same 'var pattern object when compiling ?name.
 
 "rewrites" use case:
 
 let's say you matched a pattern against a form and you want to extract
 the values and generate a new form using them, you can use a second
-pattern and sustitute the terms in it with the values from matching
+pattern and sustitute the vars in it with the values from matching
 the first pattern.
 
 pattern A: (+ ?x (- ?y))
 pattern B: (- ?x ?y)
 
-but, again, without sharing the pattern objects for terms, one would
-need to associate each terms from each patterns using the terms'
-names (that implies walking the patterns to find the terms).
+but, again, without sharing the pattern objects for vars, one would
+need to associate each vars from each patterns using the vars'
+names (that implies walking the patterns to find the vars).
 
 ---
 
@@ -423,8 +421,8 @@ too much (especially that the names are symbols, they can be from any
 packages...).
 
 With these requirements gone, I think it would simplify a lot of code
-if we were using the name of the terms in the bindings. That means
-that we wouldn't need the *term-pool* at all anymore. (we don't even
+if we were using the name of the vars in the bindings. That means
+that we wouldn't need the *var-pool* at all anymore. (we don't even
 need to de-duplicate pattern objects whithin one pattern.)
 
 |#
@@ -439,7 +437,7 @@ need to de-duplicate pattern objects whithin one pattern.)
 ;; Compile symbols
 (defmethod %compile-pattern ((pattern symbol))
   (cond
-    ((term-symbol-p pattern) (term pattern))
+    ((var-symbol-p pattern) (var pattern))
     ((wildcard-symbol-p pattern)
      ;; TODO (optimization) this creates a new "wildcard" object everytime,
      ;; which is not really necessary.
@@ -493,8 +491,8 @@ need to de-duplicate pattern objects whithin one pattern.)
    )
   (:documentation "A binding"))
 
-(defun make-binding (term input)
-  (make-instance 'binding :from term :to input))
+(defun make-binding (from to)
+  (make-instance 'binding :from from :to to))
 
 (defun bindingp (x)
   (typep x 'binding))
@@ -656,8 +654,8 @@ bindings and keeping only those that have not conflicting bindings."
   (declare (ignore input))
   t)
 
-(defmethod match ((pattern term) input &key)
-  "Match a term (create a binding)"
+(defmethod match ((pattern var) input &key)
+  "Match a var (create a binding)"
   (make-binding (name pattern) input))
 
 (defmethod match ((pattern string) (input string) &key)
@@ -674,7 +672,7 @@ bindings and keeping only those that have not conflicting bindings."
   "Matcho `nil' against another (non-`nil') symbol."
   nil)
 
-;; TODO could it be useful to support `term' in the `sym' 's name,
+;; TODO could it be useful to support `var' in the `sym' 's name,
 ;; package and qualification slots?
 ;; TODO Or maybe just (optionaly) create some binidings here...
 ;; TODO regex???
@@ -778,8 +776,8 @@ bindings and keeping only those that have not conflicting bindings."
              (copy-iterator $input iterator)
              (or bindings t))))))
 
-(defmethod match ((pattern term) ($input iterator) &key skipp)
-  "Match a `term' pattern against the current value of an
+(defmethod match ((pattern var) ($input iterator) &key skipp)
+  "Match a `var' pattern against the current value of an
 `iterator'. This always match, it advances the iterator and returns a
 binding."
   (skip $input skipp)
@@ -903,7 +901,7 @@ where consumed, for example)."
      (check-type bindings (or binding binding-set (eql t)))
      (flet ((substitute1 (x)
               (etypecase x
-                (term
+                (var
                  (alexandria:if-let ((binding (find-binding bindings (name x))))
                    (to binding)
                    ;; TODO this could signal a condition (binding not

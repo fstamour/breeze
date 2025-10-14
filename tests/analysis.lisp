@@ -14,7 +14,7 @@
   ;; importing unexported symbols
   ;; TODO these should be exported
   (:import-from #:breeze.pattern
-                #:termp
+                #:varp
                 #:name)
   ;; importing unexported symbols
   (:import-from #:breeze.analysis
@@ -613,7 +613,7 @@
 ;; TODO test pattern "x"
 ;; TODO test pattern "some-node" (I'll have to think about the syntax)
 
-(defun test-match-terms-against-parse-tree (pattern string
+(defun test-match-vars-against-parse-tree (pattern string
                                             skip-whitespaces-and-comments
                                             expected-binding)
   (let ((binding (test-match-parse pattern string skip-whitespaces-and-comments))
@@ -632,12 +632,12 @@
          (let ((hash-table (breeze.pattern::bindings binding)))
            (is = 1 (hash-table-count hash-table)
                "Expected only 1 binding.")
-           (maphash (lambda (term binding*)
-                      (declare (ignore term))
+           (maphash (lambda (var binding*)
+                      (declare (ignore var))
                       (setf binding binding*))
                     hash-table)))
        (is eq :?x (from binding)
-           "matching ~s against ~s (~s) should have bound the term :?x"
+           "matching ~s against ~s (~s) should have bound the var :?x"
            pattern string state)
        (true (to binding)
              "matching ~s against ~s (~s) should have bound :?x to something"
@@ -648,40 +648,40 @@
       (t
        (false binding)))))
 
-(define-test+run "match terms against parse trees"
+(define-test+run "match vars against parse trees"
   (progn
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      :?x "" nil
      (whitespace 0 0))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      :?x "" t
      nil)
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      :?x "x" nil
      (token 0 1 :name "X"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      :?x "x" t
      (token 0 1 :name "X"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      :?x " x" nil
      (whitespace 0 1)))
   (progn
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(:?x) "" nil
      (whitespace 0 0))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(:?x) "" t
      nil)
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(:?x) "x" nil
      (token 0 1 :name "X"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(:?x) "x" t
      (token 0 1 :name "X"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(:?x) " x" nil
      (whitespace 0 1))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(:?x) " x" t
      (token 1 2 :name "X"))
     ;; TODO I'm not sure I like the behaviour of these last 2:
@@ -689,31 +689,31 @@
     ;; B. (match '((:?x)) (parens 0 4 #((token 1 3))))
     ;; Both bind :?x to (token 1 3), but it would make (more?) sense
     ;; if A bound :?x to (parens ...)
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(:?x) "(42)" nil
      (token 1 3 :name "42"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '((:?x)) "(42)" nil
      (token 1 3 :name "42"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(defun :?x) "(defun f)" t
      (token 7 8 :name "F"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(defun :?x) "(defun fgh (x) (* x x x))" t
      (token 7 10 :name "FGH"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '((:either defun defmethod) :?x) "(defun fgh (x) (* x x x))" t
      (token 7 10 :name "FGH"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '((:either defun defmethod) :?x) "(defmethod g (x) (1+ x))" t
      (token 11 12 :name "G"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(defun (:either :?x (setf :?x))) "(defun fgh (x) (* x x x))" t
      (token 7 10 :name "FGH"))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '(defun (:either :?x (setf :?x))) "(defun (setf x) (* x x x))" t
      (parens 7 15 (vector (token 8 12 :name "SETF") (whitespace 12 13) (token 13 14 :name "X"))))
-    (test-match-terms-against-parse-tree
+    (test-match-vars-against-parse-tree
      '((:symbol :define-package :uiop) :?x) "(uiop:define-package foo)" t
      (token 21 24 :name "FOO"))))
 

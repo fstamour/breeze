@@ -573,7 +573,7 @@ eclass-id."
   (check-type egraph egraph)
   (check-type eclass eclass)
   (etypecase pattern
-    (breeze.pattern:term
+    (breeze.pattern:var
      ;; The whole class "matches"
      (list (make-binding (name pattern) eclass)))
     ((or vector symbol number)
