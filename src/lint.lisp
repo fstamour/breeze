@@ -231,7 +231,14 @@ found."
 
 (defun error-invalid-node (node-iterator)
   (unless (valid-node-p (value node-iterator))
-    (node-parse-error node-iterator "Syntax error")))
+    (let* ((node (value node-iterator))
+           (errors (errors node)))
+      (if errors
+          (node-parse-error node-iterator
+                            (with-output-to-string (out)
+                              (loop :for error :in errors
+                                    :do (fresh-line out) (apply #'format out error))))
+          (node-parse-error node-iterator "Syntax error")))))
 
 #++ ;; TODO make the list of "linting rules" dynamic
 (defvar *rules*
