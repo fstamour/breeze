@@ -143,9 +143,7 @@ The designators can be strings, symbols or packages."
 
 (defun match-symbol (symbol-name-pattern symbol-name)
   (or (wildp symbol-name-pattern)
-      ;; TODO choose between string= and string-equal
-      ;; depending on *read-case*
-      (string-equal symbol-name-pattern symbol-name)))
+      (string= symbol-name-pattern symbol-name)))
 
 (defun match-qualification (qualification-pattern qualification)
   (or (wildp qualification-pattern)
