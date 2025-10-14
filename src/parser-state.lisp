@@ -62,6 +62,31 @@
                  :source string
                  :iterator (make-vector-iterator string)))
 
+#++
+(with-input-from-string (in "(hi :world)")
+  (let* ((iterator (make-stream-iterator in))
+         (state (make-instance 'state
+                          :source (slot-value iterator 'vector)
+                          :iterator iterator)))
+    (value iterator)
+    (breeze.parser::read-any state t)))
+
+#++
+(let ((*readtable* (copy-readtable nil)))
+  (set-dispatch-macro-character
+   #\# #\`
+   #'(lambda(stream subchar arg)
+       (declare (ignorable subchar arg))
+
+       (let* ((iterator (make-stream-iterator stream))
+              (state (make-instance 'state
+                                    :source (slot-value iterator 'vector)
+                                    :iterator iterator))
+              (node (nth-value 1 (breeze.parser::read-any state t))))
+         (setf (tree state) node)
+         state)))
+  (read-from-string "#`32"))
+
 (defmethod print-object ((state state) stream)
   (print-unreadable-object
       (state stream :type t :identity nil)
@@ -105,8 +130,14 @@
 (defun at (state position)
   "Get the character at POSITION in the STATE's source.
 Returns nil if POSITION is invalid."
-  (when (valid-position-p state position)
-    (char (source state) position)))
+  (cond
+    ((valid-position-p state position)
+     (char (source state) position))
+    ((and
+      (typep (iterator state) 'stream-iterator)
+      (= position (length (source state))))
+     (unless (donep state)
+       (breeze.iterator::read-next-char (iterator state))))))
 
 ;; TODO add tests with case-sensitive-p = nil
 ;; TODO split into at= and at-equal
