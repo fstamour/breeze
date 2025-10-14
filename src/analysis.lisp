@@ -113,7 +113,7 @@ TYPE is one of:
                `(:qualified ,name ,package-prefix))
               ((and package-marker
                     (= 2 marker-length))
-               `(:possibly-internal ,name ,package-prefix))))))))))
+               `(:possibly-internal ,name ,(or package-prefix "KEYWORD")))))))))))
 
 (defun same-package-p (package-designator1 package-designator2)
   "Check if both package-designators designates the same package.

@@ -341,7 +341,9 @@ first node being whitespaces.)"
                                     (<= 0 number))
                                (current-position state)
                                +end+)
-                     number)))
+                     number
+                     :errors (unless number
+                               `(("Invalid label ~s, it must be an unsigned decimal integer." ,number))))))
 
 (defun read-sharp-plus (state start number)
   (declare (ignore number))
@@ -517,7 +519,12 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                (prefix (unless (zerop (length prefix))
                          prefix))
                (name (get-output-stream-string name))
-               (name (unless (zerop (length name)) name))
+               (name (unless (and (zerop (length name))
+                                          markers
+                                          ;; the rightmost marker is
+                                          ;; at the end of the token.
+                                          (= (1+ (car markers)) end))
+                       name))
                (valid-marker-p (or
                                 (null markers)
                                 (= 1 (length markers))
@@ -530,11 +537,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                  :name name
                  :errors `(,@(unless valid-marker-p
                                `(("Invalid package marker.")))
-                           ,@(when (and (null name)
-                                          markers
-                                          ;; the rightmost marker is
-                                          ;; at the end of the token.
-                                          (= (1+ (car markers)) end))
+                           ,@(unless name
                                `(("Missing name after package marker."))))))))))
 
 

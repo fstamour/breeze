@@ -423,7 +423,6 @@
     :initarg :label
     :accessor label)))
 
-;; TODO use "label" instead of children
 (define-node-type sharp-reference (:positional-args (label))
   ((label
     :initform nil

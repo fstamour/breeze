@@ -827,7 +827,7 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-sharp
    "##"
    :end +end+
-   :errors `(("Illegal radix ~s, must be an integer between 2 and 36 (inclusively)." 1)))
+   :errors '(("Invalid label ~s, it must be an unsigned decimal integer." nil)))
   (test-read-sharp-sharp '("#1" "#") :label 1)
   (test-read-sharp-sharp '("#2" "# ") :label 2 :end 3))
 

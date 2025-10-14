@@ -26,6 +26,12 @@
 (defmethod eqv (a (b symbol))
   (eq a b))
 
+(defmethod eqv ((a (eql nil)) b)
+  (eq a b))
+
+(defmethod eqv (a (b (eql nil)))
+  (eq a b))
+
 (defmethod eqv (a b)
   (equalp a b))
 
