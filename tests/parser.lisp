@@ -1200,9 +1200,8 @@ the function read-sharp-dispatching-reader-macro
   (test-parse "(in-package #)" (parens 0 -1
                                        (nodes (token 1 11 :name "IN-PACKAGE")
                                               (whitespace 11 12)
-                                              (sharp-unknown 12 -1)))))
-
-;; (test-parse "#!" (shebang 0 2))
+                                              (sharp-unknown 12 -1))))
+  (test-parse "#!" (shebang 0 2)))
 
 #++ ;; this is cursed
 (read-from-string "cl-user::; wtf
