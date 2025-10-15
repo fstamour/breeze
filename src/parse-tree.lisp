@@ -295,11 +295,15 @@
                   ,@(remove-if #'keywordp initargs))
              ,(format nil "Make a node of type ~s" type)
              ;; constructor's implementation
-             (make-instance
-              ',name
-              :start start :end end
-              ,@plist
-              ,@initargs)))
+             (let ((errors (if (stringp errors)
+                               (list (list errors))
+                               errors)))
+               (make-instance
+                ',name
+                :start start :end end
+                ,@plist
+                ,@initargs))))
+;;; print-object
        (defmethod print-object ((node ,name) stream)
          (let ((*print-case* :downcase))
            (write-char #\( stream)
@@ -320,6 +324,7 @@
                                (format stream " ~s ~s"
                                        ,kw ,arg)))
            (write-char #\) stream)))
+;;; eqv
        (defmethod eqv ((a ,name) (b ,name))
          (or (eq a b)
              (and (range= a b)
