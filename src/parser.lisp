@@ -99,7 +99,8 @@ common lisp.")
                   situation
                   char)
           (unless char
-            (return (block-comment start +end+)))
+            (return (block-comment start +end+
+                                   :errors "Unterminated block comment")))
           (ecase situation
             (other (case char
                      (#\| (setf situation 'pipe))

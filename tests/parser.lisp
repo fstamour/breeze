@@ -228,7 +228,12 @@ newline or +end+)
      :got (read-block-comment state)
      :form `(read-block-comment ,state)
      :expected (when expected-end
-                 (block-comment 0 expected-end))
+                 (block-comment
+                  0 expected-end
+                  ;; ATM, that's the only error the "block" comment
+                  ;; nodes can have.
+                  :errors (when (eq +end+ expected-end)
+                            '(("Unterminated block comment")))))
      :comparator 'eqv)))
 
 (define-test+run read-block-comment
@@ -1107,14 +1112,20 @@ the function read-sharp-dispatching-reader-macro
   (eq (parse "") nil)
   (test-parse " (" (whitespace 0 1) (parens 1 +end+ nil))
   (test-parse "  " (whitespace 0 2))
-  (test-parse "#|" (block-comment 0 +end+))
+  (test-parse "#|" (block-comment
+                    0 +end+
+                    :errors '(("Unterminated block comment"))))
   (test-parse " #| "
               (whitespace 0 1)
-              (block-comment 1 +end+)
+              (block-comment
+               1 +end+
+               :errors '(("Unterminated block comment")))
               #++
               (whitespace 3 4))
   (test-parse "#||#" (block-comment 0 4))
-  (test-parse "#|#||#" (block-comment 0 +end+))
+  (test-parse "#|#||#" (block-comment
+                        0 +end+
+                        :errors '(("Unterminated block comment"))))
   (test-parse "#| #||# |#" (block-comment 0 10))
   (test-parse "'" (quote-node 0 +end+ nil))
   (test-parse "`" (quasiquote 0 +end+ nil))
