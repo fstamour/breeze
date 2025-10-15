@@ -540,48 +540,48 @@ eclass-id."
 
 ;;; E-matching, rewrites, rules, etc.
 
-(defun match-enode (egraph enode pattern set-of-bindings)
+(defun match-enode (egraph enode pattern set-of-subtitutions)
   ;; TODO support for variable-length matches
   (etypecase enode
     ((or symbol number)
-     (merge-sets-of-bindings
-      set-of-bindings
+     (merge-sets-of-substitutions
+      set-of-subtitutions
       (list (match pattern enode))))
     (vector
      (when (alexandria:length= enode pattern)
        ;; This is getting very complicated because
-       ;; "match-eclass" returns a list of possible bindings...
+       ;; "match-eclass" returns a list of possible substitutions...
        (loop
          :for eclass-id :across enode
          :for subpattern :across pattern
-         :for new-set-of-bindings =
+         :for new-set-of-subtitutions =
          ;; TODO Optimization: check if match returns T
          ;; Probably not worth it, as I may change that code altogether...
-                                  (merge-sets-of-bindings
-                                   set-of-bindings
+                                  (merge-sets-of-substitutions
+                                   set-of-subtitutions
                                    ;; TODO This assumes that the first element of the enode is not an eclass
-                                   (list (breeze.pattern::match eclass-id subpattern)))
-           :then (merge-sets-of-bindings
-                  new-set-of-bindings
+                                   (list (match eclass-id subpattern)))
+           :then (merge-sets-of-substitutions
+                  new-set-of-subtitutions
                   (match-eclass egraph
                                 (eclass egraph eclass-id)
-                                subpattern new-set-of-bindings))
-         :while new-set-of-bindings
-         :finally (return new-set-of-bindings))))))
+                                subpattern new-set-of-subtitutions))
+         :while new-set-of-subtitutions
+         :finally (return new-set-of-subtitutions))))))
 
-(defun match-eclass (egraph eclass pattern &optional (set-of-bindings '(t)))
+(defun match-eclass (egraph eclass pattern &optional (set-of-subtitutions '(t)))
   (check-type egraph egraph)
   (check-type eclass eclass)
   (etypecase pattern
-    (breeze.pattern:var
+    (var
      ;; The whole class "matches"
      (list (make-binding (name pattern) eclass)))
     ((or vector symbol number)
      ;; Find every enode that matches the pattern
      (loop :for enode :across (enodes eclass)
-           :for new-set-of-bindings := (match-enode egraph enode pattern set-of-bindings)
-           :when new-set-of-bindings
-             :append new-set-of-bindings))))
+           :for new-set-of-subtitutions := (match-enode egraph enode pattern set-of-subtitutions)
+           :when new-set-of-subtitutions
+             :append new-set-of-subtitutions))))
 
 (defun match-rewrite (egraph rewrite)
   "Match 1 rewrite against an egraph, returns a list of substituted
@@ -592,13 +592,13 @@ forms."
     :for eclass-id :being :the :hash-key :of (eclasses egraph)
       :using (hash-value eclass)
     ;;    :for eclass :in (eclasses egraph)
-    :for set-of-bindings = (match-eclass egraph eclass pattern)
-    :when set-of-bindings
+    :for set-of-subtitutions = (match-eclass egraph eclass pattern)
+    :when set-of-subtitutions
       :collect (list eclass
                      ;; Compute the substitutions
-                     (mapcar (lambda (bindings)
-                               (pattern-substitute substitution bindings))
-                             set-of-bindings))))
+                     (mapcar (lambda (substitutions)
+                               (pattern-substitute substitution substitutions ))
+                             set-of-subtitutions))))
 
 (defun apply-rewrite (egraph rewrite)
   "Match REWRITE's pattern against EGRAPH. Add the new forms and merge

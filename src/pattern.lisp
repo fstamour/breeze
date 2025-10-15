@@ -36,14 +36,14 @@
            #:make-pattern-iterator)
   ;; Working with match results
   (:export #:make-binding
-           #:merge-sets-of-bindings
+           #:merge-substitutions
            #:find-binding
            #:binding
            #:from
            #:to
-           #:binding-set
-           #:binding-set-p
-           #:merge-bindings
+           #:substitutions
+           #:substitutions-p
+           #:merge-sets-of-substitutions
            #:pattern-substitute)
   (:export #:make-rewrite
            #:rewrite-pattern
@@ -509,7 +509,7 @@ need to de-duplicate pattern objects whithin one pattern.)
   (and (eqv (from a) (from b))
        (eqv (to a) (to b))))
 
-(defclass binding-set ()
+(defclass substitutions ()
   ((bindings
     :initform (make-hash-table)
     :initarg :bindings
@@ -517,92 +517,90 @@ need to de-duplicate pattern objects whithin one pattern.)
   ;; TODO add a union-hash to detect cycles...
   (:documentation "A set of bindings"))
 
-(defun binding-set-p (x)
+(defun substitutions-p (x)
   (or (eq x t)
-      (typep x 'binding-set)))
+      (typep x 'substitutions)))
 
-(defmethod print-object ((binding-set binding-set) stream)
+(defmethod print-object ((substitutions substitutions) stream)
   (print-unreadable-object
-      (binding-set stream :type t)
-    (let* ((bindings (bindings binding-set))
+      (substitutions stream :type t)
+    (let* ((bindings (bindings substitutions))
            (size (hash-table-count bindings)))
       (cond
         ((zerop size) (write-string "(empty)" stream))
         ((= 1 size) (prin1 (alexandria:hash-table-alist bindings) stream))
         (t (format stream "(~d bindings)" size))))))
 
-(defmethod eqv ((a binding-set) (b binding-set))
+(defmethod eqv ((a substitutions) (b substitutions))
   (eqv (bindings a) (bindings b)))
 
-(defmethod emptyp ((binding-set binding-set))
-  (zerop (hash-table-count (bindings binding-set))))
+(defmethod emptyp ((substitutions substitutions))
+  (zerop (hash-table-count (bindings substitutions))))
 
 ;; I think using the convention of "T represents an empty binding set,
 ;; which represents a successful match without captures" is nice, the
 ;; GC might like it too...
-(defmethod emptyp ((binding-set (eql t)))
+(defmethod emptyp ((substitutions (eql t)))
   t)
 
 (defmethod emptyp ((binding binding))
   nil)
 
-;; TODO rename "binding-set" to "substitutions"
-
-(defun make-binding-set (&key bindings)
+(defun make-substitutions (&key bindings)
   (if bindings
-    (make-instance 'binding-set :bindings bindings)
-    (make-instance 'binding-set)))
+    (make-instance 'substitutions :bindings bindings)
+    (make-instance 'substitutions)))
 
-(defun copy-binding-set (binding-set)
-  (make-binding-set
-   :bindings (alexandria:copy-hash-table (bindings binding-set))))
+(defun copy-substitutions (substitutions)
+  (make-substitutions
+   :bindings (alexandria:copy-hash-table (bindings substitutions))))
 
-(defun find-binding (binding-set from)
-  (gethash from (bindings binding-set)))
+(defun find-binding (substitutions from)
+  (gethash from (bindings substitutions)))
 
 ;; TODO maybe this could be a method instead of a defun?
-(defun set-binding (binding-set binding)
-  (setf (gethash (from binding) (bindings binding-set)) binding))
+(defun set-binding (substitutions binding)
+  (setf (gethash (from binding) (bindings substitutions)) binding))
 
-(defmethod add-binding ((binding-set binding-set) (_ (eql t)))
+(defmethod add-binding ((substitutions substitutions) (_ (eql t)))
   ;; nothing to do
   t ; success
   )
 
-(defmethod add-binding ((binding-set binding-set) (_ (eql nil)))
+(defmethod add-binding ((substitutions substitutions) (_ (eql nil)))
   ;; nothing to do
   nil ; failure
   )
 
-(defmethod add-binding ((binding-set binding-set) (new-binding binding))
-  (let ((old-binding (find-binding binding-set (from new-binding))))
+(defmethod add-binding ((substitutions substitutions) (new-binding binding))
+  (let ((old-binding (find-binding substitutions (from new-binding))))
     (and (if old-binding
              ;; (error "Conflicting bindings: ~a ~a" a b)
              (eql (to old-binding) (to new-binding))
-             (set-binding binding-set new-binding))
-         binding-set)))
+             (set-binding substitutions new-binding))
+         substitutions)))
 
-(defun ensure-binding-set (x)
+(defun ensure-substitutions (x)
   (etypecase x
-    (binding-set x)
-    (binding (let ((binding-set (make-binding-set)))
-               (add-binding binding-set x)
-               binding-set))
+    (substitutions x)
+    (binding (let ((substitutions (make-substitutions)))
+               (add-binding substitutions x)
+               substitutions))
     (null nil)
     ((eql t) t)))
 
-(defun merge-bindings (bindings1 bindings2)
+(defun merge-substitutions (bindings1 bindings2)
   (cond
     ((or (null bindings1) (null bindings2)) nil)
     ((and (eq t bindings1) (eq t bindings2)) t)
-    ;; when merging two binding instances instead of binding-sets
+    ;; when merging two binding instances instead of substitutionss
     ((and (bindingp bindings1) (bindingp bindings2))
-     (let ((result (make-binding-set)))
+     (let ((result (make-substitutions)))
        (add-binding result bindings1)
        (when (add-binding result bindings2)
          result)))
-    ((emptyp bindings1) (ensure-binding-set bindings2))
-    ((emptyp bindings2) (ensure-binding-set bindings1))
+    ((emptyp bindings1) (ensure-substitutions bindings2))
+    ((emptyp bindings2) (ensure-substitutions bindings1))
     ;; 1 is instance, 2 is set
     ((bindingp bindings1)
      (add-binding bindings2 bindings1))
@@ -615,27 +613,37 @@ need to de-duplicate pattern objects whithin one pattern.)
      ;; bindings earlier and stop the matching process earlier.
      ;;
      ;; N.B. a disjoint-set data structure could help detect cycles in
-     ;; the bindings.
-     (let ((result (copy-binding-set bindings1)))
+     ;; the substitutions.
+     ;;
+     ;; TODO this might be faster if it merged the common bindings first, but I'm not sure how many bindings must there be to be worth it.
+     ;;
+     ;; TODO another perf heuristic: copy the smallest or biggest
+     ;; substitutions. copying the smallest would be faster, but it
+     ;; implies that `add-bindings'will be called more times.
+     (let ((result (copy-substitutions bindings1)))
        (loop :for from2 :being :the :hash-key :of (bindings bindings2) :using (hash-value binding2)
              :for successp = (add-binding result binding2)
              :unless successp :do (return))
        result))))
 
-(defun merge-sets-of-bindings (set-of-bindings1 set-of-bindings2)
-  "Merge two set of bindings (list of list of bindings), returns a new
-set of bindings.
+(defun merge-sets-of-substitutions (set-of-substitutions1 set-of-substitutions2)
+  "Merge two set (list) of `substitutions', returns a new set of
+`substitutions'.
+
 Matching a pattern against a set of values (e.g. an egraph) will yield
-a set of independent bindings. During the matching process, we might
-need to refine the \"current\" set of bindings. Long-story short, this
-is analogous to computing the Cartesian product of the two sets of
-bindings and keeping only those that have not conflicting bindings."
-  (loop :for bindings1 :in set-of-bindings1
-        :append (loop :for bindings2 :in set-of-bindings2
-                      :for merged-bindings = (merge-bindings
-                                              bindings1 bindings2)
-                      :when merged-bindings
-                        :collect merged-bindings)))
+a set of independent substitutions. During the matching process, we
+might need to refine the \"current\" set of \"partial\"
+`substitutions'.  This is done by computing the Cartesian product of
+the two sets of substitutions and keeping only the resulting
+substitutions that don't have any conflicting bindings."
+  (loop
+    :for substitutions1 :in set-of-substitutions1
+    :append (loop
+              :for substitutions2 :in set-of-substitutions2
+              :for merged-substitutions = (merge-substitutions
+                                      substitutions1 substitutions2)
+              :when merged-substitutions
+                :collect merged-substitutions)))
 
 
 ;;; Matching
@@ -749,7 +757,7 @@ bindings and keeping only those that have not conflicting bindings."
 (defmethod match (($pattern pattern-iterator) (iterator iterator) &key skipp)
   (catch 'no-match
     (loop
-      :with bindings = t ;; (make-binding-set)
+      :with bindings = t ;; (make-substitutions)
       :with $input = (copy-iterator iterator)
       :until (or (donep $pattern) (donep $input))
       :for new-bindings = (progn
@@ -761,7 +769,7 @@ bindings and keeping only those that have not conflicting bindings."
       :if new-bindings
         ;; collect all the bindings
         :do
-           (setf bindings (merge-bindings bindings new-bindings))
+           (setf bindings (merge-substitutions bindings new-bindings))
            ;; The new bindings conflicted with the existing ones...
            (unless bindings (return nil))
       :else
@@ -898,7 +906,7 @@ where consumed, for example)."
     ((null pattern) nil)
     ((and pattern bindings)
      (check-type pattern atom)
-     (check-type bindings (or binding binding-set (eql t)))
+     (check-type bindings (or binding substitutions (eql t)))
      (flet ((substitute1 (x)
               (etypecase x
                 (var

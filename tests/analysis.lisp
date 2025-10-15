@@ -627,8 +627,8 @@
        (true binding
              "matching ~s against ~s (~s) should have bound something"
              pattern string state)
-       (parachute:of-type '(or binding binding-set (eql t)) binding)
-       (when (binding-set-p binding)
+       (parachute:of-type '(or binding substitutions (eql t)) binding)
+       (when (substitutions-p binding)
          (let ((hash-table (breeze.pattern::bindings binding)))
            (is = 1 (hash-table-count hash-table)
                "Expected only 1 binding.")
