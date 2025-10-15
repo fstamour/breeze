@@ -30,7 +30,9 @@
 (define-test+run wildcard
   (let ((wildcard (wildcard)))
     (of-type wildcard wildcard)
-    (true (wildcardp wildcard))))
+    (true (wildcardp wildcard)))
+  (is eq (wildcard) (wildcard)
+      "The fuction (wildcard) always return the same instance."))
 
 (define-test+run var
   (let ((var (var :x)))

@@ -73,14 +73,13 @@
 
 ;;; Wildcard / don't care
 
-;; TODO could be useful to give this a name anyway, for debugging?
 (defclass wildcard ()
   ()
   (:documentation "Pattern that matches anything"))
 
 (defun wildcard ()
   "Make a pattern object that matches anything"
-  (make-instance 'wildcard))
+  (load-time-value (make-instance 'wildcard)))
 
 (defun wildcardp (x)
   "Is X an object of class `wildcard'?"
@@ -442,10 +441,7 @@ need to de-duplicate pattern objects whithin one pattern.)
 (defmethod %compile-pattern ((pattern symbol))
   (cond
     ((var-symbol-p pattern) (var pattern))
-    ((wildcard-symbol-p pattern)
-     ;; TODO (optimization) this creates a new "wildcard" object everytime,
-     ;; which is not really necessary.
-     (wildcard))
+    ((wildcard-symbol-p pattern) (wildcard))
     (t pattern)))
 
 ;; Compile lists
