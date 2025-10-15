@@ -2,7 +2,12 @@
 (defpackage #:breeze.generics
   (:documentation "Declare some generic interfaces.")
   (:use #:cl)
-  (:export #:eqv #:name #:source))
+  (:export
+   #:eqv
+   #:name
+   #:source
+   #:start
+   #:end))
 
 (in-package #:breeze.generics)
 
@@ -80,3 +85,11 @@ source: TODO use in "reader" and "buffer" (buffer -> node-iterator -> parser-sta
   (:documentation "Get the name of THING."))
 
 ;; TODO create a mix-in class for "objec with a name"
+
+
+
+(defgeneric start (thing)
+  (:documentation "Get the start of THING."))
+
+(defgeneric end (thing)
+  (:documentation "Get the end of THING."))

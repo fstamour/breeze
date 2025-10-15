@@ -2,10 +2,9 @@
 
 (defpackage #:breeze.pattern
   (:documentation "Pattern matching")
-  (:use #:cl #:breeze.iterator)
-  (:import-from #:breeze.generics
-                #:name
-                #:eqv)
+  (:use #:cl #:breeze.iterator #:breeze.generics)
+  (:import-from #:breeze.range
+                #:range #:range=)
   (:import-from #:breeze.string
                 #:symbol-starts-with)
   (:export #:compile-pattern)

@@ -38,18 +38,19 @@
    ;; "test-file" is for parsing ERT files
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
+   (:file "range" :depends-on ("generics"))
    (:file "iterator" :depends-on ("generics"))
    (:file "parser-state"
           :depends-on ("generics" "iterator" "utils"))
    (:file "parse-tree"
-    :depends-on ("parser-state"))
+    :depends-on ("parser-state" "range"))
    (:file "parser"
     :depends-on ("parse-tree"))
    (:file "incremental-parser"
     :depends-on ("parser" "workspace"))
    (:file "buffer" :depends-on ("parser" "package"))
    (:file "workspace" :depends-on ("parser" "buffer"))
-   (:file "pattern" :depends-on ("iterator" "generics"))
+   (:file "pattern" :depends-on ("iterator" "generics" "range"))
    (:file "egraph")
    (:file "analysis" :depends-on ("parser" "pattern"))
    (:file "command"
