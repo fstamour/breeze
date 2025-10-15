@@ -228,7 +228,7 @@ depth of the tree."))
   (make-instance 'tree-iterator :root root))
 
 (defmethod eqv ((a tree-iterator) (b tree-iterator))
-  (with-slots ((depth-a depth) (pos-a positions) (subtrees-a subrees)) a
+  (with-slots ((depth-a depth) (pos-a positions) (subtrees-a subtrees)) a
     (with-slots ((depth-b depth) (pos-b positions) (subtrees-b subtrees)) b
       (and (= depth-a depth-b)
            (every #'eq subtrees-a subtrees-b)
