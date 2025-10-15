@@ -10,22 +10,22 @@
 ;;;   - The snippet's name (currently "snippet/the-name")
 ;;;   - Ability to ask the user for input
 
-
 (in-package #:common-lisp-user)
+
+#++
+(ql:quickload '(str with-output-to-stream))
 
 (defpackage breeze.snippets
   (:use :cl)
   (:import-from #:alexandria
-		#:ensure-car
-		#:symbolicate)
+                #:ensure-car
+                #:symbolicate)
   (:export #:find-snippet
-	   ;; #:snippet-inputs
-	   #:snippet-lambda-list
-	   #:snippet-function))
+           ;; #:snippet-inputs
+           #:snippet-lambda-list
+           #:snippet-function))
 
 (in-package #:breeze.snippets)
-
-(ql:quickload '(str with-output-to-stream))
 
 (defvar *snippet-stream* nil
   "The stream use to print out snippets.")
@@ -43,7 +43,7 @@
   ((name
     :reader snippet-name
     :initarg :name
-    :type 'symbol)
+    :type symbol)
    (definition
     :reader snippet-definition
     :initarg :definition)
@@ -65,47 +65,47 @@
 (defun transform-snippet (body)
   "Take a skeleton and generate the code to execute it."
   (loop :for form :in body
-	:collect (cond
-		   ;; Shorthand for newline
-		   ((eq '\n form) '(progn
-				    (terpri *snippet-stream*)
-				    (indent *snippet-stream*)))
-		   ;; Increment indentation
-		   ((eq '> form) '(incf *indentation*))
-		   ;; Decrement indentation
-		   ((eq '< form) '(decf *indentation*))
-		   ;; ignored for now, used to position the cursor
-		   ((eq '_ form) nil)
-		   ((stringp form)
-		    `(princ ,form *snippet-stream*))
-		   ;; Variables must be quoted
-		   ((and
-		     (listp form)
-		     (eq 'quote (first form))
-		     (symbolp (second form)))
-		    `(princ ,(second form) *snippet-stream*))
-		   ;; Recurse, except for printing forms
-		   ((listp form)
-		    (cond
-		      ;; FIXME the list is incomplete
-		      ((member (first form) '(format princ prin1))
-		       form)
-		      (t
-		       (transform-snippet form))))
-		   ;; The rest is unmodified
-		   (t form))))
+        :collect (cond
+                   ;; Shorthand for newline
+                   ((eq '\n form) '(progn
+                                    (terpri *snippet-stream*)
+                                    (indent *snippet-stream*)))
+                   ;; Increment indentation
+                   ((eq '> form) '(incf *indentation*))
+                   ;; Decrement indentation
+                   ((eq '< form) '(decf *indentation*))
+                   ;; ignored for now, used to position the cursor
+                   ((eq '_ form) nil)
+                   ((stringp form)
+                    `(princ ,form *snippet-stream*))
+                   ;; Variables must be quoted
+                   ((and
+                     (listp form)
+                     (eq 'quote (first form))
+                     (symbolp (second form)))
+                    `(princ ,(second form) *snippet-stream*))
+                   ;; Recurse, except for printing forms
+                   ((listp form)
+                    (cond
+                      ;; FIXME the list is incomplete
+                      ((member (first form) '(format princ prin1))
+                       form)
+                      (t
+                       (transform-snippet form))))
+                   ;; The rest is unmodified
+                   (t form))))
 
 (defun make-snippet-function (lambda-list docstring body)
   `(lambda
        (stream
-	&optional
-	  ,@(mapcar #'ensure-car lambda-list))
+        &optional
+          ,@(mapcar #'ensure-car lambda-list))
      ,docstring
      ;; Save the current indentation level
      (let ((*indentation* *indentation*))
        (with-output-to-stream:with-output-to-stream
-	   (*snippet-stream* stream)
-	 ,@(transform-snippet body)))))
+           (*snippet-stream* stream)
+         ,@(transform-snippet body)))))
 
 #+nil
 (defun make-snippet-funtion-with-keyword-argument
@@ -114,26 +114,26 @@
   (defun ,(symbolicate 'snippet/ name '*)
       (stream
        &key
-	 ,@(mapcar #'ensure-car lambda-list))
+         ,@(mapcar #'ensure-car lambda-list))
     ,docstring
     (,(symbolicate 'snippet/ name)
      stream
      ,@(mapcar #'ensure-car lambda-list))))
 
 (defmacro define-snippet (&whole whole
-			    name (&rest lambda-list)
-			    docstring
-			  &body body)
+                          name (&rest lambda-list)
+                          docstring
+                          &body body)
   "Create a function and register a snippet."
-  (check-type docstring string)		; Docstrings are required
+  (check-type docstring string)    ; Docstrings are required
   `(setf (gethash ',name *snippets*)
-	 (make-instance 'snippet
-			:name ',name
-			:definition ',whole
-			:function ,(make-snippet-function
-				    lambda-list
-				    docstring
-				    body))))
+         (make-instance 'snippet
+                        :name ',name
+                        :definition ',whole
+                        :function ,(make-snippet-function
+                                    lambda-list
+                                    docstring
+                                    body))))
 
 (defun snippet-inputs (snippet)
   (snippet-lambda-list
@@ -145,14 +145,14 @@
 (define-snippet defpackage
     ((name :placeholder "Name of the package")
      (nicknames :type (list string)
-		:placeholder "Nickname for the package"))
+                :placeholder "Nickname for the package"))
     "Define a package."
   "(in-package #:common-lisp-user)" \n \n
   "(defpackage #:" 'name > \n
   (when nicknames
     "(:nicknames "
     (loop :for nickname :in nicknames
-	  :do (format t "~(#:~s~)" nickname)) ")" \n)
+          :do (format t "~(#:~s~)" nickname)) ")" \n)
   "(:use :cl))" < \n \n
   "(in-package #:" 'name ")" \n \n)
 
@@ -161,13 +161,13 @@
 
 
 (define-snippet defun ((name :placeholder "Name of the function")
-		       (lambda-list :placeholder "Argument list"))
-    "Insert a defun form."
+                       (lambda-list :placeholder "Argument list"))
+                "Insert a defun form."
   (indent)
   "(defun " 'name
   " (" (when lambda-list
-	 (format *snippet-stream* "~(~{~a~^ ~}~)"
-		 (alexandria:ensure-list lambda-list)))
+         (format *snippet-stream* "~(~{~a~^ ~}~)"
+                 (alexandria:ensure-list lambda-list)))
   ")" > \n
   _ ")")
 
@@ -183,12 +183,12 @@
 (snippet/defun nil "my-first-function" "x &optional y")
 
 (define-snippet defmacro ((name :placeholder "Name of the macro")
-			  (lambda-list :placeholder "Argument list"))
-    "Insert a defmacro form."
+                          (lambda-list :placeholder "Argument list"))
+                "Insert a defmacro form."
   (indent)
   "(defmacro " 'name
   " (" (when lambda-list
-	 (format *snippet-stream* "~(~a~)" lambda-list)) ")" > \n
+         (format *snippet-stream* "~(~a~)" lambda-list)) ")" > \n
   _ ")")
 
 #+nil

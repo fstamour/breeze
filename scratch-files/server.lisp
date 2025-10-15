@@ -40,26 +40,26 @@
       (:doctype)
       (:html
        (:head
-	(:title "Tests")
-	(:link :rel "stylesheet" :href "style.css"))
+        (:title "Tests")
+        (:link :rel "stylesheet" :href "style.css"))
        (:body
-	(:h1 "Tests"
-	     (loop
-		:for package :being :the :hash-key :of (breeze.xref:tests-by-package)
-		:using (hash-value test-definition)
-		:do
-		  (:h2 (package-name package))
-		  (loop :for (name _ body) :in test-definition
-		     :do
-		       (:dl
-			(:dt (symbol-name name))
-			(:dd
-			 (:pre (format nil "~a" body))
-			 "This test calls:"
-			 (:ol
-			  (loop :for symbol :in (br:test-calls-who name)
-			       :do
-			     (:li (symbol-name symbol)) ))))))))))))
+        (:h1 "Tests"
+             (loop
+               :for package :being :the :hash-key :of (breeze.xref:tests-by-package)
+                 :using (hash-value test-definition)
+               :do
+                  (:h2 (package-name package))
+                  (loop :for (name _ body) :in test-definition
+                        :do
+                           (:dl
+                            (:dt (symbol-name name))
+                            (:dd
+                             (:pre (format nil "~a" body))
+                             "This test calls:"
+                             (:ol
+                              (loop :for symbol :in (br:test-calls-who name)
+                                    :do
+                                       (:li (symbol-name symbol)) ))))))))))))
 
 (define-easy-handler (tests :uri "/test-results") ()
   (with-output-to-string (spinneret:*html*)
@@ -67,26 +67,26 @@
       (:doctype)
       (:html
        (:head
-	(:title "Tests results")
-	(:link :rel "stylesheet" :href "style.css"))
+        (:title "Tests results")
+        (:link :rel "stylesheet" :href "style.css"))
        (:body
-	(:h1 "Tests results"
-	     (loop
-		:for package :being :the :hash-key :of (breeze.xref:tests-by-package)
-		:using (hash-value test-definition)
-		:do
-		  (:h2 (package-name package))
-		  (loop
-		     :for (name _ body) :in test-definition
-		     :for result := (breeze.test:test-results name)
-		     :do
-		       (:dl
-			(:dt (symbol-name name))
-			(:dd
-			 (:pre ;; (format nil "~A" test-results)
-			  (with-output-to-string (output)
-			    (describe result output))
-			  )))))))))))
+        (:h1 "Tests results"
+             (loop
+               :for package :being :the :hash-key :of (breeze.xref:tests-by-package)
+                 :using (hash-value test-definition)
+               :do
+                  (:h2 (package-name package))
+                  (loop
+                    :for (name _ body) :in test-definition
+                    :for result := (breeze.test:test-results name)
+                    :do
+                       (:dl
+                        (:dt (symbol-name name))
+                        (:dd
+                         (:pre ;; (format nil "~A" test-results)
+                               (with-output-to-string (output)
+                                 (describe result output))
+                               )))))))))))
 
 
 
@@ -95,20 +95,20 @@
    (cl-hash-util:collecting-hash-table
     (:mode :append)
     (loop :for test-name
-       :being :the :hash-key :of breeze.test:*test*
-       :using (hash-value test-definition)
-       :unless (third test-definition)
-       :do (cl-hash-util:collect (second test-definition) test-name)))))
+            :being :the :hash-key :of breeze.test:*test*
+              :using (hash-value test-definition)
+          :unless (third test-definition)
+            :do (cl-hash-util:collect (second test-definition) test-name)))))
 
 (defun undocumented-symbols-by-kind ()
   (hash-table-alist
    (cl-hash-util:collecting-hash-table
     (:mode :append)
     (loop :for (kind what) :in
-	 (loop
-	    :for package :in (br:current-packages)
-	    :append (br:find-undocumented-symbols package))
-       :do (cl-hash-util:collect kind what)))))
+                           (loop
+                             :for package :in (br:current-packages)
+                             :append (br:find-undocumented-symbols package))
+          :do (cl-hash-util:collect kind what)))))
 
 (define-easy-handler (todo :uri "/todo") ()
   (with-output-to-string (spinneret:*html*)
@@ -116,28 +116,28 @@
       (:doctype)
       (:html
        (:head
-	(:title "Todo")
-	(:link :rel "stylesheet" :href "style.css"))
+        (:title "Todo")
+        (:link :rel "stylesheet" :href "style.css"))
        (:body
-	(:h1 "Todo")
-	(:div
-	 (:h2 "Empty tests")
-	 (:p "Tests that were declared with \"deftest\" but are empty.")
-	 (loop
-	    :for (package . tests) :in (empty-tests-by-package)
-	    :do
-	      (:h3 (package-name package))
-	      (loop :for name :in tests
-		 :do (:dl (:dt (symbol-name name))))))
-	(:div
-	 (:h2 "Missing documentation")
-	 (:p "Symbols that are exported but don't have a docstring.")
-	 (loop
-	    :for (kind . whats) :in (undocumented-symbols-by-kind)
-	    :do
-	      (:h3 (symbol-name kind))
-	      (loop :for what :in whats
-		 :do (:dl (:dt (format nil "~(~a~)" what)))))))))))
+        (:h1 "Todo")
+        (:div
+         (:h2 "Empty tests")
+         (:p "Tests that were declared with \"deftest\" but are empty.")
+         (loop
+           :for (package . tests) :in (empty-tests-by-package)
+           :do
+              (:h3 (package-name package))
+              (loop :for name :in tests
+                    :do (:dl (:dt (symbol-name name))))))
+        (:div
+         (:h2 "Missing documentation")
+         (:p "Symbols that are exported but don't have a docstring.")
+         (loop
+           :for (kind . whats) :in (undocumented-symbols-by-kind)
+           :do
+              (:h3 (symbol-name kind))
+              (loop :for what :in whats
+                    :do (:dl (:dt (format nil "~(~a~)" what)))))))))))
 
 
 
