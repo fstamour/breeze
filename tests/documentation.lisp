@@ -54,5 +54,16 @@
   (with-output-to-string (*trace-output*)
     (breeze.documentation::generate-documentation)
     (breeze.report::render
-     (make-instance 'breeze.report:report :output-dir (breeze.utils:breeze-relative-pathname "docs/"))
-     'breeze)))
+     (make-instance
+      'breeze.report:report
+      :systems `((breeze
+                  ;; Include scratch files
+                  :extra-files ,(directory
+                                 (make-pathname
+                                  :directory
+                                  `(,@(pathname-directory
+                                       (breeze.utils:breeze-relative-pathname "scratch-files/"))
+                                      :wild-inferiors)
+                                  :name :wild
+                                  :type "lisp"))))
+      :output-dir (breeze.utils:breeze-relative-pathname "docs/")))))

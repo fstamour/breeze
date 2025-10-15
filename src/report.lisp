@@ -44,7 +44,12 @@ TODO Split comment/paragraphs when the line starts with "TODO"
     :initform (error "OUTPUT-DIR is required.")
     :initarg :output-dir
     :accessor output-dir
-    :documentation "The path to the directory where the report's files will be created."))
+    :documentation "The path to the directory where the report's files will be created.")
+   (systems
+    :initform nil
+    :initarg :systems
+    :accessor systems
+    :documentation "The list of primary systems to include in the report."))
   (:documentation "A report object is used to carry around configuration and state. Methods
 can be specialised on this class for further customization."))
 
@@ -133,29 +138,27 @@ newlines or more marks the start of a new paragraph)."
 
 
 
-;; TODO in some systems, the *.asd file is not at the root of the project, perhaps usethe vc root?
-(defun system-enough-pathname (pathname system)
-  "Given a pathname, return the relative pathname from the root of the project (system)."
-  (uiop:enough-pathname
-   pathname
-   (asdf:system-source-directory system)))
+(defun parse-file (relative-to pathname)
+  (let* ((filename (uiop:enough-pathname pathname relative-to))
+         (content-str (alexandria:read-file-into-string pathname))
+         (state (progn
+                  (format t "~&Parsing file ~s..." filename)
+                  (parse content-str))))
+    (list filename state (pages state))))
 
-
-(defun parse-system (system)
+(defun parse-system (system &key extra-files)
   "Parse all files we want to include."
   ;; TODO include all files that are tracked under git...
   (format t "~&Parsing the system ~S 's files..." system)
   (prog1
       (loop
-        :for file :in (sort (breeze.asdf:find-all-related-files system)
+        ;; TODO better sorting
+        :with relative-to := (asdf:system-source-directory system)
+        :for file :in (sort (append (breeze.asdf:find-all-related-files system)
+                                    extra-files)
                             #'string<
                             :key #'namestring)
-        :for filename = (system-enough-pathname file system)
-        :for content-str = (alexandria:read-file-into-string file)
-        :for state = (progn
-                       (format t "~&Parsing file ~s..." file)
-                       (parse content-str))
-        :collect (list filename state (pages state)))
+        :collect (parse-file relative-to file))
     (format t "~&Done parsing the system ~S 's files." system)))
 
 #++
@@ -167,6 +170,7 @@ newlines or more marks the start of a new paragraph)."
   (and node
        (or (line-comment-node-p node) (whitespace-node-p node))))
 
+;; TODO group line comments but split by ";; TODO" ?
 (defun group-line-comments (nodes)
   (let* ((run (nrun nodes #'line-comment-or-ws))
          (start (start (first run)))
@@ -175,7 +179,7 @@ newlines or more marks the start of a new paragraph)."
 
 #++
 (let ((node-list (tree (parse (format nil "; c~%  (+ 2 2) #| |#")))))
-  (group-line-comments node-list))
+  (group-line-comments (map 'list 'identity node-list)))
 
 (defun page-title-node (page)
   "Try to infer the page's title. (Reminder: page is a list of node)"
@@ -191,14 +195,7 @@ newlines or more marks the start of a new paragraph)."
   (format out "~{<p>~a</p>~%~}"
           (paragraphs (escape-html comment))))
 
-#++
-(defun render-node (out state node)
-  (format out "~a"
-          (escape-html
-           (node-content state node))))
-
-
-;; This assumes the packages are loaded in the current image!
+;; TODO This assumes the packages are loaded in the current image!
 (defun cl-token-p (string)
   (multiple-value-bind
         (value error)
@@ -219,7 +216,6 @@ newlines or more marks the start of a new paragraph)."
       'syntaxerror))
 
 (defun render-escaped (out string)
-
   (write-string (escape-html string) out))
 
 ;; TODO use a node-iterator instead, maybe
@@ -320,7 +316,7 @@ newlines or more marks the start of a new paragraph)."
   "Get the path to SYSTEM's generated listings."
   (pathname-to report system :listing))
 
-(defun render-system-toc (report out files)
+(defun render-toc (report out files)
   ;; Table of content
   (with-html (out)
     (fmt "<ol>")
@@ -329,7 +325,7 @@ newlines or more marks the start of a new paragraph)."
       :do
          (fmt "<li>")
          (fmt "~a" (link-to-file report (namestring filename)))
-         (progn ;; TODO when (breeze.utils:length>1? pages)
+         (when (breeze.utils:length>1? pages)
            (fmt "<ol>")
            (loop
              :for page :in pages
@@ -359,29 +355,44 @@ newlines or more marks the start of a new paragraph)."
                  (fmt "<div id=\"~a\"></div>" (page-id report filename i)))
              (render-page out state page))))))
 
-(defun render (report system &aux (pathname (system-listing-pathname report (asdf:coerce-name system))))
-  (format t "~&Rendering listing for system ~s..." system)
-  (let ((files (parse-system system)))
-    (with-html-file (out pathname)
-      (fmt "<html>")
-      ;; TODO sort files differently
-      (render-system-toc report out files)
-      (fmt "</html>"))
-    (loop
-      :for file :in files
-      :for (filename state pages) = file
-      :for listing-filename = (pathname-to report (namestring filename) :listing)
-      :do
-         (format t "~&Writing listing ~a..."
-                 (namestring listing-filename))
-         (finish-output)
-         (with-html-file (out listing-filename)
-           (render-lisp-file report out file))))
-  (format t "~&Done rendering listing for system ~s" system)
+(defun render-files (report files pathname)
+  (format t "~&Rendering listing into ~s..." pathname)
+  ;; Create one file for the table of content
+  (with-html-file (out pathname)
+    (fmt "<html>")
+    ;; TODO sort files differently
+    (render-toc report out files)
+    (fmt "</html>"))
+  ;; Create one html file per source file
+  (loop
+    :for file :in files
+    :for (filename state pages) = file
+    :for listing-filename = (pathname-to report (namestring filename) :listing)
+    :do
+       (format t "~&Writing listing ~a..."
+               (namestring listing-filename))
+       (finish-output)
+       (with-html-file (out listing-filename)
+         (render-lisp-file report out file)))
+  (format t "~&Done rendering listing ~s" pathname)
   pathname)
 
-#++
-(render
- (make-instance 'report
-                :output-dir (breeze.utils:breeze-relative-pathname "docs/"))
- 'breeze)
+(defun render-system (report system-spec)
+  (destructuring-bind (system  &key extra-files)
+      (alexandria:ensure-list system-spec)
+    (let* ((relative-to (asdf:system-source-directory system))
+           (pathname (system-listing-pathname report (asdf:coerce-name system))))
+      (format t "~&Rendering listing for system ~s into ~s..." system pathname)
+      (render-files report
+                    (parse-system system :extra-files extra-files)
+                    pathname)
+      (format t "~&Done rendering listing for system ~s" system)
+      pathname)))
+
+(defun render (report)
+  (dolist (system-spec (systems report))
+    (render-system report system-spec)))
+
+
+;; TODO maybe use a workspace?
+;; render-workspace?
