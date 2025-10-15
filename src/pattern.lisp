@@ -100,12 +100,17 @@
     :initform nil
     :initarg :name
     :accessor name
-    :documentation "The name of the var."))
-  (:documentation "Pattern that matches anything and creates a binding."))
+    :documentation "The name of the var.")
+  (pattern
+    :initform nil
+    :initarg :pattern
+    :accessor pattern
+    :documentation "An optional pattern to match against."))
+  (:documentation "Pattern that creates a binding."))
 
-(defun var (name)
-  "Make a pattern object that matches anything and create a binding."
-  (make-instance 'var :name name))
+(defun var (name &optional pattern)
+  "Make a pattern object that creates a binding."
+  (make-instance 'var :name name :pattern pattern))
 
 (defun varp (x)
   "Is X an object of class `var'?"
@@ -113,16 +118,16 @@
 
 (defmethod print-object ((var var) stream)
   "Print an object of type `var'."
-  (print-unreadable-object
-      (var stream :type t :identity t)
-    (format stream "~s" (name var))))
+  (let ((*print-case* :downcase)
+        (*print-readably* nil))
+    (format stream "(var ~s~@[ ~s~])" (name var) (pattern var))))
 
 (defmethod eqv ((a var) (b var))
   "Test that A and B are both object of type `var' with the same name."
   (and (varp a)
        (varp b)
-       (eq (name a)
-           (name b))))
+       (eq (name a) (name b))
+       (eqv (pattern a) (pattern b))))
 
 (defmethod make-load-form ((s var) &optional environment)
   (make-load-form-saving-slots s :environment environment))
@@ -457,6 +462,12 @@ need to de-duplicate pattern objects whithin one pattern.)
   "Compile (:maybe ...)"
   ;; TODO check the length of "pattern"
   (maybe (%compile-pattern (second pattern))))
+
+(defmethod compile-compound-pattern ((token (eql :var)) pattern)
+  "Compile (:var name [pattern])"
+  (destructuring-bind (name sub-pattern)
+      (rest pattern)
+    (var name sub-pattern)))
 
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
   "Compile (:zero-or-more ...)"
