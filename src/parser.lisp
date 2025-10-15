@@ -22,10 +22,6 @@ common lisp.")
 
 (in-package #:breeze.parser)
 
-(defun node-content (state node)
-  "Get a (displaced) string of the node's range."
-  (source-substring state (start node) (end node)))
-
 
 ;;; Low-level parsing helpers
 

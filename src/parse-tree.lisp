@@ -8,7 +8,8 @@
         #:breeze.range)
   (:import-from #:breeze.parser-state
                 #:state
-                #:tree)
+                #:tree
+                #:source-substring)
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*
@@ -25,7 +26,6 @@
            #:errors
            #:copy-node
            #:valid-node-p
-           ;; TODO node-content is not defined in this package??
            #:node-content)
   ;; Node sequences
   (:export #:ensure-nodes
@@ -181,6 +181,10 @@
        (typep node 'node)
        (not (no-end-p node))
        (null (errors node))))
+
+(defun node-content (state node)
+  "Get a (displaced) string of the node's range."
+  (source-substring state (start node) (end node)))
 
 (defun ensure-nodes (x)
   "Ensure that that X is a sequence of node."
