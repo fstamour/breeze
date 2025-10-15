@@ -107,9 +107,13 @@
     :documentation "An optional pattern to match against."))
   (:documentation "Pattern that creates a binding."))
 
-(defun var (name &optional pattern)
+(defun var (name &optional (pattern nil patternp))
   "Make a pattern object that creates a binding."
-  (make-instance 'var :name name :pattern pattern))
+  (make-instance 'var
+                 :name name
+                 :pattern (if patternp
+                            pattern
+                            (wildcard))))
 
 (defun varp (x)
   "Is X an object of class `var'?"
@@ -119,7 +123,10 @@
   "Print an object of type `var'."
   (let ((*print-case* :downcase)
         (*print-readably* nil))
-    (format stream "(var ~s~@[ ~s~])" (name var) (pattern var))))
+    (format stream "(var ~s~:[ ~s~;~])"
+            (name var)
+            (wildcardp (pattern var))
+            (pattern var))))
 
 (defmethod eqv ((a var) (b var))
   "Test that A and B are both object of type `var' with the same name."

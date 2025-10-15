@@ -39,12 +39,17 @@
     (of-type var var)
     (true (varp var))
     (is eq :x (name var))
-    (false (pattern var)))
-  (let ((var (var :x 42)))
+    (true (wildcardp (pattern var))))
+  (let ((var (var :y 42)))
     (of-type var var)
     (true (varp var))
-    (is eq :x (name var))
-    (is eql 42 (pattern var))))
+    (is eq :y (name var))
+    (is eql 42 (pattern var)))
+  (let ((var (var :z nil)))
+    (of-type var var)
+    (true (varp var))
+    (is eq :z (name var))
+    (null (pattern var))))
 
 (define-test+run "var - eqv"
   (true (eqv (var :x) (var :x)))
@@ -56,7 +61,7 @@
 
 (define-test+run "var - print-object"
   (is string= "(var :x)" (prin1-to-string (var :x)))
-  (is string= "(var :y)" (prin1-to-string (var :y nil)))
+  (is string= "(var :y nil)" (prin1-to-string (var :y nil)))
   ;; TODO would be nice if it printed as "(var :z 'a)"
   (is string= "(var :z a)" (prin1-to-string (var :z 'a)))
   (is string= "(var :za 32)" (prin1-to-string (var :za 32))))
