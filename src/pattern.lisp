@@ -675,9 +675,16 @@ substitutions that don't have any conflicting bindings."
   (declare (ignore input))
   t)
 
-(defmethod match ((pattern var) input &key)
+(defmethod match ((var var) input &key)
   "Match a var (create a binding)"
-  (make-binding (name pattern) input))
+  (when (match (pattern var) input)
+    (make-binding (name var) input)))
+
+;; smells like unification
+(defmethod match ((var1 var) (var2 var) &key)
+  "Match a var against another var."
+  (when (match (pattern var1) (pattern var2))
+    (make-binding (name var1) var2)))
 
 (defmethod match ((pattern string) (input string) &key)
   "Match a string literal"
@@ -693,9 +700,6 @@ substitutions that don't have any conflicting bindings."
   "Matcho `nil' against another (non-`nil') symbol."
   nil)
 
-;; TODO could it be useful to support `var' in the `sym' 's name,
-;; package and qualification slots?
-;; TODO Or maybe just (optionaly) create some binidings here...
 ;; TODO regex???
 (defmethod match ((pattern sym) (symbol symbol) &key)
   "Match a pattern of type `sym' against a symbol."
@@ -797,16 +801,18 @@ substitutions that don't have any conflicting bindings."
              (copy-iterator $input iterator)
              (or bindings t))))))
 
-(defmethod match ((pattern var) ($input iterator) &key skipp)
+(defmethod match ((var var) ($input iterator) &key skipp)
   "Match a `var' pattern against the current value of an
 `iterator'. This always match, it advances the iterator and returns a
 binding."
-  (skip $input skipp)
-  (unless (donep $input)
-    (let ((binding-to (copy-iterator $input)))
-      ;; consume one element of the input
-      (next $input)
-      (make-binding (name pattern) binding-to))))
+  (let (($it (copy-iterator $input)))
+    (skip $it skipp)
+    (unless (donep $it)
+      (let ((sub-bindings (match (pattern var) $it)))
+        ;; TODO should I copy the iterator before matching??
+        (when sub-bindings
+          (copy-iterator $it $input)
+          (make-binding (name var) $it))))))
 
 (defmethod match (($pattern t) ($input iterator) &key skipp)
   "Fallback: match something against the current value of the `iterator'

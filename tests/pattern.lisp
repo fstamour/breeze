@@ -7,6 +7,7 @@
                 #:define-test
                 #:define-test+run
                 #:is
+                #:isnt
                 #:is-values
                 #:isnt
                 #:true
@@ -427,13 +428,41 @@
 
 ;;; TODO check the actual return values
 (define-test+run "match vars"
-  (true (match (var :?x) nil))
-  (true (match (var :?x) 1))
-  (true (match (var :?x) 'x))
-  (true (match (var :?x) "x"))
-  (true (match (var :?x) '(a)))
-  (true (match (var :?x) (var :?x)))
-  (true (match (vector (var :?x)) #(42))))
+  ;; no sub-patterns
+  (progn
+    (is eqv (make-binding :?x nil) (match (var :?x) nil))
+    (is eqv (make-binding :?x 1) (match (var :?x) 1))
+    (is eqv (make-binding :?x 'x) (match (var :?x) 'x))
+    (is eqv (make-binding :?x "x") (match (var :?x) "x"))
+    (is eqv (make-binding :?x '(a)) (match (var :?x) '(a)))
+    (is eqv (make-binding :?x (var :?x)) (match (var :?x) (var :?x)))
+    (let ((v #(42)))
+      (is eqv
+          (alist->substitutions `((:?x . ,(make-tree-iterator v))))
+          (match (vector (var :?x)) v))))
+  ;; with sub-pattenr
+  (progn
+    (false (match (var :?x t) nil))
+    (is eqv (make-binding :?x nil) (match (var :?x nil) nil))
+    (false (match (var :?x 2) 1))
+    (is eqv (make-binding :?x 1) (match (var :?x 1) 1))
+    (false (match (var :?x 'y) 'x))
+    (is eqv (make-binding :?x 'x) (match (var :?x 'x) 'x))
+    (false (match (var :?x "y") "x"))
+    (is eqv (make-binding :?x "x") (match (var :?x "x") "x"))
+    (false (match (var :?x '(b)) '(a)))
+    (is eqv (make-binding :?x '(a)) (match (var :?x '(a)) '(a)))
+    (false (match (var :?x 'y) (var :?x 'x)))
+    (is eqv (make-binding :?x (var :?x 'x)) (match (var :?x 'x) (var :?x 'x)))
+    (let ((v #1=#(42)))
+      (isnt eqv
+            (alist->substitutions `((:?x . ,(make-tree-iterator v))))
+            ;; the #1# makes the test result more readable
+            (match (vector (var :?x 73)) #1#)))
+    (let ((v #(42)))
+      (is eqv
+          (alist->substitutions `((:?x . ,(make-tree-iterator v))))
+          (match (vector (var :?x 42)) v)))))
 
 
 ;;; Sequences
