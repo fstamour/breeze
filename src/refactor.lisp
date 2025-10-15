@@ -47,6 +47,7 @@
    #:insert-defmethod
    #:insert-print-unreadable-object-boilerplate
    #:insert-make-load-form-boilerplate
+   #:insert-initialize-instance~method
    #:insert-lambda
    #:insert-make-array
    ;; Other commands
@@ -338,6 +339,15 @@ defun."
      name type
      name
      (list slots))))
+
+(define-command insert-initialize-instance~method ()
+  "Insert a ~(defmethod initialize-instance ...)~ form."
+  (declare (context :top-level))
+  (read-string-then-insert
+   "Name of the class: "
+   "(defmethod initialize-instance ((~a ~:*~a) &rest initargs &key &allow-other-keys)~
+   ~%  \"Initialize an instance of the class ~~~:*~a~~)\"~
+   ~%  (apply #'shared-initialize ~:*~a t initargs))"))
 
 (define-command insert-lambda ()
   "Insert a lambda form."
