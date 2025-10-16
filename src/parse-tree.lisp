@@ -26,7 +26,9 @@
            #:errors
            #:copy-node
            #:valid-node-p
-           #:node-content)
+           #:node-content
+           #:format-error
+           #:format-errors)
   ;; Node sequences
   (:export #:ensure-nodes
            #:append-nodes
@@ -417,9 +419,22 @@
 (define-node-type shebang ())
 (define-node-type extraneous-closing-parens ())
 
+;; TODO use this in print-object to print children
 (defun print-nodes (stream nodes colonp atp)
   (declare (ignore colonp atp))
   (format stream "(list ~{~s~^ ~})" nodes))
+
+(defun format-error (error stream)
+  (apply #'format stream error))
+
+(defun format-errors (node stream)
+  (loop
+    :with errors = (errors node)
+    :for i from 0
+    :for error :in errors
+    :unless (zerop i)
+      :do (fresh-line stream)
+    :do (apply #'format stream error)))
 
 
 ;;; Predicates
@@ -427,11 +442,13 @@
 (defun whitespace-or-comment-node-p (node)
   "Is this node a whitespace, a block comment or line comment?"
   (ignorable-node-p (etypecase node
+                      ;; TODO maybe add (not (donep ...))
                       (node-iterator (value node))
                       (node node))))
 
 
 
+;; TODO move into range.lisp
 (defun node-contains-position-p (node position)
   (let ((start (start node))
         (end (end node)))
@@ -439,6 +456,7 @@
          (or (no-end-p node)
              (< position end)))))
 
+;; TODO move into range.lisp
 (defun node-range-contains-position-p (start-node end-node position)
   (check-type start-node node)
   (check-type end-node node)
