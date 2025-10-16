@@ -565,7 +565,10 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       :when el
         :collect el :into content
       :unless (valid-node-p el)
-        :do (return (parens start +end+ (ensure-nodes content)))
+        :do (return (parens start +end+
+                            (ensure-nodes content)
+                            :errors `(,@(unless el
+                                        `(("Missing closing parenthesis."))))))
       :finally (return (parens start (current-position state)
                                (ensure-nodes content))))))
 

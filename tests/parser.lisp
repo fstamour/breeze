@@ -935,7 +935,8 @@ the function read-sharp-dispatching-reader-macro
   (test-read-quote "' a" 'quote-node 3 (whitespace 1 2) (token 2 3 :name "A"))
   (test-read-quote "'(a" 'quote-node +end+
                    (parens 1 +end+ (nodes
-                                    (token 2 3 :name "A"))))
+                                    (token 2 3 :name "A"))
+                           :errors '(("Missing closing parenthesis."))))
   (test-read-quote "'(a)" 'quote-node 4 (parens 1 4 (nodes (token 2 3 :name "A"))))
   (test-read-quote "' #||# (a)" 'quote-node 10
                    (whitespace 1 2)
@@ -1075,20 +1076,22 @@ the function read-sharp-dispatching-reader-macro
 
 ;; TODO read-extraneous-closing-parens
 
-(defun test-read-parens (input expected-end &rest children)
+(defun test-read-parens (input expected-end errors &rest children)
   (with-state (input)
     (test* (read-parens state)
            (when expected-end
-             (parens 0 expected-end (ensure-nodes children))))))
+             (parens 0 expected-end
+                     (ensure-nodes children)
+                     :errors errors)))))
 
 (define-test+run read-parens
   :depends-on (read-char*)
-  (test-read-parens ")" nil)
-  (test-read-parens "(" +end+)
-  (test-read-parens "()" 2)
-  (test-read-parens "(x)" 3 (token 1 2 :name "X"))
-  (test-read-parens "(.)" 3 (dot 1 2))
-  (test-read-parens "( () )" 6
+  (test-read-parens ")" nil nil)
+  (test-read-parens "(" +end+ '(("Missing closing parenthesis.")))
+  (test-read-parens "()" 2 nil)
+  (test-read-parens "(x)" 3 nil (token 1 2 :name "X"))
+  (test-read-parens "(.)" 3 nil (dot 1 2))
+  (test-read-parens "( () )" 6 nil
                     (whitespace 1 2)
                     (parens 2 4 nil)
                     (whitespace 4 5)))
@@ -1110,7 +1113,8 @@ the function read-sharp-dispatching-reader-macro
 (define-test+run "parse"
   :depends-on (read-parens)
   (eq (parse "") nil)
-  (test-parse " (" (whitespace 0 1) (parens 1 +end+ nil))
+  (test-parse " (" (whitespace 0 1) (parens 1 +end+ nil
+                                            :errors '(("Missing closing parenthesis."))))
   (test-parse "  " (whitespace 0 2))
   (test-parse "#|" (block-comment
                     0 +end+
@@ -1144,7 +1148,8 @@ the function read-sharp-dispatching-reader-macro
   (test-parse "; " (line-comment 0 2))
   (test-parse (format nil ";~%") (line-comment 0 1) (whitespace 1 2))
   (test-parse (format nil ";~%;") (line-comment 0 1) (whitespace 1 2) (line-comment 2 3))
-  (test-parse "(12" (parens 0 +end+ (nodes (token 1 3 :name "12"))))
+  (test-parse "(12" (parens 0 +end+ (nodes (token 1 3 :name "12"))
+                            :errors '(("Missing closing parenthesis."))))
   (test-parse "\"" (string-node 0 +end+))
   (test-parse "\"\"" (string-node 0 2))
   (test-parse "#:asdf"
@@ -1195,7 +1200,8 @@ the function read-sharp-dispatching-reader-macro
   (test-parse "#1=#1#"
               (sharp-label 0 6
                            1 (nodes (sharp-reference 3 6 1))))
-  (test-parse "(;)" (parens 0 -1 (nodes (line-comment 1 3))))
+  (test-parse "(;)" (parens 0 -1 (nodes (line-comment 1 3))
+                            :errors '(("Missing closing parenthesis."))))
   ;; TODO This is wrong
   (test-parse "#+;;" (sharp-feature 0 4 (nodes (line-comment 2 4))))
   ;; TODO Is that what I want?
