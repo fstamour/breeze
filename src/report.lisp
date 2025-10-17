@@ -388,8 +388,7 @@ newlines or more marks the start of a new paragraph)."
 (defun render-system (report system-spec)
   (destructuring-bind (system  &key extra-files)
       (alexandria:ensure-list system-spec)
-    (let* ((relative-to (asdf:system-source-directory system))
-           (pathname (system-listing-pathname report (asdf:coerce-name system))))
+    (let ((pathname (system-listing-pathname report (asdf:coerce-name system))))
       (format t "~&Rendering listing for system ~s into ~s..." system pathname)
       (render-files report
                     (parse-system system :extra-files extra-files)
