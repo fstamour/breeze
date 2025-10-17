@@ -430,6 +430,8 @@ code .character {
 code .syntaxerror {
     color: #FF0000;
     background-color: var(--contrast-background);
+    /* "underline" syntax errors */
+    border-bottom:2px dotted red;
 }
 
 code .diff-deleted {

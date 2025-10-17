@@ -224,6 +224,12 @@ newlines or more marks the start of a new paragraph)."
   (escape-html (node-content state node)))
 
 (defun render-node (out state node &optional (depth 0))
+  (let ((errors (errors node)))
+    (when errors
+      (dolist (error errors)
+        (format out "<span class=\"syntaxerror\">")
+        (render-escaped out (format-error error nil))
+        (format out "</span>~%"))))
   (case (node-type node)
     (string
      (format out "<span class=\"string\">~a</span>"
