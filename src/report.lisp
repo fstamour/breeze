@@ -247,7 +247,9 @@ newlines or more marks the start of a new paragraph)."
      (map nil (lambda (node)
                 (render-node out state node (1+ depth)))
           (children node))
-     (format out "</span>)</span>"))
+     ;; TODO this ain't exactly right, because parens get an +end+ if one of the children has one...
+     (unless (no-end-p node)
+       (format out "</span>)</span>")))
     (t (format out "<span class=\"~a\">~a</span>"
                (string-downcase (node-type node))
                (escaped-node-content state node)))))
