@@ -245,7 +245,7 @@ first node being whitespaces.)"
   (when (read-char* state #\o nil)
     (if number
         ;; (if number) => invalid syntax
-        (sharp-octal start +end+)
+        (sharp-octal start +end+ nil)
         (%read-sharp-number state start 'sharp-octal 8))))
 
 (defun read-sharp-x (state start number)
@@ -360,30 +360,34 @@ first node being whitespaces.)"
   "Read reader macros #..."
   (when (read-char* state #\#)
     (let ((number (read-number state)))
-      (or
-       (some
-        (lambda (fn)
-          (funcall fn state start number))
-        '(read-sharp-backslash
-          read-sharp-quote
-          read-sharp-left-parens
-          read-sharp-asterisk
-          read-sharp-colon
-          read-sharp-dot
-          read-sharp-b
-          read-sharp-o
-          read-sharp-x
-          read-sharp-r
-          read-sharp-c
-          read-sharp-a
-          read-sharp-s
-          read-sharp-p
-          read-sharp-equal
-          read-sharp-sharp
-          read-sharp-plus
-          read-sharp-minus))
-       ;; Invalid syntax OR custom reader macro
-       (sharp-unknown start +end+)))))
+      (if (null (current-char state))
+          (sharp-unknown
+           start +end+
+           :errors '(("Unterminated dispatch character reader macro.")))
+          (or
+           (some
+            (lambda (fn)
+              (funcall fn state start number))
+            '(read-sharp-backslash
+              read-sharp-quote
+              read-sharp-left-parens
+              read-sharp-asterisk
+              read-sharp-colon
+              read-sharp-dot
+              read-sharp-b
+              read-sharp-o
+              read-sharp-x
+              read-sharp-r
+              read-sharp-c
+              read-sharp-a
+              read-sharp-s
+              read-sharp-p
+              read-sharp-equal
+              read-sharp-sharp
+              read-sharp-plus
+              read-sharp-minus))
+           ;; Invalid syntax OR custom reader macro
+           (sharp-unknown start +end+))))))
 
 (defreader read-quote ()
   "Read ` ' , ,@ and ,."
@@ -567,7 +571,8 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       :unless (valid-node-p el)
         :do (return (parens start +end+
                             (ensure-nodes content)
-                            :errors `(,@(unless el
+                            :errors `(,@(when (or (null el)
+                                                  (no-end-p el))
                                         `(("Missing closing parenthesis."))))))
       :finally (return (parens start (current-position state)
                                (ensure-nodes content))))))

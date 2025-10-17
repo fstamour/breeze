@@ -909,6 +909,19 @@ the function read-sharp-dispatching-reader-macro
                ;; :format-args format-args
                ))))
 
+;; (read-from-string "#")
+
+(define-test+run sharp-unknown
+  (is eqv (sharp-unknown
+           0 +end+)
+      (with-state ("#_")
+        (read-sharp-dispatching-reader-macro state)))
+  (is eqv (sharp-unknown
+           0 +end+
+           :errors '(("Unterminated dispatch character reader macro.")))
+      (with-state ("#")
+        (read-sharp-dispatching-reader-macro state))))
+
 
 ;; (read-from-string "#\\ ") == (read-from-string "#\\Space")
 ;; This is an error (there must be no space between "#s" and "("): (read-from-string "#s ()")
@@ -1185,18 +1198,34 @@ the function read-sharp-dispatching-reader-macro
               (whitespace 3 4)
               (token 4 7 :name "ASD"))
   (test-parse "(((  )))" (parens 0 8 (nodes (parens 1 7 (nodes (parens 2 6 (nodes (whitespace 3 5))))))))
-  (test-parse "(#" (parens 0 +end+ (nodes (sharp-unknown 1 +end+))))
-  (test-parse "(#)" (parens 0 +end+ (nodes (sharp-unknown 1 +end+))))
+  (test-parse "(#" (parens
+                    0 +end+ (nodes (sharp-unknown
+                                    1 +end+
+                                    :errors '(("Unterminated dispatch character reader macro."))))
+              :errors '(("Missing closing parenthesis."))))
+  (test-parse "(#)" (parens
+                     0 +end+ (nodes (sharp-unknown 1 +end+))
+                     :errors '(("Missing closing parenthesis."))))
+  ;; This shows that parsing stops when an error is encountered (or at
+  ;; least when a node has `no-end-p'
   (test-parse "(#) "
-              (parens 0 +end+ (nodes (sharp-unknown 1 +end+)))
+              (parens
+               0 +end+ (nodes (sharp-unknown 1 +end+))
+               :errors '(("Missing closing parenthesis.")))
               #++ (whitespace 3 4))
+  ;; TODO it would be nice if the "#' node would have an error instead
+  ;; of "parens" missing a closing parenthesis and getting an
+  ;; "extraneous-closing-parens" node
+  ;; TL;DR: this should be 1 error, not 2
   (test-parse "(#') "
               (parens
                0 +end+
                (nodes (sharp-function
                        1 +end+
-                       (nodes (extraneous-closing-parens 3 +end+
-                                                         :errors '(("Extraneous closing parenthesis."))))))))
+                       (nodes (extraneous-closing-parens
+                               3 +end+
+                               :errors '(("Extraneous closing parenthesis."))))))
+               :errors '(("Missing closing parenthesis."))))
   (test-parse "#1=#1#"
               (sharp-label 0 6
                            1 (nodes (sharp-reference 3 6 1))))
@@ -1218,7 +1247,8 @@ the function read-sharp-dispatching-reader-macro
   (test-parse "(in-package #)" (parens 0 -1
                                        (nodes (token 1 11 :name "IN-PACKAGE")
                                               (whitespace 11 12)
-                                              (sharp-unknown 12 -1))))
+                                              (sharp-unknown 12 -1))
+                                       :errors '(("Missing closing parenthesis."))))
   (test-parse "#!" (shebang 0 2)))
 
 #++ ;; this is cursed
