@@ -249,22 +249,37 @@
   (false (wildcard-symbol-p 'x))
   (false (wildcard-symbol-p "_x")))
 
-(define-test+run compile-pattern
-  (is eqv (wildcard) (compile-pattern :_x))
+(define-test+run "compile-pattern - wildcard"
+  (is eqv (wildcard) (compile-pattern :_x)))
+
+(define-test+run "compile-pattern - atoms"
   (is eqv :x (compile-pattern :x))
   (is eqv 42 (compile-pattern 42))
+  (is eqv "abc" (compile-pattern "abc")))
+
+(define-test+run "compile-pattern - :var"
   (is eqv (var :?x) (compile-pattern :?x))
-  (is eqv (maybe :x) (compile-pattern '(:maybe :x)))
-  (is eqv (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
-  (is eqv (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
-  (is eqv (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y)))
-  (is eqv (either #(:x)) (compile-pattern '(:either :x)))
-  (is eqv (either #(:x :y)) (compile-pattern '(:either :x :y)))
-  (is eqv (sym :wild :defun :wild) (compile-pattern '(:symbol :defun)))
-  (is eqv (sym :cl :defun :wild) (compile-pattern '(:symbol :defun :cl)))
-  (is eqv (sym :cl :defun :qualified) (compile-pattern '(:symbol :defun :cl :qualified)))
+  (is eqv (var :?y) (compile-pattern '(:var :?y _)))
+  (is eqv (var :?z (var '?a)) (compile-pattern '(:var :?z ?a)))
   (let ((p (compile-pattern '(?x ?x))))
     (is eq (name (aref p 0)) (name (aref p 1)))))
+
+(define-test+run "compile-pattern - :maybe"
+ (is eqv (maybe :x) (compile-pattern '(:maybe :x)))
+ (is eqv (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y)))))
+
+(define-test+run "compile-pattern - :zero-or-more"
+   (is eqv (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))
+   (is eqv (zero-or-more #(:x :y)) (compile-pattern '(:zero-or-more :x :y))))
+
+(define-test+run "compile-pattern - :either"
+   (is eqv (either #(:x)) (compile-pattern '(:either :x)))
+   (is eqv (either #(:x :y)) (compile-pattern '(:either :x :y))))
+
+(define-test+run "compile-pattern - :symbol"
+  (is eqv (sym :wild :defun :wild) (compile-pattern '(:symbol :defun)))
+  (is eqv (sym :cl :defun :wild) (compile-pattern '(:symbol :defun :cl)))
+  (is eqv (sym :cl :defun :qualified) (compile-pattern '(:symbol :defun :cl :qualified))))
 
 
 ;;; Pattern iterators...

@@ -470,7 +470,7 @@ need to de-duplicate pattern objects whithin one pattern.)
   "Compile (:var name [pattern])"
   (destructuring-bind (name sub-pattern)
       (rest pattern)
-    (var name sub-pattern)))
+    (var name (compile-pattern sub-pattern))))
 
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
   "Compile (:zero-or-more ...)"
