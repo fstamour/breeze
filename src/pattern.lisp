@@ -835,13 +835,26 @@ where consumed, for example)."
 ;;; Matching eithers
 
 ;; TODO add tests with and without skipp
-;; TODO input should be an iterator...
 (defmethod match ((pattern either) input &key skipp)
   "Match an `either' pattern against INPUT."
   (loop :for pat :across (patterns pattern)
         :for bindings = (match pat input :skipp skipp)
         :when bindings
           :return (values bindings pat)))
+
+;; TODO add test (:either (a) (b)): if no sub-pattern match, the
+;; iterator should not be updated.
+;;
+;; TODO add tests with and without skipp
+(defmethod match ((pattern either) (iterator iterator) &key skipp)
+  "Match an `either' pattern against INTERATOR."
+  (let (($input (copy-iterator iterator)))
+    (loop :for pat :across (patterns pattern)
+          :for bindings = (match pat $input :skipp skipp)
+          :when bindings
+            :do
+               (copy-iterator $input iterator)
+               (return (values bindings pat)))))
 
 
 ;;; repetitions
