@@ -393,8 +393,11 @@
 (define-node-type sharp-complex (:children t))
 (define-node-type sharp-structure (:children t))
 (define-node-type sharp-pathname (:children t))
+
+;; TODO add a common class for "sharp-feature" and "sharp-feature-not"
 (define-node-type sharp-feature (:children t))
 (define-node-type sharp-feature-not (:children t))
+
 (define-node-type sharp-radix (:children t
                                :positional-args (radix))
   ((radix

@@ -363,6 +363,7 @@ newlines or more marks the start of a new paragraph)."
                  (fmt "<div id=\"~a\"></div>" (page-id report filename i)))
              (render-page out state page))))))
 
+;; TODO split in 2 -- the listing "index" and the files
 (defun render-files (report files pathname)
   (format t "~&Rendering listing into ~s..." pathname)
   ;; Create one file for the table of content
