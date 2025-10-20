@@ -41,17 +41,9 @@
 ;; this tests add-to-workspace
 (define-test+run *breeze-workspace*
   (let ((*workspace* (make-workspace)))
-    ;; TODO extract a function to "add system" into a workspace.
-    (loop
-      :with root = (breeze.utils:breeze-relative-pathname "") ; TODO use breeze.asdf:system-enough-pathname
-      :for file :in (breeze.asdf:system-files 'breeze)
-      :for name = (enough-namestring file root) ; TODO use breeze.asdf:system-enough-pathname
-      :for content = (alexandria:read-file-into-string file)
-      :do (add-to-workspace `(:buffer-name ,name
-                              :buffer-string ,content
-                              :point 1)))
-    (setf *breeze-workspace* *workspace*)
-    *workspace*))
+    (add-files-to-workspace
+     (breeze.asdf:find-all-related-files 'breeze))
+    (setf *breeze-workspace* *workspace*)))
 
 (define-test+run add-to-workspace
   :depends-on (*breeze-workspace*)
@@ -63,6 +55,9 @@
            (progn ;; time
              (goto-all-positions $node))
            "Should be able to \"goto\" every positions in ~s" (name buffer))))))
+
+(defun suffixp (got expected-suffix)
+  (alexandria:ends-with-subseq expected-suffix got))
 
 (define-test+run locate-package-definition
   :depends-on (*breeze-workspace*)
@@ -76,7 +71,7 @@
             "Should have returned a plist that contains the key :node-iterator.")
       (destructuring-bind (&key buffer node-iterator) location
         (when (and buffer node-iterator)
-          (is string= "src/string-utils.lisp" (name buffer))
+          (is suffixp "src/string-utils.lisp" (name buffer))
           (is string= #1="(defpackage #:breeze.string
   (:documentation \"String manipulation utilities\")"
               (subseq (breeze.parser:node-string node-iterator)
@@ -90,7 +85,7 @@
             "Should have returned a plist that contains the key :node-iterator.")
       (destructuring-bind (&key buffer node-iterator) location
         (when (and buffer node-iterator)
-          (is string= "src/parser.lisp" (name buffer))
+          (is suffixp "src/parser.lisp" (name buffer))
           (is string= #2="(uiop:define-package #:breeze.parser
     (:documentation \"A fast, lossless, robust and "
               (subseq (breeze.parser:node-string node-iterator)
