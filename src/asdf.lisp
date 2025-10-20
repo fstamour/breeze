@@ -12,7 +12,8 @@
    #:reload-system
    #:recompile-system
    #:system-directory
-   #:loadedp))
+   #:loadedp
+   #:walk-dependencies))
 
 (in-package #:breeze.asdf)
 
@@ -246,8 +247,21 @@ This will return false if the file was loaded outside of asdf."
   (let ((system (asdf/system:find-system system-designator nil)))
     (remove-if-not #'stringp (asdf:system-depends-on system))))
 
-;; TODO use https://github.com/gpcz/cl-uniquifier/ to generate the labels?
+(defun walk-dependencies (root-systems fn
+                          &aux
+                            (seen (make-hash-table :test 'equal)))
+  ;; Walk the dependencies
+  (labels ((deps (system-designator)
+             (unless (gethash system-designator seen)
+               (funcall fn system-designator)
+               (setf (gethash system-designator seen) t)
+               (loop
+                 :with deps = (system-dependencies system-designator)
+                 :for dep :in deps
+                 :do (deps dep)))))
+    (map nil #'deps root-systems)))
 
+;; TODO use https://github.com/gpcz/cl-uniquifier/ to generate the labels?
 (defun write-dependecy-graph (root-system &optional (stream t)
                               &aux
                                 (system-ids (make-hash-table :test 'equal))
