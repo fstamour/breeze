@@ -27,15 +27,6 @@
 
 (in-package #:breeze.test.listener)
 
-;; TODO eval-last-expression
-'asdf
-'|asdf|
-'|CL|::|IN-PACKAGE|
-;; ^^^ Slime doesn't handle this one correctly
-
-#++
-breeze.dummy.test:hjkl
-
 #+sbcl
 (block nil
   (handler-bind
@@ -89,6 +80,8 @@ breeze.dummy.test:hjkl
       (setf (point (current-buffer)) point)
       (update-buffer-content (current-buffer) " 'x ")
       (false (interactive-eval-command))))
+  ;; TODO this is only implemented for sbcl at the moment
+  #+sbcl
   (with-fake-command-handler
       ((mock-send-out (value)
          (is equalp '("pulse" 0 9) value))

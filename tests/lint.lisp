@@ -14,6 +14,22 @@
 
 (in-package #:breeze.test.lint)
 
+#|
+
+TODO
+
+- gather all (most?) of the linter example
+- add some description as much as possible
+- put them in a file in docs
+  - org-mode or html??
+  - html would be easier to personalize
+  - org-mode would be possible to edit directly and only update parts of it
+- use callouts?
+- details?-
+
+|#
+
+
 
 ;;; Testing the linter
 

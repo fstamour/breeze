@@ -855,7 +855,12 @@ the function read-sharp-dispatching-reader-macro
    :child (nodes (whitespace 2 3)
                  (sharp-feature 3 7
                                 (nodes (whitespace 5 6)
-                                       (token 6 7 :name "X"))))))
+                                       (token 6 7 :name "X")))))
+  ;; See: the node "X" is not a children
+  (test-read-sharp-plus
+   "#+f x"
+   :end 3
+   :child (nodes (token 2 3 :name "F"))))
 
 
 ;;; #-
@@ -1250,6 +1255,12 @@ the function read-sharp-dispatching-reader-macro
                                               (sharp-unknown 12 -1))
                                        :errors '(("Missing closing parenthesis."))))
   (test-parse "#!" (shebang 0 2)))
+
+;; (tree (parse ")(#| #r"))
+
+;; TODO this should not result in an "unterminated parens"
+;; (tree (parse "(a:)"))
+;; #((parens 0 -1 #((token 1 3 :package-prefix "A" :package-marker (2) :errors (("Missing name after package marker."))))))
 
 #++ ;; this is cursed
 (read-from-string "cl-user::; wtf

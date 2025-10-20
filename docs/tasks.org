@@ -196,7 +196,7 @@ other hand (again), I've had really janky load time with GitLab, but
 that might just have been the Authentication + boatload of js.
 
 ** TODO [#C] Add a link to the GitHub repository in the documentation :doc:ux:
-** TODO Add integration tests
+** TODO Add integration tests                                          :test:
 :PROPERTIES:
 :ID:       09e1f84c-a13d-47ab-848e-d0407e1fdbb4
 :END:
@@ -379,7 +379,7 @@ that we just moved.
 - https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/package-pac.lisp
 - https://github.com/s-expressionists/Clostrum
 
-* TODO Add command to add package local nicknames
+* TODO Add command to add package local nicknames                  :refactor:
 :PROPERTIES:
 :ID:       5875c06a-d046-443c-bf22-c0a45ea08f09
 :END:
@@ -388,7 +388,7 @@ that we just moved.
 (add-package-local-nickname '#:jzon '#:com.inuoe.jzon)
 #+end_src
 
-* TODO command to "copy current package" / "package at point"
+* TODO command to "copy current package" / "package at point"      :refactor:
 :PROPERTIES:
 :ID:       7509eb33-c031-4ce7-9fb0-d3ab57c19a8b
 :END:

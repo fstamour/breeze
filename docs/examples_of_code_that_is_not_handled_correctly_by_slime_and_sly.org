@@ -1,0 +1,86 @@
+:PROPERTIES:
+:ID:       6055422c-7954-4c12-8f0b-32cd757fb2ac
+:END:
+#+title: Examples of code that is not handled correctly by slime and sly
+
+* Defuns with bad indentation
+:PROPERTIES:
+:ID:       82bb6f4b-bd23-46b9-8243-d3dbf5c9ad81
+:END:
+
+With slime, there is no place in the next example where the command
+~slime-compile-defun~ is able to compile the function ~g~, it will
+always either compile ~f~ or ~h~.
+
+#+begin_src lisp
+(defun f ())
+
+   (defun g ())
+
+(defun h())
+#+end_src
+
+* Symbols with escapes
+:PROPERTIES:
+:ID:       ef867d3a-897f-43e6-b406-244f448e479a
+:END:
+
+This is equivalent to ~'cl:in-package~.
+
+#+begin_src lisp
+'|CL|::|IN-PACKAGE|
+#+end_src
+
+- ~slime-eval-defun~ either evaluates this to ~`cl~ or (correctly) to
+  ~'in-package~ depending on whether the point is on the =|CL|= or
+  =|IN-PACKAGE|=.
+- ~slime-eval-last-expression~ signals a condition of type ~unbound-variable~
+
+#+begin_example
+The variable IN-PACKAGE is unbound.
+   [Condition of type UNBOUND-VARIABLE]
+#+end_example
+
+* False positive matching =in-package=
+:PROPERTIES:
+:ID:       5ceaab80-381e-4e68-b0db-d97020412d8f
+:END:
+
+By default the current package is found using
+~slime-search-buffer-package~, which uses a regex to find an
+"in-package" form in the current buffer.
+
+This first exampe is a bit contrived, but it's enough to show the
+issue: there is a string that contains an "in-package" form and the
+regex picks it up regardless of it being inside a string.
+
+#+begin_src lisp
+(defpackage #:foo
+  (:use #:cl))
+
+(in-package #:foo)
+
+(defun in-package-bar-p (x)
+  (equal "
+(in-package bar)" x))
+
+,*package*
+;; => #<PACKAGE "COMMON-LISP-USER">
+#+end_src
+
+The second example shows something more problemaic: the form
+~(in-package-bar-p x)~ is being picked up by slime's regexp. (I think
+it should be possible to fix the regex though!)
+
+#+begin_src lisp
+(in-package #:foo)
+
+,*package*
+;; => #<PACKAGE "FOO">
+
+(defun foo (x)
+  (in-package-bar-p x))
+
+,*package*
+;; => #<PACKAGE "COMMON-LISP-USER">
+#+end_src

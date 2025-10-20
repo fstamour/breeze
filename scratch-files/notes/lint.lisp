@@ -484,3 +484,8 @@ otherwise, the forms in the body are ignored.  |#
 (multiple-value-bind (a b)
     (load-time-value (values 'a 'b)))
 => warn about load-time-value returning only the primary value
+
+
+;; the macro "formatter" _must_ take a "string literal"
+
+;; :cl:print => cl:print

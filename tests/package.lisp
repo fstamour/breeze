@@ -30,6 +30,7 @@
     (when package-designator-node
       (node-string package-designator-node))))
 
+;; TODO (in-package #+x 'a #-x 'b)
 (define-test+run in-package-node-p
   (is equal "x" (test-in-package-node-p "(in-package x)"))
   (is equal nil (test-in-package-node-p "(in-package #)"))

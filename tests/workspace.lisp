@@ -40,7 +40,7 @@
 
 ;; this tests add-to-workspace
 (define-test+run *breeze-workspace*
-  (let ((*workspace* (make-instance 'workspace)))
+  (let ((*workspace* (make-workspace)))
     ;; TODO extract a function to "add system" into a workspace.
     (loop
       :with root = (breeze.utils:breeze-relative-pathname "") ; TODO use breeze.asdf:system-enough-pathname

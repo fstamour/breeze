@@ -1,15 +1,9 @@
 * Tags
 
-** TODO This is broken since I started to split everything into small files
-
-Use =org-roam-db-query=
-
-example:
-https://d12frosted.io/posts/2021-01-16-task-management-with-roam-vol5.html
-
-See https://github.com/ahmed-shariff/org-roam-ql
-
 ** Tag descriptions
+:PROPERTIES:
+:ID:       31aae436-bbf1-4fe0-b1fb-13905ddeed22
+:END:
 
 #+NAME: tags
 | Tag name     | Tag description                                                                                |
@@ -32,6 +26,8 @@ See https://github.com/ahmed-shariff/org-roam-ql
 | noexport     | org-mode internal tag                                                                         |
 
 
+** Make sure that all tags in the table have a description.
+
 #+begin_src emacs-lisp :var tags=tags
   ;; (prin1-to-string (org-get-buffer-tags))
   ;; (prin1-to-string tags)
@@ -52,24 +48,28 @@ See https://github.com/ahmed-shariff/org-roam-ql
 ** Make sure all tasks have some tags
 
 #+begin_src emacs-lisp
-  (let ((result))
-    (org-map-entries (lambda ()
-                       ;; (org-entry-is-todo-p)
-                       (cl-destructuring-bind (level reduced-level todo priority headline _tags)
-                           (org-heading-components)
-                         ;; _tags does not contain the inherited tags
-                         (when (and
-                                todo
-                                ;; todo could be "DONE" for example
-                                (string= todo "TODO")
-                                (not (org-get-tags)))
-                           (push (list headline) result)))))
-    (nreverse result))
+(defun breeze-tasks-find-untagged-nodes ()
+  "Find all \"TODO\" nodes that don't have any tags."
+  (org-roam-db-query [:select
+                      [id title todo file pos]
+                      :from nodes
+                      :where (and (= todo "TODO")
+                                  (not-in id
+                                          [:select [node-id] :from tags]))]))
+
+;; Visit the first untagged task, if any
+(if-let ((untagged-tasks (breeze-tasks-find-untagged-nodes)))
+    (cl-destructuring-bind (id title todo file pos)
+        (cl-first untagged-tasks)
+      (org-roam-node-visit
+       (org-roam-node-create :id id :file file :point pos)))
+  (message "No untagged tasks found!"))
 #+end_src
 
 #+RESULTS:
-| Programming with holes |
 
+See https://github.com/ahmed-shariff/org-roam-ql - "Query language for
+org-roam".
 
 * Local variables :noexport:
 # local variables:

@@ -154,7 +154,11 @@ common lisp.")
     (decf (current-position state))
     (let ((token (when (valid-position-p state (1+ (current-position state)))
                    (read-token state))))
-      (sharp-char start (if token (current-position state) +end+) token))))
+      (sharp-char start (if token (current-position state) +end+)
+                  token
+                  :errors `(,@(unless token
+                                ;; TODO error message
+                                ()))))))
 
 (defun read-any* (state)
   "Like READ-ANY, but return the end of the read and a sequence of nodes
@@ -198,7 +202,11 @@ first node being whitespaces.)"
   ;; want to consume the left-parens right away.
   (when (current-char= state #\()
     (let ((form (read-parens state)))
-      (sharp-vector start (if form (current-position state) +end+) form))))
+      (sharp-vector start (if form (current-position state) +end+)
+                    form
+                    :errors `(,@(unless form
+                                ;; TODO error message
+                                ()))))))
 
 (defun read-sharp-asterisk (state start length)
   (declare (ignore length))
@@ -233,7 +241,10 @@ first node being whitespaces.)"
     (make-instance
      type
      :start start
-     :end (if n (current-position state) +end+))))
+     :end (if n (current-position state) +end+)
+     :errors `(,@(unless n
+                   ;; TODO error message
+                   ())))))
 
 (defun read-sharp-b (state start number)
   (declare (ignore number))
@@ -244,8 +255,10 @@ first node being whitespaces.)"
 (defun read-sharp-o (state start number)
   (when (read-char* state #\o nil)
     (if number
-        ;; (if number) => invalid syntax
-        (sharp-octal start +end+ nil)
+        ;; TODO (if number) => invalid syntax
+        (sharp-octal start +end+ nil
+                     :errors `(;; TODO error message
+                               ()))
         (%read-sharp-number state start 'sharp-octal 8))))
 
 (defun read-sharp-x (state start number)
@@ -299,20 +312,29 @@ first node being whitespaces.)"
       (t
        ;; TODO BUG: here we read an INTEGER, but it should be a RATIONAL
        (let ((n (read-number state radix)))
-         (sharp-radix start (if n (current-position state) +end+) n radix))))))
+         (sharp-radix start (if n (current-position state) +end+) n radix
+                      :errors `(,@(unless n
+                                ;; TODO error message
+                                ()))))))))
 
 (defun read-sharp-c (state start number)
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\c nil)
     (let ((form (read-parens state)))
-      (sharp-complex start (if form (current-position state) +end+) form))))
+      (sharp-complex start (if form (current-position state) +end+) form
+                     :errors `(,@(unless form
+                                   ;; TODO error message
+                                   ()))))))
 
 (defun read-sharp-a (state start length)
   (declare (ignore length))
   (when (read-char* state #\a nil)
     (let ((form (read-parens state)))
-      (sharp-array start (if form (current-position state) +end+) form))))
+      (sharp-array start (if form (current-position state) +end+) form
+                   :errors `(,@(unless form
+                                 ;; TODO error message
+                                 ()))))))
 
 (defun read-sharp-s (state start number)
   (declare (ignore number))
@@ -324,6 +346,7 @@ first node being whitespaces.)"
   (declare (ignore number))
   ;; TODO (if number) => invalid syntax
   (when (read-char* state #\p nil)
+    ;; TODO here we should expect a string
     (%read-sharp-any state start 'sharp-pathname)))
 
 (defun read-sharp-equal (state start number)
@@ -334,13 +357,17 @@ first node being whitespaces.)"
 
 (defun read-sharp-sharp (state start number)
   (when (read-char* state #\#)
-    (sharp-reference start (if (and (integerp number)
-                                    (<= 0 number))
-                               (current-position state)
-                               +end+)
-                     number
-                     :errors (unless number
-                               `(("Invalid label ~s, it must be an unsigned decimal integer." ,number))))))
+    (let ((valid-number-p (and (integerp number)
+                               (<= 0 number))))
+      ;; TODO it would be great if we could check if there's a
+      ;; corresponding "#=" before.
+      (sharp-reference start (if valid-number-p
+                                 (current-position state)
+                                 +end+)
+                       number
+                       ;; TODO add more precise errors
+                       :errors `(,@(unless (and number valid-number-p)
+                                     `(("Invalid label ~s, it must be an unsigned decimal integer." ,number))))))))
 
 (defun read-sharp-plus (state start number)
   (declare (ignore number))
@@ -385,10 +412,15 @@ first node being whitespaces.)"
               read-sharp-equal
               read-sharp-sharp
               read-sharp-plus
-              read-sharp-minus))
+              read-sharp-minus
+              ;; TODO read-sharp-space "# "
+              ;; TODO read-sharp-less-than "#<"
+              ))
            ;; Invalid syntax OR custom reader macro
            (sharp-unknown start +end+))))))
 
+;; TODO this is a weird function name for what it does...
+;; it reads things that are "quote-like"
 (defreader read-quote ()
   "Read ` ' , ,@ and ,."
   (when-let* ((current-char (current-char state))
@@ -410,9 +442,15 @@ first node being whitespaces.)"
     (multiple-value-bind (end children)
         (read-any* state)
       (make-instance (cdr foundp)
-                     :start start :end end
-                     :children children))))
+                     :start start
+                     ;; TODO check if children is `no-end-p' (like an unclosed parens for example
+                     :end end
+                     :children children
+                     :errors `(,@(unless children
+                                ;; TODO error message
+                                ()))))))
 
+;; TODO this is also a weird function name... (its "historical")
 (defreader read-punctuation ()
   "Read . or pagebreak (^L)"
   (when-let* ((current-char (current-char state))
@@ -440,6 +478,7 @@ provided."
               (cond
                 ((null c)
                  (setf (current-position state) pos)
+                 ;; TODO somehow return an error from here
                  (return (range start +end+)))
                 ((char= c delimiter)
                  (setf (current-position state) (1+ pos))
@@ -452,6 +491,7 @@ provided."
                 ((and validp
                       (not (funcall validp c)))
                  (setf (current-position state) pos)
+                 ;; TODO somehow return an error from here
                  (return (range start +end+)))
                 (t
                  (write-char c out))))
@@ -546,7 +586,9 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
 ;; tell the user something.
 (defreader read-extraneous-closing-parens ()
   (when (read-char* state #\))
-    (extraneous-closing-parens start +end+ :errors `(("Extraneous closing parenthesis.")))))
+    (extraneous-closing-parens
+     start +end+
+     :errors `(("Extraneous closing parenthesis.")))))
 
 
 (defparameter *state-control-string*
@@ -622,7 +664,12 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       ;; :when (< 9000 i) :do (error "Really? over 9000 top-level forms!? That must be a bug...")
       :when node
         :do (vector-push-extend node result)
-      :until (or (null node) (no-end-p node) (donep state)))
+
+      :until
+      #| we stop when we encounter a node that is not terminated. it
+      would be possible to infer where to try to start parsing
+      again. |#
+      (or (null node) (no-end-p node) (donep state)))
     ;; When the input string is empty, we insert a 0-length whitespace
     ;; node at the root. This lets us uses the iterator's `value'
     ;; method without bound checks. This is a trade-off: we have a

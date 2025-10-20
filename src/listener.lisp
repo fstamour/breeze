@@ -113,8 +113,7 @@ differences between swank and slynk."
     ;; TODO add more to the "last context": the package, and the string to be evaluated
     (setf *interactive-eval-last-context* context)
     (when $package
-      (when-let* ((parsed-package-name (breeze.analysis:parse-symbol-node $package))
-                  (package-name (second parsed-package-name)))
+      (when-let* ((package-name (breeze.analysis:node-string-designator $package)))
         (setf *package* (find-package package-name))))
     (when-let* (($node (root-node-iterator $node))
                 (node (value $node)))

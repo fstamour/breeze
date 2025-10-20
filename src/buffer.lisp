@@ -140,8 +140,8 @@ point.")
                 'vector)))
 
 ;; TODO rename to current-package-node
-(defmethod current-package ((buffer buffer))
-  (let ((position (point buffer))
+(defmethod current-package ((buffer buffer) &optional point)
+  (let ((position (or point (point buffer)))
         (candidates (or
                      (in-package-nodes buffer)
                      (index-in-package-nodes buffer))))

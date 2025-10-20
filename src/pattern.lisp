@@ -809,7 +809,6 @@ binding."
     (skip $it skipp)
     (unless (donep $it)
       (let ((sub-bindings (match (pattern var) $it)))
-        ;; TODO should I copy the iterator before matching??
         (when sub-bindings
           (copy-iterator $it $input)
           (make-binding (name var) $it))))))
