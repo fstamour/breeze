@@ -568,8 +568,15 @@ need to de-duplicate pattern objects whithin one pattern.)
   (make-substitutions
    :bindings (alexandria:copy-hash-table (bindings substitutions))))
 
+;; TODO maybe this could be a method instead of a defun?
 (defun find-binding (substitutions from)
-  (gethash from (bindings substitutions)))
+  (etypecase substitutions
+    ((or (eql t) (eql nil)) nil)
+    (binding (when (eq from (from substitutions))
+               substitutions))
+    (substitutions
+     (gethash from
+              (bindings substitutions)))))
 
 ;; TODO maybe this could be a method instead of a defun?
 (defun set-binding (substitutions binding)
