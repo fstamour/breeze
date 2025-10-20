@@ -50,6 +50,8 @@
    #:insert-initialize-instance~method
    #:insert-lambda
    #:insert-make-array
+   #:insert-fancy-emacs-propline
+   #:insert-fancy-sbcl-shebang
    ;; Other commands
    #:declaim-inline
    #:quickinsert
@@ -371,6 +373,27 @@ defun."
               :element-type <>
               :adjustable t
               :fill-pointer t)")))
+
+(define-command insert-fancy-emacs-propline ()
+  "Insert a fancy emacs propline."
+  ;; TODO infer package-name from file content, if it fails, use
+  ;; "read-string-then-insert" instead (infer the default from the
+  ;; file name, just like "insert defpackage").
+  (insert
+   ";;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Base: 10; Package: ~a -*-"
+   "TODO"))
+
+(define-command insert-fancy-sbcl-shebang ()
+  "Insert fancy sbcl shebang at the start of the buffer."
+  (declare (context :beginning-of-buffer))
+  (goto-char 0)
+  (insert
+   "#!/usr/bin/env sh
+#| -*- mode: lisp; syntax: common-lisp; -*- |#
+#|
+exec rlwrap --no-warning sbcl --noinform --script $0 --debugger
+|#
+"))
 
 ;; DSL:
 #++
