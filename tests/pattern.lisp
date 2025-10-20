@@ -277,6 +277,7 @@
    (is eqv (either #(:x :y)) (compile-pattern '(:either :x :y))))
 
 (define-test+run "compile-pattern - :symbol"
+  (is eqv (sym :wild :wild :wild) (compile-pattern '(:symbol)))
   (is eqv (sym :wild :defun :wild) (compile-pattern '(:symbol :defun)))
   (is eqv (sym :cl :defun :wild) (compile-pattern '(:symbol :defun :cl)))
   (is eqv (sym :cl :defun :qualified) (compile-pattern '(:symbol :defun :cl :qualified))))
