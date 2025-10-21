@@ -790,6 +790,7 @@ TODO there's some different kind of "quickfixes":
 #++ ;; TODO
 (define-command move-to-tests ())
 
+#++
 (define-command other-file ()
   "Find the alternative file for the current file."
   (message (current-buffer-filename)))
