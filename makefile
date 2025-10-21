@@ -58,7 +58,7 @@ DOCKER_BUILD := DOCKER_BUILDKIT=1 docker build --progress=plain
 # See the targets "dependencies.core" and "public" for examples
 .PHONY: build-within-container
 build-within-container:
-	$(DOCKER_BUILD) --target=$(TARGET) --output type=local,dest=$(or $(DEST),.) . 2>&1 | tee $(TARGET).log
+	$(DOCKER_BUILD) --target=$(TARGET) --output type=local,dest=$(or $(DEST),/dev/null) . 2>&1 | tee $(TARGET).log
 
 # Inside a container, create an sbcl core dump (for caching and faster
 # loading (inside a container))
