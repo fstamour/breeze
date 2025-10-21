@@ -463,8 +463,9 @@ need to de-duplicate pattern objects whithin one pattern.)
 
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
   "Compile (:maybe ...)"
-  ;; TODO check the length of "pattern"
-  (maybe (%compile-pattern (second pattern))))
+  (destructuring-bind (sub-pattern)
+      (rest pattern)
+    (maybe sub-pattern)))
 
 (defmethod compile-compound-pattern ((token (eql :var)) pattern)
   "Compile (:var name [pattern])"

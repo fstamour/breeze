@@ -11,3 +11,6 @@
 ;; TODO insert-test-system-definition
 
 ;; TODO run-test-at-point
+
+;; TODO  defmethods
+;; TODO support multiple test framework _at the same time_

@@ -87,6 +87,10 @@ differences between swank and slynk."
          (%interactive-eval string)
        (run-interactive-eval-after-hooks string)))))
 
+
+;; TODO eval-node
+;;  that would be useful to implement a command for updating tests
+
 (defparameter *interactive-eval-last-context* ()
   "For debugging only.")
 

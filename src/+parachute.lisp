@@ -186,3 +186,21 @@ expected:
 ;; run-test
 ;; delete-test
 ;; goto-test (same name or search, or choose)
+
+
+;; TODO list tests
+;; (parachute:*)
+
+;; TODO command parachute-run-package-tests
+#++
+(defun run-all-tests ()
+  (parachute:test (current-packages)))
+
+;; TODO command to add listener hook!
+;; TODO less reporting, only report errors? a.k.a. custom report
+#++
+(push (cons "run parachute tests"
+            #'(lambda (string)
+                (declare (ignore string))
+                (run-all-tests)))
+      breeze.listener::*interactive-eval-hooks*)
