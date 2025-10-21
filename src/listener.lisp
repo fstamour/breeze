@@ -115,7 +115,7 @@ differences between swank and slynk."
     (when $package
       (when-let* ((package-name (breeze.analysis:node-string-designator $package)))
         (setf *package* (find-package package-name))))
-    (when-let* (($node (root-node-iterator $node))
+    (when-let* (($node (root $node))
                 (node (value $node)))
       ;; TODO use pulse-node
       (pulse (start node) (end node))

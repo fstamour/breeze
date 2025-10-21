@@ -471,17 +471,16 @@ uses the throw tag to stop the command immediately."
              ;;
              ;; TODO this assumes we have incremental parsing, which we
              ;; don't...
-             (cond
-               ((and buffer
-                     (not (breeze.parser:node-iterator buffer)))
-                (send "buffer-string")
-                (let ((buffer-string (recv1)))
-                  (breeze.buffer:update-buffer-content buffer buffer-string)))
-               (buffer
-                ;; update buffer's point
-                (breeze.parser:goto-position
-                 (breeze.parser:node-iterator buffer)
-                 (current-point))))
+             (when buffer
+               (cond
+                 ;; update buffer's point, if the buffer was already parsed
+                 ((breeze.parser:node-iterator buffer)
+                  (breeze.buffer::update-point buffer (current-point)))
+                 ;; if the buffer has no content, go get it
+                 (t
+                  (send "buffer-string")
+                  (let ((buffer-string (recv1)))
+                    (breeze.buffer:update-content buffer buffer-string)))))
              ;; TODO use "call-with-correction-suggestion" here too!
              (apply fn extra-args)))))))
     (send-sync command)
@@ -540,6 +539,11 @@ uses the throw tag to stop the command immediately."
   "Get the buffer from the CONTEXT.
 It can be null."
   (context-get context :buffer))
+
+(defun (setf current-buffer) (buffer &optional (context (context*)))
+  "Set the buffer from the CONTEXT.
+It can be null."
+  (context-set context :buffer buffer))
 
 (defun current-buffer-name (&optional (context (context*)))
   "Get the buffer's name from the CONTEXT.

@@ -2,7 +2,8 @@
 (uiop:define-package #:breeze.analysis
     (:documentation "Pattern matching against parse trees")
   (:use #:cl)
-  (:use-reexport #:breeze.generics
+  (:use-reexport #:breeze.iterator
+                 #:breeze.generics
                  #:breeze.parser
                  #:breeze.pattern)
   (:import-from #:alexandria
@@ -12,6 +13,7 @@
            #:parse-symbol-node)
   ;; Tree/Form predicate
   (:export #:with-match
+           #:with-match-let
            #:define-node-matcher
            #:child-of-mapcar-node-p
            #:quotedp))
@@ -274,21 +276,43 @@ The designators can be strings, symbols or packages."
          (declare (ignorable (function ,get-bindings)))
          ,@body))))
 
+(defmacro with-match-let ((node-iterator pattern) &body body)
+  (let ((meta-variables)
+        (get-bindings (intern (symbol-name '#:get-bindings))))
+    (sublis '((nil . nil))
+            pattern
+            :test (lambda (x y)
+                    (declare (ignore y))
+                    (when (breeze.pattern::var-symbol-p x)
+                      (pushnew x meta-variables))
+                    nil))
+    `(with-match (,node-iterator ,pattern)
+       (let ,(loop
+               :for var :in meta-variables
+               :collect `(,var (,get-bindings ',var)))
+         ,@(loop
+            :for var :in meta-variables
+            :collect `(declare (ignorable ,var)))
+         (progn ,@body)))))
+
+#++
+(let ((meta-variables))
+  (sublis '((nil . nil))
+          '((:symbol "IS" #++ "PARACHUTE") ?cmp ?expected)
+          :test (lambda (x y)
+                  ;; (break)
+                  (when (breeze.pattern::var-symbol-p x)
+                    (pushnew x meta-variables))))
+  meta-variables)
+
 ;; TODO be able to name the "node-iterator" argument
 ;; TODO maybe, be able to do some checks _before_ trying to match
 ;; TODO maybe, add some options for common stuff ... e.g. "don't match if quoted"
 (defmacro define-node-matcher (name (pattern) &body body)
-  (let ((compiled-pattern (compile-pattern pattern)))
-    `(defun ,name (node-iterator)
-       ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
-       (let* ((bindings (match ,compiled-pattern (copy-iterator node-iterator)
-                          :skipp #'whitespace-or-comment-node-p)))
-         (flet ((get-bindings (name)
-                  (when bindings
-                    (when-let ((binding (find-binding bindings name)))
-                      (to binding)))))
-           (declare (ignorable (function get-bindings)))
-           ,@body)))))
+  `(defun ,name (node-iterator)
+     ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
+     (with-match-let (node-iterator ,pattern)
+       ,@body)))
 
 
 ;;; Quoting
@@ -347,7 +371,7 @@ TODO
 
 (define-node-matcher malformed-if-node-p
     ;; TODO (or (if) (if ?cond) ...)
-    ((if :?cond :?then :?else :?extra #++ (:zero-or-more :?extras)))
+    ((if ?cond ?then ?else ?extra))
   (when bindings
     ;; (destructuring-bind (&key ?cond ?then ?else ?extra) bindings)
     t))

@@ -21,16 +21,15 @@
 ;; package to look for PLNs to find the in-pacakge form, but I need
 ;; the in-package to know the current package.
 
-(define-node-matcher in-package-node-p ((in-package :?package-designator))
+(define-node-matcher in-package-node-p ((in-package ?package-designator))
   (unless (quotedp node-iterator)
-    (when-let* ((package-designator (breeze.analysis::get-bindings :?package-designator))
-                (package-designator-node (value package-designator)))
-      ;; TODO string-designator-node-p
-      (when (or (token-node-p package-designator-node)
-                (string-node-p package-designator-node)
-                (sharp-uninterned-node-p package-designator-node))
-        ;; TODO else... it's a malformed in-package form
-        package-designator))))
+    (when ?package-designator
+      (let ((package-designator-node (value ?package-designator)))
+        (when (or (token-node-p package-designator-node)
+                  (string-node-p package-designator-node)
+                  (sharp-uninterned-node-p package-designator-node))
+          ;; TODO else... it's a malformed in-package form
+          ?package-designator)))))
 
 ;; TODO add tests
 (defmethod map-top-level-in-package (function (state state))

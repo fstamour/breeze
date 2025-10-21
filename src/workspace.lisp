@@ -1,6 +1,7 @@
-(defpackage #:breeze.workspace
+(uiop:define-package #:breeze.workspace
   (:documentation "")
-  (:use #:cl #:breeze.buffer)
+  (:use #:cl)
+  (:use-reexport #:breeze.buffer)
   (:import-from #:alexandria
                 #:ends-with-subseq
                 #:if-let
@@ -106,14 +107,12 @@ Design decision(s):
     (breeze.logging:log-debug "add-to-workspace buffer ~s" name)
     (when-let ((buffer-file-name (getf context-plist :buffer-file-name)))
       (setf (filename buffer) buffer-file-name))
-    (when-let ((point (getf context-plist :point)))
-      (setf (point buffer) point))
     (when-let ((point-min (getf context-plist :point-min)))
       (setf (point-min buffer) point-min))
     (when-let ((point-max (getf context-plist :point-max)))
       (setf (point-max buffer) point-max))
     (when-let ((new-content (getf context-plist :buffer-string)))
-      (update-buffer-content buffer new-content))
+      (update-content buffer new-content (getf context-plist :point)))
     ;; return the buffer
     buffer))
 

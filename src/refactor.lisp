@@ -496,7 +496,7 @@ when inserting something.
   "Declaim inline the current top-level function."
   (let* (($current-node (node-iterator (current-buffer)))
          ;; TODO get the "top-level" node, not the root
-         ($root (root-node-iterator $current-node)))
+         ($root (top-level-node-iterator $current-node)))
     (with-match ($root (defun ?name))
       (let (($name (get-bindings '?name)))
         (cond

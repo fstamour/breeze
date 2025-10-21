@@ -56,7 +56,12 @@ generalization of that first iteration (ha!).
    #:parent-value
    #:parent
    #:root-value
-   #:root)
+   #:rootp
+   #:root
+   #:previous-sibling
+   #:next-sibling
+   #:previous-iterator
+   #:next-iterator)
   ;; Other utility functions
   (:export
    #:firstp
@@ -356,6 +361,7 @@ depth of the tree."))
       t)))
 
 ;; TODO test
+;; TODO what happens if n is 0 or negative?
 (defmethod go-backward ((iterator tree-iterator) (n integer))
   (let ((pos (pos iterator)))
     (when (plusp pos)
@@ -376,6 +382,15 @@ depth of the tree."))
   (unless (zerop (slot-value iterator 'depth))
     (pop-subtree iterator)
     t))
+
+;; TODO add tests
+(defmethod goto-root ((iterator tree-iterator))
+  "Move the ITERATOR to the root."
+  (with-slots (positions depth subtrees) iterator
+    (setf (fill-pointer subtrees) 1)
+    (setf (fill-pointer positions) 1)
+    (setf depth 0))
+  iterator)
 
 (defun next-preorder (iterator)
   (unless (go-down iterator) (next iterator))
@@ -406,21 +421,37 @@ depth of the tree."))
     :finally (when went-down
                (funcall hook-up))))
 
+
+;;; Other methods on vector-iterator
+
+;; TODO tests
+(defmethod firstp ((iterator tree-iterator))
+  "Is the current value the first one at the current depth?"
+  (zerop (pos iterator)))
+
+;; TODO tests
+(defmethod lastp ((iterator tree-iterator))
+  "Is the current value the last one at the current depth?"
+  (let ((pos (pos iterator))
+        (subtree (subtree iterator)))
+    (etypecase subtree
+      (vector (= pos (1- (length subtree))))
+      (t t))))
+
+(defmethod rootp ((iterator tree-iterator))
+  "Test if ITERATOR is currently at the root of the tree."
+  (with-slots (depth) iterator
+    (zerop depth)))
+
 ;; TODO add tests
 (defmethod subtree-at-depth ((iterator tree-iterator) depth)
+  "Get the subtree of ITERATOR at depth DEPTH."
   (with-slots (subtrees) iterator
     (aref subtrees depth)))
 
 (defmethod root-subtree ((iterator tree-iterator))
+  "Get the root tree of ITERATOR."
   (subtree-at-depth iterator 0))
-
-;; TODO add tests
-(defmethod goto-root ((iterator tree-iterator))
-  (with-slots (positions depth subtrees) iterator
-    (setf (fill-pointer subtrees) 1)
-    (setf (fill-pointer positions) 1)
-    (setf depth 0))
-  iterator)
 
 ;; TODO add tests
 (defmethod value-at-depth ((iterator tree-iterator) depth)
@@ -454,7 +485,39 @@ depth of the tree."))
 
 ;; TODO add tests
 (defmethod root ((iterator tree-iterator))
+  "Get a copy of ITERATOR but at the root."
   (iterator-at-depth iterator 0))
+
+;; TODO tests
+(defmethod previous-sibling ((iterator tree-iterator))
+  "Get the previous value at the same depth, or nil if there's is none."
+  (unless (firstp iterator)
+    (let ((pos (pos iterator))
+          (subtree (subtree iterator)))
+      (etypecase subtree
+        (vector (aref subtree (1- pos)))
+        (t nil)))))
+
+;; TODO tests
+(defmethod next-sibling ((iterator tree-iterator))
+  "Get the next value at the same depth, or nil if there's is none."
+  (unless (lastp iterator)
+    (let ((pos (pos iterator))
+          (subtree (subtree iterator)))
+      (etypecase subtree
+        (vector (aref subtree (1+ pos)))
+        (t nil)))))
+
+(defmethod next-iterator ((iterator iterator))
+  "Get a copy of ITERATOR moved to the next position."
+  (let ((it (copy-iterator iterator)))
+    (next it)
+    (unless (donep it) it)))
+
+(defmethod previous-iterator ((iterator iterator))
+  "Get a copy of ITERATOR move backward to the previous position."
+  (let ((it (copy-iterator iterator)))
+    (and (go-backward it 1) it)))
 
 
 ;;; Concat iterator

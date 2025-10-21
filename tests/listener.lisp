@@ -4,7 +4,8 @@
   (:import-from #:breeze.command
                 #:*command*
                 #:context
-                #:current-buffer)
+                #:current-buffer
+                #:context-set)
   (:import-from #:breeze.generics
                 #:eqv)
   (:import-from #:breeze.test.command
@@ -14,7 +15,7 @@
   (:import-from #:breeze.buffer
                 #:make-buffer
                 #:point
-                #:update-buffer-content)
+                #:update-content)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -74,11 +75,7 @@
            (is equalp '("message" "BREEZE.TEST.LISTENER::X") value))
          (mock-send-out (value)
            (is equalp '("done") value)))
-      ;; TODO make it less painful to setup a buffer correctly,,,
-      (setf (gethash :buffer (context *command*))
-            (make-buffer))
-      (setf (point (current-buffer)) point)
-      (update-buffer-content (current-buffer) " 'x ")
+      (setf (current-buffer) (make-buffer :string " 'x " :point point))
       (false (interactive-eval-command))))
   ;; TODO this is only implemented for sbcl at the moment
   #+sbcl
@@ -110,7 +107,7 @@
     (setf (gethash :buffer (context *command*))
           (make-buffer))
     (setf (point (current-buffer)) 0)
-    (update-buffer-content (current-buffer) "(prin 32)")
+    (update-content (current-buffer) "(prin 32)")
     ;; input "prin" candidate: PRINT
     (handler-bind
         ((undefined-function

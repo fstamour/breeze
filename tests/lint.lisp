@@ -44,27 +44,30 @@ TODO
 (asdf
    xzcv    ; qwer
 )"))
+  (is equal '((0 2 :warning "Extraneous leading whitespaces at top-level."))
+      (test-lint "  x"))
   (is equal '((0 nil :error "Syntax error")) (test-lint "#+"))
   (false (test-lint "(in-package :cl-user)"))
-  (false (test-lint "(in-package 42)"))
-  ;; TODO it's quoted, don't check the package-designator
-  ;; (false (test-lint "'(in-package 42)"))
-  (is equal (test-lint "(in-package #)")
-      '((0 nil :error "Syntax error")))
-  (is equal (test-lint "(in-package # )")
-      '((0 nil :error "Syntax error")))
+  (is equal (test-lint "(in-package 42)")
+      '((0 15 :warning "Package \"42\" is not currently defined.")))
+  ;; TODO handle "#)" better
+  (is equal '((0 nil :error "Missing closing parenthesis."))
+      (test-lint "(in-package #)"))
+  ;; TODO handle "# " better...
+  (is equal '((0 nil :error "Missing closing parenthesis."))
+      (test-lint "(in-package # )"))
   (is equal '((0 56 :warning
-               "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
+               "Package \"PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME\" is not currently defined."))
       (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
-  #++ ;; TODO check if "in-package" is NOT quoted
   (progn
+    (false (test-lint "'(in-package 42)"))
     (false (test-lint "'(in-package :PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME)"))
     (false (test-lint "`(in-package :PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME)")))
   (is equalp
       '((1 3 :warning "Extraneous whitespaces."))
       (test-lint "(  )"))
   (is equalp
-      '((1 3 :warning "Extraneous whitespaces."))
+      '((2 4 :warning "Extraneous whitespaces."))
       (test-lint "((  ))"))
   (is equalp
       '((2 4 :warning "Extraneous internal whitespaces."))
@@ -74,9 +77,15 @@ TODO
         (1 2 :warning "Extraneous leading whitespaces."))
       (test-lint "( x )"))
   (is equalp
-      '((3 4 :warning "Missing internal whitespace(s)."))
+      '((1 4 :warning "Missing space between forms."))
       (test-lint "(\"a\"x)")))
 
+
+#++
+(trace :wherein test-lint
+       quotedp
+       match
+       breeze.package:in-package-node-p)
 
 ;; TODO add more "test-lint" tests with syntax errors
 
@@ -158,11 +167,8 @@ TODO
 (progn
   (test-lint "like::%really"))
 
-(define-test+run lint
-  #++ ;; TODO the "fix" is to eval the defpackage, usually
-  (is equal '((0 56 :warning
-               "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
-      (test-lint "(in-package please-dont-define-a-package-with-this-name)"))
+
+(define-test+run "lint - whitespaces"
   (is equalp
       '((1 3 :warning "Extraneous whitespaces."))
       (test-lint "(  )"))
@@ -205,26 +211,42 @@ x)
   ;; (is equalp '("()" t) (test-fix "("))
   ;; (is equalp '("((()))" t) (test-fix "((("))
   ;; TODO "a' ( )" => "a '()"
-  (is eqv `((,(whitespace 1 2) nil)) (test-fix "( )"))
+  (is eqv `((,(whitespace 1 2) nil)) (test-fix "( )")
+      "Should remove space between two parens.")
   (is eqv `((,(whitespace 1 2) nil)) (test-fix "(~%)"))
   (is eqv `((,(whitespace 1 4) nil)) (test-fix "(   ) "))
   (is eqv `((,(whitespace 1 2) nil)) (test-fix "( ) "))
-  (is eqv `((,(whitespace 2 3) nil)) (test-fix " ( )"))
-  (is eqv `((,(whitespace 2 3) nil)) (test-fix " ( ) "))
+  (is eqv `((,(whitespace 0 1) nil)
+            (,(whitespace 2 3) nil))
+      (test-fix " ( )")
+      "Should remove leading top-level whitespace and space between two parens.")
+  (is eqv `((,(whitespace 0 1) nil)
+            (,(whitespace 2 3) nil))
+      (test-fix " ( ) ")
+      "Should remove leading top-level whitespace and space between two parens, but keep trailing space.")
   (is eqv `((,(whitespace 1 2) nil)) (test-fix "( a)"))
   (is eqv `((,(whitespace 2 3) nil)) (test-fix "(a )"))
   (is eqv `((,(whitespace 1 3) nil)
-               (,(whitespace 4 6) nil))
+            (,(whitespace 4 6) nil))
       (test-fix "(  a  )"))
   (is eqv `((,(whitespace 2 5) " ")) (test-fix "(a   b)"))
   (is eqv `((,(whitespace 1 4) nil)
-               (,(whitespace 5 10) nil)
-               (,(whitespace 11 14) nil)
-               (,(whitespace 15 16) nil))
+            (,(whitespace 5 10) nil)
+            (,(whitespace 11 14) nil)
+            (,(whitespace 15 16) nil))
       (test-fix "(~%  (~%    a~%  )~%)"))
   (is eqv `((,(whitespace 2 8) nil)
-               (,(whitespace 9 13) nil))
+            (,(whitespace 9 13) nil))
       (test-fix "((~%~%    a~%~%  ))"))
+  #++        ;; TODO implement this
+  (is eqv `(;; leading whitespace before the comment
+            (,(whitespace 2 8) nil)
+            ;; trailing whitespace in the comment
+            (,(whitespace 17 15) nil)
+            ;; whitespace (newlines) after the comment
+            (,(whitespace 15 18) nil))
+      (test-fix "(~%~%;; comment  ~%~%~% )")
+      "Should remove extra whitespaces after a line comment inside a list.")
   ;; TODO handle indentation levels!
   #++
   (progn
@@ -246,7 +268,10 @@ x)
     (is eqv '("(block x)" t) (test-fix "(block 'x)"))
     (is eqv '("(return-from x)" t) (test-fix "(return-from 'x)")))
   ;; "\"a\"'(\"b\"c)" => "\"a\" '(\"b\" c)"
-  )
+  #++ ;; TODO the "fix" is to eval the defpackage, usually
+  (is equal '((0 56 :warning
+               "Package PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME is not currently defined."))
+      (test-lint "(in-package please-dont-define-a-package-with-this-name)")))
 
 #++ ;; TODO this used to crash because it would try to call (read "#)") inside
     ;; breeze.analysis::warn-undefined-in-package, add regression test

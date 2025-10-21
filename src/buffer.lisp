@@ -22,7 +22,7 @@ point.")
            #:cwd
            #:in-package-nodes
            #:make-buffer
-           #:update-buffer-content
+           #:update-content
            #:index-in-package-nodes
            #:current-package))
 
@@ -90,26 +90,42 @@ point.")
       (buffer stream :type t :identity nil)
     (format stream "~s" (name buffer))))
 
-(defmethod update-buffer-content ((buffer buffer) new-content)
+(defmethod update-point ((buffer buffer) point)
+  (when point
+    (when-let ((node-iterator (node-iterator buffer)))
+      (goto-position node-iterator point))))
+
+(defmethod source ((buffer buffer))
+  (when-let ((state (parse-state buffer)))
+    (source state)))
+
+(defmethod update-content ((buffer buffer) new-content &optional point)
   "Update the workspace's buffer BUFFER-NAME's content"
+  (when point
+    (when (or (null (point buffer))
+              (/= (point buffer) point))
+      (setf (point buffer) point)))
   (when new-content
-    (if-let ((old-node-iterator (node-iterator buffer)))
-      (unless (string= (source (state old-node-iterator)) new-content)
-        (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
-        (setf (node-iterator buffer) (make-node-iterator new-content)))
-      (progn (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
-             (setf (node-iterator buffer) (make-node-iterator new-content))))
+    (let ((old-content (source buffer)))
+      (cond
+        ((and old-content
+              (string/= old-content new-content))
+         (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
+         (setf (node-iterator buffer) (make-node-iterator new-content)))
+        ((null old-content)
+         (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
+         (setf (node-iterator buffer) (make-node-iterator new-content)))))
     ;; update the node-iterator's position
-    (when-let ((node-iterator (node-iterator buffer))
-               (point (point buffer)))
-      (goto-position node-iterator point))
+    (update-point buffer (point buffer))
+    ;; update some indexes
     (index-in-package-nodes buffer))
+  ;; return the buffer
   buffer)
 
-(defun make-buffer (&key name string)
-  (let ((buffer (make-instance 'buffer :name name)))
+(defun make-buffer (&key name string point)
+  (let ((buffer (make-instance 'buffer :name name :point point)))
     (when string
-      (update-buffer-content buffer string))
+      (update-content buffer string))
     buffer))
 
 (defmethod parse-state ((buffer buffer))

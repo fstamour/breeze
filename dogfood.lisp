@@ -50,16 +50,15 @@ newline in the expected result."
       (insert "~%        (false (~:R request))" i)))
 
 (defun test-at-point (buffer)
-  (let ((root-node-iterator (root-node-iterator (node-iterator buffer))))
+  (let (($root (root (node-iterator buffer))))
     (breeze.analysis::with-match
-        (root-node-iterator
+        ($root
          ((:either
            parachute:define-test
            parachute:define-test+run
            parachute:define-test+run-interactively) ?name))
       (when-let ((?name (get-bindings '?name)))
-        (values root-node-iterator
-                (node-string ?name))))))
+        (values $root (node-string ?name))))))
 
 (defun command-name-p (string)
   (and (member

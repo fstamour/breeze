@@ -1,6 +1,9 @@
 (defpackage #:breeze.lint
   (:documentation "Commands for linting and automatic fixes")
   (:use #:cl #:breeze.analysis #:breeze.command)
+  (:import-from #:alexandria
+                #:when-let
+                #:when-let*)
   (:import-from #:breeze.buffer
                 #:buffer)
   (:import-from #:breeze.package
@@ -122,10 +125,9 @@ simple-condition-format-control, simple-condition-format-arguments
 be found. If it's not the case (e.g. because the user forgot to define
 a package and/or evaluate the form that defines the package) they show
 a message and stop the current command."
-  (let ((package (current-package)))
+  (let (($package (current-package)))
     (if package
-        (let ((package-name (breeze.analysis::node-string-designator-string
-                             package)))
+        (let ((package-name (node-string-designator $package)))
           (unless (find-package package-name)
             (message "The nearest in-package form designates a package that doesn't exists: ~s"
                      package-name)
@@ -162,50 +164,66 @@ found."
        (format nil "Package ~s is not currently defined." package-name)))))
 
 
+;; This assumes that NODE-ITERATOR points to a whitespace node
 (defun warn-extraneous-whitespaces (node-iterator)
-  (let ((firstp (firstp node-iterator))
-        (lastp (lastp node-iterator)))
-    (cond
-      ((and firstp lastp)
-       (node-style-warning
-        node-iterator "Extraneous whitespaces."
-        :replacement nil))
-      (firstp
-       (node-style-warning
-        node-iterator "Extraneous leading whitespaces."
-        :replacement nil))
-      ((and lastp (not (line-comment-node-p
-                        (previous-sibling node-iterator))))
-       (node-style-warning
-        node-iterator "Extraneous trailing whitespaces."
-        :replacement nil))
-      #++
-      ((< 1 (count #\newline (source node-iterator)
-                   :start (start node-iterator)
-                   :end (end node-iterator)))
-       (let ((leading-newlines (position #\newline (source node-iterator)
-                                         :test #'char/=
-                   :start (start node-iterator)
-                                         :end (end node-iterator))))
-         (node-style-warning
-          node-iterator "Extraneous newlines."
-          :replacement (subseq (source node-iterator)
-                               (1- leading-newlines)
-                               (end node-iterator)))))
-      ((and (not (or firstp lastp))
-            ;; Longer than 1
-            (< 1 (- (end node-iterator) (start node-iterator)))
-            ;; "contains no newline"
-            (not (position #\Newline
-                           (source node-iterator)
-                           :start (start node-iterator)
-                           :end (end node-iterator)))
-            ;; is not followed by a line comment
-            (not (line-comment-node-p
-                  (next-sibling node-iterator))))
-       (node-style-warning
-        node-iterator "Extraneous internal whitespaces."
-        :replacement " ")))))
+  (if (rootp node-iterator)
+      ;; Check for spaces at top-level, just before a form. Said
+      ;; otherwise: an indented top-level form.
+      (unless (lastp node-iterator)
+        (when-let* (($next (next-iterator node-iterator))
+                    (next-node (value $next))
+                    (whitespaces (node-string node-iterator)))
+          (let ((pos (position #\Newline whitespaces :from-end t)))
+            (when (or (and (null pos) (firstp node-iterator))
+                      (and pos (= pos (length whitespaces))))
+              (char/= #\Newline (char whitespaces (1- (length whitespaces))))
+              (node-style-warning
+               node-iterator
+               "Extraneous leading whitespaces at top-level."
+               :replacement (when pos (subseq whitespaces 0 pos)))))))
+      (let ((firstp (firstp node-iterator))
+            (lastp (lastp node-iterator)))
+        (cond
+          ((and firstp lastp)
+           (node-style-warning
+            node-iterator "Extraneous whitespaces."
+            :replacement nil))
+          (firstp
+           (node-style-warning
+            node-iterator "Extraneous leading whitespaces."
+            :replacement nil))
+          ((and lastp (not (line-comment-node-p
+                            (previous-sibling node-iterator))))
+           (node-style-warning
+            node-iterator "Extraneous trailing whitespaces."
+            :replacement nil))
+          #++
+          ((< 1 (count #\newline (source node-iterator)
+                       :start (start node-iterator)
+                       :end (end node-iterator)))
+           (let ((leading-newlines (position #\newline (source node-iterator)
+                                             :test #'char/=
+                                             :start (start node-iterator)
+                                             :end (end node-iterator))))
+             (node-style-warning
+              node-iterator "Extraneous newlines."
+              :replacement (subseq (source node-iterator)
+                                   (1- leading-newlines)
+                                   (end node-iterator)))))
+          ((and (not (or firstp lastp))
+                ;; Longer than 1
+                (< 1 (- (end node-iterator) (start node-iterator)))
+                ;; "contains no newline"
+                (not (position #\Newline
+                               (source node-iterator)
+                               :start (start node-iterator)
+                               :end (end node-iterator)))
+                ;; is not followed by a line comment
+                (not (line-comment-node-p
+                      (next-sibling node-iterator))))
+           (node-style-warning
+            node-iterator "Extraneous internal whitespaces."
+            :replacement " "))))))
 
 (defun warn-missing-indentation (node-iterator)
   (node-style-warning
@@ -254,23 +272,28 @@ found."
   "Apply all the linting rules."
   (check-type buffer buffer)
   ;; TODO warn when using double colon for external symbols (e.g. cl::defun)
-  (loop :until (donep node-iterator)
-        :for node = (value node-iterator)
-        :for depth = (slot-value node-iterator 'depth)
-        :do (progn
-              (error-invalid-node node-iterator)
-              ;; TODO warn about using non-exported symbols
-              ;; token-node-p && length package-marker == 2
-              ;; (warn-undefined-in-package node-iterator)
-              (when (plusp depth)
-                (cond
-                  ((whitespace-node-p node)
-                   (warn-extraneous-whitespaces node-iterator))
-                  #++
-                  ((char= #\newline
-                          (char (source node-iterator) (1- (start node))))
-                   (warn-missing-indentation node-iterator)))))
-            (next-preorder node-iterator)))
+  (loop
+    :with source := (source buffer)
+    :until (donep node-iterator)
+    :for node = (value node-iterator)
+    ;; :for previous-node := nil :then node
+    :for depth = (slot-value node-iterator 'depth)
+    :do (progn
+          (error-invalid-node node-iterator)
+          ;; TODO warn about using non-exported symbols
+          ;; token-node-p && length package-marker == 2
+          (when (zerop depth)
+            (warn-undefined-in-package node-iterator))
+          (if (whitespace-node-p node)
+              (warn-extraneous-whitespaces node-iterator)
+              (when-let ((next-node (next-sibling node-iterator)))
+                (unless (whitespace-node-p next-node)
+                  (node-style-warning node-iterator
+                                      "Missing space between forms."
+                                      ;; TODO the name "replacement doesn't make much sense anymore
+                                      ;; TODO the "quickfix command doesn't know how to handle this yet.
+                                      :replacement '(:insert-after " "))))))
+        (next-preorder node-iterator)))
 
 (defun lint-buffer (buffer &aux (*diagnostics* '()))
   "Apply all the linting rules, and accumulate the \"diagnostics\"."
@@ -288,6 +311,9 @@ found."
     (analyse buffer))
   *diagnostics*)
 
+;; TODO currently, this re-analyze the buffer and collects all the
+;; fixable issues. the issues should be cached (probably in the
+;; workspace object).
 (defun fix-buffer (buffer)
   (check-type buffer buffer)
   (uiop:while-collecting (conditions)

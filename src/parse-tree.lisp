@@ -124,9 +124,7 @@
            #:goto-position
            #:parent-node
            #:root-node
-           #:root-node-iterator
-           #:previous-sibling
-           #:next-sibling
+           #:top-level-node-iterator
            #:map-top-level-forms))
 
 (in-package #:breeze.parse-tree)
@@ -513,6 +511,8 @@
 (defmethod source ((node-iterator node-iterator))
   (source (state node-iterator)))
 
+(defmethod node-string ((_ (eql nil))))
+
 (defmethod node-string ((node-iterator node-iterator))
   (node-content (state node-iterator) (value node-iterator)))
 
@@ -588,10 +588,9 @@
 (defmethod root-node ((iterator node-iterator))
   (root-value iterator))
 
-;; TODO deprecated, use iterator:root instead
-(defmethod root-node-iterator ((iterator node-iterator))
-  (let ((root (copy-iterator iterator)))
-    (goto-root root)))
+(defmethod top-level-node-iterator ((iterator node-iterator))
+  ;; TOOD get the actual top-level node, not the root one (see `map-top-level-forms')
+  (root iterator))
 
 (defmethod start ((node-iterator node-iterator))
   "Get the start position of the current node."
@@ -601,39 +600,6 @@
   "Get the end position of the current node."
   (end (value node-iterator)))
 
-;; TODO tests
-(defmethod firstp ((iterator node-iterator))
-  "Is the current value the first one at the current depth?"
-  (zerop (pos iterator)))
-
-;; TODO tests
-(defmethod lastp ((iterator node-iterator))
-  "Is the current value the last one at the current depth?"
-  (let ((pos (pos iterator))
-        (subtree (subtree iterator)))
-    (etypecase subtree
-      (vector (= pos (1- (length subtree))))
-      (t t))))
-
-;; TODO tests
-(defmethod previous-sibling ((iterator node-iterator))
-  "Get the previous node at the same depth, or nil if there's is none."
-  (unless (firstp iterator)
-    (let ((pos (pos iterator))
-          (subtree (subtree iterator)))
-      (etypecase subtree
-        (vector (aref subtree (1- pos)))
-        (t nil)))))
-
-;; TODO tests
-(defmethod next-sibling ((iterator node-iterator))
-  "Get the next node at the same depth, or nil if there's is none."
-  (unless (lastp iterator)
-    (let ((pos (pos iterator))
-          (subtree (subtree iterator)))
-      (etypecase subtree
-        (vector (aref subtree (1+ pos)))
-        (t nil)))))
 
 
 
