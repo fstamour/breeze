@@ -64,6 +64,7 @@
 | breeze-insert-initialize-instance~method           | Insert a ~(defmethod initialize-instance ...)~ form.                            |              |
 | breeze-insert-fancy-emacs-propline                 | Insert a fancy emacs propline.                                                  |              |
 | breeze-insert-fancy-sbcl-shebang                   | Insert fancy sbcl shebang at the start of the buffer.                           |              |
+| breeze-quickload                                   | Choose a system to load with quickload.                                         |              |
 
 
 * Related notes

@@ -49,11 +49,13 @@
    #:insert-make-load-form-boilerplate
    #:insert-initialize-instance~method
    #:insert-lambda
+   #:insert-decoded-time-multiple-value-bind
    #:insert-make-array
    #:insert-fancy-emacs-propline
    #:insert-fancy-sbcl-shebang
    ;; Other commands
    #:declaim-inline
+   #:quickload
    #:quickinsert
    ;; TODO perhaps "quickfix" should go in "lint.lisp"
    #:quickfix
@@ -356,7 +358,50 @@ defun."
   (declare (context :expression))
   (insert "(lambda ())"))
 
-;; TODO quick-insert (format *debug-io* "~&")
+(define-command insert-decoded-time-multiple-value-bind ()
+  "Insert a cl:multiple-value-bind form to bind the output of cl:get-decoded-time"
+  (declare (context :expression))
+  (insert "(multiple-value-bind (second minute hour date month year day daylight-p zone)
+      (get-decoded-time))"))
+
+
+;;; Edits
+
+;; TODO convert between line comment and block-comment
+
+
+;;; TODO move into (new file) +quicklisp
+
+#+quicklisp
+(define-command quickload ()
+  "Choose a system to load with quickload."
+  (let* ((systems (ql-dist:provided-systems t))
+         (mapping (make-hash-table :test 'equal))
+         (choices (mapcar (lambda (system)
+                            (let* ((release (ql-dist:release system))
+                                   (string (format nil "~a (~a ~a)"
+                                                   (ql-dist:name system)
+                                                   (ql-dist:prefix release)
+                                                   (ql-dist:short-description (ql-dist:dist release)))))
+                              (setf (gethash string mapping) system)
+                              string))
+                          systems))
+         (choice (choose "Choose a system: " choices))
+         (chosen-system (gethash choice mapping)))
+    (cond
+      (chosen-system #| TODO |#)
+      (t #| TODO |#))))
+
+;; TODO create a similar commands that uses asdf only
+;; TODO create a similar command that calls (asdf:test-system)
+;; TODO should extract the "choose a system" part
+;;
+;; other "quicklisp" commands:
+;; - intstall ?? meh
+;; - update client
+;; - update dist
+;; - check for update?
+
 
 (define-command insert-make-array ()
   "Insert a make-array form."
