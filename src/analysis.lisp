@@ -300,7 +300,7 @@ The designators can be strings, symbols or packages."
     (loop :for d :upto depth
           :for node = (value-at-depth node-iterator d)
           :for type = (assoc (node-type node)
-                             '((quote . 1)
+                             '((quote-node . 1)
                                (quasiquote . 1)
                                (comma . -1)
                                (comma-at . -1)

@@ -904,20 +904,36 @@ was expected to end at position ~s (exclusive), but got ~s instead"
   (true (test-malformed-if-node-p "(if a b c d e)")))
 
 
-;;; TODO Quotepd
+;;; Quotepd
 
-#++
 (defun test-quotedp (input)
   (let* ((state (parse input))
          (it (make-node-iterator state)))
     (loop :for i :below (length input)
           :do (goto-position it i)
-          :collect (list i (breeze.analysis::quotedp it)))))
+          :collect (list i
+                         (node-type (value it))
+                         (breeze.analysis::quotedp it)))))
 
-#++
 (define-test+run quotedp
-  (test-quotedp "'a")
-  (test-quotedp "`a")
-  (test-quotedp ",a")
-  (test-quotedp ",@a")
-  (test-quotedp ",.a"))
+  (is equal '((0 quote-node t)
+              (1 token t))
+      (test-quotedp "'a"))
+  (is equal '((0 quasiquote t)
+              (1 token t))
+      (test-quotedp "`a"))
+  (is equal '((0 comma nil) (1 token nil))
+      (test-quotedp ",a"))
+  (is equal '((0 comma-at nil)
+              (1 comma-at nil)
+              (2 token nil))
+      (test-quotedp ",@a"))
+  (is equal '((0 comma-dot nil)
+              (1 comma-dot nil)
+              (2 token nil))
+      (test-quotedp ",.a"))
+  (is equal '((0 quasiquote t)
+              (1 parens t)
+              (2 token t)
+              (3 parens t))
+      (test-quotedp "`(a)")))
