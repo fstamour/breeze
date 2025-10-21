@@ -39,8 +39,11 @@
 ;;; Test refactoring commands
 
 ;; TODO this probably belongs in "tests/commands.lisp"
-(define-test "All commands must be exported"
-  (let ((commands (remove-if #'breeze.xref:externalp (breeze.command:list-all-commands))))
+(define-test+run "All commands must be exported"
+  (let ((commands (remove-if (lambda (symbol)
+                               (or (search ".TEST." (package-name (symbol-package symbol)))
+                                   (breeze.xref:externalp symbol)))
+                             (breeze.command:list-all-commands))))
     (false commands "The following commands are not exported:~%~{  - ~S~%~}" commands)))
 
 (defun missing-tests ()
