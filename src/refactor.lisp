@@ -59,8 +59,8 @@
    #:quickinsert
    ;; TODO perhaps "quickfix" should go in "lint.lisp"
    #:quickfix
-   #| WIP commands |#
-   #++ #:other-file))
+   #:other-file
+   #:other-file-other-window))
 
 (in-package #:breeze.refactor)
 
@@ -790,10 +790,71 @@ TODO there's some different kind of "quickfixes":
 #++ ;; TODO
 (define-command move-to-tests ())
 
+
+
+(defun candidate-alt-dir (file)
+  "Generate a list of alternate directories."
+  (let ((root (or (breeze.utils:find-version-control-root file)
+                  #++
+                  (uiop:pathname-parent-directory-pathname
+                   ;; TODO this return a list that contains the path to a _file_...
+                   (breeze.utils:find-asdf-in-parent-directories file)))))
+    (loop :for dir :in '("src/" "t/" "test/" "tests/")
+          :for pathname := (merge-pathnames dir root)
+          :collect pathname)))
+
 #++
+(candidate-alt-dir
+ (breeze.utils:breeze-relative-pathname
+  "src/refactor.lisp"))
+#|
+=>
+(#P"/home/fstamour/quicklisp/local-projects/breeze/src/"
+ #P"/home/fstamour/quicklisp/local-projects/breeze/t/"
+ #P"/home/fstamour/quicklisp/local-projects/breeze/test/"
+ #P"/home/fstamour/quicklisp/local-projects/breeze/tests/")
+|#
+
+(defun pathname-filename (pathname)
+  (let ((name (pathname-name pathname))
+        (type (pathname-type pathname)))
+    (format nil "~a~:[.~a~;~]" name (eq :unspecific type) type)))
+
+(defun candidate-alt-files (file &aux (file (truename file)))
+  (loop
+    :with file-name := (pathname-filename file)
+    :for altdir :in (candidate-alt-dir file)
+    :for altfile := (merge-pathnames file-name altdir)
+    :unless (equal file altfile)
+    :collect altfile))
+
+#++
+(let* ((file (breeze.utils:breeze-relative-pathname "src/refactor.lisp")))
+  (candidate-alt-files file))
+;; => (#P"/home/fstamour/quicklisp/local-projects/breeze/src/" "refactor.lisp")
+
+(defun %other-file (&optional other-window-p)
+  (let* ((file (current-buffer-filename))
+         (candidates (candidate-alt-files file))
+         (candidates (or (remove-if-not #'probe-file candidates)
+                         candidates)))
+    (cond
+      ((null candidates)
+       (message "Couldn't find any \"other file\" for ~a" file))
+      ((breeze.utils:length=1 candidates)
+       (find-file (car candidates) other-window-p))
+      (t
+       (let ((choice (choose "Choose an other file: "
+                             (mapcar #'namestring candidates))))
+         (find-file choice other-window-p))))))
+
 (define-command other-file ()
   "Find the alternative file for the current file."
-  (message (current-buffer-filename)))
+  (%other-file))
+
+(define-command other-file-other-window ()
+  "Find the alternative file for the current file in the other window."
+  (%other-file t))
 
 #++
 (when path

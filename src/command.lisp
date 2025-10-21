@@ -661,10 +661,10 @@ resulting string to the editor."
   (send "message"
         (format* control-string format-arguments)))
 
-(defun find-file (pathname)
+(defun find-file (pathname &optional other-window-p)
   "Send a message to the editor to tell it to open the PATHNAME."
   (send "find-file"
-        (namestring pathname)))
+        (namestring pathname) other-window-p))
 
 (defun ask-y-or-n-p (prompt &rest format-arguments)
   "Ask the user a y/n question."

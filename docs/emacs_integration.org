@@ -58,13 +58,14 @@
 | breeze-insert-setf-defun                           | Insert a setf function form e.g. (defun (setf ...) ...)                         |              |
 | breeze-interactive-eval-command                    | A command to interactively evaluate code.                                       |              |
 | breeze-kill-sexp                                   | Kill the expression following point.                                            |              |
-| breeze-other-file                                  | Find the alternative file for the current file.                                 |              |
 | breeze-test-insert                                 | This is a dummy command to test the "insert" request.                           |              |
 | breeze-test-read-string                            | This is a dummy command to test the "read-string" request.                      |              |
 | breeze-insert-initialize-instance~method           | Insert a ~(defmethod initialize-instance ...)~ form.                            |              |
 | breeze-insert-fancy-emacs-propline                 | Insert a fancy emacs propline.                                                  |              |
 | breeze-insert-fancy-sbcl-shebang                   | Insert fancy sbcl shebang at the start of the buffer.                           |              |
 | breeze-quickload                                   | Choose a system to load with quickload.                                         |              |
+| breeze-other-file                                  | Find the alternative file for the current file.                                 |              |
+| breeze-other-file-other-window                     | Find the alternative file for the current file.                                 |              |
 
 
 * Related notes

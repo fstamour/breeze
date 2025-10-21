@@ -331,7 +331,11 @@ receiving the data it requested."
     ("message"
      (breeze-message "%s" (cl-second request)))
     ("find-file"
-     (find-file (cl-second request)))
+     (cl-destructuring-bind (file other-window-p)
+         (cdr request)
+       (if other-window-p
+           (find-file-other-window file)
+         (find-file file))))
     ("return"
      (breeze-deregister-command id)
      (throw 'breeze-run-command (cl-second request)))
@@ -349,7 +353,7 @@ receiving the data it requested."
 
 (defun breeze-run-command (name &rest extra-args)
   "Runs a \"breeze command\". TODO Improve this docstring."
-  (interactive)
+  ;; (interactive)
   (breeze-debug "breeze-run-command")
   (catch 'breeze-run-command
     (let ((id (breeze-command-start name extra-args)))
@@ -391,27 +395,29 @@ receiving the data it requested."
   "Ask the inferior lisp which commands it has and define corresponding
 commands in emacs."
   (interactive)
-  (dolist (command-plist (breeze-eval "(breeze.command:list-all-commands-for-editor)"))
-    ;; this can be confusing:
-    ;;  - name is a symbol
-    ;;  - symbol is a string of the cl symbol
-    ;;  - lambda-list is a list of symbols that only contains the name
-    ;;    of the arguments (no &optional, no default values, etc.)
-    (cl-destructuring-bind (&key name symbol lambda-list documentation)
-        command-plist
-      (let* ((defun `(cl-defun ,name (&optional ,@lambda-list)
-                       ,documentation
-                       ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
-                       (interactive)
-                       (unless (breeze-disabled-p)
-                         (if (and (breeze-list-loaded-listeners)
-                                  (breeze-listener-connected-p)
-                                  (breeze-validate-if-breeze-package-exists))
-                             (breeze-run-command ,symbol ,@lambda-list)
-                           (breeze--stub ,symbol))))))
-        ;; (breeze-debug "%S" defun)
-        (eval defun)
-        (setf (get name 'breeze-command-p) t)))))
+  (with-temp-buffer
+    (dolist (command-plist (breeze-eval "(breeze.command:list-all-commands-for-editor)"))
+      ;; this can be confusing:
+      ;;  - name is a symbol
+      ;;  - symbol is a string of the cl symbol
+      ;;  - lambda-list is a list of symbols that only contains the name
+      ;;    of the arguments (no &optional, no default values, etc.)
+      (cl-destructuring-bind (&key name symbol lambda-list documentation)
+          command-plist
+        (let* ((defun `(cl-defun ,name (&optional ,@lambda-list)
+                         ,documentation
+                         ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
+                         (interactive)
+                         (unless (breeze-disabled-p)
+                           (if (and (breeze-list-loaded-listeners)
+                                    (breeze-listener-connected-p)
+                                    (breeze-validate-if-breeze-package-exists))
+                               (breeze-run-command ,symbol ,@lambda-list)
+                             (breeze--stub ,symbol))))))
+          (insert (format "%S\n" defun))
+          (insert (format "%S\n" `(setf (get ',name 'breeze-command-p) t))))))
+    ;; (debug)
+    (eval-buffer)))
 
 
 ;;; Enabling/disabling breeze
@@ -786,90 +792,6 @@ previous flymake error."
       (flymake-goto-prev-error))))
 
 
-;;; WIP Alternate files (this is currently very brittle, but it should
-;;; work for most of my projects).
-;;;
-;;; TODO Better docstrings
-;;; TODO move this logic to the inferior lisp!
-
-(defun breeze--candidate-aternate-directories ()
-  "Generate a list of existing alternate directories."
-  (let ((root (or (vc-root-dir)
-                  ;; when the current file is not yet commited,
-                  ;; `vc-root-dir' returns nil, but not this:
-                  (project-root (project-current)))))
-    (cl-remove-if-not
-     (lambda (fullpath)
-       (and
-        (file-exists-p fullpath)
-        (file-directory-p fullpath)))
-     (mapcar
-      (lambda (dirname) (expand-file-name
-                         (file-name-concat root dirname)))
-      '("src" "t" "test" "tests")))))
-
-;; (breeze--candidate-aternate-directories)
-;; => '("/home/fstamour/dev/breeze/src" "/home/fstamour/dev/breeze/tests")
-
-(defun breeze--split-file-name (file-name)
-  (cl-loop
-   for altdir in (breeze--candidate-aternate-directories)
-   for relative-path = (file-relative-name file-name altdir)
-   when (string-prefix-p altdir (expand-file-name relative-path))
-   do (cl-return (list altdir relative-path))))
-
-;; (breeze--split-file-name (buffer-file-name))
-;; => '("/home/fstamour/dev/breeze/src" "breeze.el")
-
-(cl-defun breeze--alternate-files (file-name &optional allp)
-  (cl-loop
-   with (dir path) = (breeze--split-file-name file-name)
-   for altdir in (breeze--candidate-aternate-directories)
-   for altpath = (file-name-concat altdir path)
-   when (and (not (string= dir altdir))
-             (or allp (file-exists-p altpath)))
-   collect altpath))
-
-;; TODO I should really check how to unit-tests emacs lisp...
-;; (equal
-;;  (breeze--alternate-files
-;;   (file-name-concat (vc-root-dir) "src/pattern.lisp"))
-;;  (list (expand-file-name
-;;         (file-name-concat (vc-root-dir) "tests/pattern.lisp"))))
-
-
-;;; The names breeze-other-file and breeze-other-file-other-window are
-;;; inspired by projectile's equivalent commands.
-
-(defun breeze-choose-other-file ()
-  (let ((candidates (breeze--alternate-files (buffer-file-name))))
-    (cond
-     ;; no candidates
-     ((null candidates)
-      (completing-read "Other file: " (breeze--alternate-files (buffer-file-name) t)))
-     ;; exactly one candidate
-     ((null (cdr candidates))
-      (car candidates))
-     ;; more than one candidates
-     (t (completing-read "Other file: " candidates)))))
-
-;; TODO would be nice if it suggested to create the alternate files if
-;; it didn't exist.
-(defun breeze-other-file ()
-  "Open other file."
-  (interactive)
-  (let ((other-file (breeze-choose-other-file)))
-    (when other-file
-      (find-file other-file))))
-
-(defun breeze-other-file-other-window ()
-  "Open other file in other window."
-  (interactive)
-  (let ((other-file (breeze-choose-other-file)))
-    (when other-file
-      (find-file-other-window other-file))))
-
-
 ;;; minor mode
 
 (defvar breeze-minor-mode-map
@@ -992,11 +914,11 @@ automatically enabling breeze-minor-mode in lisp-mode."
 (define-derived-mode breeze-major-mode prog-mode
   "BRZ")
 
-
 (keymap-set breeze-major-mode-map "M-RET" #'breeze-quickinsert)
 (keymap-set breeze-major-mode-map "C-." #'breeze-quickfix)
 (keymap-set breeze-major-mode-map "C-c C-c" #'breeze-eval-defun)
-(keymap-set breeze-major-mode-map "C-c o" #'breeze-other-file-other-window)
+(keymap-set breeze-major-mode-map "C-c o" #'breeze-other-file)
+(keymap-set breeze-major-mode-map "C-c C-o" #'breeze-other-file-other-window)
 
 ;; TODO use <remap> (keymap-set breeze-major-mode-map "<remap> <kill-line>" 'breeze-kill-line)
 
@@ -1027,7 +949,7 @@ automatically enabling breeze-minor-mode in lisp-mode."
 ;;;###autoload
 (breeze--defstub breeze-insert-defvar "Insert a defvar form.")
 ;;;###autoload
-(breeze--defstub breeze-interactive-eval "A command to interactively evaluate code.")
+(breeze--defstub breeze-insert-decoded-time-multiple-value-bind "Insert a cl:multiple-value-bind form to bind the output of cl:get-decoded-time")
 ;;;###autoload
 (breeze--defstub breeze-insert-loop-clause-for-on-list "Insert a loop clause to iterate on a list.")
 ;;;###autoload
@@ -1038,6 +960,8 @@ automatically enabling breeze-minor-mode in lisp-mode."
 (breeze--defstub breeze-insert-handler-bind-form "Insert handler bind form.")
 ;;;###autoload
 (breeze--defstub breeze-insert-loop-clause-for-hash "Insert a loop clause to iterate on a hash-table.")
+;;;###autoload
+(breeze--defstub breeze-declaim-inline "Declaim inline the current top-level function.")
 ;;;###autoload
 (breeze--defstub breeze-insert-defgeneric "Insert a defgeneric form.")
 ;;;###autoload
@@ -1051,9 +975,17 @@ automatically enabling breeze-minor-mode in lisp-mode."
 ;;;###autoload
 (breeze--defstub breeze-insert-make-load-form-boilerplate "Insert a make-load-form method form.")
 ;;;###autoload
+(breeze--defstub breeze-quickload "Choose a system to load with quickload.")
+;;;###autoload
+(breeze--defstub breeze-insert-fancy-sbcl-shebang "Insert fancy sbcl shebang at the start of the buffer.")
+;;;###autoload
 (breeze--defstub breeze-insert-defpackage "Insert a defpackage form.")
 ;;;###autoload
+(breeze--defstub breeze-other-file "Find the alternative file for the current file.")
+;;;###autoload
 (breeze--defstub breeze-quickfix "Given the context, suggest some applicable commands.")
+;;;###autoload
+(breeze--defstub breeze-other-file-other-window "Find the alternative file for the current file.")
 ;;;###autoload
 (breeze--defstub breeze-insert-loop-clause-for-in-list "Insert a loop clause to iterate in a list.")
 ;;;###autoload
@@ -1061,25 +993,29 @@ automatically enabling breeze-minor-mode in lisp-mode."
 ;;;###autoload
 (breeze--defstub breeze-insert-defparameter "Insert a defparameter form.")
 ;;;###autoload
+(breeze--defstub breeze-insert-breeze-define-command "Insert a breeze:define-command form.")
+;;;###autoload
+(breeze--defstub breeze-insert-fancy-emacs-propline "Insert a fancy emacs propline.")
+;;;###autoload
+(breeze--defstub breeze-interactive-eval-command "A command to interactively evaluate code.")
+;;;###autoload
 (breeze--defstub breeze-insert-asdf "Insert an asdf system definition form.")
+;;;###autoload
+(breeze--defstub breeze-insert-initialize-instance~method "Insert a ~(defmethod initialize-instance ...)~ form.")
 ;;;###autoload
 (breeze--defstub breeze-insert-in-package-cl-user "Insert (cl:in-package #:cl-user)")
 ;;;###autoload
 (breeze--defstub breeze-insert-lambda "Insert a lambda form.")
 ;;;###autoload
-(breeze--defstub breeze-quickproject "Create a project interactively using quickproject.")
+(breeze--defstub breeze-insert-make-array "Insert a make-array form.")
 ;;;###autoload
 (breeze--defstub breeze-insert-defun "Insert a defun form.")
 ;;;###autoload
 (breeze--defstub breeze-kill-sexp "Kill the expression following point.")
 ;;;###autoload
-(breeze--defstub breeze-insert-parachute-define-test "Insert a parachute:define-test form")
-;;;###autoload
 (breeze--defstub breeze-insert-defconstant "Insert a defconstant form.")
 ;;;###autoload
 (breeze--defstub breeze-insert-class-slot "Insert a defclass slot form.")
-;;;###autoload
-(breeze--defstub breeze-insert-breeze-define "Insert a breeze:define-command form.")
 ;;;###autoload
 (breeze--defstub breeze-insert-define-constant "Insert a alexandria:define-constant form.")
 ;;;###autoload

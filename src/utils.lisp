@@ -13,6 +13,7 @@
    #:before-last
    #:subseq-displaced
    #:length>1?
+   #:length=1
    #:with-collectors)
   (:export
    #:stream-size)
@@ -170,7 +171,7 @@ directories, recursively."
   "Try to find the root of a directory under version control. Only
 support git for now, but support for other version control systems
 should be easy to add."
-  (alexandria:if-let ((git-witness-directory (find-git-witness-folder path)))
+  (alexandria:when-let ((git-witness-directory (find-git-witness-folder path)))
     (uiop:pathname-parent-directory-pathname git-witness-directory)))
 
 (defun find-asdf-in-parent-directories (starting-path)
@@ -192,6 +193,11 @@ should be easy to add."
 (defun length>1? (list)
   "Is the length of LIST greater than 1?"
   (not (null (cdr list))))
+
+(defun length=1 (list)
+  "Is the length of LIST equal to 1"
+  (and list
+       (null (cdr list))))
 
 (defun before-last (list)
   "Return the cons just before the last cons in LIST."

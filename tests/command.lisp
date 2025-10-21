@@ -288,8 +288,12 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 (define-test+run find-file
   (with-fake-command-handler
       ((mock-send-out (value)
-         (is equalp '("find-file" "hello.lisp") value)))
-    (find-file "hello.lisp")))
+         (is equalp '("find-file" "hello.lisp" ()) value)))
+    (find-file "hello.lisp"))
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("find-file" "hello.lisp" t) value)))
+    (find-file "hello.lisp" t)))
 
 (define-test+run return-value-from-command
   (with-fake-command-handler

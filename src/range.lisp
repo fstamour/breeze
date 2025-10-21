@@ -12,7 +12,7 @@
     :accessor start)
    (end
     :initarg :end
-    :initform +end+
+    :initform nil
     :accessor end)))
 
 (defun range (start end)
