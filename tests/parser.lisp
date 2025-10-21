@@ -1277,6 +1277,99 @@ reaally?")
 #++
 (read-from-string ":\|")
 
+(defparameter *code-with-conflicts-diff3-conflictstyle*
+  (concatenate 'string ";;;; Some code with git conflict markers (diff3 style)
+(some
+ a
+" "<<<<<<< Updated upstream
+ b
+ d)
+" "||||||| Stash base
+ c)
+" "=======
+ c
+ e)
+" ">>>>>>> Stashed changes
+"))
+
+(defparameter *code-with-conflicts*
+  (concatenate 'string ";;;; Some code with git conflict markers
+(some
+ a
+" "<<<<<<< ours
+ b
+ d)
+" "=======
+ c
+ e)
+" ">>>>>>> theirs"))
+
+(defun search-line-starting-with (prefix string)
+  (let ((start (search (concatenate 'string #.(string #\Newline) prefix)
+                       string)))
+    (when start
+      (let ((end (position #\Newline string :start (+ start (length prefix) 1))))
+        (range start (or end (length string)))))))
+
+(defun find-git-conflict-markers (string &key (start 0))
+  (alexandria:when-let*
+      ((ours-marker (search-line-starting-with "<<<<<<< " string))
+       (separator-marker (search-line-starting-with "=======" string))
+       (theirs-marker (search-line-starting-with ">>>>>>> " string)))
+    (let ((base-marker (search-line-starting-with "||||||| " string)))
+      ;; prefix: from start to ours' start
+      ;; ours: from ours' end to (or base separator)'s start
+      ;; base: when base-marker, from base's end to separator's start
+      ;; theirs: from separator's end to their's start
+      ;; suffix: from their's end to end
+      (let ((prefix-range (range start (start ours-marker)))
+            (ours-range (range (end ours-marker)
+                               (start (or base-marker separator-marker))))
+            (base-range (when base-marker
+                          (range (end base-marker) (start separator-marker))))
+            (theirs-range (range (end separator-marker)
+                                 (start theirs-marker)))
+            (suffix-range (range (end theirs-marker)
+                                 (length string))))
+        (list prefix-range
+              ours-range
+              base-range
+              theirs-range
+              suffix-range)))))
+
+(defun test-find-git-conflict-markers (string)
+  (mapcar (lambda (range)
+            (when range
+              (subseq string (start range) (end range))))
+          (find-git-conflict-markers string)))
+
+(define-test+run find-git-conflict-markers
+  (is eqv '(";;;; Some code with git conflict markers
+(some
+ a"
+            "
+ b
+ d)"
+            NIL "
+ c
+ e)"
+            "")
+      (test-find-git-conflict-markers *code-with-conflicts*))
+  (is eqv '(";;;; Some code with git conflict markers (diff3 style)
+(some
+ a"
+            "
+ b
+ d)"
+            "
+ c)"
+            "
+ c
+ e)"
+            "
+")
+      (test-find-git-conflict-markers *code-with-conflicts-diff3-conflictstyle*)))
+
 
 ;;; Unparse
 
