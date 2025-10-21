@@ -5,3 +5,11 @@
 
 - [[id:5d211d9a-0749-4adb-abe0-e66133d09b5b][Editor integrations]]
 - [[id:54e6cd55-803b-4e15-82bc-a332130d020e][Sly/Slime integration]]
+
+** Ideas
+:PROPERTIES:
+:ID:       eb1f399a-e723-4a5d-91bd-26b473faca5d
+:END:
+
+Make breeze's command "work" in occur's buffer
+e.g. eval this (with the right package), or M-.

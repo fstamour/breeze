@@ -20,11 +20,51 @@
 
 * Commands and default keymap
 
-| Command                 | Description                                                                                   | Default Key |
-|-------------------------+-----------------------------------------------------------------------------------------------+-------------|
-| breeze-quickfix         | Choose from a list of commands applicable to the current context.                             | `C-.`       |
-| breeze-capture          | Quickly create a lisp file in a pre-determined directory.                                     |             |
-| breeze-scaffold-project | Interactively create a project in `quicklisp`'s `local-projects` folder using `quickproject`. |             |
+| Command                                            | Description                                                                     | Default Key  |
+|----------------------------------------------------+---------------------------------------------------------------------------------+--------------|
+| breeze-quickfix                                    | Given the context, suggest some applicable commands.                            | ~C-.~        |
+| breeze-quickinsert                                 | Given the context, suggest applicable snippets.                                 | ~M-RET~      |
+| breeze-capture                                     | Quickly create a lisp file in a pre-determined directory.                       |              |
+| breeze-quickproject                                | Create a project interactively using quickproject.                              |              |
+| breeze-kill-worker-threads                         | Find threads named "worker", then destroy them.                                 |              |
+| breeze-completions-at-point                        | completion-at-point                                                             |              |
+| breeze-declaim-inline                              | Declaim inline the current top-level function.                                  |              |
+| breeze-insert-asdf                                 | Insert an asdf system definition form.                                          |              |
+| breeze-insert-breeze-define-command                | Insert a breeze:define-command form.                                            |              |
+| breeze-insert-class-slot                           | Insert a defclass slot form.                                                    |              |
+| breeze-insert-decoded-time-multiple-value-bind     | Insert a cl:multiple-value-bind form to bind the output of cl:get-decoded-time  |              |
+| breeze-insert-defclass                             | Insert a defclass form.                                                         |              |
+| breeze-insert-defconstant                          | Insert a defconstant form.                                                      |              |
+| breeze-insert-defgeneric                           | Insert a defgeneric form.                                                       |              |
+| breeze-insert-define-constant                      | Insert a alexandria:define-constant form.                                       |              |
+| breeze-insert-defmacro                             | Insert a defmacro form.                                                         |              |
+| breeze-insert-defmethod                            | Insert a defmethod form.                                                        |              |
+| breeze-insert-defpackage                           | Insert a defpackage form.                                                       |              |
+| breeze-insert-defparameter                         | Insert a defparameter form.                                                     |              |
+| breeze-insert-defun                                | Insert a defun form.                                                            |              |
+| breeze-insert-defvar                               | Insert a defvar form.                                                           |              |
+| breeze-insert-handler-bind-form                    | Insert handler bind form.                                                       |              |
+| breeze-insert-handler-case-form                    | Insert handler case form.                                                       |              |
+| breeze-insert-in-package-cl-user                   | Insert (cl:in-package #:cl-user)                                                |              |
+| breeze-insert-lambda                               | Insert a lambda form.                                                           |              |
+| breeze-insert-local-nicknames                      | Insert local nicknames.                                                         |              |
+| breeze-insert-loop-clause-for-hash                 | Insert a loop clause to iterate on a hash-table.                                |              |
+| breeze-insert-loop-clause-for-in-list              | Insert a loop clause to iterate in a list.                                      |              |
+| breeze-insert-loop-clause-for-on-list              | Insert a loop clause to iterate on a list.                                      |              |
+| breeze-insert-make-array                           | Insert a make-array form.                                                       |              |
+| breeze-insert-make-load-form-boilerplate           | Insert a make-load-form method form.                                            |              |
+| breeze-insert-parachute-define-test                | Insert a parachute:define-test form                                             |              |
+| breeze-insert-print-unreadable-object-boilerplate  | Insert a print-object method form.                                              |              |
+| breeze-insert-setf-defun                           | Insert a setf function form e.g. (defun (setf ...) ...)                         |              |
+| breeze-interactive-eval-command                    | A command to interactively evaluate code.                                       |              |
+| breeze-kill-sexp                                   | Kill the expression following point.                                            |              |
+| breeze-other-file                                  | Find the alternative file for the current file.                                 |              |
+| breeze-test-insert                                 | This is a dummy command to test the "insert" request.                           |              |
+| breeze-test-read-string                            | This is a dummy command to test the "read-string" request.                      |              |
+| breeze-insert-initialize-instance~method           | Insert a ~(defmethod initialize-instance ...)~ form.                            |              |
+| breeze-insert-fancy-emacs-propline                 | Insert a fancy emacs propline.                                                  |              |
+| breeze-insert-fancy-sbcl-shebang                   | Insert fancy sbcl shebang at the start of the buffer.                           |              |
+
 
 * Related notes
 

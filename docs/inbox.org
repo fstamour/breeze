@@ -77,6 +77,9 @@ preserve the formatting. There's a bunch of tools to format the code.
 
 * To classify
 
+https://github.com/phantomics/seed
+Interactive software environment based on Common Lisp.
+
 https://quickdocs.org/cl-scripting
 https://quickdocs.org/repl-utilities
 [[https://github.com/slime/slime/issues/532][slime issue #532: Rename package and all the symbol prefixes]]
@@ -111,8 +114,15 @@ Emacs supports ~(declare (pure t) (side-effect-free t))~
 
 [[https://github.com/programingship/common-lisp-sly][Sly with spacemacs]]
 
+https://github.com/mmontone/duologue - High level user interaction
+library for Common Lisp
 
-https://github.com/mmontone/duologue - High level user interaction library for Common Lis
+* Code maps in visual studio
+
+!!! This is exactly what I wanted...
+
+
+
 
 * Discord
 

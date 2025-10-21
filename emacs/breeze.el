@@ -386,63 +386,32 @@ receiving the data it requested."
 
 ;;; Dynamically define interactive (cl-driven) commands in emacs
 
-(defun breeze--remove-suffix (suffix string)
-  "String utility to remove the SUFFIX from STRING if it's present."
-  (if (string-suffix-p suffix string)
-      (cl-subseq string 0 (- (length string)
-                             (length suffix)))
-    string))
-
-(defun breeze--remove-prefix (prefix string)
-  "String utility to remove the PREFIX from STRING if it's present."
-  (if (string-prefix-p prefix string)
-      (cl-subseq string (length prefix))
-    string))
-
-(defun breeze-translate-command-symbol (symbol)
-  "Translate \"common lisp\" symbols to \"emacs lisp\" symbols. Used
-to dynamically generate emacs commands for each \"breeze
-commands\"."
-  (let ((name (symbol-name symbol)))
-    (cl-destructuring-bind (package command)
-        (split-string name ":")
-      (list symbol
-            (if (string-prefix-p "breeze" name)
-                (intern (format "breeze-%s"
-                                (breeze--remove-prefix
-                                 "breeze-"
-                                 (breeze--remove-suffix "-command" command))))
-              ;; TODO maybe add some way to customize this
-              symbol)))))
-
-;; TODO this handles only very simplistic cases and it's aleady complex...
-;; maybe I should do this translation on the CL side and return something easier to handle???
-(defun breeze-translate-command-lambda-list (lambda-list)
-  "Translate a \"breeze command lambda list\" to an \"emacs lisp\"
-lambda list. Used to dynamically generate emacs commands for each
-\"breeze commands\"."
-  (cl-loop for symbol in lambda-list
-           for sanitized-symbol = (intern (car (last (split-string (symbol-name symbol) ":"))))
-           collect sanitized-symbol))
-
 ;; TODO This creates new commands, but what happens if a command was removed?
 (defun breeze-refresh-commands ()
-  "Ask the inferior lisp which commands it has and define
-corresponding commands in emacs."
+  "Ask the inferior lisp which commands it has and define corresponding
+commands in emacs."
   (interactive)
-  (cl-loop for (symbol cl-lambda-list docstring) in (breeze-eval "(breeze.command:list-all-commands t)")
-           for (cl-symbol el-symbol) = (breeze-translate-command-symbol symbol)
-           for el-lambda-list = (breeze-translate-command-lambda-list cl-lambda-list)
-           unless (eq 'breeze-lint el-symbol)
-           do (let ((defun `(cl-defun ,el-symbol (&optional ,@el-lambda-list)
-                              ,docstring
-                              ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
-                              (interactive)
-                              (unless (breeze-disabled-p)
-                                (breeze-run-command ,(symbol-name cl-symbol) ,@el-lambda-list)))))
-                ;; (breeze-debug "%S" defun)
-                (eval defun)
-                (setf (get el-symbol 'breeze-command-p) t))))
+  (dolist (command-plist (breeze-eval "(breeze.command:list-all-commands-for-editor)"))
+    ;; this can be confusing:
+    ;;  - name is a symbol
+    ;;  - symbol is a string of the cl symbol
+    ;;  - lambda-list is a list of symbols that only contains the name
+    ;;    of the arguments (no &optional, no default values, etc.)
+    (cl-destructuring-bind (&key name symbol lambda-list documentation)
+        command-plist
+      (let* ((defun `(cl-defun ,name (&optional ,@lambda-list)
+                       ,documentation
+                       ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
+                       (interactive)
+                       (unless (breeze-disabled-p)
+                         (if (and (breeze-list-loaded-listeners)
+                                  (breeze-listener-connected-p)
+                                  (breeze-validate-if-breeze-package-exists))
+                             (breeze-run-command ,symbol ,@lambda-list)
+                           (breeze--stub ,symbol))))))
+        ;; (breeze-debug "%S" defun)
+        (eval defun)
+        (setf (get name 'breeze-command-p) t)))))
 
 
 ;;; Enabling/disabling breeze

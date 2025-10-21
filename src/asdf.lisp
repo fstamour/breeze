@@ -13,6 +13,7 @@
    #:recompile-system
    #:system-directory
    #:loadedp
+   #:system-enough-pathname
    #:walk-dependencies))
 
 (in-package #:breeze.asdf)
@@ -38,12 +39,14 @@ file (including the one passed as argument)."
                    (mapcar #'asdf/component:component-pathname
                            (asdf/component:sub-components system))))))
 
-(defun find-all-related-files (system)
+(defun find-all-related-files (system &key (include-asd t))
   "List all files in SYSTEM and in the other systems defined in the same
 system definition file."
   (remove-duplicates
    (alexandria:flatten
-    (mapcar #'system-files (find-all-related-systems system)))))
+    (mapcar (lambda (system)
+              (system-files system :include-asd include-asd))
+            (find-all-related-systems system)))))
 
 (defun system-fasl-directory (system-designator)
   "Find the directory of a system's fasl files."
@@ -73,6 +76,13 @@ system definition file."
   (uiop:pathname-directory-pathname
    (asdf:system-source-file
     (asdf:find-system system-designator))))
+
+;; TODO in some systems, the *.asd file is not at the root of the project, perhaps usethe vc root?
+(defun system-enough-pathname (pathname system)
+  "Given a pathname, return the relative pathname from the root of the project (system)."
+  (uiop:enough-pathname
+   pathname
+   (asdf:system-source-directory system)))
 
 #++
 (defun apropos-system ())

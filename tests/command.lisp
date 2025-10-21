@@ -16,7 +16,9 @@
                 #:channel-out
                 #:context
                 #:context*
-                #:*command*)
+                #:*command*
+                #:command-name-for-editor
+                #:command-lambda-list-for-editor)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -306,3 +308,36 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
       ((mock-send-out (value)
          (is equalp '("pulse" 0 100) value)))
     (pulse 0 100)))
+
+
+
+(define-test+run command-name-for-editor
+  (is string= "breeze-x" (command-name-for-editor 'x))
+  (is string= "breeze-find-file" (command-name-for-editor 'find-file))
+  (is string= "breeze-dwim" (command-name-for-editor 'breeze-dwim))
+  (is string= "breeze-dwim" (command-name-for-editor '|breeze-dwim|))
+  (is string= "breeze-dwim" (command-name-for-editor '|breeze-DWIM|)))
+
+(defun same-symbol-name-p (expected got)
+  (every #'string= expected got))
+
+(define-test+run same-symbol-name-p
+  (true (same-symbol-name-p '(#:x) '(x)))
+  (true (same-symbol-name-p '(#:x) '(:x)))
+  (false (same-symbol-name-p '(#:x) '(:|x|))))
+
+(define-test+run command-lambda-list-for-editor
+  (is same-symbol-name-p ()
+      (command-lambda-list-for-editor '()))
+  (is same-symbol-name-p '(#:x)
+      (command-lambda-list-for-editor '(x)))
+  (is same-symbol-name-p '(#:x #:y)
+      (command-lambda-list-for-editor '(x y)))
+  (is same-symbol-name-p '(#:x #:&option #:y)
+      (command-lambda-list-for-editor '(x &option y)))
+  (is same-symbol-name-p '(#:x #:y)
+      (command-lambda-list-for-editor '(x &optional y)))
+  (is same-symbol-name-p '(#:x #:y)
+      (command-lambda-list-for-editor '(x &optional (y 0))))
+  (is same-symbol-name-p '(#:x #:y)
+      (command-lambda-list-for-editor '(x &key (y "default" yp)))))

@@ -489,3 +489,5 @@ otherwise, the forms in the body are ignored.  |#
 ;; the macro "formatter" _must_ take a "string literal"
 
 ;; :cl:print => cl:print
+
+;; If we parse #car, the user probably meant #'car

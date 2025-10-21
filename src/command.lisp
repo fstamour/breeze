@@ -64,6 +64,7 @@
    ;; Command discovery and documentation
    #:commandp
    #:list-all-commands
+   #:list-all-commands-for-editor
    #:describe-command
    #:command-docstring
    #:command-description
@@ -352,6 +353,7 @@ uses the throw tag to stop the command immediately."
 ;; linter, etc) the editor becomes unusable. Will need to add an
 ;; argument `command-function'
 (defun cancel-command-on-error (id thunk)
+  (declare (ignorable id))
   (tagbody
    :retry
      (restart-case
@@ -682,31 +684,140 @@ resulting string to the editor."
 
 ;;; Command discovery and documentation
 
-(defun commandp (symbol)
-  (get symbol 'breeze.command::commandp))
+;; TODO keep a list of removed commands?
+;;  - hook into "unregister-comman"
+;;   - don't forget to remove a command from the list if it's registered
+;;     again
+;; It's still possible for someone to `fmakunbound' a command without
+;; deregistering it. We should try to detect that as well.
+;; There's _also" the case where someone `unexport' the function...
 
-(defun list-all-commands (&optional with-details-p)
+(defclass command-set ()
+  ((commands
+    :initform (make-hash-table)
+    :initarg :commands
+    :reader commands
+    :documentation "Set of commands.")
+   (timestamp
+    :initform nil
+    :initarg :timestamp
+    :accessor timestamp
+    :documentation "Timestamp that is updated everytime a command is (re)defined. Used to
+figure out if the editor is out of sync.")
+   (lock
+    :initform (bt2:make-lock :name "command-set lock")
+    :initarg :lock
+    :accessor lock
+    :documentation "Mutex to access this set of commands."))
+  (:documentation "A set of commands. Includes a mutex lock for thread-safe access and a
+timestamp to help synchronisation (e.g. with an editor)."))
+
+(defun %touch-commands (command-set)
+  "Update an internal timestamp used by the editor(s) to know if any
+commands where updated, addeded or removed since last time it
+refreshed the list of commands."
+  (setf (timestamp command-set) (get-universal-time)))
+
+(defun register-command (command-set command details)
+  "Register COMMAND in COMMAND-SET. DETAILS is expected to be a plist
+containing at least the keys :lambda-list :documentation and :declarations."
+  (check-type command-set command-set)
+  (check-type command symbol)
+  ;; validating the details
+  (destructuring-bind (&key lambda-list documentation declarations)
+      details
+    (declare (ignore declarations))
+    (check-type documentation string)
+    (check-type lambda-list list))
+  (bt2:with-lock-held ((lock command-set))
+    (%touch-commands command-set)
+    (setf (gethash command (commands command-set)) details)))
+
+(defun unregister-command (command-set command)
+  "Unregister COMMAND from COMMAND-SET."
+  (check-type command symbol)
+  (bt2:with-lock-held ((lock command-set))
+    (%touch-commands command-set)
+    (remhash command (commands command-set))))
+
+
+;;; *Commands*
+
+(defvar *commands* (make-instance 'command-set)
+  "The set of all registed commands.")
+
+(defun register-command* (command details)
+  "Register COMMAND in the current command-set `*commands*'."
+  (register-command *commands* command details))
+
+(defun unregister-command* (command)
+  "Unregister COMMAND from the current command-set `*commands*'."
+  (unregister-command* command))
+
+(defun find-command (command)
+  "Find COMMAND in the current command-set `*commands*'."
+  (check-type command symbol)
+  (gethash command (commands *commands*)))
+
+(defun commandp (command)
+  "Test if COMMAND is a symbol that designate a function, that it is
+registered in the current command-set `*commands*' and that it is
+exported from its home package."
+  (and
+   (symbolp command)
+   (fboundp command)
+   (find-command command)
+   (breeze.xref:externalp command)))
+
+(defun list-all-commands ()
+  "Get the list of commands (list of symbols) registerd in the current
+command-set `*commands*'."
+  (alexandria:hash-table-keys (commands *commands*)))
+
+
+;;; Synchronising the list of commands with the editor
+
+(defun command-name-for-editor (command)
+  "Compute a name for COMMAND suitable for an editor. Returns a lowercase
+string. prefixed with \"breeze-\"."
+  (check-type command symbol)
+  (breeze.string:ensure-prefix
+   "breeze-"
+   (string-downcase (symbol-name command))))
+
+(defun command-lambda-list-for-editor (lambda-list)
+  "Compute a lambda-list more suitable for an editor. Returns a list of
+uninterned symbols."
+  (loop :for el :in lambda-list
+        :for sym := (etypecase el (cons (car el)) (symbol el))
+        :for name := (symbol-name sym)
+        :unless (member sym '(&optional &aux &key &allow-other-keys))
+          :collect (make-symbol name)))
+
+(defun list-all-commands-for-editor ()
+  "Compute a list of command specifications suitable for an
+editor. Returns a list of plist."
   (loop
-    :for package :in (list-all-packages)
-    #++ (breeze.xref:find-packages-by-prefix "breeze.")
-    :append (loop
-              :for symbol :being :each :external-symbol :of package
-              :for lambda-list-or-t = (commandp symbol)
-              :when lambda-list-or-t
-                :collect (if with-details-p
-                             (list symbol (if (eq t lambda-list-or-t)
-                                              nil
-                                              lambda-list-or-t)
-                                   (documentation symbol 'function))
-                             symbol))))
+    :for command-symbol :being :the :hash-key :of (commands *commands*) :using (hash-value details)
+    :for documentation := (getf details :documentation)
+    :for lambda-list := (command-lambda-list-for-editor (getf details :lambda-list))
+    ;; TODO is interactive
+    :for name := (command-name-for-editor command-symbol)
+    ;; The editor should only see the commands that are exported
+    :when (and (breeze.xref:externalp command-symbol)
+               ;; TODO this is a hack
+               (not (string= name "breeze-lint")))
+      :collect (list
+                :name (make-symbol (string-upcase name))
+                :symbol (symbol-package-qualified-name command-symbol)
+                :lambda-list lambda-list
+                :documentation documentation)))
 
-(defgeneric describe-command (command)
-  (:documentation "Give a user-friendly description for a command.")
-  (:method ((command symbol))
-    (symbol-package-qualified-name command)))
+;; (list-all-commands-for-editor)
 
 (defun command-docstring (function)
   "Return the function's docstring, signals an error if it's nil."
+  ;; WIP find-command
   (let ((doc (documentation function 'function)))
     (unless doc
       (error
@@ -719,8 +830,26 @@ resulting string to the editor."
   "Return a list of 2 elements: (FUNCTION its-docstring)"
   (list function (command-docstring function)))
 
+
 
 ;;; Utilities to help creating commands less painful.
+
+#|
+TODO list/document/design/validate custom declarations
+ - (context where &key :extension)
+   - where
+     - :top-level
+     - cl:defun
+     - :loop-clause
+     - :format-string
+     - :expression
+     - (funcall f) ... ?
+     - (cl:defclass :slot-specifier)
+     - skipp - t nil :whitespace :comment
+   - context: first line, last line, bol, eol...
+ - (interactive ...)
+
+|#
 
 (defmacro define-command (name lambda-list
                           &body body)
@@ -731,19 +860,26 @@ Example:
 (define-command hi ()
   (message \"Hi ~a\" (read-string \"What is your name?\")))
 "
+  ;; Parse the body to correctly extract the docstring and the
+  ;; declarations
   (multiple-value-bind (remaining-forms declarations docstring)
       (alexandria:parse-body body :documentation t)
     (check-type docstring string
                 "Docstring are mandatory for commands")
+    ;; Partition the declarations between "cl" declarations and
+    ;; "command" declarations.
     (multiple-value-bind (command-declarations cl-declarations)
         (loop :for (_ specifier) :in declarations
               :for identifier = (car specifier)
+              ;; recognized declarations:
               :if (member identifier '(context))
                 :collect specifier :into command-declarations
               :else
                 :collect specifier :into cl-declarations
               :finally (return (values command-declarations cl-declarations)))
+      ;;
       `(values (prog1
+                   ;; define
                    (defun ,name ,lambda-list
                      ;; Add the users' declarations
                      ,docstring
@@ -751,12 +887,9 @@ Example:
                              :collect `(declare ,declaration))
                      (progn ,@remaining-forms)
                      (send "done"))
-                 ;; Add flags into the symbol's plist
-                 (setf (get ',name 'commandp) ',(or lambda-list t))
-                 ,@(loop :for (identifier . rest) :in command-declarations
-                         :for args = (cond
-                                       ((null rest) t)
-                                       ((null (cdr rest)) (car rest))
-                                       (t rest))
-                         :collect `(setf (get ',name ',identifier) ',args)))
+                 ;; register
+                 (register-command* ',name (list
+                                            :lambda-list ',lambda-list
+                                            :documentation ,docstring
+                                            :declarations ',command-declarations)))
                ',command-declarations))))

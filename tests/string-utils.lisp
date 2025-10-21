@@ -76,6 +76,13 @@
     (true (symbol-starts-with '? "?"))
     (true (symbol-starts-with '?x "?"))))
 
+(define-test+run without-prefix
+  (is equal "a" (without-prefix "" "a"))
+  (is equal "" (without-prefix "a" "a"))
+  (is equal "quickfix" (without-prefix "breeze-" "breeze-quickfix"))
+  (is equal "asdf" (without-prefix #\s "asdf"))
+  (is equal "sdf" (without-prefix #\a "asdf")))
+
 (define-test+run ensure-prefix
   (is equal "a" (ensure-prefix "" "a"))
   (is equal "*" (ensure-prefix "*" ""))

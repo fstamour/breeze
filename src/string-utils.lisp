@@ -21,6 +21,7 @@
    #:whitespacep
    #:symbol-package-qualified-name
    #:symbol-starts-with
+   #:without-prefix
    #:ensure-prefix
    #:ensure-prefixes
    #:ensure-suffix
@@ -300,6 +301,18 @@ AROUND. Add elipseses before and after if necessary."
          (character (char= prefix (char (symbol-name symbol) 0)))
          (string (alexandria:starts-with-subseq prefix
                                                 (symbol-name symbol))))))
+
+(defun without-prefix (prefix string)
+  (etypecase prefix
+    (null string)
+    (character
+     (if (alexandria:starts-with prefix string)
+         (subseq string 1)
+         string))
+    (string
+     (if (alexandria:starts-with-subseq prefix string)
+         (subseq string (length prefix))
+         string))))
 
 (defun ensure-prefix (prefix string)
   (etypecase prefix

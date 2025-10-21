@@ -481,7 +481,7 @@ need to de-duplicate pattern objects whithin one pattern.)
   (either (%compile-pattern (rest patterns))))
 
 (defmethod compile-compound-pattern ((token (eql :symbol)) pattern)
-  "Compile (:symbol ...)"
+  "Compile (:symbol [name [package-name [qualification]]])"
   (destructuring-bind (&optional
                          (symbol-name-pattern :wild)
                          (package-name-pattern :wild)

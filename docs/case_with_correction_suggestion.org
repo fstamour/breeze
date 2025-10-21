@@ -16,3 +16,8 @@ a corresponding restart for it.
 #+end_src
 
 What if there are many options with the same edit distance?
+
+
+This might be useful:
+"Wrap implementation-dependent accessor for restarts in CL"
+https://git.sr.ht/~yana/trivial-restart-accessors/

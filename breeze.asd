@@ -56,7 +56,9 @@
    (:file "command"
     :depends-on ("utils"
                  "configuration"
-                 "indirection"))
+                 "indirection"
+                 ;; for externalp
+                 "xref"))
    (:file "asdf")
    (:file "thread" :depends-on ("xref"))
    (:file "xref" :depends-on ("utils"))

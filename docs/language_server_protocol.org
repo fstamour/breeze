@@ -7,3 +7,7 @@
 
 - https://github.com/cxxxr/cl-lsp
 - related: https://marketplace.visualstudio.com/items?itemName=ailisp.commonlisp-vscode
+
+
+https://github.com/manateelazycat/lsp-bridge
+A blazingly fast LSP client for Emacs

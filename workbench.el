@@ -254,27 +254,29 @@ slime-net-processes
 
 (save-excursion
   (with-current-buffer (find-file-noselect breeze-breeze.el)
-    ;; TODO maybe "unnarrow"
-    (goto-char (point-max))
-    (let* ((end (search-backward "\n\n" nil t))
-           (start (progn
-                    (search-backward "" nil t)
-                    ;; Skip the C-l and C-m chararcters
-                    (forward-line)
-                    ;; inspecting, just to make sure
-                    ;; (thing-at-point 'line t)
-                    ;; Skip the ";;; This page ...." and leave an
-                    ;; empty line
-                    (forward-line 2)
-                    (point))))
+    (save-restriction
+      (widen)
+      (goto-char (point-max))
+      (let* ((end (search-backward "\n\n" nil t))
+             (start (progn
+                      (search-backward "" nil t)
+                      ;; Skip the C-l and C-m chararcters
+                      (forward-line)
+                      ;; inspecting, just to make sure
+                      ;; (thing-at-point 'line t)
+                      ;; Skip the ";;; This page ...." and leave an
+                      ;; empty line
+                      (forward-line 2)
+                      (point))))
 
-      (replace-region-contents
-       start end
-       (lambda ()
-         (with-temp-buffer
-           (dolist (command (breeze-list-commands))
-             (insert (format ";;;###autoload\n%S\n" `(breeze--defstub ,command ,(documentation command t)))))
-           (buffer-substring-no-properties (point-min) (point-max))))))))
+        (replace-region-contents
+         start end
+         (lambda ()
+           (with-temp-buffer
+             (dolist (command (breeze-list-commands))
+               (insert (format ";;;###autoload\n%S\n" `(breeze--defstub ,command ,(documentation command t)))))
+             (buffer-substring-no-properties (point-min) (point-max)))))))
+    (save-buffer)))
 
 
 
