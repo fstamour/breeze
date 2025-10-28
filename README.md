@@ -1,6 +1,6 @@
 # Breeze
 
-- [codeberg](https://codeberg.com/fstamour/breeze)
+- [codeberg](https://codeberg.org/fstamour/breeze)
 - [gitlab](https://gitlab.com/fstamour/breeze)
 - [github](https://github.com/fstamour/breeze)
 
