@@ -81,6 +81,10 @@ FROM integration-tests-base AS integration-tests-run
 # RUN emacs -batch -l ert -l /breeze/tests/emacs/breeze-test.el -f ert-run-tests-batch-and-exit
 
 # TODO emacs (x11) complains that stdin is not a tty, might need to run it under screen
+#
+# -t file, --terminal=file
+#                      Use specified file as the terminal instead of using stdin/stdout.  This must be the first argument specified in the command line.
+#
 # Run the demo
 RUN scripts/demo/demo-recorder.sh
 

@@ -14,7 +14,7 @@
 
   ;; "cl-slime"
   "emacs-slime"
-  ;; "emacs-sly"
+  "emacs-sly"
   "cl-bordeaux-threads"
   "cl-alexandria"
 

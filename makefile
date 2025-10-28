@@ -32,7 +32,7 @@ launch-emacs:
 		--preserve='^XAUTHORITY$$' --expose="$${XAUTHORITY}" --preserve='^DISPLAY$$' \
 		--network \
 		--no-cwd --expose=$$PWD=$$HOME/breeze \
-		--expose=$$PWD/emacs/dot-emacs.el=$$HOME/.emacs \
+		--expose=$$PWD/tests/emacs/dot-emacs.d=$$HOME/.emacs.d/ \
 		-- emacs
 
 # Run **SOME** emacs test in a container, using guix
