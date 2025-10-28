@@ -38,6 +38,20 @@
   ;; To appease sbcl's type checking xD
   #-quicklisp (list))
 
+#|
+
+; in: DEFUN CHOOSE-LOCAL-PROJECT-DIRECTORIES
+;     (BREEZE.COMMAND:CHOOSE "Please choose where to create the project: "
+;                            BREEZE.PROJECT::DIRECTORIES)
+;
+; note: deleting unreachable code
+
+;     (FIRST BREEZE.PROJECT::DIRECTORIES)
+;
+; note: deleting unreachable code
+
+|#
+
 (defun choose-local-project-directories ()
   (let ((directories (ql-local-project-directories)))
     (cond

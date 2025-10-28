@@ -6,17 +6,11 @@
 * Features
 
 - Snippets
-- Capture ideas easily (`breeze-capture`)
-- Create project interactively
-- Refactor
-- Provides a minor-mode `breeze-mode`
-
-* Setup
-
-#+begin_src emacs-lisp
-(load `quicklisp/local-projects/breeze/src/breeze.el`)
-(add-hook 'lisp-mode-hook #'breeze-mode)
-#+end_src
+- Capture ideas easily (=breeze-capture=)
+- Create project interactively (=breeze-quickproject=)
+- Refactors
+- Provides a minor-mode =breeze-minor-mode=
+- Integration with flymake
 
 * Commands and default keymap
 

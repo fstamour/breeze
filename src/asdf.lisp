@@ -253,6 +253,9 @@ This will return false if the file was loaded outside of asdf."
 ;;; Inspecting a system's (transitive) dependencies
 ;;; See also <a href="https://quickdocs.org/asdf-dependency-graph">asdf-dependency-graph</a>
 
+;;; TODO this is Software Bill of Materials (SBOM)
+;; see "npm sbom"
+
 (defun system-dependencies (system-designator)
   (let ((system (asdf/system:find-system system-designator nil)))
     (remove-if-not #'stringp (asdf:system-depends-on system))))

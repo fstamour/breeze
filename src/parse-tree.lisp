@@ -423,7 +423,7 @@
 ;; TODO use this in print-object to print children
 (defun print-nodes (stream nodes colonp atp)
   (declare (ignore colonp atp))
-  (format stream "(list ~{~s~^ ~})" nodes))
+  (format stream "(vector ~{~s~^ ~})" nodes))
 
 (defun format-error (error stream)
   (apply #'format stream error))

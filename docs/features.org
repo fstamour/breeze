@@ -3,13 +3,86 @@
 :END:
 #+title: Candidate Features
 
+* See also
+
 - [[id:5d211d9a-0749-4adb-abe0-e66133d09b5b][Editor integrations]]
 - [[id:54e6cd55-803b-4e15-82bc-a332130d020e][Sly/Slime integration]]
 
-** Ideas
+* TODO Integration with occur                                      :ux:emacs:
 :PROPERTIES:
 :ID:       eb1f399a-e723-4a5d-91bd-26b473faca5d
 :END:
 
-Make breeze's command "work" in occur's buffer
-e.g. eval this (with the right package), or M-.
+- Make breeze's command "work" in occur's buffer
+- e.g. eval this (with the right package), or M-.
+
+* TODO Integration with which-key                                  :ux:emacs:
+:PROPERTIES:
+:ID:       a91ccca0-d156-4bb3-835d-aecaff9ca886
+:END:
+
+https://github.com/justbur/emacs-which-key/
+
+#+begin_quote
+Emacs package that displays available keybindings in popup
+#+end_quote
+
+It is possible to use
+e.g. =which-key-add-major-mode-key-based-replacements= to configure
+=which-key= to show more user-friendly names for the commands bound to
+each keys.
+
+* TODO Integration with treemacs                                   :ux:emacs:
+:PROPERTIES:
+:ID:       71f02e53-2520-49f4-866c-40f146712db8
+:END:
+
+https://github.com/Alexander-Miller/treemacs
+
+#+begin_quote
+a tree layout file explorer for Emacs
+#+end_quote
+
+It is possible to use treemacs as "just" a treeview widget. Here's an
+example: https://github.com/emacs-lsp/lsp-treemacs
+
+* TODO Integration with origami.el                                 :ux:emacs:
+:PROPERTIES:
+:ID:       87cb103c-906a-46d8-8f90-3b86668bc667
+:END:
+
+https://github.com/gregsexton/origami.el
+
+#+begin_example
+A folding minor mode for Emacs
+#+end_example
+
+#+begin_quote
+An origami parser is a function that takes a 'create function' and
+returns a function taking the string to be parsed. The returned
+function should return a list of fold nodes. Fold nodes are created
+using the passed-in create function.
+#+end_quote
+
+Note sure if it would be useful, I assume the built-in support for
+lisp is already good.
+
+* TODO Integration with flycheck                                   :ux:emacs:
+:PROPERTIES:
+:ID:       ebbcbf1f-da36-4064-8c22-addd2dc6c664
+:END:
+
+https://www.flycheck.org
+
+- [[https://www.flycheck.org/en/latest/user/flycheck-versus-flymake.html][Flycheck vs Flymake]]
+- [[https://www.flycheck.org/en/latest/developer/developing.html][Adding a syntax checker to Flycheck]]
+- Probably want to use ~flycheck-define-generic-checker~
+
+Note about autoloading:
+
+#+begin_quote
+The flycheck-define-checker macro is an autoload, so using it inside a
+with-eval-after-load form will load all of Flycheck. While this
+ensures the macro is correctly expanded, it also defeats the purpose
+of using with-eval-after-load.
+#+end_quote
