@@ -113,12 +113,13 @@ not loaded."
 (cl-defun breeze-choose-listener (&optional (errorp t))
   "Interactively ask the user to choose a listener (e.g. sly or
 slime) if multiple listeners are available."
-  (or (breeze-single (breeze-list-loaded-listeners errorp))
-      (let ((connections (breeze-list-connected-listeners)))
-        (or (breeze-single connections)
-            ;; If both OR neither sly and slime are connected.
-            (intern (completing-read "Choose a lisp listener to start: "
-                                     listeners nil t))))))
+  (let ((listeners (breeze-list-loaded-listeners errorp)))
+    (or (breeze-single listeners)
+        (let ((connected-listeners (breeze-list-connected-listeners)))
+          (or (breeze-single connected-listeners)
+              ;; If both OR neither sly and slime are connected.
+              (intern (completing-read "Choose a lisp listener to start: "
+                                       listeners nil t)))))))
 
 (cl-defun breeze-%listener-symbolicate (&optional suffix)
   "Build up a symbol. Used to refer to sly or slime's functions
