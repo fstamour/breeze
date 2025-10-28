@@ -79,23 +79,29 @@
    (breeze-symbol-value 'slime-dispatching-connection)
    (breeze-symbol-value 'slime-default-connection)))
 
+(defun breeze-inf-lisp-connected-p ()
+  "If inferior-lisp is loaded and connected."
+  (breeze-funcall 'inferior-lisp-proc))
+
 (cl-defun breeze-listener-connected-p (&optional (errorp t))
   "Check if either sly or slime is loaded and connected."
   (or (breeze-sly-connected-p)
       (breeze-slime-connected-p)
+      (breeze-inf-lisp-connected-p)
       (and errorp
-           (error "Please start either slime or sly."))))
+           (error "Please start either slime, sly or inferior-lisp."))))
 
 (cl-defun breeze-list-loaded-listeners (&optional (errorp t))
   "Returns a list of loaded listeners (sly or slime)."
-  (or (breeze-keep-fbound '(slime sly))
+  (or (breeze-keep-fbound '(slime sly inferior-lisp))
       (and errorp
            (error "Please load either slime or sly."))))
 
 (cl-defun breeze-list-connected-listeners ()
   "Returns a list of connected listeners (sly or slime)."
   (breeze-remove-nil (and (breeze-sly-connected-p) 'sly)
-                     (and (breeze-slime-connected-p) 'slime)))
+                     (and (breeze-slime-connected-p) 'slime)
+                     (and (breeze-inf-lisp-connected-p) 'inferior-lisp)))
 
 (cl-defun breeze-%symbolicate2 (listener &optional suffix)
   "Build up a symbol. Used to refer to sly or slime's functions
@@ -164,6 +170,22 @@ signal an error if no listeners are loaded."
 slime-eval-async, calls the continuation CONT with the resulting
 value."
   (breeze-%listener-funcall "eval-async" form cont package))
+
+;; (comint-send-string (inferior-lisp-proc) (concat string "\n"))
+(defun breeze-inflisp-eval (string)
+  (when-let ((inferior-lisp-proc (breeze-funcall 'inferior-lisp-proc)))
+    ;; TODO how do I get the answer?
+    (comint-send-string inferior-lisp-proc (concat string "\n"))))
+
+;; TODO automated tests!
+;; (breeze-inflisp-eval "1")
+;; (breeze-inflisp-eval "(print 1)")
+;; (breeze-inflisp-eval "(breeze.listener:rpc-eval 1)")
+;;
+;; (breeze-inflisp-eval "*features*")
+;; (breeze-inflisp-eval "(member :asdf *features*)")
+;; (breeze-inflisp-eval "(member :quicklisp *features*)")
+
 
 (defun breeze-eval (string)
   "Evaluate STRING using the CL function breeze.listener:rpc-eval"
