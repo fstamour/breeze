@@ -62,6 +62,8 @@ a-symbol
 ;; or
 (if pain tylenol water)
 
+(if (not x) y) => (unless x y)
+
 ;; TODO
 (defun _ (&ptional))
 makeunbound
@@ -78,6 +80,13 @@ inline-function
   (t nil))
 ;; should be
 (member x '(1 2 3) :test #'=)
+
+(case x (nil :y)) ; never match
+;; and
+(case x (null :y))  ; match 'null
+;; should probably be
+(case x ((nil) :y)) ; match 'nil
+
 
 (eql nil x)
 ;; same with equal or equalp, but not eq
