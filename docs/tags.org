@@ -1,4 +1,12 @@
+:PROPERTIES:
+:ID:       4836d845-7be2-4a7d-bbc5-6d7e577292c2
+:END:
+#+title Documentation validation
+
 * Tags
+:PROPERTIES:
+:ID:       755fea16-df4d-4b87-a229-b9234b89d46b
+:END:
 
 ** Tag descriptions
 :PROPERTIES:
@@ -6,7 +14,7 @@
 :END:
 
 #+NAME: tags
-| Tag name     | Tag description                                                                                |
+| Tag name     | Tag description                                                                               |
 |--------------+-----------------------------------------------------------------------------------------------|
 | 3rd_parties  | Relating to a third-party, e.g. an external library.                                          |
 | obsolete     | This task is now obsolete.                                                                    |
@@ -54,8 +62,7 @@
                       [id title todo file pos]
                       :from nodes
                       :where (and (= todo "TODO")
-                                  (not-in id
-                                          [:select [node-id] :from tags]))]))
+                                  (not-in id [:select [node-id] :from tags]))]))
 
 ;; Visit the first untagged task, if any
 (if-let ((untagged-tasks (breeze-tasks-find-untagged-nodes)))
@@ -67,6 +74,7 @@
 #+end_src
 
 #+RESULTS:
+: No untagged tasks found!
 
 See https://github.com/ahmed-shariff/org-roam-ql - "Query language for
 org-roam".
