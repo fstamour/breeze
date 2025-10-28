@@ -65,7 +65,7 @@
 | breeze-insert-fancy-sbcl-shebang                   | Insert fancy sbcl shebang at the start of the buffer.                           |              |
 | breeze-quickload                                   | Choose a system to load with quickload.                                         |              |
 | breeze-other-file                                  | Find the alternative file for the current file.                                 |              |
-| breeze-other-file-other-window                     | Find the alternative file for the current file.                                 |              |
+| breeze-other-file-other-window                     | Find the alternative file for the current file in the other window.             |              |
 
 
 * Related notes
