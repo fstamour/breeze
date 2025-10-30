@@ -21,7 +21,7 @@
    #:union-find
    #:eclasses
    #:pending
-   #:input-eclasses)
+   #:input-eclasses-id)
   (:export
    #:eclass
    #:eclass-id
@@ -213,9 +213,9 @@ eclasses.")
     :initarg :pending
     :accessor pending
     :documentation "A list of pending eclass ids to fix their invariants.")
-   (input-eclasses
+   (input-eclasses-id
     :initform (list)
-    :accessor input-eclasses
+    :accessor input-eclasses-id
     :documentation "A convenient list of eclass ids considered as \"inputs\"."))
   (:documentation "An equivalence graph"))
 
@@ -435,6 +435,7 @@ many merges in a batch and only call rebuild once afterwards."
 
 
 
+;; TODO this is close to useless when there's cycles in the graph
 (defun root-eclasses (egraph)
   "Find all eclasses that have no parents."
   (loop
@@ -535,7 +536,7 @@ eclass-id."
 
 (defmethod add-input (egraph form)
   (let ((eclass-id (add-form egraph form)))
-    (pushnew eclass-id (input-eclasses egraph))))
+    (pushnew eclass-id (input-eclasses-id egraph))))
 
 
 ;;; E-matching, rewrites, rules, etc.
@@ -823,5 +824,5 @@ equivalent to eclass-id."
    (stream-concat
     (map 'vector (lambda (eclass-id)
                    (stream-eclass egraph (eclass egraph eclass-id)))
-         (input-eclasses egraph)))
+         (input-eclasses-id egraph)))
    :limit limit))

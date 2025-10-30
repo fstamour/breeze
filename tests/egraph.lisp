@@ -607,7 +607,7 @@ EGRAPH."
    (remove-duplicates
     (mapcar (lambda (eclass-id)
               (eclass-find egraph eclass-id))
-            (input-eclasses egraph)))))
+            (input-eclasses-id egraph)))))
 
 (defun test-rewrite (input rewrite
                      &optional expected-equivalent-forms)
@@ -653,10 +653,6 @@ EGRAPH."
   (test-rewrite '(* a (/ 1 a))
                 (make-rewrite '(* ?x (/ 1 ?y)) '(/ ?x ?y))
                 '((/ a a) (* a (/ 1 a))))
-  ;; TODO this rewrites produce a cyclic e-graph, which causes an
-  ;; infite recursion when dumping all the forms reprented by the
-  ;; egraph.
-  #++
   (test-rewrite '(* a (/ 1 a))
                 (make-rewrite '(* ?x (/ 1 ?y)) 1)
                 '((* a (/ 1 a)) 1))
@@ -669,10 +665,6 @@ EGRAPH."
   (test-rewrite '(* a 2)
                 (make-rewrite '(* ?x 2) '(ash ?x 1))
                 '((ash a 1) (* a 2)))
-  ;; TODO these rewrites produce a cyclic e-graph, which causes an
-  ;; infite recursion when dumping all the forms reprented by the
-  ;; egraph.
-  #++
   (test-rewrite-chain
    '(/ a a)
    (make-rewrite '(/ ?x ?x) 1)
@@ -690,20 +682,11 @@ EGRAPH."
      (+ (+ b a) c) (+ (+ a b) c)
      (+ a (+ c b)) (+ a (+ b c))
      (+ a b c)))
-  ;; This one doesn't work because the code to dump the forms doens't
-  ;; look at equivalent classes (except for the "root" (the "input
-  ;; eclasses")).
   (test-rewrite-chain
    '(+ 1 (* a 2))
    (make-rewrite '(* ?x 2) '(ash ?x 1))
-   '((+ 1 (ash a 1)) (+ 1 (* a 2)))))
-
-#++
-(trace :wherein test-rewrite-chain
-       match
-       breeze.egraph::match-rewrite
-       breeze.egraph::match-eclass
-       breeze.egraph::match-enode)
+   '((+ 1 (ash a 1))
+     (+ 1 (* a 2)))))
 
 
 
@@ -745,7 +728,7 @@ This is for interactive use, it logs a loooot of stuff."
                         (stream-eclass egraph (eclass egraph eclass-id)))))
         (format t "~%~%")
         (loop
-          :for input-eclass-id :in (input-eclasses egraph)
+          :for input-eclass-id :in (input-eclasses-id egraph)
           :do
              (format t "~&Forms in input e-class ~d:" input-eclass-id)
              (map-stream #'(lambda (form)
@@ -758,25 +741,6 @@ This is for interactive use, it logs a loooot of stuff."
       egraph)))
 
 #++
-(progn
- (untrace)
- (trace
-    wherein test-simple-rewrite
-  pattern-substitute
-  breeze.egraph::match-rewrite
-  breeze.egraph::match-eclass
-  breeze.egraph::match-enode
-  merge-eclass
-  add-form
-  breeze.egraph::egraph-add-enode
-  breeze.egraph::form-to-enode
-  breeze.egraph::sequence-to-enode
-  breeze.egraph::atom-to-enode
-  match
-  ;; add-parent
-  merge-sets-of-bindings))
-
-#++
 (let ((egraph (test-simple-rewrite '(+ 1 (* a 2)) '(* ?x 2) '(ash ?x 1))))
   ;; (test-simple-rewrite egraph '(+ ?x ?y) '(+ ?y ?x))
   ;; (setf *e* egraph)
@@ -786,56 +750,34 @@ This is for interactive use, it logs a loooot of stuff."
 (let ((egraph (test-simple-rewrite '(/ (* a 2) 2) '(/ (* ?x ?y) ?y) '?x)))
   (setf *e* egraph))
 
-;; '(/ (* a 2) 2)
-;; (untrace)
-
-
-#|
-Input:
-(+ a b c)
-
-Rewrites (applied in this order):
-'(+ ?x ?y ?z) '(+ ?x (+ ?y ?z))
-'(+ ?x ?y ?z) '(+ (+ ?x ?y) ?z)
-'(+ ?x ?y) '(+ ?y ?x)
-
-Forms represented by the egraph:
-(+ A B C)
-(+ A (+ B C))
-(+ (+ A B) C)
-(+ (+ B C) A)
-(+ C (+ A B))
-|#
-
-
 (define-test+run "apply 1 rewrite"
-  (is egraph-dumps-equal-p
-      '(:enodes
-        ((:enode 2 :eclass-id 1)
-         (:enode a :eclass-id 0)
-         (:enode #(* 3 1) :eclass-id 2)
-         (:enode #(/ 2 1) :eclass-id 3))
-        :eclasses
-        ((:eclass-id 0 :enodes #(a) :parents (2) := 3)
-         (:eclass-id 1 :enodes #(2) :parents (2 3))
-         (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
-         (:eclass-id 3 :enodes #(#(/ 2 1)) :parents (2))))
-      (let ((egraph (make-egraph* '(/ (* a 2) 2)))
-            (rewrite (make-rewrite '(/ (* ?x ?y) ?y) '?x)))
-        (apply-rewrite egraph rewrite)
-        (dump-egraph (rebuild egraph))
-        #++ ;; TODO
-        (smallest-enodes
-         (root-eclasses egraph)))))
+  (let ((egraph (make-egraph* '(/ (* a 2) 2))))
+    (is egraph-dumps-equal-p
+        '(:enodes
+          ((:enode 2 :eclass-id 1)
+           (:enode a :eclass-id 0)
+           (:enode #(* 3 1) :eclass-id 2)
+           (:enode #(/ 2 1) :eclass-id 3))
+          :eclasses
+          ((:eclass-id 0 :enodes #(a) :parents (2) := 3)
+           (:eclass-id 1 :enodes #(2) :parents (2 3))
+           (:eclass-id 2 :enodes #(#(* 0 1)) :parents (3))
+           (:eclass-id 3 :enodes #(#(/ 2 1)) :parents (2))))
+        (let ((rewrite (make-rewrite '(/ (* ?x ?y) ?y) '?x)))
+          (apply-rewrite egraph rewrite)
+          (dump-egraph (rebuild egraph))))
+    #++
+    (break "~s"
+           (smallest-enodes
+            (mapcar (lambda (eclass-id)
+                      (eclass egraph eclass-id))
+                    ;; TODO need to include the equivalent classes
+                    (input-eclasses-id egraph))))))
 
 #++
 (let ((egraph (make-egraph)))
   (add-form egraph #(/ #(* a 2) 2))
   (dump-egraph egraph))
-
-#++
-(defparameter *e* nil)
-
 
 
 #++
@@ -848,7 +790,7 @@ Forms represented by the egraph:
   (format t "~&=========================================")
   (let ((rewrites
           (list
-           ;; These are not all sounds
+           ;; These are not all sound
            (make-rewrite '(/ (* ?x ?y) ?y) '?x)
            (make-rewrite '(* (/ ?x ?y) ?y) '?x)
 
@@ -873,13 +815,6 @@ Forms represented by the egraph:
                               (map-egraph #'print egraph :limit 100)))))
   egraph)
 
-;;
-
-#++
-(progn
-  (untrace)
-  (dump-egraph *e*)
-  (map-egraph #'print *e* :limit 100))
 
 
 ;; (= 0 ?x) => (zerop x)
