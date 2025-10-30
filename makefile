@@ -87,8 +87,7 @@ spell:
 # Run the tests on file change
 .PHONY: watch
 watch:
-	# TODO include breeze.asd
-	( fd . -e lisp src/ tests/; echo breeze.asd ) | entr -s 'make test && echo Tests done at $$(date)'
+	( fd . -e lisp src/ tests/; echo breeze.asd ) | entr -s 'time make test && echo Tests done at $$(date)'
 
 ######################################################################
 ### Targets to help configure git remotes

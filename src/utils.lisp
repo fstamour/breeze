@@ -18,7 +18,6 @@
   (:export
    #:stream-size)
   (:export
-   #:breeze-relative-pathname
    #:find-version-control-root
    #:find-asdf-in-parent-directories))
 
@@ -133,12 +132,6 @@ the run."
 
 
 ;;; Path stuff
-
-(defun breeze-relative-pathname (pathname)
-  "Returns a pathname relative to breeze's location."
-  (if (uiop:relative-pathname-p pathname)
-      (asdf:system-relative-pathname :breeze pathname)
-      pathname))
 
 ;; TODO move the rest of the page into workflow.lisp (I think)
 

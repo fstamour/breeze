@@ -1,4 +1,4 @@
-(in-package #:common-lisp-user)
+(cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.test.command
     (:documentation "Tests for breeze.command.")

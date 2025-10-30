@@ -1,4 +1,4 @@
-(in-package #:common-lisp-user)
+(cl:in-package #:common-lisp-user)
 
 (defpackage #:breeze.documentation
   (:documentation "Tools to inspect and generate documentation")
@@ -11,14 +11,10 @@
                 #:simple-function-p)
   (:import-from #:breeze.string
                 #:summarize)
-  (:import-from #:breeze.utils
-                #:breeze-relative-pathname)
   (:export
    #:find-undocumented-symbols))
 
 (in-package #:breeze.documentation)
-
-
 
 
 ;;; Inspect documentation
@@ -160,18 +156,11 @@
 - [ ] Type definitions (I'm not sure this one can be done with introspection alone).
 |#
 
-(defun find-breeze-packages ()
-  (remove-if (lambda (package)
-               (position #\. (package-name package) :start (length #1="breeze.")))
-             (breeze.xref:find-packages-by-prefix #1#)))
-
-(defun render-reference ()
+(defun render-reference (packages)
   (spinneret:with-html
-    (let ((packages
-            (sort
-             (find-breeze-packages)
-             #'string<
-             :key #'package-name)))
+    (let ((packages (sort (copy-list packages)
+                          #'string<
+                          :key #'package-name)))
       (:h1 (:a :id "reference" "Reference"))
       ;; Package index
       (:dl
@@ -208,7 +197,7 @@
              (gen "Functions" (simple-function-p symbol) 'function)
              (gen "Macros" (macrop symbol) 'function))))))
 
-(defun generate-documentation-to-stream (stream)
+(defun generate-documentation-to-stream (stream packages)
   (let ((spinneret:*html* stream))
     (let ((spinneret:*suppress-inserted-spaces* t)
           (spinneret:*html-style* :tree)
@@ -220,11 +209,10 @@
           (:title "Reference")
           (:link :rel "stylesheet" :href "style.css"))
          (:body
-          (render-reference)))))))
+          (render-reference packages)))))))
 
-(defun generate-documentation ()
-  (let* ((root (breeze-relative-pathname "docs/"))
-         (index (merge-pathnames "reference.html" root))
+(defun generate-documentation (root packages)
+  (let* ((index (merge-pathnames "reference.html" root))
          #+(and sbcl windows)
          (sb-impl::*default-external-format* :utf-8))
     (ensure-directories-exist root)
@@ -233,5 +221,5 @@
          index
          :if-exists :supersede
          :if-does-not-exist :create)
-      (generate-documentation-to-stream output)
+      (generate-documentation-to-stream output packages)
       (format *trace-output* "~%breeze.documentation: ~s written.~%" index))))

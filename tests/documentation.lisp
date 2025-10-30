@@ -2,6 +2,9 @@
 
 (defpackage #:breeze.test.documentation
   (:use :cl #:breeze.documentation)
+  (:import-from #:breeze.dogfood
+                #:breeze-relative-pathname
+                #:find-breeze-packages)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -90,7 +93,7 @@
 
 (defun find-and-read-emacs-integration-docs ()
   "Find and read the \"emacs integration\" org-mode file under \"docs/\"."
-  (let ((org-file (breeze.utils:breeze-relative-pathname "docs/emacs_integration.org")))
+  (let ((org-file (breeze-relative-pathname "docs/emacs_integration.org")))
     (true org-file "Should be able to compute emacs_integration.org's path.")
     (true (probe-file org-file) "The file ~s should exists." org-file)
     (let ((content (alexandria:read-file-into-string org-file)))
@@ -275,7 +278,7 @@
                    (loop
                      :for command :in sorted-commands
                      :for name := (breeze.command::command-name-for-editor command)
-                     :for description := (breeze.command:command-docstring command)
+                     :for description := (breeze.string:summarize (breeze.command:command-docstring command))
                      :for key-binding := (or (alexandria:assoc-value command->key-binding command) "")
                      :collect (list name description key-binding))))
             (breeze.logging:log-debug "~&~s" new-table-content)
@@ -291,21 +294,47 @@
                 (dolist (part new-content)
                   (write-string part out))))))))))
 
+;;;; TODO try to extract breeze.el's docstring, to include into the
+;;;; documentation.
+#+=((defun read-breeze.el ()
+      (let ((eof (gensym)))
+        (alexandria:with-input-from-file
+            (input
+             (merge-pathnames "src/breeze.el"
+                              (breeze.asdf:system-directory 'breeze)))
+          (loop for form = (read input nil eof)
+                until (eq form eof)
+                collect form))))
+
+    (let ((forms ))
+      (loop for form in (read-breeze.el)
+            when (and (listp form)
+                      (eq 'defun (car form)))
+              collect (second form))))
+
+
+(define-test+run "update or create per-command documentation files"
+  (loop :for command :in (breeze.command:list-all-commands)))
+
 
 (define-test generate-documentation
-  (with-output-to-string (*trace-output*)
-    (breeze.documentation::generate-documentation)
-    (breeze.report::render
-     (make-instance
-      'breeze.report:report
-      :systems `((breeze
-                  ;; Include scratch files
-                  :extra-files ,(directory
-                                 (make-pathname
-                                  :directory
-                                  `(,@(pathname-directory
-                                       (breeze.utils:breeze-relative-pathname "scratch-files/"))
-                                      :wild-inferiors)
-                                  :name :wild
-                                  :type "lisp"))))
-      :output-dir (breeze.utils:breeze-relative-pathname "docs/")))))
+  (let ((root (breeze-relative-pathname "docs/")))
+    (with-output-to-string (*trace-output*)
+      (breeze.documentation::generate-documentation
+       root
+       (find-breeze-packages))
+      (breeze.report::render
+       (make-instance
+        'breeze.report:report
+        :systems `((breeze
+                    ;; Include scratch files
+                    :extra-files ,(directory
+                                   (make-pathname
+                                    :directory
+                                    `(,@(pathname-directory
+                                         (breeze-relative-pathname
+                                          "scratch-files/"))
+                                        :wild-inferiors)
+                                    :name :wild
+                                    :type "lisp"))))
+        :output-dir root)))))

@@ -26,7 +26,7 @@
    ;; uri
    "/style.css"
    ;; path of the file
-   (breeze.utils:breeze-relative-pathname "docs/style.css")
+   (asdf:system-relative-pathname "breeze" "docs/style.css")
    ;; content type
    "text/css"))
 

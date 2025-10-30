@@ -1,6 +1,6 @@
 
 (defpackage #:breeze.dogfood
-  (:documentation "Breeze commands to help with breeze's development.")
+  (:documentation "Breeze commands and utilities to help with breeze's development.")
   (:use #:cl
         #:breeze.string
         #:breeze.command
@@ -10,9 +10,25 @@
   (:import-from #:alexandria
                  #:when-let)
   (:export
+   #:breeze-relative-pathname
+   #:find-breeze-packages
    #:insert-command-test))
 
 (in-package #:breeze.dogfood)
+
+(defun breeze-relative-pathname (pathname)
+  "Returns a pathname relative to breeze's location."
+  (if (uiop:relative-pathname-p pathname)
+      (asdf:system-relative-pathname :breeze pathname)
+      pathname))
+
+(defvar *breeze-home*
+  (breeze-relative-pathname ""))
+
+(defun find-breeze-packages ()
+  (remove-if (lambda (package)
+               (position #\. (package-name package) :start (length #1="breeze.")))
+             (breeze.xref:find-packages-by-prefix #1#)))
 
 #++
 (when (breeze.syntax-tree::list-car-symbol= outer-node 'define-test+run)
@@ -69,8 +85,10 @@ newline in the expected result."
 
 ;; (command-name-p "insert-class-slot")
 
-(defun extract-trace (node-iterator))
+;; TODO (defun extract-trace (node-iterator))
 
+;; TODO
+#++
 (defun update-command-test (node-itereator test-name)
   (message "Not implemented: updating the test ~s" test-name))
 
@@ -78,10 +96,14 @@ newline in the expected result."
   (let* ((name
            ;; Ask the user
            (choose "Name of the command (symbol): "
-                   (breeze.test.refactor::missing-tests)))
+                   #| Oops: circular dependencies between the "tests" and "dogfood" systems |#
+                   #++
+                   (breeze.test.refactor::missing-tests)
+                   (breeze.command:list-all-commands)))
          (symbol (etypecase name
                    (symbol name)
                    (string (read-from-string name))))
+         #++ #| Oops: circular dependencies between the "tests" and "dogfood" systems |#
          (trace (breeze.test.refactor::drive-command symbol
                                                      :inputs '()
                                                      :context '()

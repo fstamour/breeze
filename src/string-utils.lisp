@@ -225,12 +225,12 @@ sytsem-files"
 ;; all this to get rid of cl-ppcre xD
 (defun remove-parentheses (string)
   "Return new string with the parts between parentheses removed, along
-with the spaces following the closing parentheses. Do not support
+with the spaces following the closing parentheses. Does not support
 nested parentheses."
   (with-output-to-string (o)
     (loop
       :with skipping
-      :for c across string
+      :for c :across string
       :do (cond
             ;; Opening paren
             ((and (not skipping)
@@ -249,12 +249,25 @@ nested parentheses."
              (setf skipping nil)
              (write-char c o))))))
 
+(defun remove-newlines (string)
+  (with-output-to-string (o)
+    (loop :for c :across string
+          :do (write-char (if (char= #\Newline c) #\Space c) o))))
+
+#++
+(remove-newlines "a
+b
+c")
+;; => "a b c"
+
+
 (defun summarize (string)
   "Keep only the first sentence, remove parenthesis."
-  (remove-parentheses
-   (alexandria:if-let (position (position #\. string))
-     (subseq string 0 position)
-     string)))
+  (remove-newlines
+   (remove-parentheses
+    (alexandria:if-let (position (position #\. string))
+      (subseq string 0 position)
+      string))))
 
 
 ;; TODO This is a good candidate for a function where the unit tests

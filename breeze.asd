@@ -130,6 +130,19 @@
   ((:file "+quickproject")))
 
 
+;;; breeze.dogfood systeam
+
+(asdf:defsystem #:breeze/dogfood
+  :description "Breeze commands and utilities to help with breeze's development."
+  :version "0.0.1"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :depends-on ()
+  :pathname "src/dogfood/"
+  :components
+    ((:file "dogfood")))
+
+
 ;;; breeze/test system
 
 (defsystem breeze/test
@@ -137,7 +150,12 @@
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze parachute breeze/parachute breeze/doc breeze/quickproject)
+  :depends-on (breeze
+               parachute
+               breeze/parachute
+               breeze/doc
+               breeze/quickproject
+               breeze/dogfood)
   :pathname "tests"
   :components
   ((:file "analysis" :depends-on ("pattern"))

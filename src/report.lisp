@@ -281,9 +281,8 @@ newlines or more marks the start of a new paragraph)."
      ,@body))
 
 (defmacro with-html-file ((stream-var filename) &body body)
-  `(alexandria:with-output-to-file (,stream-var
-                                    (breeze.utils:breeze-relative-pathname ,filename)
-                                    :if-exists :supersede)
+  `(alexandria:with-output-to-file
+       (,stream-var ,filename :if-exists :supersede)
      (with-html (,stream-var)
        (fmt "<!DOCTYPE html>")
        (fmt "<html>")
@@ -387,7 +386,7 @@ newlines or more marks the start of a new paragraph)."
   pathname)
 
 (defun render-system (report system-spec)
-  (destructuring-bind (system  &key extra-files)
+  (destructuring-bind (system &key extra-files)
       (alexandria:ensure-list system-spec)
     (let ((pathname (system-listing-pathname report (asdf:coerce-name system))))
       (format t "~&Rendering listing for system ~s into ~s..." system pathname)
