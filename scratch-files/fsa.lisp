@@ -1,3 +1,4 @@
+;;;; FSA - Finite State Automaton
 
 (defpackage #:breeze.fsa
   (:documentation "")

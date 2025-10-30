@@ -35,31 +35,6 @@
 
 
 
-(let ((node (first
-             (breeze.reader:parse-string "(defpackage )"))))
-  (defpackage-node-p node))
-
-
-(defclass defpackage-node (list-node)
-  ())
-
-(typep (make-instance 'defpackage-node) 'list-node)
-;; => t
-
-;; ===> I could have a ton of specialized classes to help with manipulating the syntax tree
-
-(let ((node (read-from-string "(defpackage name)")))
-  (and
-   (typep node 'list-node)
-   (let ((car (car (node-content node))))
-     (and (typep car 'symbol-node)
-          (string-equal "defpackage" (node-content car))))))
-
-
-(parse-string "(defpackage name)")
-
-
-
 ;; Forms to add to defsystem to test with parachute
 (let ((system-name "breeze"))
   (let ((test-system (format nil "~a/test" system-name))

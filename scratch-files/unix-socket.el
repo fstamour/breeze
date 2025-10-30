@@ -22,5 +22,5 @@
 
 ;; Well, that was easy enough, but myelin's domain socket server is
 ;; currently implemented to receive one command and then close the
-;; connection. It will probably harder to manager with breeze,
+;; connection. It will probably harder to manage with breeze,
 ;; especially if the message get big.

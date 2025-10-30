@@ -151,6 +151,7 @@ The designators can be strings, symbols or packages."
   (or (wildp qualification-pattern)
       (eq qualification-pattern qualification)))
 
+;; TODO (trivial-package-local-nicknames:package-local-nicknames)
 (defun match-package (package-name-pattern package-name qualification)
   (cond
     ((wildp package-name-pattern) t)

@@ -414,6 +414,8 @@ char/=
 (let ((x 32)))
 ;; Same with flet, macrolet, symbol-macrolet, etc
 
+(let (((x 32))))
+=> (x 32) is not a symbol
 
 let* (<only-one-binding>) => let
 

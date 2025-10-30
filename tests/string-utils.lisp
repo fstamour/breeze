@@ -12,7 +12,33 @@
 
 (in-package #:breeze.test.string)
 
-(define-test optimal-string-alignment-distance)
+;; TODO asserts
+(define-test optimal-string-alignment-distance
+  (optimal-string-alignment-distance
+   "ca"
+   "abc")
+  ;; => 3
+
+  (optimal-string-alignment-distance
+   "string a"
+   "string b")
+  ;; => 1
+
+  (optimal-string-alignment-distance
+   "string"
+   "string")
+  ;; => 0
+
+  (optimal-string-alignment-distance
+   "a"
+   "string")
+  ;; => 6
+
+  (optimal-string-alignment-distance
+   "string"
+   "a")
+  ;; => 6
+  )
 
 (define-test optimal-string-alignment-distance*)
 

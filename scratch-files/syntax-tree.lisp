@@ -114,8 +114,3 @@
      map
      mapcar
      mapcon))
-
-(defun in-package-node-package (in-package-node)
-  "Get the package-designator out of a \"cl:in-package\" node."
-  (node-content
-   (second (node-content in-package-node))))

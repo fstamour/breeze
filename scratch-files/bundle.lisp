@@ -1,13 +1,15 @@
 ;;; Trying to bundle breeze's source code in one big file
 #|
 
+See also: remote-loading.el and remote-loading.lisp
+
 Which makes me think: it would be nice to have some kind
 to "transactions" when loading common lisp code. To avoid half-loaded
 code.
 
 EDIT before I commit: I didn't have much time and didn't get far. BUT,
-I managed to figure out that (surprise surprise, the dependencies are
-hard to handle correctly...).
+I managed to figure out that (surprise surprise), the dependencies are
+hard to handle correctly...
 
 |#
 

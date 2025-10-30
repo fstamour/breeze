@@ -5,6 +5,9 @@
 
 #|
 
+;;;; TODO Take a look at the relevant ANSI tests: https://gitlab.common-lisp.net/ansi-test/ansi-test/-/tree/master/reader
+;;;; TODO Take a look at those reader tests: https://github.com/informatimago/lisp/blob/4bfb6893e7840b748648b749b22078f2facfee0a/common-lisp/lisp-reader/reader-test.lisp
+
 Testing strategies
 - generate random strings
 - ddmin to reduce
@@ -764,6 +767,15 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-p "#p\"/root/\"  foo"
                          :child (nodes (string-node 2 10))
                          :end 10))
+
+#|
+TODO make sure we handle this
+
+This is a valid syntax:
+#p
+#+smth "..."
+#-smth2 "..."
+|#
 
 
 ;;; #n=
