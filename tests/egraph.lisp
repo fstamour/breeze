@@ -582,7 +582,6 @@ check that there's only one eclass to represent both (+ a 2) and (+ b
 
 
 
-
 (defun ensure-egraph (input)
   (if (typep input 'egraph) input (make-egraph* input)))
 
@@ -635,6 +634,12 @@ EGRAPH."
       :then (test-rewrite egraph rewrite expected-forms)))
 
 (define-test+run rewrites
+  ;; This should test that "stream-eclass" handles cycle correctly
+  ;; (i.e. without recursing infinitely)
+  (test-rewrite '(* 0 a)
+                (make-rewrite '(* 0 ?x) 0)
+                '((* 0 a)
+                  0))
   (test-rewrite '(= 0 a)
                 (make-rewrite '(= 0 ?x) '(zerop ?x))
                 '((zerop a)
@@ -743,15 +748,13 @@ This is for interactive use, it logs a loooot of stuff."
           :for input-eclass-id :in (input-eclasses egraph)
           :do
              (format t "~&Forms in input e-class ~d:" input-eclass-id)
-             (map-stream
-              (lambda (eclass-id)
-                (map-stream #'(lambda (form)
-                                (format t "~&-> ~a" form))
-                            (stream-eclass egraph (eclass egraph eclass-id))))
-              (stream-equivalent-eclasses egraph input-eclass-id)
-              :limit 100)
-             ;; (map-egraph #'print egraph :limit 100)
-          ))
+             (map-stream #'(lambda (form)
+                             (format t "~&-> ~a" form))
+                         (stream-eclass egraph (eclass egraph input-eclass-id)))))
+      #++
+      (progn
+        (format t "~&All the Forms in the egraph:")
+        (map-egraph #'print egraph :limit 100))
       egraph)))
 
 #++
@@ -825,10 +828,7 @@ Forms represented by the egraph:
         (smallest-enodes
          (root-eclasses egraph)))))
 
-#++ ;; TODO It would be nice to be able to add a form as a vector into
-;; an egraph. I think it could help with performance, because
-;; applying a rewrite and adding the resulting "substituted" form
-;; would not involve conversion between lists and vectors anymore.
+#++
 (let ((egraph (make-egraph)))
   (add-form egraph #(/ #(* a 2) 2))
   (dump-egraph egraph))

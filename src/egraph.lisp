@@ -640,16 +640,17 @@ Does NOT rebuild the egraph's invariants."
         do (stream-next stream))))
 
 (defun map-stream (fn stream &key (limit))
-  (if limit
-      (loop
-        repeat limit
-        until (stream-done-p stream)
-        do (funcall fn (stream-get stream))
-        do (stream-next stream))
-      (loop
-        until (stream-done-p stream)
-        do (funcall fn (stream-get stream))
-        do (stream-next stream))))
+  (when stream
+    (if limit
+        (loop
+          repeat limit
+          until (stream-done-p stream)
+          do (funcall fn (stream-get stream))
+          do (stream-next stream))
+        (loop
+          until (stream-done-p stream)
+          do (funcall fn (stream-get stream))
+          do (stream-next stream)))))
 
 
 (defun stream-sequence (seq)
@@ -705,7 +706,8 @@ past the last element of the sequence."
 
 (defun stream-product (streams)
   "Create a stream that produces the Cartesian product of all the STREAMS."
-  (let ((donep nil))
+  (let ((donep nil)
+        (streams (remove-if #'null streams)))
     (lambda (&optional method)
       (ecase method
         (:next (setf donep (next-list-of-stream streams)))
@@ -767,29 +769,41 @@ equivalent to eclass-id."
           (:done (<= l id))
           ((nil) id))))))
 
-(defun %stream-eclass (egraph eclass)
+(defparameter *eclasses-seen* nil)
+
+(defun %stream-eclass (egraph eclass &aux (*eclasses-seen* (if *eclasses-seen*
+                                                (alexandria:copy-hash-table *eclasses-seen*)
+                                                (make-hash-table))))
   "Stream every enodes in the eclasses, one after the other."
-  (stream-concat
-   (map 'vector
-        (lambda (enode) (stream-enode egraph enode))
-        (enodes eclass))))
+  (unless (gethash eclass *eclasses-seen*)
+    (setf (gethash eclass *eclasses-seen*) t)
+    (stream-concat
+     (map 'vector
+          (lambda (enode) (stream-enode egraph enode))
+          (enodes eclass)))))
 
 (defun stream-eclass (egraph eclass)
   "Stream every equivalent classes of eclass"
-  (let* ((canonical-id (eclass-find egraph (id eclass)))
-         (union-find (union-find egraph))
-         (length (length union-find)))
-    (stream-concat
-     (map 'vector
-          (lambda (eclass-id)
-            (%stream-eclass egraph (eclass egraph eclass-id)))
-          ;; Find all the equivalent id in the union-find data structure.
-          (loop
-            :for i :from 0
-            :while (< i length)
-            :for eclass-id = (aref union-find i)
-            :when (= canonical-id eclass-id)
-              :collect i)))))
+  (unless (and *eclasses-seen* (gethash eclass *eclasses-seen*))
+    (let* ((canonical-id (eclass-find egraph (id eclass)))
+           (union-find (union-find egraph))
+           (length (length union-find)))
+      (prog1
+          (stream-concat
+           (remove-if
+            #'null
+            (map 'vector
+                 (lambda (eclass-id)
+                   (%stream-eclass egraph (eclass egraph eclass-id)))
+                 ;; Find all the equivalent id in the union-find data structure.
+                 (loop
+                   :for i :from 0
+                   :while (< i length)
+                   :for eclass-id = (aref union-find i)
+                   :when (= canonical-id eclass-id)
+                     :collect i))))
+        ;; (setf (gethash eclass *eclasses-seen*) t)
+        ))))
 
 (defun stream-enode (egraph enode)
   (etypecase enode
@@ -803,14 +817,11 @@ equivalent to eclass-id."
                         (t (incf i) (stream-constant eclass-id-or-constant))))
                     enode))))))
 
-(defun map-egraph (fn egraph &key limit #| TODO maybe add argument `eclasses-ids' and use that instead of (root-eclasses egraph) |#)
+(defun map-egraph (fn egraph &key limit #| TODO maybe add argument `eclasses-ids' |#)
   (map-stream
    fn
    (stream-concat
-    (map 'vector (lambda (eclass)
-                   (stream-eclass egraph eclass))
-         ;; TODO %root-eclasses is the right one to call BUT some
-         ;; eclass'e parents are not set correctly during rewriting.
-         ;; (breeze.egraph::%root-eclasses egraph)
-         (root-eclasses egraph)))
+    (map 'vector (lambda (eclass-id)
+                   (stream-eclass egraph (eclass egraph eclass-id)))
+         (input-eclasses egraph)))
    :limit limit))
