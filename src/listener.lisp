@@ -58,7 +58,7 @@ differences between swank and slynk."
   ;; &optional package readtable
   ;; TODO infer the *package*
   ;; TODO infer the *readtable*
-  (let ((*package* (find-package "CL-USER"))
+  (let (;; (*package* (find-package "CL-USER"))
         (*readtable* (cl:copy-readtable nil))
         (values (multiple-value-list
                  (eval

@@ -66,13 +66,45 @@
           (make-buffer :string " "))
     (fail (interactive-eval-command)
         'end-of-file))
+  ;; Tetsing that the in-package form is used correctly
+  (with-fake-command-handler
+      ((mock-send-out (value)
+         (is equalp '("pulse" 35 44) value))
+       (mock-send-out (value)
+         (is equalp '("message" "#<PACKAGE \"BREEZE.TEST.COMMAND\">") value))
+       (mock-send-out (value)
+         (is equalp '("done") value)))
+    (setf (gethash :buffer (context *command*))
+          (make-buffer :string "(in-package #:breeze.test.command)
+*package*"
+                       :point 40))
+    (false (interactive-eval-command)))
+  ;; Testing that the current *package* doesn't affect
+  ;; interactive-eval-command if there's an in-package form in the
+  ;; buffer (before the point).
+  (dolist (*package* (list (find-package '#:cl-user)
+                           #.*package*))
+    (with-fake-command-handler
+        ((mock-send-out (value)
+           (is equalp '("pulse" 35 44) value))
+         (mock-send-out (value)
+           (is equalp '("message" "#<PACKAGE \"BREEZE.TEST.COMMAND\">") value))
+         (mock-send-out (value)
+           (is equalp '("done") value)))
+      (setf (gethash :buffer (context *command*))
+            (make-buffer :string "(in-package #:breeze.test.command)
+*package*"
+                         :point 40))
+      (false (interactive-eval-command))))
+  ;; Testing that the current value of *package* does affect interactive-eval if there's no in-package
+
   ;; TODO this test should work even if point == 0 or any upper value.
   (loop :for point :from 1 :upto 3 :do
     (with-fake-command-handler
         ((mock-send-out (value)
            (is equalp '("pulse" 1 3) value))
          (mock-send-out (value)
-           (is equalp '("message" "BREEZE.TEST.LISTENER::X") value))
+           (is equalp '("message" "X") value))
          (mock-send-out (value)
            (is equalp '("done") value)))
       (setf (current-buffer) (make-buffer :string " 'x " :point point))
