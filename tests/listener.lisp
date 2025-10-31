@@ -48,7 +48,7 @@
        "breeze.dummy.dum.dum:hjkl")))
 ;; => #<SB-INT:SIMPLE-READER-PACKAGE-ERROR "Package ~A does not exist." {1025D737E3}>
 
-(define-test+run interactive-eval-command ()
+(define-test+run interactive-eval ()
   ;; Empty file
   ;; TODO This should probably print a message instead...
   (with-fake-command-handler
@@ -56,7 +56,7 @@
          (is equalp '("pulse" 0 0) value)))
     (setf (gethash :buffer (context *command*))
           (make-buffer :string ""))
-    (fail (interactive-eval-command)
+    (fail (interactive-eval)
         'end-of-file))
   ;; File with only 1 space
   (with-fake-command-handler
@@ -64,7 +64,7 @@
          (is equalp '("pulse" 0 1) value)))
     (setf (gethash :buffer (context *command*))
           (make-buffer :string " "))
-    (fail (interactive-eval-command)
+    (fail (interactive-eval)
         'end-of-file))
   ;; Tetsing that the in-package form is used correctly
   (with-fake-command-handler
@@ -78,9 +78,9 @@
           (make-buffer :string "(in-package #:breeze.test.command)
 *package*"
                        :point 40))
-    (false (interactive-eval-command)))
+    (false (interactive-eval)))
   ;; Testing that the current *package* doesn't affect
-  ;; interactive-eval-command if there's an in-package form in the
+  ;; interactive-eval if there's an in-package form in the
   ;; buffer (before the point).
   (dolist (*package* (list (find-package '#:cl-user)
                            #.*package*))
@@ -95,7 +95,7 @@
             (make-buffer :string "(in-package #:breeze.test.command)
 *package*"
                          :point 40))
-      (false (interactive-eval-command))))
+      (false (interactive-eval))))
   ;; Testing that the current value of *package* does affect interactive-eval if there's no in-package
 
   ;; TODO this test should work even if point == 0 or any upper value.
@@ -108,7 +108,7 @@
          (mock-send-out (value)
            (is equalp '("done") value)))
       (setf (current-buffer) (make-buffer :string " 'x " :point point))
-      (false (interactive-eval-command))))
+      (false (interactive-eval))))
   ;; TODO this is only implemented for sbcl at the moment
   #+sbcl
   (with-fake-command-handler
@@ -152,8 +152,11 @@
                (if (eq 'breeze.listener::use-suggestion
                        (restart-name first-restart))
                    (invoke-restart first-restart)
-                   (error "Not the restart I expected: ~s" first-restart))))))
+                   ;; We need the (format nil ...) to print the
+                   ;; restart before the stack unwind, otherwise it
+                   ;; causes a memory fault in sbcl.
+                   (error (format nil "Not the restart I expected: ~s" first-restart)))))))
       (handler-bind
           ((style-warning (lambda (condition)
                             (muffle-warning condition))))
-        (interactive-eval-command)))))
+        (interactive-eval)))))

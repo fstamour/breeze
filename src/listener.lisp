@@ -17,9 +17,8 @@
                 #:point)
   (:export
    #:rpc-eval
-   #:interactive-eval
-   #:interactive-eval-command
-   #:get-recent-interactively-evaluated-forms))
+   #:interactive-eval-string
+   #:interactive-eval))
 
 (in-package #:breeze.listener)
 
@@ -54,16 +53,21 @@ differences between swank and slynk."
                          (car values)))))
           (t (format nil "~{~S~^, ~}" values)))))
 
-(defun %interactive-eval (string)
-  ;; &optional package readtable
-  ;; TODO infer the *package*
-  ;; TODO infer the *readtable*
-  (let (;; (*package* (find-package "CL-USER"))
-        (*readtable* (cl:copy-readtable nil))
-        (values (multiple-value-list
-                 (eval
-                  (read-from-string string)))))
-    (message "~a" (format-values-for-echo-area values))))
+(defun interactive-eval-string (string)
+  ;; TODO maybe keep an history (pushnew string *recent-forms* :test #'string=)
+  ;; TODO add a restart to retry
+  (call-with-correction-suggestion
+   (lambda ()
+     (prog1
+         ;; &optional package readtable
+         ;; TODO infer the *readtable*
+
+         (let ((*readtable* (cl:copy-readtable nil))
+               (values (multiple-value-list
+                        (eval
+                         (read-from-string string)))))
+           (message "~a" (format-values-for-echo-area values)))
+       (run-interactive-eval-after-hooks string)))))
 
 (defun run-interactive-eval-after-hooks (string)
   (loop
@@ -77,17 +81,6 @@ differences between swank and slynk."
                    name
                    condition)))))
 
-(defun interactive-eval (string)
-  "Interactively evaluate a string."
-  ;; TODO maybe keep an history (pushnew string *recent-forms* :test #'string=)
-  ;; TODO add a restart to retry
-  (call-with-correction-suggestion
-   (lambda ()
-     (prog1
-         (%interactive-eval string)
-       (run-interactive-eval-after-hooks string)))))
-
-
 ;; TODO eval-node
 ;;  that would be useful to implement a command for updating tests
 
@@ -99,7 +92,7 @@ differences between swank and slynk."
   "The node iterator currently being evaluated.")
 
 ;; 2025-06-12 it finally works!
-(define-command interactive-eval-command ()
+(define-command interactive-eval ()
   "A command to interactively evaluate code."
   (let* ((context (context*))
          (buffer (current-buffer context))
@@ -124,6 +117,6 @@ differences between swank and slynk."
       ;; TODO use pulse-node
       (pulse (start node) (end node))
       (let ((string (node-string $node)))
-        (interactive-eval string)
+        (interactive-eval-string string)
         ;; (message "~s" string)
         ))))
