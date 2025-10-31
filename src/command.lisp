@@ -468,19 +468,18 @@ uses the throw tag to stop the command immediately."
              (send-started-message command)
              ;; TODO not all commands would require the buffer's content,
              ;; move this in a function that can be called on demand.
-             ;;
-             ;; TODO this assumes we have incremental parsing, which we
-             ;; don't...
              (when buffer
                (cond
                  ;; update buffer's point, if the buffer was already parsed
                  ((breeze.parser:node-iterator buffer)
-                  (breeze.buffer::update-point buffer (current-point)))
+                  (breeze.buffer:update-content buffer nil (current-point)))
                  ;; if the buffer has no content, go get it
                  (t
                   (send "buffer-string")
                   (let ((buffer-string (recv1)))
-                    (breeze.buffer:update-content buffer buffer-string)))))
+                    (breeze.buffer:update-content buffer
+                                                  buffer-string
+                                                  (current-point))))))
              ;; TODO use "call-with-correction-suggestion" here too!
              (apply fn extra-args)))))))
     (send-sync command)

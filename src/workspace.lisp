@@ -102,19 +102,21 @@ Design decision(s):
 
 (defmethod add-to-workspace ((context-plist cons))
   ;; TODO error or warn if name is not provided
-  (when-let* ((name (getf context-plist :buffer-name))
-              (buffer (ensure-buffer name)))
-    (breeze.logging:log-debug "add-to-workspace buffer ~s" name)
-    (when-let ((buffer-file-name (getf context-plist :buffer-file-name)))
-      (setf (filename buffer) buffer-file-name))
-    (when-let ((point-min (getf context-plist :point-min)))
-      (setf (point-min buffer) point-min))
-    (when-let ((point-max (getf context-plist :point-max)))
-      (setf (point-max buffer) point-max))
-    (when-let ((new-content (getf context-plist :buffer-string)))
-      (update-content buffer new-content (getf context-plist :point)))
-    ;; return the buffer
-    buffer))
+  (destructuring-bind (&key
+                         buffer-name buffer-file-name
+                         point point-min point-max
+                         buffer-string
+                         major-mode)
+      context-plist
+    (declare (ignore major-mode))
+    (when-let ((buffer (ensure-buffer buffer-name)))
+      (breeze.logging:log-debug "add-to-workspace buffer ~s" buffer-name)
+      (when buffer-file-name (setf (filename buffer) buffer-file-name))
+      (when point-min (setf (point-min buffer) point-min))
+      (when point-max (setf (point-max buffer) point-max))
+      (update-content buffer buffer-string point)
+      ;; return the buffer
+      buffer)))
 
   (defun add-files-to-workspace (files)
     (loop

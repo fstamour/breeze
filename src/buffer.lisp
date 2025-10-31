@@ -92,6 +92,7 @@ point.")
 
 (defmethod update-point ((buffer buffer) point)
   (when point
+    (setf (point buffer) point)
     (when-let ((node-iterator (node-iterator buffer)))
       (goto-position node-iterator point))))
 
@@ -101,10 +102,6 @@ point.")
 
 (defmethod update-content ((buffer buffer) new-content &optional point)
   "Update the workspace's buffer BUFFER-NAME's content"
-  (when point
-    (when (or (null (point buffer))
-              (/= (point buffer) point))
-      (setf (point buffer) point)))
   (when new-content
     (let ((old-content (source buffer)))
       (cond
@@ -115,17 +112,16 @@ point.")
         ((null old-content)
          (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
          (setf (node-iterator buffer) (make-node-iterator new-content)))))
-    ;; update the node-iterator's position
-    (update-point buffer (point buffer))
     ;; update some indexes
     (index-in-package-nodes buffer))
+  (update-point buffer point)
   ;; return the buffer
   buffer)
 
 (defun make-buffer (&key name string point)
   (let ((buffer (make-instance 'buffer :name name :point point)))
     (when string
-      (update-content buffer string))
+      (update-content buffer string point))
     buffer))
 
 (defmethod parse-state ((buffer buffer))
