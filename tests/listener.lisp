@@ -141,22 +141,19 @@
     (setf (point (current-buffer)) 0)
     (update-content (current-buffer) "(prin 32)")
     ;; input "prin" candidate: PRINT
-    (handler-bind
-        ((undefined-function
-           (lambda (condition)
-             (declare (ignore condition))
-             (let* ((restarts (compute-restarts))
-                    (first-restart (car restarts)))
-               (is eq 'breeze.listener::use-suggestion
-                   (restart-name first-restart))
-               (if (eq 'breeze.listener::use-suggestion
-                       (restart-name first-restart))
-                   (invoke-restart first-restart)
-                   ;; We need the (format nil ...) to print the
-                   ;; restart before the stack unwind, otherwise it
-                   ;; causes a memory fault in sbcl.
-                   (error (format nil "Not the restart I expected: ~s" first-restart)))))))
+    (let ((*standard-output* (make-broadcast-stream)))
       (handler-bind
-          ((style-warning (lambda (condition)
-                            (muffle-warning condition))))
-        (interactive-eval)))))
+          ((undefined-function
+             (lambda (condition)
+               (declare (ignore condition))
+               (let* ((restarts (compute-restarts))
+                      (first-restart (car restarts)))
+                 (is eq 'breeze.listener::use-suggestion
+                     (restart-name first-restart))
+                 (when (eq 'breeze.listener::use-suggestion
+                           (restart-name first-restart))
+                   (invoke-restart first-restart))))))
+        (handler-bind
+            ((style-warning (lambda (condition)
+                              (muffle-warning condition))))
+          (interactive-eval))))))
