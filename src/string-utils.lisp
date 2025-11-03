@@ -308,13 +308,6 @@ AROUND. Add elipseses before and after if necessary."
         (*package* (find-package "KEYWORD")))
     (prin1-to-string symbol)))
 
-(defun symbol-starts-with (symbol prefix)
-  (and (symbolp symbol)
-       (etypecase prefix
-         (character (char= prefix (char (symbol-name symbol) 0)))
-         (string (alexandria:starts-with-subseq prefix
-                                                (symbol-name symbol))))))
-
 (defun without-prefix (prefix string)
   (etypecase prefix
     (null string)

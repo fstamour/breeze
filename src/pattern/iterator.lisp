@@ -317,7 +317,6 @@ depth of the tree."))
 (defmethod copy-iterator ((iterator tree-iterator)
                           &optional target)
   (flet ((copy-vec (vec)
-           ;; TODO there's something in alexandria for this
            (make-array (length vec)
                        :element-type (array-element-type vec)
                        :adjustable t

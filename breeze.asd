@@ -12,6 +12,46 @@
 
 ;;; breeze system
 
+(defsystem breeze/asdf
+  :version "0"
+  :maintainer "Francis St-Amour"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :description "Utilities for asdf"
+  :depends-on (asdf
+               ;; as of 2025-10-31 — only for "flatten"
+               alexandria
+               uiop)
+  :pathname "src/"
+  :components ((:file "asdf")))
+
+(defsystem breeze/generics
+  :version "0"
+  :maintainer "Francis St-Amour"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :description "Generic functions used across breeze's systems."
+  :pathname "src/"
+  :components ((:file "generics")))
+
+(defsystem breeze/pattern
+  :version "0"
+  :maintainer "Francis St-Amour"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :description "Pattern matching with first-class patterns"
+  :depends-on (;; as of 2025-10-31 — only for "flatten"
+               alexandria
+               breeze/generics)
+  :pathname "src/pattern/"
+  :serial t
+  :components ((:file "iterator")
+               (:file "pattern")
+               (:file "compile-pattern")
+               (:file "substitution")
+               (:file "match")
+               (:file "rewrite")))
+
 (defsystem breeze
   :name "breeze"
   :version "0"
@@ -25,23 +65,21 @@
                alexandria
                uiop
                ;; cl-heap
-               )
-  :pathname "src"
+               breeze/generics
+               breeze/pattern)
+  :pathname "src/"
   :components
   ((:file "logging")
    (:file "cl")
    (:file "utils")
    (:file "indirection")
    (:file "string-utils" :depends-on ("utils"))
-   (:file "generics")
    (:file "channel")
    ;; "test-file" is for parsing ERT files
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
-   (:file "range" :depends-on ("generics"))
-   (:file "iterator" :depends-on ("generics"))
-   (:file "parser-state"
-          :depends-on ("generics" "iterator" "utils"))
+   (:file "range")
+   (:file "parser-state" :depends-on ("utils"))
    (:file "parse-tree"
     :depends-on ("parser-state" "range"))
    (:file "parser"
@@ -50,16 +88,14 @@
     :depends-on ("parser" "workspace"))
    (:file "buffer" :depends-on ("parser" "package"))
    (:file "workspace" :depends-on ("parser" "buffer"))
-   (:file "pattern" :depends-on ("iterator" "generics" "range"))
    (:file "egraph")
-   (:file "analysis" :depends-on ("parser" "pattern"))
+   (:file "analysis" :depends-on ("parser"))
    (:file "command"
     :depends-on ("utils"
                  "configuration"
                  "indirection"
                  ;; for externalp
                  "xref"))
-   (:file "asdf")
    (:file "thread" :depends-on ("xref"))
    (:file "xref" :depends-on ("utils"))
    (:file "doctor")
@@ -96,8 +132,9 @@
                ;; For documentation generation
                spinneret
                closer-mop
-               cl-ppcre)
-  :pathname "src"
+               cl-ppcre
+               breeze/asdf)
+  :pathname "src/"
   :serial nil ; <-
   :components
   ((:file "documentation")
@@ -112,7 +149,7 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :depends-on (parachute breeze)
-  :pathname "src"
+  :pathname "src/"
   :components
   ((:file "+parachute")))
 
@@ -125,7 +162,7 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :depends-on (breeze quickproject)
-  :pathname "src"
+  :pathname "src/"
   :components
   ((:file "+quickproject")))
 

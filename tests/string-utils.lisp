@@ -88,20 +88,6 @@
 (define-test+run symbol-package-qualified-name
   (is equal "COMMON-LISP:NULL" (symbol-package-qualified-name 'null)))
 
-(define-test+run symbol-starts-with
-  (progn
-    (false (symbol-starts-with 'x #\?))
-    (true (symbol-starts-with :? #\?))
-    (true (symbol-starts-with :?x #\?))
-    (true (symbol-starts-with '? #\?))
-    (true (symbol-starts-with '?x #\?)))
-  (progn
-    (false (symbol-starts-with 'x "?"))
-    (true (symbol-starts-with :? "?"))
-    (true (symbol-starts-with :?x "?"))
-    (true (symbol-starts-with '? "?"))
-    (true (symbol-starts-with '?x "?"))))
-
 (define-test+run without-prefix
   (is equal "a" (without-prefix "" "a"))
   (is equal "" (without-prefix "a" "a"))

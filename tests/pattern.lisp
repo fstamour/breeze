@@ -17,6 +17,7 @@
                 #:finish)
   ;; importing non-exported symbols
   (:import-from #:breeze.pattern
+                #:symbol-starts-with
                 #:var-symbol-p
                 #:wildcard-symbol-p
                 #:bindings
@@ -218,8 +219,6 @@
     (true (eitherp either))
     (is equalp #(:x) (patterns either))))
 
-;; TODO either=
-
 (define-test+run eqv
   (is eqv 'x 'x)
   (is eqv '(x) '(x))
@@ -239,10 +238,26 @@
 
 
 
+(define-test+run symbol-starts-with
+  (progn
+    (false (symbol-starts-with 'x #\?))
+    (true (symbol-starts-with :? #\?))
+    (true (symbol-starts-with :?x #\?))
+    (true (symbol-starts-with '? #\?))
+    (true (symbol-starts-with '?x #\?)))
+  (progn
+    (false (symbol-starts-with 'x "?"))
+    (true (symbol-starts-with :? "?"))
+    (true (symbol-starts-with :?x "?"))
+    (true (symbol-starts-with '? "?"))
+    (true (symbol-starts-with '?x "?"))))
+
 (define-test+run var-symbol-p
   (true (var-symbol-p :?x))
   (false (var-symbol-p 'x))
   (false (var-symbol-p "?x")))
+
+;; TODO multi-valued-var-symbol-p
 
 (define-test+run wildcard-symbol-p
   (true (wildcard-symbol-p :_x))

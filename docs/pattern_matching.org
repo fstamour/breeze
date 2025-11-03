@@ -1,0 +1,211 @@
+:PROPERTIES:
+:ID:       0204d7e7-d311-4c89-b74c-67a9938498db
+:END:
+#+title: Pattern matching
+
+#+begin_quote
+This file is meant to document breeze's pattern matching, but for the
+moment™ it's just an amalgation of notes taken from many places.
+#+end_quote
+
+
+12. Patterns are "just" nested vectors
+
+Pattern matching (the method `match`) returns one of 3 things when
+successful: `t`, an object of type `binding` or an object of type
+`binding-set`. In either case, the function `find-binding` should
+handle it correctly.
+
+
+Pattern matching "binds" symbols to **iterator**
+
+13. "Pattern iterators" are really just "tree iterators"
+
+
+
+
+
+3. The parser reads a **string**, not a stream
+
+4. The parser returns a "parser state" that contains:
+  - the `source` string
+  - an iterator on the source string
+  - a parse tree (in the slot named `tree`)
+
+14. The parse trees are vectors of nodes. Some nodes can have
+    "children", these are also vector of nodes.
+
+15. "Node iterators" are "tree iterators" plus a reference to the
+    "parser's state".
+
+16. Nodes are very dumb, there is just one class `node` which has:
+  - a `start` position
+  - an `end` position
+  - a `node-type` (which is a symbol)
+  - `children`, which is (supposed to be) a vector of nodes
+
+18. The `node-iterator` holds a reference to the whole "parser state",
+    not just the source string, because I will very probably add more
+    information in the state, for example, an index to all the
+    newlines (to compute the current line number), or an index to all
+    the top-level `in-package` forms
+
+
+19. There's a special variable `breeze.workspace:*workspace*` which
+    holds all the `buffer` objects created when starting a
+    command. These are re-used between commands. In theory, this
+    should avoid re-parsing everything every time a command is
+    started, or even avoid sending the whole buffer's content. But
+    that optimisation is not yet implemented.
+
+
+
+
+5. When running a command, an object of type `command-handler` is created. It includes:
+  - a thread
+  - 2 channels for sending and receiving messages
+  - a "context", which is a hash-table
+  - the symbol of the function being run in the thread, for debugging
+
+6. In the thread, the current command handler is bound to
+   `breeze.command:*command*`
+
+
+
+7. When starting a command, the editor sends a bunch of arguments that
+   are saved  in the command-handler's  context. Mainly, it  sends the
+   whole buffer content and the point (the position of the cursor).
+
+8. Currently, IIRC, all the context sent from the editor is saved in
+   only one key in the command-handler's `context` slot. That key is
+   `:buffer`, and the value is of type `buffer`, a class that holds
+   mainly the source code (the buffer's content), the point, and a
+   "node iterator" referencing the current "node at point"
+
+
+9. A vector iterator is just an object that holds a vector and a
+   "current position". It can be used either to iterate on the vector
+   or to pass around a "reference" to a position in the vector.
+
+10. A "tree iterator" is analog to a "vector iterator", but for nested
+    vectors. It has a stack of vectors and a stack of positions, along
+    with a "depth". Just like the vector iterator, it can be used for
+    either iterating over the nested vectors, or to pass around
+    references to arbitrarily nested objects.
+
+11. With the "tree iterator" data structure, it is easy to get the
+    current value, or the root, or any siblings. It is also trivial to
+    check whether the current value is the first or last or nth value
+    at the current depth, etc
+
+20. Todo: smth about the command's tests
+- tests/refactors.lisp are testing much more than the commands
+  themselves, they are also testing command.lisp's handling of threads
+  and messagings between the threads,
+
+
+
+
+
+
+
+
+#|
+
+Originally, I took the design decision of using the pattern objects
+themselves to serve as the "identity" of a binding. It's easier to
+explain with an example:
+
+the pattern ?x compiles to #1=(var ?x) — an object of type 'var with
+the name (slot) ?x
+
+when matched against, for example, 42, it would create the
+binding (#1# . 42) not (?x . 42) — the key is the pattern object, not
+its name
+
+so when a pattern results in a lot of bindings, you would search for
+the pattern object, not by its name.
+
+The motivation behind that design was that if you have a lot of
+pre-defined patterns, you might want to avoid name collisions, and the
+chances that you re-use a pattern object between two different
+patterns should be pretty low.
+
+But what if you _do_ want to have two patterns that share the
+same "pattern variable"?
+
+There are 2 main use cases for wanting to share pattern objects
+between multiple patterns, matching with back-references and rewrites.
+
+"back-references" use case:
+
+let's say you have 2 pre-defined patterns: "(defun ?name ...)"
+and "(funcall '?name ...)", it's possible that one would like to
+find "defuns with funcalls to itself in its body"... It's more
+efficient for the pattern matching algorithm to take care of that than
+the user checking if both ?names in both patterns are the same. But in
+order to do that, you need for both of these patterns to re-use the
+same 'var pattern object when compiling ?name.
+
+"rewrites" use case:
+
+let's say you matched a pattern against a form and you want to extract
+the values and generate a new form using them, you can use a second
+pattern and sustitute the vars in it with the values from matching
+the first pattern.
+
+pattern A: (+ ?x (- ?y))
+pattern B: (- ?x ?y)
+
+but, again, without sharing the pattern objects for vars, one would
+need to associate each vars from each patterns using the vars'
+names (that implies walking the patterns to find the vars).
+
+---
+
+I ditched the concept of re-usable pre-defined patterns (for now). I
+also think that my original motivation of avoiding conflicts was a bit
+too much (especially that the names are symbols, they can be from any
+packages...).
+
+With these requirements gone, I think it would simplify a lot of code
+if we were using the name of the vars in the bindings. That means
+that we wouldn't need the *var-pool* at all anymore. (we don't even
+need to de-duplicate pattern objects whithin one pattern.)
+
+|#
+
+
+
+#|
+
+A pattern type to match symbols in packages that are not defined in
+the current image.
+
+What do I want it to look like?
+
+- should probably be "compiled"
+  - (compile-pattern (sym ...))
+
+* normal/simple match: "cl:null"
+  - should match any nicknames
+  - should match any case
+  - should match current-package-symbol, qualified-symbol and possibly-internal-symbol
+
+* exact match: "^cl:null$"
+  - (eq cl) (eq null)
+  - case-insensitive: (sym '(equal cl) (equal null))
+    - default
+
+* exact package name:
+  - "^cl$:null" (= cl) null
+
+* any package
+  - '(:any "null")
+
+* any symbol
+  - '(cl :any)
+
+* qualification: nil, current, internal, :any, :or <===
+
+|#

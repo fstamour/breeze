@@ -157,3 +157,8 @@
             ((style-warning (lambda (condition)
                               (muffle-warning condition))))
           (interactive-eval))))))
+
+;; TODO a test where the package designated by the "in package" not
+;; cannot be found in the image
+;;
+;; TODO variant: the defpacakge can be found or not

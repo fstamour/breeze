@@ -13,8 +13,6 @@
                 #:symbolicate
                 #:lastcar)
   (:import-from #:breeze.string
-                #:symbol-package-qualified-name
-                #:symbol-starts-with
                 #:trim-whitespace
                 #:ensure-circumfix
                 #:ensure-circumfixes)
@@ -684,6 +682,8 @@ commands that the user might want to run."
 
 
 
+#++
+;; TODO temprarily disable due to a re-organization
 (defun maybe-ask-to-load-system ()
   (when-let ((filename (current-buffer-filename)))
     (multiple-value-bind (status system)
@@ -753,7 +753,8 @@ will fix the issue and then stop the current command."
 
 (define-command quickfix ()
   "Given the context, suggest some applicable commands."
-  (maybe-ask-to-load-system)
+  ;; TODO this is definitely not the right place...
+  #++ (maybe-ask-to-load-system)
   ;; TODO Is it the right place? maybe do that in the header-line??
   #++ (check-in-package)
   (let ((root (root-node (current-node-iterator))))
@@ -820,6 +821,7 @@ TODO there's some different kind of "quickfixes":
         (type (pathname-type pathname)))
     (format nil "~a~:[.~a~;~]" name (eq :unspecific type) type)))
 
+;; TODO the "truename" signals an error if the file doesn't exist...
 (defun candidate-alt-files (file &aux (file (truename file)))
   (loop
     :with file-name := (pathname-filename file)

@@ -1,3 +1,14 @@
+#|
+
+TODO
+
+- emptyp
+- donep
+- source: TODO use in "reader" and "buffer" (buffer -> node-iterator -> parser-state -> source)
+- register/unregister (e.g. actors, command-set, workspace, ...)
+
+|#
+
 
 (defpackage #:breeze.generics
   (:documentation "Declare some generic interfaces.")
@@ -69,17 +80,6 @@
   (eqv '(?var . a) '(?var . a))
   (eqv '(?var . :_) '(?var . a))
   (eqv '(?var . a) '(?var . :_)))
-
-#|
-
-start
-end
-emptyp
-donep
-
-source: TODO use in "reader" and "buffer" (buffer -> node-iterator -> parser-state -> source)
-
-|#
 
 (defgeneric name (thing)
   (:documentation "Get the name of THING."))
