@@ -69,7 +69,10 @@
    #:command-docstring
    #:command-description
    ;; Utilities to create commands
-   #:define-command))
+   #:define-command
+   ;; Utilities to send notifications to the editor
+   #:notify-editor
+   #:notifications))
 
 (in-package #:breeze.command)
 
@@ -95,6 +98,8 @@
         do (setf (gethash id *actors*) t)
            (return id))))
 
+
+;; TODO defgeneric
 (defun register (actor)
   (bt:with-lock-held (*actors-lock*)
     (setf (gethash (id actor) *actors*) actor)))
@@ -896,3 +901,19 @@ Example:
                                             :documentation ,docstring
                                             :declarations ',command-declarations)))
                ',command-declarations))))
+
+
+;;; Utilities to send notifications to the editor
+
+;; TODO what if there are multiple editors connected?
+(defvar *notifications* (make-channel))
+
+(defmethod notify-editor ((notification-channel channel) datum)
+  (breeze.channel:send notification-channel datum))
+
+#++
+(define-command notifications ()
+  "Receive all the notifications one-by-one, in a loop, waiting for new
+ones if necessary."
+  (loop :for datum := (breeze.channel:receive *notifications*)
+        :do (send datum)))
