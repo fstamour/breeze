@@ -1,6 +1,10 @@
 (defpackage #:breeze.test.report
   (:documentation "Tests for the package breeze.report")
   (:use #:cl #:breeze.report)
+  ;; importing non-exported symbols, for testing
+  (:import-from #:breeze.report
+                #:render-files
+                #:pages)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -79,3 +83,26 @@
   (is string= "<a href=\"\"></a>" (escape-html "<a href=\"\"></a>"))
   (is string= "=> (#&lt;ASDF/SYSTEM:SYSTEM \"breeze/test\"&gt; #&lt;ASDF/SYSTEM:SYSTEM \"breeze/config\"&gt;)"
       (escape-html "=> (#<ASDF/SYSTEM:SYSTEM \"breeze/test\"> #<ASDF/SYSTEM:SYSTEM \"breeze/config\">)")))
+
+
+;;; TODO I want to generate example pages, especially for commands
+
+;; Here I render a buffer with syntax errors into an html file
+;; TODO extract function "render-buffer" out of "render-lisp-flle"
+#++
+(let* ((root (merge-pathnames
+              "docs/"
+              (asdf:system-source-directory 'breeze)))
+       (content "(
+  #|
+  #r")
+       (filename "example.lisp")
+       (state (breeze.parser:parse content))
+       (pages (pages state)))
+  (;; with-output-to-string (out)
+   ;; alexandria:with-output-to-file (out (merge-pathnames "example.lisp.html" root))
+   progn
+    (render-files
+     (make-instance 'report :output-dir root)
+     (list (list filename state pages))
+     (merge-pathnames "example.lisp.html" root))))
