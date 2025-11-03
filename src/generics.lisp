@@ -13,12 +13,16 @@ TODO
 (defpackage #:breeze.generics
   (:documentation "Declare some generic interfaces.")
   (:use #:cl)
+  ;; generic functions
   (:export
    #:eqv
    #:name
    #:source
    #:start
-   #:end))
+   #:end)
+  ;; mixin class
+  (:export
+   #:named))
 
 (in-package #:breeze.generics)
 
@@ -84,7 +88,21 @@ TODO
 (defgeneric name (thing)
   (:documentation "Get the name of THING."))
 
-;; TODO create a mix-in class for "objec with a name"
+(defclass named ()
+  ((name
+    :initform nil
+    :initarg :name
+    :accessor name))
+  (:documentation "A mixin class that adds a slot `name'."))
+
+(defmethod name ((symbol symbol))
+  (symbol-name symbol))
+
+(defmethod name ((package package))
+  (package-name package))
+
+(defmethod name ((class standard-class))
+  (class-name class))
 
 
 
