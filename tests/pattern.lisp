@@ -709,3 +709,89 @@
 
 ;; TODO this could be a command:
 ;; (parachute:test *package*)
+
+
+
+;;; Parsing cl:loop using patterns
+
+#++ ;; sample "loop" forms
+(let ((samples `((loop for el in list do (print el))
+                 (loop :repeat 10 #:collect 'bob)
+                 (loop :for (head . tail) :on lst :while tail append tail)
+                 (loop :for c across string thereis (char= c #\+))
+                 (loop :for (k v) :on plist :by #'cddr
+                       :sum v :into vsum
+                       :max k :into kmax
+                       :finally (return (values kmax vsum)))
+                 (loop)))))
+
+
+;; TODO it might be easier to debug if each patterns are compiled separatedly
+#++
+(let* ((name-clause '((:symbol named) ?name))
+       ;; TODO not supported: improper list (the "cons")
+       (d-type-spec (let* ((cons (cons nil nil))
+                           (sub-patterns (vector cons
+                                                 (var '?type-specifier)))
+                           (pattern (either sub-patterns)))
+                      (setf (car cons) pattern
+                            (cdr cons) pattern)
+                      pattern))
+       (destructured-type-spec `((:symbol of-type) d-type-spec))
+       (simple-type-spec '(:either fixnum float t nil))
+       (type-spec `(:either ,simple-type-spec ,destructured-type-spec))
+       (with-clause `((:symbol with)
+                      ?*var1
+                      ;; TODO (:maybe typespec)
+                      ;; this is not currently possible because the matching is too greedy and it's not possible
+                      ;; the "typespec" should not match a "=" or "and"
+                      (:maybe ((:symbol =) ?*form1))
+                      ;; TODO this kind of repetitions could be
+                      ;; handled by a special pattern, not sure about
+                      ;; the name "joined-repetition"? it's a
+                      ;; repitition with a separation (here it's 'and)
+                      (:zero-or-more (:symbol and)
+                                     ?*var2
+                                     ?*form2
+                                     ;; (:maybe typespec)
+                                     )))
+       ;; a compound-form is a non-empty list [which is a form; a
+       ;; special form; a lambda form; a macro form; or a function
+       ;; form.
+       ;; TODO I could use a "one-or-more" here
+       (compound-form (vector (repetition (wildcard) 1)))
+       (compound-form+ (repetition compound-form 1))
+       (initial-final `((:either (:symbol initially)
+                                 (:symbol finally))
+                        ,compound-form+))
+       (for-as-clause :todo)
+       (unconditional `(:either
+                        ((:either (:symbol do) (:symbol doing)) ,compound-form+)
+                        ((:symbol return)
+                         (:either (:symbol it) ?return-form))))
+       (list-accumulation `((:either (:symbol collect)
+                                     (:symbol collecting)
+                                     (:symbol append)
+                                     (:symbol appending)
+                                     (:symbol nconc)
+                                     (:symbol nconcing))
+                            (:either (:symbol it) ?form)
+                            (:maybe (:symbol into) ,simple-var)))
+       (numeric-accumulation `())
+       (accumulation `(:either list-accumulation numeric-accumulation))
+       (main-clause `(:either
+                      unconditional
+                      accumulation
+                      conditional
+                      termination-test
+                      ,initial-final))
+       (variable-clause `(:either ,with-clause ,initial-final ,for-as-clause))
+       (loop-grammar `(loop (:maybe ,@name-clause)
+                            (:zero-or-more ,@variable-clause)
+                            (:zero-or-more ,@main-clause))))
+  ())
+
+
+#++
+(match (compile-pattern loop-grammar)
+  #(loop for))
