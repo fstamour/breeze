@@ -103,9 +103,7 @@
 
 (defun source-substring (state start end)
   "Get a (displaced) substring of the state's source string."
-  (subseq-displaced (source state)
-                    start
-                    (and (plusp end) end)))
+  (subseq (source state) start (and (plusp end) end)))
 
 
 ;;; Reader position (in the source string)

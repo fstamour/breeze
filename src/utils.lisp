@@ -174,15 +174,6 @@ should be easy to add."
 
 ;;; Sequence stuff
 
-(defun subseq-displaced (sequence start &optional end)
-  "Like subseq, but returns a displaced array instead."
-  (let* ((end (or end (length sequence)))
-         (size (- end start)))
-    (make-array size
-                :element-type (array-element-type sequence)
-                :displaced-to sequence
-                :displaced-index-offset start)))
-
 (defun length>1? (list)
   "Is the length of LIST greater than 1?"
   (not (null (cdr list))))

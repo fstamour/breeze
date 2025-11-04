@@ -79,13 +79,13 @@
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
    (:file "range")
-   (:file "parser-state" :depends-on ("utils"))
-   (:file "parse-tree"
-    :depends-on ("parser-state" "range"))
-   (:file "parser"
-    :depends-on ("parse-tree"))
-   (:file "incremental-parser"
-    :depends-on ("parser" "workspace"))
+   (:module "parser"
+    :depends-on ("range")
+    :serial t
+    :components ((:file "parser-state")
+                 (:file "parse-tree")
+                 (:file "parser")
+                 (:file "incremental-parser")))
    (:file "buffer" :depends-on ("parser" "package"))
    (:file "workspace" :depends-on ("parser" "buffer"))
    (:file "egraph")

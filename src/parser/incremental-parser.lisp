@@ -5,11 +5,9 @@
   (:use-reexport #:breeze.parser)
   (:import-from #:breeze.parser
                 #:reparse)
-  (:import-from #:breeze.workspace
-                #:find-buffer)
   (:import-from #:alexandria
                 #:when-let)
-  (:export #:after-change-function))
+  (:export #:push-edit))
 
 (in-package #:breeze.incremental-reader)
 
@@ -160,23 +158,4 @@
 ;; (:DELETE-AT 18361 1)
 ;; (:INSERT-AT 17591 ";")
 
-(defun after-change-function (start stop length &rest rest
-                                              &key
-                                                buffer-name
-                                                buffer-file-name
-                                                insertion
-                                              &allow-other-keys)
-  (declare (ignorable start stop length rest buffer-file-name insertion)) ; yea, you heard me
-  ;; TODO the following form is just a hack to keep the breeze's
-  ;; buffers in sync with the editor's buffers
-  (when-let ((buffer (find-buffer buffer-name)))
-    (setf (node-iterator buffer) nil))
-  ;; consider ignore-error + logs, because if something goes wrong in
-  ;; this function, editing is going to be funked.
-  (push-edit
-   (cond
-     ((zerop length)
-      (list :insert-at start insertion))
-     ((plusp length)
-      (list :delete-at start length))
-     (t :unknown-edit))))
+

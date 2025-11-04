@@ -10,7 +10,6 @@ common lisp.")
    #:breeze.iterator
    #:breeze.generics)
   (:import-from #:breeze.string
-                #:subseq-displaced
                 #:+whitespaces+
                 #:whitespacep)
   (:import-from #:alexandria

@@ -85,7 +85,7 @@
             "Should have returned a plist that contains the key :node-iterator.")
       (destructuring-bind (&key buffer node-iterator) location
         (when (and buffer node-iterator)
-          (is suffixp "src/parser.lisp" (name buffer))
+          (is suffixp "src/parser/parser.lisp" (name buffer))
           (is string= #2="(uiop:define-package #:breeze.parser
     (:documentation \"A fast, lossless, robust and "
               (subseq (breeze.parser:node-string node-iterator)

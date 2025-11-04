@@ -704,7 +704,7 @@ with which arguments."
      (lambda ()
        (breeze-eval-async
         (prin1-to-string
-         (let ((base (list 'breeze.incremental-reader:after-change-function
+         (let ((base (list 'breeze.workspace:after-change-function
                            start stop length
                            :buffer-name (buffer-name)
                            :buffer-file-name (buffer-file-name))))

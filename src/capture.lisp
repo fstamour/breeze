@@ -4,8 +4,6 @@
   (:import-from #:breeze.string
                 #:remove-indentation
                 #:whitespacep)
-  (:import-from #:breeze.utils
-                #:subseq-displaced)
   (:import-from #:breeze.command
                 #:choose
                 #:define-command

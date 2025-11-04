@@ -191,7 +191,7 @@ b
               :for leading-whitespaces = (position-if-not #'whitespacep line)
               :if (and leading-whitespaces
                        (>= leading-whitespaces indentation))
-                :do (write-string (subseq-displaced line indentation) output)
+                :do (write-string line output :start indentation)
               :else
                 :do (write-string line output)
               :do (write-char #\newline output))))))
