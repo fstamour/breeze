@@ -221,9 +221,15 @@
         (breeze.logging:log-debug "~&~s" table-content)
         ;; Make sure that all command names in the table has a corresponding command symbol in the current image.
         (let* ((all-commands
-                 ;; TODO this is a hack, we should filter out "non interactive" commands
-                 (remove 'breeze.lint:lint
-                         (breeze.command:list-all-commands)) #| this is a list of symbols |#)
+                 (remove-if (lambda (command)
+                              (let ((package-name (package-name (symbol-package command))))
+                                (or
+                                 (string= '#:breeze.dogfood package-name)
+                                 (alexandria:starts-with-subseq "BREEZE.TEST." package-name)
+                                 ;; TODO this is a hack, we should filter out "non interactive" commands
+                                 (member command '(breeze.lint:lint
+                                                   breeze.completion:completions-at-point)))))
+                            (breeze.command:list-all-commands)) #| this is a list of symbols |#)
                (commands-in-the-table (mapcar #'car table-content))
                (command->key-binding)
                (command-name->symbol

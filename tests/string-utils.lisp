@@ -3,6 +3,8 @@
 (uiop:define-package #:breeze.test.string
     (:documentation "Tests for breeze.test.")
   (:mix #:cl #:alexandria #:breeze.string)
+  (:import-from #:breeze.string
+                #:remove-parentheses)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -50,7 +52,14 @@
 
 (define-test print-comparison)
 
-(define-test+run remove-parentheses)
+(define-test+run remove-parentheses
+  (is string= "" (remove-parentheses ""))
+  (is string= "" (remove-parentheses "()"))
+  (is string= "Hello " (remove-parentheses "Hello (you)"))
+  (is string= "Hello  " (remove-parentheses "Hello (you) (too)"))
+  (is string= "Hello ~(you)~ " (remove-parentheses "Hello ~(you)~ (too)"))
+  (is string= "Insert a ~(defmethod initialize-instance ...)~ form."
+      (remove-parentheses "Insert a ~(defmethod initialize-instance ...)~ form.")))
 
 (define-test+run summarize)
 

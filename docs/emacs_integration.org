@@ -21,7 +21,6 @@
 | breeze-capture                                     | Quickly create a lisp file in a pre-determined directory.                       |              |
 | breeze-quickproject                                | Create a project interactively using quickproject.                              |              |
 | breeze-kill-worker-threads                         | Find threads named "worker", then destroy them.                                 |              |
-| breeze-completions-at-point                        | completion-at-point                                                             |              |
 | breeze-declaim-inline                              | Declaim inline the current top-level function.                                  |              |
 | breeze-insert-asdf                                 | Insert an asdf system definition form.                                          |              |
 | breeze-insert-breeze-define-command                | Insert a breeze:define-command form.                                            |              |
@@ -37,9 +36,12 @@
 | breeze-insert-defparameter                         | Insert a defparameter form.                                                     |              |
 | breeze-insert-defun                                | Insert a defun form.                                                            |              |
 | breeze-insert-defvar                               | Insert a defvar form.                                                           |              |
+| breeze-insert-fancy-emacs-propline                 | Insert a fancy emacs propline.                                                  |              |
+| breeze-insert-fancy-sbcl-shebang                   | Insert fancy sbcl shebang at the start of the buffer.                           |              |
 | breeze-insert-handler-bind-form                    | Insert handler bind form.                                                       |              |
 | breeze-insert-handler-case-form                    | Insert handler case form.                                                       |              |
-| breeze-insert-in-package-cl-user                   | Insert (cl:in-package #:cl-user)                                                |              |
+| breeze-insert-in-package-cl-user                   | Insert ~(cl:in-package #:cl-user)~.                                             |              |
+| breeze-insert-initialize-instance~method           | Insert a ~(defmethod initialize-instance ...)~ form.                            |              |
 | breeze-insert-lambda                               | Insert a lambda form.                                                           |              |
 | breeze-insert-local-nicknames                      | Insert local nicknames.                                                         |              |
 | breeze-insert-loop-clause-for-hash                 | Insert a loop clause to iterate on a hash-table.                                |              |
@@ -49,17 +51,12 @@
 | breeze-insert-make-load-form-boilerplate           | Insert a make-load-form method form.                                            |              |
 | breeze-insert-parachute-define-test                | Insert a parachute:define-test form                                             |              |
 | breeze-insert-print-unreadable-object-boilerplate  | Insert a print-object method form.                                              |              |
-| breeze-insert-setf-defun                           | Insert a setf function form e.g. (defun (setf ...) ...)                         |              |
-| breeze-interactive-eval-command                    | A command to interactively evaluate code.                                       |              |
+| breeze-insert-setf-defun                           | Insert a setf function form e.g. ~(defun (setf ...) ...)~                       |              |
+| breeze-interactive-eval                            | A command to interactively evaluate code.                                       |              |
 | breeze-kill-sexp                                   | Kill the expression following point.                                            |              |
-| breeze-test-insert                                 | This is a dummy command to test the "insert" request.                           |              |
-| breeze-test-read-string                            | This is a dummy command to test the "read-string" request.                      |              |
-| breeze-insert-initialize-instance~method           | Insert a ~(defmethod initialize-instance ...)~ form.                            |              |
-| breeze-insert-fancy-emacs-propline                 | Insert a fancy emacs propline.                                                  |              |
-| breeze-insert-fancy-sbcl-shebang                   | Insert fancy sbcl shebang at the start of the buffer.                           |              |
-| breeze-quickload                                   | Choose a system to load with quickload.                                         |              |
 | breeze-other-file                                  | Find the alternative file for the current file.                                 |              |
 | breeze-other-file-other-window                     | Find the alternative file for the current file in the other window.             |              |
+| breeze-quickload                                   | Choose a system to load with quickload.                                         |              |
 
 
 * Related notes

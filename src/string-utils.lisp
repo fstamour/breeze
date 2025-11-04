@@ -222,32 +222,35 @@ sytsem-files"
 |#
 
 
-;; all this to get rid of cl-ppcre xD
 (defun remove-parentheses (string)
   "Return new string with the parts between parentheses removed, along
 with the spaces following the closing parentheses. Does not support
 nested parentheses."
   (with-output-to-string (o)
-    (loop
-      :with skipping
-      :for c :across string
-      :do (cond
-            ;; Opening paren
-            ((and (not skipping)
-                  (char= #\( c))
-             (setf skipping c))
-            ;; Closing paren
-            ((and skipping
-                  (char= #\) c))
-             (setf skipping c))
-            ;; Common case
-            ((not skipping) (write-char c o))
-            ;; Non-space char after closing paren
-            ((and skipping
-                  (char= #\) skipping)
-                  (char/= #\Space c))
-             (setf skipping nil)
-             (write-char c o))))))
+    (let ((start 0)
+          (length (length string)))
+      (flet ((next (start)
+               (let ((open (search "~(" string :start2 start))
+                     (pos (position #\( string :start start)))
+                 (cond
+                   ((not (or open pos))
+                    (write-string string o :start start)
+                    length)
+                   ((eql (1- pos) open)
+                    (let* ((close (search ")~" string :start2 open))
+                           (end (and close (+ 2 close))))
+                      (unless close
+                        (error "Unmatched \"~~(\": could not find matching \")~~\" in ~s" string))
+                      (write-string string o :start start :end end)
+                      end))
+                   (t
+                    (let* ((close (position #\) string :start pos))
+                           (end (if close (1+ close) length)))
+                      (write-string string o :start start :end pos)
+                      end))))))
+        (loop
+          :while (< start length)
+          :do (setf start (next start)))))))
 
 (defun remove-newlines (string)
   (with-output-to-string (o)
@@ -260,14 +263,39 @@ b
 c")
 ;; => "a b c"
 
+(defun find-period-with-exceptions (string)
+  "Find the first period (#\.) in string, ignoring those in \"...\", \"e.g.\" and \"i.e.\"."
+  (loop
+    :with exceptions := #1='("..." "e.g." "i.e.")
+    :with offsets := '#.(mapcar (lambda (s) (position #\. s)) #1#)
+    :with start = 0
+    :with length = (length string)
+    :for position := (position #\. string :start start)
+    :while position
+    :do
+       (unless
+           ;; Test that we didn't find a dot that is part of one of
+           ;; the exceptions.
+           (loop
+             :for exception :in exceptions
+             :for offset :in offsets
+             :when (eql (- position offset)
+                        (search exception string
+                                :start2 start
+                                :end2 (min length (+ position (length exception)))))
+               :do (setf start (+ position (length exception)))
+                   (return t))
+         (return position))
+    :while (< start length)))
 
 (defun summarize (string)
   "Keep only the first sentence, remove parenthesis."
   (remove-newlines
    (remove-parentheses
-    (alexandria:if-let (position (position #\. string))
-      (subseq string 0 position)
-      string))))
+    (let ((pos (find-period-with-exceptions string)))
+      (if pos
+          (subseq string 0 (1+ pos))
+          string)))))
 
 
 ;; TODO This is a good candidate for a function where the unit tests

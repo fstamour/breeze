@@ -48,6 +48,6 @@
          :collect (format nil "(#:~a #:~a)" alias name))))
 
 (define-command insert-in-package-cl-user ()
-  "Insert (cl:in-package #:cl-user)"
+  "Insert ~(cl:in-package #:cl-user)~."
   (declare (context :top-level))
   (insert "(cl:in-package #:cl-user)"))

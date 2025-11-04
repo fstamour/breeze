@@ -196,7 +196,7 @@ defun."
   (insert-defun-shaped "defun"))
 
 (define-command insert-setf-defun ()
-  "Insert a setf function form e.g. (defun (setf ...) ...)"
+  "Insert a setf function form e.g. ~(defun (setf ...) ...)~"
   (declare (context :top-level))
   (insert-defun-shaped
    "defun"
