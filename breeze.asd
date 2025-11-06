@@ -72,6 +72,7 @@
   ((:file "logging")
    (:file "cl")
    (:file "utils")
+   (:file "class-utils")
    (:file "indirection")
    (:file "string-utils" :depends-on ("utils"))
    (:file "channel")
@@ -80,7 +81,7 @@
    (:file "configuration")
    (:file "range")
    (:module "parser"
-    :depends-on ("range")
+    :depends-on ("range" "string-utils" "class-utils")
     :serial t
     :components ((:file "parser-state")
                  (:file "parse-tree")

@@ -238,111 +238,45 @@
 ;; TODO
 (defgeneric copy-node (node))
 
-(defmacro define-node-type (type
+(defmacro define-node-type (name
                             (&key
                                (superclass 'node)
-                               (name type)
                                positional-args
-                               no-constructor-p
+                               (constructor t)
                                children)
                             &body defclass-body)
-  (let* ((slots (append
-                 (when children
-                   `((children
-                      :initform nil
-                      :initarg :children
-                      :accessor children)))
-                 (first defclass-body)))
-         (positional-args (if children
-                              (adjoin 'children positional-args)
-                              positional-args))
-         (initargs (append
-                    (loop
-                      :for slot :in slots
-                      :for initarg := (getf (rest slot) :initarg)
-                      :when (and initarg
-                                 (not (member initarg positional-args :test #'string=)))
-                        :append `(,initarg
-                                  ,(intern (symbol-name initarg))))
-                    `(:errors errors)))
-         (plist (loop
-                  :for s :in positional-args
-                  :append (list (intern (symbol-name s) :keyword)
-                                s))))
-    `(progn
-;;; class
-       (defclass ,name (,superclass)
-         ,@(or (list slots) #|defclass-body|# `(())))
-;;; predicate
-       (defun
-           ;; name of the predicate
-           ,(alexandria:symbolicate type '-node-p)
-           ;; lambda list
-           (node)
-         ;; docstring
-         ,(format nil "Is this a node of type ~s" name)
-         ;; predicate's implementation
-         (typep node ',name))
-;;; constructor
-       ,(unless no-constructor-p
-          `(defun
-               ;; name of the constructor function
-               ,name
-               ;; lambda list
-               (start end
-                ,@positional-args
-                &key
-                  ,@(remove-if #'keywordp initargs))
-             ,(format nil "Make a node of type ~s" type)
-             ;; constructor's implementation
-             (let ((errors (if (stringp errors)
-                               (list (list errors))
-                               errors)))
-               (make-instance
-                ',name
-                :start start :end end
-                ,@plist
-                ,@initargs))))
-;;; print-object
-       (defmethod print-object ((node ,name) stream)
-         (let ((*print-case* :downcase))
-           (write-char #\( stream)
-           ;; print the type of the node
-           (write-string ,(let ((*print-case* :downcase))
-                            (prin1-to-string name)) stream)
-           (format stream " ~s ~s"
-                   (start node)
-                   (end node))
-           ;; print the positional arguments
-           ,@(loop :for arg :in positional-args
-                   :collect `(format stream " ~s" (,arg node)))
-           ;; print the keyword arguments. this assumes that they
-           ;; all default to nil
-           ,@(loop :for (kw arg) :on initargs
-                   :by #'cddr
-                   :collect `(when-let ((,arg (,arg node)))
-                               (format stream " ~s ~s"
-                                       ,kw ,arg)))
-           (write-char #\) stream)))
-;;; eqv
-       (defmethod eqv ((a ,name) (b ,name))
-         (or (eq a b)
-             (and (range= a b)
-                  ;; compare the positional arguments
-                  ,@(loop :for arg :in positional-args
-                          :collect `(eqv (,arg a) (,arg b)))
-                  ;; compare the keyword arguments
-                  ,@(loop :for (kw arg) :on initargs
-                          :by #'cddr
-                          :collect `(eqv (,arg a) (,arg b)))))))))
+  `(breeze.class-utils:define-class
+       ,name
+       (:superclass ,superclass
+        :positional-args ,(append
+                           '(start end)
+                           (if children
+                               (adjoin 'children positional-args)
+                               positional-args))
+        :keyword-args (errors)
+        :constructor ,(when constructor
+                        `(:let* ((errors (if (stringp errors)
+                                             (list (list errors))
+                                             errors)))))
+        :predicate ,(intern (breeze.string:ensure-suffixes
+                             '("-NODE" "-P")
+                             (symbol-name name))))
+     ,@(destructuring-bind (&optional slots &rest rest)
+           defclass-body
+         `((,@slots
+            ,@(when children
+                `((children
+                   :initform nil
+                   :initarg :children
+                   :accessor children))))
+           ,@rest))))
 
-(define-node-type ignorable (:no-constructor-p t
-                             :name ignorable-node))
+(define-node-type ignorable-node (:constructor nil))
 
 (define-node-type whitespace (:superclass ignorable-node))
 (define-node-type page (:superclass whitespace))
 
-(define-node-type comment (:no-constructor-p t
+(define-node-type comment (:constructor nil
                            :superclass ignorable-node))
 (define-node-type block-comment (:superclass comment))
 (define-node-type line-comment (:superclass comment))
@@ -366,8 +300,8 @@
 
 (define-node-type parens (:children t))
 
-(define-node-type string (:name string-node))
-(define-node-type quote (:name quote-node :children t))
+(define-node-type string-node ())
+(define-node-type quote-node (:children t))
 (define-node-type quasiquote (:children t))
 (define-node-type dot ())
 (define-node-type comma (:children t))
