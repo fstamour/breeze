@@ -15,11 +15,11 @@
 
 (define-test+run base
   (of-type 'buffer (make-buffer))
-  (is string= "#<BUFFER NIL>"
+  (is string= "#<buffer nil>"
            (prin1-to-string (make-buffer)))
-  (is string= "#<BUFFER \"foo.lisp\">"
+  (is string= "#<buffer \"foo.lisp\">"
            (prin1-to-string (make-buffer :name "foo.lisp")))
-  (is string= "#<BUFFER \"foo.lisp\">"
+  (is string= "#<buffer \"foo.lisp\">"
            (prin1-to-string (make-buffer :name "foo.lisp"
                                          :string ""))))
 

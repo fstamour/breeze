@@ -86,9 +86,10 @@ point.")
 (Technically, it represents a buffer with the mode \"lisp-mode\"..."))
 
 (defmethod print-object ((buffer buffer) stream)
-  (print-unreadable-object
-      (buffer stream :type t :identity nil)
-    (format stream "~s" (name buffer))))
+  (let ((*print-case* :downcase))
+    (print-unreadable-object
+        (buffer stream :type t :identity nil)
+      (format stream "~s" (name buffer)))))
 
 (defmethod update-point ((buffer buffer) point)
   (when point

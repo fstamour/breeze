@@ -71,7 +71,9 @@
       ((mock-send-out (value)
          (is equalp '("pulse" 35 44) value))
        (mock-send-out (value)
-         (is equalp '("message" "#<PACKAGE \"BREEZE.TEST.COMMAND\">") value))
+         (is equalp '("message" #+sbcl "#<PACKAGE \"BREEZE.TEST.COMMAND\">"
+                        #+ecl "#<\"BREEZE.TEST.COMMAND\" package>")
+             value))
        (mock-send-out (value)
          (is equalp '("done") value)))
     (setf (gethash :buffer (context *command*))
@@ -88,7 +90,10 @@
         ((mock-send-out (value)
            (is equalp '("pulse" 35 44) value))
          (mock-send-out (value)
-           (is equalp '("message" "#<PACKAGE \"BREEZE.TEST.COMMAND\">") value))
+           (is equalp '("message"
+                        #+sbcl "#<PACKAGE \"BREEZE.TEST.COMMAND\">"
+                        #+ecl "#<\"BREEZE.TEST.COMMAND\" package>")
+               value))
          (mock-send-out (value)
            (is equalp '("done") value)))
       (setf (gethash :buffer (context *command*))

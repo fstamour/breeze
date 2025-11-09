@@ -1,4 +1,3 @@
-
 # Only run pipelines for merge requests, tags, and protected branches.
 workflow:
   rules:
@@ -6,36 +5,34 @@ workflow:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_REF_PROTECTED == "true"
 
-.base:
-  image: clfoundation/$LISP:latest
-  variables:
-    LISP: sbcl
-    QUICKLISP_ADD_TO_INIT_FILE: "true"
-    QUICKLISP_DIST_VERSION: "latest"
-  before_script:
-    - install-quicklisp
-  script:
-    - make test
-  #rules:
-  #  - when: manual
-
-test:
-  extends: .base
-  variables:
-    LISP: sbcl
-  parallel:
-    matrix:
-      - STACK:
-          - sbcl
-          # TODO
-          # - abcl
-          # - ccl
-          # - ecl
-
-
-## The job "doc" will re-run the tests, but I'm keeping that
-## redundancy because the job "test" will be expanded to work on
-## multiple cl implementations.
+include:
+  - local: .gitlab/test-job.gitlab-ci.yml
+    inputs:
+      lisp-impl: sbcl
+  # disabled:
+  # 1. abcl fails to load asdf in the container...
+  # 2. needs to push the container to gitlab
+  # - local: .gitlab/test-job.gitlab-ci.yml
+  #   inputs:
+  #     lisp-impl: abcl
+  # disable:
+  # 1. need to add scripts/manifest-ccl.scm
+  # 2. need to push the image to gitlab
+  # - local: .gitlab/test-job.gitlab-ci.yml
+  #   inputs:
+  #     lisp-impl: ccl
+  # disabled: need to fix 5 tests that are not portable (i.e. they
+  # return things in a different order in sbcl and ecl)
+  # - local: .gitlab/test-job.gitlab-ci.yml
+  #   inputs:
+  #     lisp-impl: ecl
+  # disabled:
+  #  1. need to add scripts/test-clasp.sh
+  #  2. need to add scripts/manifest-clasp.scm
+  #  3. need to push the container to gitlab
+  # - local: .gitlab/test-job.gitlab-ci.yml
+  #   inputs:
+  #     lisp-impl: clasp
 
 # Build public/ folder using org-publish on docs/
 doc:

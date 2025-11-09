@@ -40,10 +40,11 @@ slot should be a vector)."))
   (typep x 'binding))
 
 (defmethod print-object ((binding binding) stream)
-  (print-unreadable-object
-      (binding stream :type t)
-    ;; TODO prin
-    (format stream "~s → ~s" (from binding) (to binding))))
+  (let ((*print-case* :downcase))
+    (print-unreadable-object
+        (binding stream :type t)
+      ;; TODO prin
+      (format stream "~s → ~s" (from binding) (to binding)))))
 
 (defmethod to ((_ null)))
 (defmethod from ((_ null)))
@@ -66,14 +67,15 @@ slot should be a vector)."))
       (typep x 'substitutions)))
 
 (defmethod print-object ((substitutions substitutions) stream)
-  (print-unreadable-object
-      (substitutions stream :type t)
-    (let* ((bindings (bindings substitutions))
-           (size (hash-table-count bindings)))
-      (cond
-        ((zerop size) (write-string "(empty)" stream))
-        ((= 1 size) (prin1 (alexandria:hash-table-alist bindings) stream))
-        (t (format stream "(~d bindings)" size))))))
+  (let ((*print-case* :downcase))
+    (print-unreadable-object
+        (substitutions stream :type t)
+      (let* ((bindings (bindings substitutions))
+             (size (hash-table-count bindings)))
+        (cond
+          ((zerop size) (write-string "(empty)" stream))
+          ((= 1 size) (prin1 (alexandria:hash-table-alist bindings) stream))
+          (t (format stream "(~d bindings)" size)))))))
 
 (defmethod eqv ((a substitutions) (b substitutions))
   (eqv (bindings a) (bindings b)))

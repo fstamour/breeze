@@ -17,11 +17,10 @@ cd "$(git rev-parse --show-toplevel)"
 # that the dependencies are downloaded before we compile again...
 
 # TODO it would be nicer if the "lisp script" was in its own file
-
 exec sbcl --noinform --non-interactive \
      --eval "(declaim (optimize (debug 3) (speed 0) (safety 3)))" \
      --eval "(asdf:load-asd (truename \"breeze.asd\"))" \
      --eval "(ql:quickload '#:breeze/test :verbose t)" \
      --eval "(setf asdf:*compile-file-warnings-behaviour* :error)" \
      --eval "(asdf:compile-system '#:breeze/test :force-not t :force t :verbose t)" \
-     --eval "(breeze.test.main:run-breeze-tests :exitp t)"
+     --eval "(breeze.test.main:run-sbcl-tests :exitp t)"

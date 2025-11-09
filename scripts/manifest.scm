@@ -18,8 +18,6 @@
   "cl-bordeaux-threads"
   "cl-alexandria"
 
-  "cl-all"
-
   "sbcl"
   "abcl"
   "ecl"

@@ -321,7 +321,7 @@
   (of-type binding
            (make-binding :?x "a")
            "Make binding should return an instance of the class \"binding\".")
-  (is equal "#<BINDING :?X → A>"
+  (is equal "#<binding :?x → a>"
       (prin1-to-string
        (make-binding :?x 'a))
       "The specialized print-object method on the class \"binding\" should print the slots \"from\" and \"to\"."))
@@ -348,16 +348,16 @@
   (true (emptyp (make-substitutions))
         "make-substitutions should return an empty set of bindings.")
   (is equal
-      "#<SUBSTITUTIONS (empty)>"
+      "#<substitutions (empty)>"
       (prin1-to-string (make-substitutions))
       "The print-object method specialized on the class \"substitutions\" should print it when the binding set is empty.")
   (is equal
-      "#<SUBSTITUTIONS ((:?X . #<BINDING :?X → A>))>"
+      "#<substitutions ((:?x . #<binding :?x → a>))>"
       (prin1-to-string (merge-substitutions (make-substitutions)
                                        (make-binding :?x 'a)))
       "The print-object method specialized on the class \"substitutions\" should print the binding when there's only 1.")
   (is equal
-      "#<SUBSTITUTIONS (2 bindings)>"
+      "#<substitutions (2 bindings)>"
       (prin1-to-string
        (merge-substitutions (make-substitutions)
                        (merge-substitutions (make-binding :?x 'a)

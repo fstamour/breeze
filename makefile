@@ -1,5 +1,12 @@
+# use bash in order to use "-o pipefail"
 SHELL=bash
+# use "-o pipefail" to make sure commands that uses "| tee" to put
+# logs into a file fails correctly.
 .SHELLFLAGS= -e -u -o pipefail -c
+# because guix uses unix epoch as modification times, this tells make
+# to check the mtime of the symlink as well as the file it points to
+# (not just the file), and take the most recent of both.
+MAKEFLAGS += --check-symlink-times
 
 .PHONY: all-tests
 all-tests: test test-emacs emacs/breeze-autoloads.el
@@ -7,17 +14,83 @@ all-tests: test test-emacs emacs/breeze-autoloads.el
 # Run the unit tests
 .PHONY: test
 test:
-	scripts/test.sh
+	scripts/test-sbcl.sh
 
 # Generate the documentation
 .PHONY: doc
 doc:
 	scripts/doc.sh
 
-# Work in progress
-# Create a container meant to be uploaded (using skopeo), and to be used in CI pipelines.
-guix-container-for-ci.tar.gz: scripts/manifest.scm
-	guix pack -f docker --manifest=$< --image-tag=$(subst .tar.gz,,$@) --root=$@ --save-provenance
+# List of lisp implementations available in guix
+LISP_IMPLS := sbcl abcl ecl clisp clasp gcl ccl
+
+######################################################################
+# Create containers meant to be uploaded (using skopeo), and to be
+# used in CI pipelines.
+CONTAINER_PREFIX := breeze-ci
+CONTAINERS := $(foreach lisp,$(LISP_IMPLS),build/$(CONTAINER_PREFIX)-$(lisp).tar.gz)
+
+$(CONTAINERS): build/$(CONTAINER_PREFIX)-%.tar.gz: scripts/manifest-%.scm
+	mkdir -p build/
+	rm -f $@
+	rm -f load-$(CONTAINER_PREFIX)-$*
+	guix pack -f docker --manifest=$< \
+		-S /bin=bin \
+		--image-tag=$(CONTAINER_PREFIX)-$* \
+		--root=$@ \
+		--save-provenance
+
+.PHONY: build-all-ci-images
+build-all-ci-images: $(CONTAINERS)
+
+######################################################################
+# Targets to load the container images built with guix into docker
+
+LOAD_CONTAINERS := $(foreach lisp,$(LISP_IMPLS),load-$(CONTAINER_PREFIX)-$(lisp))
+
+LOAD_CONTAINER_WITNESSES := $(foreach target,$(LOAD_CONTAINERS),build/$(target))
+$(LOAD_CONTAINER_WITNESSES): build/load-%: build/%.tar.gz
+	docker load < $^
+	touch $@
+
+.PHONY: $(LOAD_CONTAINERS)
+$(LOAD_CONTAINERS): %: build/%
+
+.PHONY: load-all-ci-images
+load-all-ci-images: $(LOAD_CONTAINERS)
+
+######################################################################
+# Run the tests in a docker container
+
+GUIX_CONTAINER_TESTS := $(foreach lisp,$(LISP_IMPLS),guix-container-test-$(lisp))
+.PHONY: $(GUIX_CONTAINER_TESTS)
+$(GUIX_CONTAINER_TESTS): guix-container-test-%: load-$(CONTAINER_PREFIX)-%
+	docker run --rm -v $$PWD:/breeze $(CONTAINER_PREFIX)-$* /breeze/scripts/test-$*.sh
+
+######################################################################
+# Upload the container images to gitlab
+UPLOAD_CI_IMAGES := $(foreach lisp,$(LISP_IMPLS),upload-$(CONTAINER_PREFIX)-$(lisp))
+.PHONY: $(UPLOAD_CI_IMAGES)
+$(UPLOAD_CI_IMAGES): upload-%: build/%.tar.gz
+	skopeo --insecure-policy copy docker-archive:$^ docker://registry.gitlab.com/fstamour/breeze/$*
+
+
+######################################################################
+# Run the tests in a guix shell container
+
+GUIX_SHELL_TESTS := $(foreach lisp,$(LISP_IMPLS),guix-shell-test-$(lisp))
+# $(info GUIX_SHELL_TESTS: $(GUIX_SHELL_TESTS))
+.PHONY: $(GUIX-SHELL_TESTS)
+$(GUIX_SHELL_TESTS): guix-shell-test-%: scripts/manifest-%.scm
+	guix shell \
+		--manifest=$^ \
+		--container \
+		--preserve='^TERM$$' \
+		--user=user \
+		--network \
+		-- ./scripts/test-$*.sh
+
+######################################################################
 
 emacs/breeze-autoloads.el: emacs/breeze.el
 	emacs -batch -f loaddefs-generate-batch emacs/breeze-autoloads.el emacs
@@ -49,10 +122,9 @@ test-emacs:
 		--load \~/breeze/tests/emacs/no-listener.el \
 		-f ert-run-tests-batch-and-exit
 
+######################################################################
 
 DOCKER_BUILD := DOCKER_BUILDKIT=1 docker build --progress=plain
-
-# TODO set -o pipefail
 
 # This is "generic" makefile target. To use it, tweak the variables
 # (TARGET and DEST) and add it as a dependency.
@@ -80,10 +152,14 @@ public: dependencies.core
 list-warnings: public.log
 	awk '/; compiling file "\/breeze\/src\//,/About to run tests for the packages/ { $$1=""; $$2=""; print }' $<
 
+######################################################################
+
 # Fix spelling
 .PHONY: spell
 spell:
 	codespell --write-changes --interactive 3 --ignore-words scripts/ignore-words.txt $$(fd -e lisp) README.md notes.org docs/*.md src/breeze.el
+
+######################################################################
 
 # Run the tests on file change
 .PHONY: watch
@@ -116,7 +192,10 @@ git-add-remote:
 	git remote add $(name) $(url) 2>/dev/null || git remote set-url $(name) $(url)
 	git remote -v
 
+######################################################################
+
 .PHONY: clean
 clean:
 	rm -f emacs/breeze-autoloads.el
 	rm -f cores/dependencies.core
+	rm -rf build/

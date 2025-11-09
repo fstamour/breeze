@@ -1,0 +1,9 @@
+spec:
+  inputs:
+    lisp-impl:
+      default: sbcl
+---
+test-$[[ inputs.lisp-impl ]]:
+  image: registry.gitlab.com/fstamour/breeze/breeze-ci-$[[ inputs.lisp-impl ]]:latest
+  script:
+    - ./scripts/test-$[[ inputs.lisp-impl ]].sh

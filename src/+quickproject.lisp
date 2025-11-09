@@ -8,8 +8,7 @@
                 #:message)
   (:import-from #:breeze.project
                 #:choose-local-project-directories
-                #:confirm-scaffold-directory
-                #:read-string)
+                #:confirm-scaffold-directory)
   (:import-from #:breeze.config
                 #:*default-author*
                 #:*default-system-licence*)
