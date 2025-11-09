@@ -1,4 +1,5 @@
-.SHELL=sh
+SHELL=bash
+.SHELLFLAGS= -e -u -o pipefail -c
 
 .PHONY: all-tests
 all-tests: test test-emacs emacs/breeze-autoloads.el
@@ -63,7 +64,7 @@ build-within-container:
 # Inside a container, create an sbcl core dump (for caching and faster
 # loading (inside a container))
 dependencies.core: Dockerfile breeze.asd scripts/load-dependencies.lisp
-	$(MAKE) build-within-container TARGET=dependencies.core
+	$(MAKE) build-within-container TARGET=dependencies.core DEST=.
 
 .PHONY: integration
 integration: dependencies.core
@@ -114,3 +115,8 @@ git-add-github: git-add-remote
 git-add-remote:
 	git remote add $(name) $(url) 2>/dev/null || git remote set-url $(name) $(url)
 	git remote -v
+
+.PHONY: clean
+clean:
+	rm -f emacs/breeze-autoloads.el
+	rm -f cores/dependencies.core

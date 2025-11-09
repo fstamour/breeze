@@ -43,13 +43,11 @@ doc:
   services:
     - docker:24.0.5-dind
   script:
-    - apk add --no-cache make
+    - apk add --no-cache make bash
     - make public
   artifacts:
     paths:
       - public
-  rules:
-    - when: manual
 
 pages:
   needs:
