@@ -57,7 +57,7 @@ jobs:
 
       - name: Tests
         shell: bash
-        run: scripts/test.sh
+        run: scripts/test-sbcl.sh
 
       # - name: 'Upload Artifact'
       #   uses: actions/upload-artifact@v3

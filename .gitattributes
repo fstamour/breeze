@@ -1,1 +1,2 @@
-doc/ linguist-vendored
+*.lisp text eol=lf
+*.org text eol=lf

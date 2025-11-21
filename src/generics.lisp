@@ -9,7 +9,6 @@ TODO
 
 |#
 
-
 (defpackage #:breeze.generics
   (:documentation "Declare some generic interfaces.")
   (:use #:cl)
@@ -77,7 +76,46 @@ TODO
                         (eqv value-a value-b))))))
 
 (defmethod eqv ((a string) (b string))
-  (string= a b))
+  (or (eq a b)
+      (loop
+        :with la = (length a) :and lb = (length b)
+        :for i :from 0
+        :for j :from 0
+        :for ca = (when (< i la)
+                    (let ((c (char a i)))
+                      (if (char= #.(code-char 13) c)
+                          (progn (incf i)
+                                 (when (< i la)
+                                   (char a i)))
+                          c)))
+        :for cb = (when (< j lb)
+                    (let ((c (char b j)))
+                      (if (char= #.(code-char 13) c)
+                          (progn (incf j)
+                                 (when (< j lb)
+                                   (char b j)))
+                          c)))
+        :when (and (null ca) (null cb))
+          :do (return t)
+        :when (or (null ca) (null cb))
+          :do (return nil)
+        :while (and ca cb)
+        :always (char= ca cb))))
+
+#++
+(eqv "a" "a")
+
+#++
+(eqv "a
+" "a
+")
+
+#++
+(eqv "a
+
+" "a
+
+")
 
 #++
 (progn

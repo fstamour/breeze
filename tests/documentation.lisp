@@ -211,6 +211,7 @@
                                s))))
 
 ;;; Putting it all together:
+#+unix ;; don't run this on windows
 (define-test+run update-emacs-integration-docs
   (multiple-value-bind (org-file content)
       (finish (find-and-read-emacs-integration-docs))
