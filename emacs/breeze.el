@@ -81,7 +81,8 @@
 
 (defun breeze-inf-lisp-connected-p ()
   "If inferior-lisp is loaded and connected."
-  (breeze-funcall 'inferior-lisp-proc))
+  (and (breeze-symbol-value 'inferior-lisp-buffer)
+       (breeze-funcall 'inferior-lisp-proc)))
 
 (cl-defun breeze-listener-connected-p (&optional (errorp t))
   "Check if either sly or slime is loaded and connected."
