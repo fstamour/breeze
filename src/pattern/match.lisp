@@ -6,6 +6,11 @@
 
 ;; TODO callbacks? instead of bindings??
 
+;; TODO match-state object, should include the skipp predicate; the
+;; pattern and input iterators
+
+;; TODO condition failed-match
+
 
 ;;; Matching
 
@@ -23,19 +28,32 @@
   (declare (ignore input))
   t)
 
-(defmethod match ((var var) input &key)
+(defmethod match ((var simple-var) input &key)
   "Match a var (create a binding)"
-  (let ((sub-bindings (match (pattern var) input)))
+  (make-binding var input))
+
+(defmethod match ((var var) input &key skipp)
+  "Match a var (create a binding)"
+  (let ((sub-bindings (match (pattern var) input :skipp skipp)))
     (when sub-bindings
-      (make-binding (name var) input
+      (make-binding var input
                     :pattern var
                     :children sub-bindings))))
 
+(defmethod match ((var-a var) (var-b var) &key skipp)
+  "Match a var (create a binding)"
+  (let ((sub-bindings (match (pattern var-a) (pattern var-b) :skipp skipp)))
+    (when sub-bindings
+      ;; TODO do we really need to pass var-a twice?
+      (make-binding var-a var-b
+                    :pattern var-a
+                    :children sub-bindings))))
+
 ;; smells like unification
-(defmethod match ((var1 var) (var2 var) &key)
+(defmethod match ((var1 simple-var) (var2 simple-var) &key)
   "Match a var against another var."
-  (when (match (pattern var1) (pattern var2))
-    (make-binding (name var1) var2)))
+  ;; TODO check multi-valued-p ?
+  (make-binding (name var1) var2))
 
 (defmethod match ((pattern string) (input string) &key)
   "Match a string literal"
@@ -156,6 +174,16 @@
              (copy-iterator $input iterator)
              (or bindings t))))))
 
+(defmethod match ((var simple-var) ($input iterator) &key skipp)
+  "Match a `var' pattern against the current value of an
+`iterator'. This always match, it advances the iterator and returns a
+binding."
+  (let (($it (copy-iterator $input)))
+    (skip $it skipp)
+    (unless (donep $it)
+      (copy-iterator $it $input)
+      (make-binding var $it))))
+
 (defmethod match ((var var) ($input iterator) &key skipp)
   "Match a `var' pattern against the current value of an
 `iterator'. This always match, it advances the iterator and returns a
@@ -263,10 +291,13 @@ where consumed, for example)."
                        (if new-bindings $input $prev-input)))
                  ;; update iterator
                  (copy-iterator $end iterator)
+                 ;; TODO if max = 1, return a "simple" binding
                  ;; TODO return an object (iterator-range? +
                  ;; binding-sets???) instead of a plist
                  (make-binding
-                  pattern
+                  ;; TODO don't create a binding (just return t) if
+                  ;; the pattern has no name
+                  (or (name pattern) pattern)
                   ;; bindings
                   (list
                    :bindings bindings

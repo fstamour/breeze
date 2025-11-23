@@ -10,6 +10,9 @@
            #:match
            #:wildcard
            #:wildcardp
+           #:simple-var
+           #:svar
+           #:multi-valued-p
            #:var
            #:varp
            #:name
@@ -19,12 +22,11 @@
            #:wildp
            #:maybe
            #:zero-or-more
+           #:one-or-more
            #:repetition
            #:repetitionp
            #:minimum
            #:maximum
-           #:maybe
-           #:zero-or-more
            #:either
            #:eitherp
            #:pattern-iterator
@@ -62,7 +64,7 @@
 
 ;;; Wildcard / don't care
 
-(defclass wildcard ()
+(defclass wildcard (pattern)
   ()
   (:documentation "Pattern that matches anything"))
 
@@ -83,18 +85,8 @@
 
 ;;; Vars
 
-(defclass var (pattern)
-  ((name
-    :initform nil
-    :initarg :name
-    :accessor name
-    :documentation "The name of the var.")
-  (pattern
-    :initform nil
-    :initarg :pattern
-    :accessor pattern
-    :documentation "An optional pattern to match against.")
-  (multi-valued-p
+(defclass simple-var (pattern named)
+  ((multi-valued-p
     :initform nil
     :initarg :multi-valued-p
     :accessor multi-valued-p
@@ -102,34 +94,68 @@
 a match for a variable of the same name."))
   (:documentation "Pattern that creates a binding."))
 
-(defun var (name &optional (pattern nil patternp) &key multi-valued-p)
+(defun simple-var (name &key multi-valued-p)
+  (make-instance 'simple-var :name name
+                             :multi-valued-p multi-valued-p))
+
+(defun svar (name &key multi-valued-p)
+  (simple-var name :multi-valued-p multi-valued-p))
+
+(defmethod print-object ((var simple-var) stream)
+  "Print an object of type `var'."
+  (let ((*print-case* :downcase)
+        (*print-readably* nil))
+    ;; TODO
+    (format stream "(svar ~s~@[ :multi-valued-p ~s~])"
+            (name var)
+            (multi-valued-p var))))
+
+(defun varp (x)
+  "Is X an object of class or subclass of `simple-var'?"
+  (typep x 'simple-var))
+
+(defmethod eqv ((a simple-var) (b simple-var))
+  (or (eq a b)
+      (and (eq (name a) (name b))
+           (eq (multi-valued-p a) (multi-valued-p b)))))
+
+(defmethod make-load-form ((s simple-var) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
+
+
+;;; Vars with sub-pattern
+
+(defclass var (simple-var)
+  ((pattern
+    :initform nil
+    :initarg :pattern
+    :accessor pattern
+    :documentation "An optional pattern to match against."))
+  (:documentation "Pattern that creates a binding if its sub-pattern matches."))
+
+;; TODO muffle sbcl warning about the mix of &optional and &key
+(defun var (name pattern
+            &key multi-valued-p)
   "Make a pattern object that creates a binding."
   (make-instance 'var
                  :name name
-                 :pattern (if patternp
-                            pattern
-                            (wildcard))
+                 :pattern pattern
                  :multi-valued-p multi-valued-p))
-
-(defun varp (x)
-  "Is X an object of class `var'?"
-  (eq (class-name (class-of x)) 'var))
 
 (defmethod print-object ((var var) stream)
   "Print an object of type `var'."
   (let ((*print-case* :downcase)
         (*print-readably* nil))
-    (format stream "(var ~s~:[ ~s~;~])"
+    (format stream "(var ~s ~s~@[ :multi-valued-p ~s~])"
             (name var)
-            (wildcardp (pattern var))
-            (pattern var))))
+            (pattern var)
+            (multi-valued-p var))))
 
 (defmethod eqv ((a var) (b var))
   "Test that A and B are both object of type `var' with the same name."
-  (and (varp a)
-       (varp b)
-       (eq (name a) (name b))
-       (eqv (pattern a) (pattern b))))
+  (or (eq a b)
+      (and (call-next-method)
+           (eqv (pattern a) (pattern b)))))
 
 (defmethod make-load-form ((s var) &optional environment)
   (make-load-form-saving-slots s :environment environment))
@@ -137,18 +163,13 @@ a match for a variable of the same name."))
 
 ;;; Symbol patterns
 
-(defclass sym ()
-  ((name
-    :initform nil
-    :initarg :name
-    :accessor name
-    :documentation "The name of the symbol.")
-  (package
+(defclass sym (named)
+  ((package
     :initform nil
     :initarg :package
     :accessor sym-package
     :documentation "The name of the symbol's package.")
-  (qualification
+   (qualification
     :initform nil
     :initarg :qualification
     :accessor qualification
@@ -187,25 +208,26 @@ symbols."))
                  :qualification qualification))
 
 (defmethod eqv ((a sym) (b sym))
-  (with-slots ((pak-a package) (name-a name) (qual-a qualification)) a
-    (with-slots ((pak-b package) (name-b name) (qual-b qualification)) b
-      (and
-       ;; Compare package "pattern"
-       (or
-        ;; compare by eq, in case they're both actual package objects,
-        ;; not just designators
-        (eq pak-a pak-b)
-        ;; N.B. : case-insensitive comparison
-        (cond
-          ((packagep pak-a)
-           (string-equal (package-name pak-a) pak-b))
-          ((packagep pak-b)
-           (string-equal (package-name pak-b) pak-a))
-          (t
-           (string-equal pak-a pak-b))))
-       (or (eq name-a name-b)
-           (string-equal name-a name-b))
-       (eq qual-a qual-b)))))
+  (or (eq a b)
+      (with-slots ((pak-a package) (name-a name) (qual-a qualification)) a
+        (with-slots ((pak-b package) (name-b name) (qual-b qualification)) b
+          (and
+           ;; Compare package "pattern"
+           (or
+            ;; compare by eq, in case they're both actual package objects,
+            ;; not just designators
+            (eq pak-a pak-b)
+            ;; N.B. : case-insensitive comparison
+            (cond
+              ((packagep pak-a)
+               (string-equal (package-name pak-a) pak-b))
+              ((packagep pak-b)
+               (string-equal (package-name pak-b) pak-a))
+              (t
+               (string-equal pak-a pak-b))))
+           (or (eq name-a name-b)
+               (string-equal name-a name-b))
+           (eq qual-a qual-b))))))
 
 (defmethod make-load-form ((s sym) &optional environment)
   (make-load-form-saving-slots s :environment environment))
@@ -213,7 +235,7 @@ symbols."))
 
 ;;; Repetitions
 
-(defclass repetition (pattern)
+(defclass repetition (pattern named)
   ((pattern
     :initform nil
     :initarg :pattern
@@ -235,9 +257,11 @@ successful match.")
    )
   (:documentation "A repeated pattern."))
 
-(defun repetition (pattern &optional (min 0) max)
+(defun repetition (pattern &key (min 0) max name)
   "Make a pattern object that matches a pattern repeatedly."
+  ;; TODO maybe, if (= 1 min max), just return the pattern?
   (make-instance 'repetition
+                 :name name
                  :pattern pattern
                  :minimum min
                  :maximum max))
@@ -249,34 +273,54 @@ successful match.")
 (defmethod eqv ((a repetition) (b repetition))
   "Test that A and B are both object of type `repetition' with the same
 limits."
-  (and (repetitionp a)
-       (repetitionp b)
-       (eqv (pattern a) (pattern b))
-       (= (minimum a) (minimum b))
-       (let ((ma (maximum a))
-             (mb (maximum a)))
-         (or (eq ma mb)
-             (and (numberp ma) (numberp mb)
-                  (= ma mb))))))
+  (or (eq a b)
+      (and (eqv (pattern a) (pattern b))
+           (eql (minimum a) (minimum b))
+           (eql (maximum a) (maximum b))
+           (eq (name a) (name b)))))
+
+;; TODO this is a hack, I just copy-pasted it from breeze.string
+(defun around (string position &optional (around 10))
+  "Returns part of STRING, from POSITIONITION - AROUND to POSITIONITION +
+AROUND. Add elipseses before and after if necessary."
+  (let* ((min-size (1+ (* 2 around)))
+         (before (- position around))
+         (start (max 0 before))
+         (after (+ start min-size))
+         (end (min (length string) after))
+         (start (max 0 (min start (- end min-size))))
+         (ellipsis-left (max 0 (min 3 start)))
+         (ellipsis-right (max 0 (min 3 (- (length string) end)))))
+    (with-output-to-string (out)
+      (loop :for i :below ellipsis-left :do (write-char #\. out))
+      (write-string string out :start start :end end)
+      (loop :for i :below ellipsis-right :do (write-char #\. out)))))
 
 (defmethod print-object ((repetition repetition) stream)
   "Print an object of type `repetition'."
   (print-unreadable-object
       (repetition stream :type t :identity t)
-    (format stream "[~s-~s]"
-            (minimum repetition)
-            (maximum repetition))))
+    (let ((sub-pattern-string (prin1-to-string (pattern repetition))))
+      (format stream "~s ~s [~s-~s]"
+              (name repetition)
+              (around sub-pattern-string 0)
+              (minimum repetition)
+              (maximum repetition)))))
 
 (defmethod make-load-form ((s repetition) &optional environment)
   (make-load-form-saving-slots s :environment environment))
 
-(defun maybe (pattern)
+(defun maybe (pattern &optional name)
   "Make a pattern object that optionally matches a pattern once."
-  (repetition pattern 0 1))
+  (repetition pattern :min 0 :max 1 :name name))
 
-(defun zero-or-more (pattern)
+(defun zero-or-more (pattern &optional name)
   "Make a pattern object that optionally matches a pattern many times."
-  (repetition pattern 0 nil))
+  (repetition pattern :min 0 :max nil :name name))
+
+(defun one-or-more (pattern &optional name)
+  "Make a pattern object that matches a pattern one or moreg times."
+  (repetition pattern :min 1 :max nil :name name))
 
 
 ;;; Eithers
@@ -303,11 +347,11 @@ limits."
 (defmethod eqv ((a either) (b either))
   "Test that A and B are both object of type `either' with the same
 subpatterns."
-  (and (eitherp a)
-       (eitherp b)
+  (or (eq a b)
+      (and
        ;; This works because patterns are vectors...
        (eqv (patterns a)
-            (patterns b))))
+            (patterns b)))))
 
 (defmethod print-object ((either either) stream)
   "Print an object of type `either'."

@@ -574,7 +574,7 @@ eclass-id."
   (check-type egraph egraph)
   (check-type eclass eclass)
   (etypecase pattern
-    (var
+    ((or simple-var var)
      ;; The whole class "matches"
      (list (make-binding (name pattern) eclass)))
     ((or vector symbol number)

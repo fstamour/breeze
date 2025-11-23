@@ -628,12 +628,15 @@ For debugging purposes ONLY.")
 
 (defun suggest-lambda ()
   "When inside a higher-order function, like mapcar."
+  ;; TODO™
+  #++
   (let* ((buffer (current-buffer))
          (node-iterator (node-iterator buffer)))
     ;; TODO Use breeze.cl:higher-order-function-p
     ;; Higher-order functions
     (when (and node-iterator
-               (child-of-mapcar-node-p node-iterator))
+               ;; (child-of-mapcar-node-p node-iterator)
+               )
       (shortcircuit 'insert-lambda))))
 
 (defun suggest-loop-clauses ()

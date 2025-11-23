@@ -15,7 +15,6 @@
   (:export #:with-match
            #:with-match-let
            #:define-node-matcher
-           #:child-of-mapcar-node-p
            #:quotedp))
 
 (in-package #:breeze.analysis)
@@ -219,6 +218,10 @@ The designators can be strings, symbols or packages."
   "Match a var againt a parse state."
   (match-parser-state pattern state :skipp skipp))
 
+(defmethod match ((pattern simple-var) (state state) &key skipp)
+  "Match a var againt a parse state."
+  (match-parser-state pattern state :skipp skipp))
+
 ;; TODO One method per type of node
 #++
 (progn
@@ -312,6 +315,7 @@ The designators can be strings, symbols or packages."
 (defmacro define-node-matcher (name (pattern) &body body)
   `(defun ,name (node-iterator)
      ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
+     (declare (ignorable node-iterator))
      (with-match-let (node-iterator ,pattern)
        ,@body)))
 
@@ -361,21 +365,37 @@ TODO
 
 |#
 
-
-(defun child-of-mapcar-node-p ($node)
-  (with-match ($node ((cl:mapcar)))
-    ;; TODO also check _where_ is node in the "mapcar" form
-    bindings))
-
 ;; TODO figure out what kind of bindings (:zero-or-more ?x) should produce.
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
+#++
+(progn
+  (match (compile-pattern '(if)) (parse "if"))
+  (match (compile-pattern '(if)) (parse "(if)"))
+  (match (compile-pattern '(if ?cond)) (parse "(if)"))
+  (match (compile-pattern '(if ?cond)) (parse "(if a)"))
+  ;; TODO This is where it goes wrong:
+  (match (compile-pattern '(if (:maybe ?cond))) (parse "(if a)"))
+  (match (compile-pattern '(if (:maybe (?cond ?then)))) (parse "(if a)")))
+
+#++
+(progn
+  (trace match :methods t)
+  (match (compile-pattern '(if (:maybe (?cond ?then)))) (parse "(if a)"))
+  (untrace match))
+
 (define-node-matcher malformed-if-node-p
-    ;; TODO (or (if) (if ?cond) ...)
-    ((if ?cond ?then ?else ?extra))
+    ;; This matches longer sequence because there's no implicit
+    ;; "anchor" at the end of the patterns.
+    ((if (:maybe (?cond (:maybe (?then (:maybe (?else (:maybe ?extra)))))))))
   (when bindings
-    ;; (destructuring-bind (&key ?cond ?then ?else ?extra) bindings)
-    t))
+    ;; (break)
+    (cond
+      ;; These are mandatory
+      ((null ?cond) t)
+      ((null ?then) t)
+      ;; there should be no extra forms
+      (?extra t))))
 
 ;; TODO export
 ;; TODO test

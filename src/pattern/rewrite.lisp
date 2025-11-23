@@ -12,7 +12,7 @@
      (check-type bindings (or binding substitutions (eql t)))
      (flet ((substitute1 (x)
               (etypecase x
-                (var
+                ((or simple-var var)
                  (alexandria:if-let ((binding (find-binding bindings (name x))))
                    (to binding)
                    ;; TODO this could signal a condition (binding not

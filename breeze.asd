@@ -210,7 +210,13 @@
    (:file "parser.randomized")
    (:file "package")
    (:file "package-commands")
-   (:file "pattern")
+   (:module "pattern"
+    :serial t
+    :components ((:file "pattern")
+                 (:file "compile-pattern")
+                 (:file "substitution")
+                 (:file "match")
+                 (:file "rewrite")))
    (:file "refactor")
    (:file "string-utils")
    (:file "utils")

@@ -873,19 +873,6 @@ was expected to end at position ~s (exclusive), but got ~s instead"
                      "breeze.analysis::a" 0 0)))
 
 
-;;; Basic tree inspection
-
-
-;;; child-of-mapcar-node-p
-
-#++ ;; TODO WIP
-(let* ((input "(mapcar )")
-       (node-iterator (make-node-iterator input)))
-  (loop :for i :below (length input)
-        :do (goto-position node-iterator i)
-        :collect (child-of-mapcar-node-p node-iterator)))
-
-
 ;;; malformed-if-node-p
 
 (defun test-malformed-if-node-p (string)
@@ -894,9 +881,7 @@ was expected to end at position ~s (exclusive), but got ~s instead"
 (define-test+run malformed-if-node-p
   ;; TODO add tests with comments, e.g. (if #|...|# ...)
   (false (test-malformed-if-node-p "(if a b c)"))
-  (parachute:skip
-      "not implemented yet"
-      (true (test-malformed-if-node-p "(if a)")))
+  (true (test-malformed-if-node-p "(if a)"))
   (true (test-malformed-if-node-p "(if a b c d)"))
   ;; TODO this works by shear luck: it successfully match up to "d"
   ;; and considers that a successful match, but it didn't match

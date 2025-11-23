@@ -28,13 +28,14 @@
 slot should be a vector)."))
 
 (defun make-binding (from to &key pattern children)
-  (make-instance
-   'binding
-   :from from
-   :to (if (and (varp from) (multi-valued-p from))
-           (vector to)
-           to)
-   :pattern pattern :children children))
+  (when from
+    (make-instance
+     'binding
+     :from (if (varp from) (name from) from)
+     :to (if (and (varp from) (multi-valued-p from))
+             (vector to)
+             to)
+     :pattern pattern :children children)))
 
 (defun bindingp (x)
   (typep x 'binding))
