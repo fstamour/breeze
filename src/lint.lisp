@@ -250,6 +250,12 @@ found."
 (defun error-invalid-node (node-iterator)
   (unless (valid-node-p (value node-iterator))
     (let* ((node (value node-iterator))
+#|
+There is no applicable method for the generic function
+  #<STANDARD-GENERIC-FUNCTION BREEZE.PARSE-TREE:ERRORS (1)>
+when called with arguments
+  (37462586).
+|#
            (errors (errors node)))
       (if errors
           (node-parse-error node-iterator

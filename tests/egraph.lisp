@@ -820,3 +820,7 @@ This is for interactive use, it logs a loooot of stuff."
 ;; (= 0 ?x) => (zerop x)
 ;; (= x ?0) => (zerop x)
 ;; (and (zerop ?x (= ?x ?y))) => (= 0 ?x ?y)
+
+;; TODO finally try out rewrites and egraph on parse-trees
+;; e.g. (+ 1 ?x) => (1+ ?x)
+;; (tree (breeze.parser:parse  "(+ 1 x)"))

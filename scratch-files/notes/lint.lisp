@@ -502,3 +502,7 @@ otherwise, the forms in the body are ignored.  |#
 ;; :cl:print => cl:print
 
 ;; If we parse #car, the user probably meant #'car
+
+;; defpackage: import-from 2 symbols with the same name, but from
+;; different packages (I had this in breze once. abcl, sbcl and ecl
+;; didn't complain, but ccl "correctly" signaled an error.)

@@ -191,6 +191,7 @@ likely not loaded
 
 
 ;; TODO if it's not part of a system, check if it should
+;; TODO use (asdf:already-loaded-systems) ... -_-
 (defun loadedp (pathname &aux (pathname (uiop:truename* pathname)))
   "Check whether PATHNAME is part of a system, and whether it was loaded.
 This will return false if the file was loaded outside of asdf."
