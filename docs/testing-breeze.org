@@ -13,7 +13,7 @@
 Or from the command line:
 
 #+begin_src shell
-./scripts/test.sh
+./scripts/test-sbcl.sh
 #+end_src
 
 OR
