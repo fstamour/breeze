@@ -14,3 +14,17 @@
     ((match (sym :wild nil) $node)
      ;; replace by t
      )))
+
+;; TODO true <=> false
+;; TODO if => swap then-form and else-form, or invert the condition
+;; TODO < <=> >=
+;; TODO > <=> <=
+;; TODO = >= /=
+;; TODO eq => (not eq)
+;; TODO while => until
+;; TODO when => unless (or invert the condition)
+;; TODO (null x) <=> x
+;; TODO {string,char} {=,-{,not-}equal,<,<=,>,>=,-{,not-}lessp,-{,not-}greaterp
+;; TODO is <=> isnt (parachute)
+
+string-

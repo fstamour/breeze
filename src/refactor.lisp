@@ -331,6 +331,7 @@ defun."
                "Name of the object (parameter name of the method): "))
         (type (read-string
                "Type of the object: "))
+        ;; TODO leave empty to NOT insert :slot-names
         (slots (read-string
                 "Slots of the object: ")))
     (insert

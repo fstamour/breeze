@@ -87,6 +87,9 @@
 
 ;;; TODO I want to generate example pages, especially for commands
 
+;; TODO extract string-utils's around function's tests
+;; TODO eval-node would be useful!
+
 ;; Here I render a buffer with syntax errors into an html file
 ;; TODO extract function "render-buffer" out of "render-lisp-flle"
 #++

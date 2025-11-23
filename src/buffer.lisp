@@ -153,6 +153,8 @@ point.")
                 'vector)))
 
 ;; TODO rename to current-package-node
+;; TODO when in an *.asd file, fallback to :asdf-user if no in-package
+;; is found
 (defmethod current-package ((buffer buffer) &optional point)
   (let ((position (or point (point buffer)))
         (candidates (or

@@ -70,6 +70,7 @@
    #:command-description
    ;; Utilities to create commands
    #:define-command
+   #:interactive
    ;; Utilities to send notifications to the editor
    #:notify-editor
    #:notifications))

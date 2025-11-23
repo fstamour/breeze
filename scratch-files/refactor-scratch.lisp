@@ -1,11 +1,34 @@
 ;;; Trying to refactor stuff
 
 (cl:defpackage #:refactor-scratch
-  (:use :cl)
-  (:import-from #:breeze.parser
-                #:parse))
+  (:use :cl #:breeze.parser #:breeze.workspace #:breeze.analysis))
 
 (cl:in-package #:refactor-scratch)
+
+;; Trying to update a (parachute) assertion
+(let* ((*workspace* (make-workspace))
+       (buffer (make-buffer :string "(is = (* 2 3) x)"
+                            :point 1))
+       ($node (node-iterator buffer)))
+  (progn ;; list
+    ;; (node-string $node)
+    ;; T
+    ;; (match (compile-pattern `(:symbol "IS")) $node)
+    #++ (node-string
+         (to
+          (find-binding (match (compile-pattern `((:symbol "IS") ?x)) $node) '?x)))
+    (breeze.analysis::with-match-let ($node ((:symbol "IS" #++ "PARACHUTE")
+                                             ?cmp ?expected (:var ?got (:maybe :_))))
+      #++ (loop :for (from . to) :in (breeze.test.pattern::bindings-alist bindings)
+            :collect (cons from (node-string to)))
+      (list ?cmp ?expected ?got)
+      (mapcar 'node-string (list ?cmp ?expected ?got))
+      bindings)))
+
+(let* ((*workspace* breeze.test.workspace:*breeze-workspace*)
+       (buffer (find-buffer "tests/documentation.lisp"))
+       (needle ))
+  (search "(is string=" (source buffer)))
 
 (defun test-refactor-if (string)
   (let ((node (first (parse-string string))))

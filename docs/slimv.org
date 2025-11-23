@@ -1,0 +1,28 @@
+:PROPERTIES:
+:ID:       35b3031a-bbd2-4f32-ba1f-7ec7fc268155
+:END:
+#+title: slimv
+
+https://github.com/kovisoft/slimv
+
+#+begin_quote
+Superior Lisp Interaction Mode for Vim ("SLIME for Vim")
+#+end_quote
+
+Interesting tid-bits from the readme:
+
+- Slimv is a SWANK client for Vim
+- Slimv comes with Paredit Mode
+- Slurpage and Barfage known from Emacs is also possible but in a
+  different fashion: you don't move the list element in or out of the
+  list, rather you move the opening or closing parenthesis over the
+  element or sub-list.
+- It requires *with Python feature enabled* and *python* (must be the
+  same Python version that was Vim compiled against)
+
+Tutorial: https://kovisoft.github.io/slimv-tutorial/tutorial.html
+
+* See also
+
+- [[id:54e6cd55-803b-4e15-82bc-a332130d020e][Sly/Slime integration]]
+- [[id:a7e572ba-a80b-44cf-9fd8-91f50307c675][breeze's eval v.s. sly's and slime's eval]]

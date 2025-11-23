@@ -345,3 +345,10 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
       (command-lambda-list-for-editor '(x &optional (y 0))))
   (is same-symbol-name-p '(#:x #:y)
       (command-lambda-list-for-editor '(x &key (y "default" yp)))))
+
+
+
+;; TODO add (interactive)
+#++
+(define-test+run define-command
+  (macroexpand-1 `(define-command)))

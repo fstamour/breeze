@@ -33,6 +33,14 @@ x
 (format stream "~s" x) <=> (prin1 x stream)
 ;; there are many more instances of that (e.g. princ, write, etc)
 
+
+;; TODO validate that I didn't mix up the order, but the transform
+;; still stand
+(format s "~:[alternative~;consequent~]" x x)
+=>
+(format s "~@[consequent~]" x)
+
+
 ;; the "when" is unessessary, it can be replaced by "and"
 (when (and x y) y)
 ;; should
@@ -287,6 +295,10 @@ prog*
 ;; I lost a bunch of time because I made a typo in the (:export ) of a
 ;; defpackage.
 
+;; Find duplicate exports
+;; Find duplicate imports
+;; Find unused imports
+
 
 (if (listp x) x (coerce x))
 ;; is equivalent to
@@ -506,3 +518,54 @@ otherwise, the forms in the body are ignored.  |#
 ;; defpackage: import-from 2 symbols with the same name, but from
 ;; different packages (I had this in breze once. abcl, sbcl and ecl
 ;; didn't complain, but ccl "correctly" signaled an error.)
+
+
+#|
+
+In a system definition file (.asd), if the files in the test system matches the files in the primary system, they should probably have the same "order" of dependencies
+
+;; primary system
+((:serial t)
+ (:components ((:file "a") (file "b"))))
+
+;; this might indicate a mistake, in the test system (or "simply" a bad design):
+((:serial t)
+ (:components ((:file "b") (file "a"))))
+
+|#
+
+
+#|
+
+In a system definition file (.asd), when there's only one module at the root of the system definition, it would be better to use :pathname
+
+(defsystem
+  ...
+  :components ((:module "src"
+              :components (...))))
+=>
+(defsystem
+  :pathname "src
+  :components (...))
+
+|#
+
+#|
+
+Detect when there are multiple tests with the same name, in the same package.
+
+It happened to me that a bunch of tests were failing because of a bad
+copy-paste (I think I had been interupted while I was splitting a big
+`define-test' in two). Only the second one was being run.
+
+_maybe_ it would be possible to update parachute to detect this
+situation, but I'm not quite sure how.
+
+maybe it's possible to detect that we're currently in `compile-file`,
+and signal a warning (or even an error) when a test is being
+redefined.
+
+I know that sbcl will complain similarily when compiling a file with
+the same defun appering multiple times.
+
+|#

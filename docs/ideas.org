@@ -122,3 +122,9 @@ known as union-find, based on the 2 mains operations it supports).
 https://github.com/fstamour/disjoint-sets
 
 ** Semantic diffs using breeze.reader
+
+** Better syntax highlight for gensyms, and perhaps ~#<...>~
+
+#+begin_quote
+Though some support for fontlocking gensyms into something nicer should go on the docket
+#+end_quote

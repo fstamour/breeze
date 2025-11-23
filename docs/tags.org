@@ -79,6 +79,35 @@
 See https://github.com/ahmed-shariff/org-roam-ql - "Query language for
 org-roam".
 
+
+* TODO Make sure that all org file have a front-matter
+:PROPERTIES:
+:ID:       eb6f8b43-ee41-46f6-b23a-bcde610dc60c
+:END:
+
+For example:
+
+#+begin_example
+:PROPERTIES:
+:ID:       13ea055e-4715-4583-811b-bff78ca300ee
+:END:
+,#+title: Candidate Features
+#+end_example
+
+* TODO Make sure that all pages are reachable from another page
+
+#+begin_src emacs-lisp
+(dolist (row (org-roam-db-query [:select
+                      [id properties file pos title]
+                      :from nodes
+                      :where (= todo "TODO")]))
+  (cl-destructuring-bind (id properties file pos title)
+      row
+    (unless (assoc-string "TAGS" properties)
+      (message "Node %S %S doesn't have any tags." id title))))
+#+end_src
+
+
 * Local variables :noexport:
 # local variables:
 # org-confirm-babel-evaluate: nil
