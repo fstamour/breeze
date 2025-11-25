@@ -75,6 +75,13 @@
           (match (vector (var :?x 42)) v)))))
 
 
+;;; Pattern iterators
+
+(define-test+run "pattern iterators"
+  (true (donep (make-tree-iterator #())))
+  (false (donep (make-tree-iterator #(a)))))
+
+
 ;;; Sequences
 
 (define-test+run "match sequences"
@@ -86,6 +93,126 @@
        (match #(a b) #(a b a))
      (is eq t bindings)
      (false (donep iterator)))))
+
+#++
+(define-test+run asdf
+  (is eqv nil (breeze+parachute:pass-p
+                  ('asd)
+                (is = 2 2))))
+
+(progn
+  (defun check-if-iterators-are-updated
+      (&key
+         description
+         substitution
+         $pattern-before $pattern-after
+         $input-before $input-after
+       &allow-other-keys)
+    "- pattern is advanced by 1 if there was a match, otherwise it is untouched
+     - input is advanced if there was a match, otherwise, it is
+       untouched"
+    (cond
+      ((donep $pattern-before)
+       (is eqv $pattern-before $pattern-after
+           "~a the pattern iterator should not be modified when the pattern iterator already done before matching"
+           description)
+       (is eqv $input-before $input-after
+           "~a  the input iterator should not be modified when the pattern iterator is already done before matching"
+           description))
+      ((null substitution)
+       (is eqv $pattern-before $pattern-after
+           "~a  the pattern iterator should not be modified when there is no match"
+           description)
+       (is eqv $input-before $input-after
+           "~a  the input iterator should not be modified when there is no match"
+           description))
+      (substitution
+       (isnt eqv $pattern-before $pattern-after)
+       (isnt eqv $input-before $input-after))))
+
+  (defun check-iterator-depths (&key description
+                                  $pattern-before $pattern-after
+                                  $input-before $input-after
+                                &allow-other-keys)
+    "- the pattern is at the same depth as before
+     - the input is at the same depth as before"
+    (is = (slot-value $pattern-before 'depth)
+        (slot-value $pattern-after 'depth)
+        "~a  the depth of the pattern iterator should be the same after and before the match"
+        description)
+    (is = (slot-value $input-before 'depth)
+        (slot-value $input-after 'depth)
+        "~a  the depth of the input iterator should be the same after and before the match"
+        description))
+
+  (defun check-substitution (&key description
+                               expected-substitution substitution
+                               &allow-other-keys)
+    (is eqv expected-substitution substitution
+        "~a wrong match result" description))
+
+  (defun test-match-iterator
+      (description pattern input
+       &key skipp
+         expected-substitution)
+    (let* ((compiled-pattern (compile-pattern pattern))
+           ($pattern (make-pattern-iterator compiled-pattern))
+           ($pattern-before (copy-iterator $pattern))
+           ($input (make-tree-iterator input))
+           ($input-before (copy-iterator $input))
+           (substitution (match $pattern $input :skipp skipp))
+           (kwargs (list
+                    :description (format nil "when ~a:~%(matching the pattern ~s against the input ~s)~%"
+                                         description pattern input)
+                    :pattern pattern
+                    :compiled-pattern compiled-pattern
+                    :$pattern-before $pattern-before
+                    :$pattern-after $pattern
+                    :input input
+                    :$input-before $input-before
+                    :$input-after $input
+                    :skipp skipp
+                    :substitution substitution
+                    :expected-substitution expected-substitution)))
+      (loop :for invariant :in '(check-substitution
+                                 check-if-iterators-are-updated
+                                 check-iterator-depths)
+            :always (breeze+parachute:pass-p (invariant) (apply invariant kwargs)))
+      substitution))
+
+  (define-test+run "match iterators"
+    (test-match-iterator
+     "matching an empty sequence pattern against an empty input sequence"
+     #() #()
+     :expected-substitution t)
+    (test-match-iterator
+     "matching an empty sequence pattern against a non-empty input sequence"
+     #() #(a)
+     :expected-substitution t)
+    (loop :for test-case :in (list
+                              #()
+                              #(a)
+                              #(b c)
+                              #(d e f))
+          :do
+             (test-match-iterator
+              "matching a sequence pattern against an identical input sequence"
+              test-case test-case
+              :expected-substitution t)
+             (test-match-iterator
+              "matching a sequence pattern of one simple-var against an input sequence"
+              '(?x) test-case
+              :expected-substitution
+              (unless (zerop (length test-case))
+                (alist->substitutions `((?x . ,(let ((it (make-tree-iterator test-case)))
+                                                 (go-down it)
+                                                 it)))))))))
+
+#++
+(trace match
+       :wherein test-match-iterator)
+
+;; (test-match-iterator "asdf" '(?x) #(a))
 
 
 ;;; test :maybe :zero-or-more and :either

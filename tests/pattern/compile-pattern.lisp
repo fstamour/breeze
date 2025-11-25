@@ -74,3 +74,6 @@
   (is eqv (sym :wild :defun :wild) (compile-pattern '(:symbol :defun)))
   (is eqv (sym :cl :defun :wild) (compile-pattern '(:symbol :defun :cl)))
   (is eqv (sym :cl :defun :qualified) (compile-pattern '(:symbol :defun :cl :qualified))))
+
+(define-test+run "compile-pattern - vectors"
+  (is eqv (vector '?xx) (compile-pattern #(?xx))))

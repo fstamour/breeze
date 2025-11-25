@@ -12,7 +12,8 @@
   (:export
    #:is
    #:is-equalp
-   #:is-equalp*)
+   #:is-equalp*
+   #:pass-p)
   (:export #:insert-parachute-define-test))
 
 (in-package #:breeze+parachute)
@@ -204,3 +205,16 @@ expected:
                 (declare (ignore string))
                 (run-all-tests)))
       breeze.listener::*interactive-eval-hooks*)
+
+(defmacro pass-p ((name &optional description &rest format-args) &body body)
+  "Group tests and return T if they were successful.
+
+Unlike parachute:group, NAME is evaluated."
+  (let ((results-var (gensym "results")))
+    `(let ((,results-var (make-instance 'parachute:group-result
+                                        :expression ,name
+                                        :body (lambda () ,@body)
+                                        ,@(when description
+                                            `(:description (format NIL ,description ,@format-args))))))
+       (parachute:eval-in-context parachute:*context* ,results-var)
+       (eq :success (parachute:status ,results-var)))))
