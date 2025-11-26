@@ -630,6 +630,7 @@ For debugging purposes ONLY.")
 (defun suggest-lambda ()
   "When inside a higher-order function, like mapcar."
   ;; TODO™
+  nil
   #++
   (let* ((buffer (current-buffer))
          (node-iterator (node-iterator buffer)))
