@@ -4,6 +4,7 @@
   (:export #:run-test-at-point
            #:run-tests-in-file
            #:run-tests-in-suite
+           #:run-tests-in-package
            #:run-system-tests
            #:run-all-tests
            #:quickfix-test))
@@ -89,6 +90,10 @@ dependencies between the tests).
 
 (define-command run-tests-in-suite ()
   "Run the all the tests in a suite."
+  'not-implemented-yet)
+
+(define-command run-tests-in-package ()
+  "Run the all the tests in a package."
   'not-implemented-yet)
 
 (define-command run-system-tests ()
