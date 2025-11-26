@@ -18,6 +18,8 @@ generalization of that first iteration (ha!).
   (:use #:cl)
   (:import-from #:breeze.generics
                 #:eqv)
+  (:import-from #:breeze.class-utils
+                #:define-class)
   ;; Generics
   (:export #:donep
            #:next
@@ -48,6 +50,7 @@ generalization of that first iteration (ha!).
    #:go-backward
    #:go-down
    #:go-up
+   #:next-up
    #:next-preorder
    #:subtree-at-depth
    #:root-subtree
@@ -69,7 +72,8 @@ generalization of that first iteration (ha!).
    #:before-last-p
    #:depth
    #:collect
-   #:map-iterator))
+   #:map-iterator
+   #:iterator-value))
 
 (in-package #:breeze.iterator)
 
@@ -391,15 +395,21 @@ depth of the tree."))
     (setf depth 0))
   iterator)
 
+(defun next-up (iterator)
+  (loop
+    :for i :from 0
+    :while (and (current-depth-done-p iterator)
+                (plusp (slot-value iterator 'depth)))
+    :do
+       ;; go-up
+       (pop-subtree iterator)
+       ;; go-forward
+       (next iterator)
+    :finally (return (when (plusp i) i))))
+
 (defun next-preorder (iterator)
   (unless (go-down iterator) (next iterator))
-  (loop :while (and (current-depth-done-p iterator)
-                    (plusp (slot-value iterator 'depth)))
-        :do
-           ;; go-up
-           (pop-subtree iterator)
-           ;; go-forward
-           (next iterator)))
+  (next-up iterator))
 
 ;; WIP this is used by the "proof-of-concept on how to take account of
 ;; the indentation when inserting something." in src/refactor.lisp
@@ -621,3 +631,21 @@ depth of the tree."))
           (donep it)
           (value it))
     (slot-value it 'vector)))
+
+
+
+(define-class iterator-value (:positional-args (value))
+  ((value :initarg :value :accessor value))
+  (:documentation "An object used to compare a value against an iterator's current value.
+
+Example:
+
+(eqv \"x\" (make-vector-iterator #(\"x\"))) => nil
+(eqv (iterator-value \"x\") (make-vector-iterator #(\"x\"))) => t
+"))
+
+(defmethod eqv ((a iterator-value) (b iterator))
+  (eqv (value a) (value b)))
+
+(defmethod eqv ((a iterator) (b iterator-value))
+  (eqv (value a) (value b)))

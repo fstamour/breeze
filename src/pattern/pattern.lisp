@@ -36,6 +36,7 @@
            #:merge-substitutions
            #:find-binding
            #:binding
+           #:add-binding
            #:from
            #:to
            #:substitutions

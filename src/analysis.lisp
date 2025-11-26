@@ -366,36 +366,21 @@ TODO
 |#
 
 ;; TODO figure out what kind of bindings (:zero-or-more ?x) should produce.
+;; 2025-11-25 it's kind-of done, but it needs more tests
 #++ (compile-pattern '(if :?cond :?then :?else :?extra (:zero-or-more :?extras)))
 
-#++
-(progn
-  (match (compile-pattern '(if)) (parse "if"))
-  (match (compile-pattern '(if)) (parse "(if)"))
-  (match (compile-pattern '(if ?cond)) (parse "(if)"))
-  (match (compile-pattern '(if ?cond)) (parse "(if a)"))
-  ;; TODO This is where it goes wrong:
-  (match (compile-pattern '(if (:maybe ?cond))) (parse "(if a)"))
-  (match (compile-pattern '(if (:maybe (?cond ?then)))) (parse "(if a)")))
-
-#++
-(progn
-  (trace match :methods t)
-  (match (compile-pattern '(if (:maybe (?cond ?then)))) (parse "(if a)"))
-  (untrace match))
 
 (define-node-matcher malformed-if-node-p
     ;; This matches longer sequence because there's no implicit
     ;; "anchor" at the end of the patterns.
     ((if (:maybe (?cond (:maybe (?then (:maybe (?else (:maybe ?extra)))))))))
   (when bindings
-    ;; (break)
     (cond
-      ;; These are mandatory
-      ((null ?cond) t)
-      ((null ?then) t)
       ;; there should be no extra forms
-      (?extra t))))
+      (?extra (values t :extra-forms))
+      ;; These are mandatory
+      ((null ?cond) (values t :missing-cond-and-then))
+      ((null ?then) (values t :missing-then)))))
 
 ;; TODO export
 ;; TODO test

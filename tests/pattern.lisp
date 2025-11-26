@@ -469,7 +469,7 @@
     (is eqv (make-binding :?x (var :?x)) (match (var :?x) (var :?x)))
     (let ((v #(42)))
       (is eqv
-          (alist->substitutions `((:?x . ,(make-tree-iterator v))))
+          (substitutions `((:?x . ,(make-tree-iterator v))))
           (match (vector (var :?x)) v))))
   ;; with sub-pattenr
   (progn
@@ -487,12 +487,12 @@
     (is eqv (make-binding :?x (var :?x 'x)) (match (var :?x 'x) (var :?x 'x)))
     (let ((v #1=#(42)))
       (isnt eqv
-            (alist->substitutions `((:?x . ,(make-tree-iterator v))))
+            (substitutions `((:?x ,(make-tree-iterator v))))
             ;; the #1# makes the test result more readable
             (match (vector (var :?x 73)) #1#)))
     (let ((v #(42)))
       (is eqv
-          (alist->substitutions `((:?x . ,(make-tree-iterator v))))
+          (substitutions `((:?x ,(make-tree-iterator v))))
           (match (vector (var :?x 42)) v)))))
 
 
@@ -665,17 +665,6 @@
   (let ((compiled-pattern (compile-pattern pattern)))
     (pattern-substitute compiled-pattern bindings)))
 
-(defun alist->substitutions (bindings)
-  (loop
-    :with substitutions = (make-substitutions)
-    :for (from . to) :in bindings
-    :for binding = (make-binding from to)
-    :do (unless (add-binding substitutions binding)
-          (error "Failed to add bindings ~s" binding))
-    :finally (return substitutions)))
-
-;; (alist->substitutions `((:?x . 24)))
-
 (define-test+run pattern-substitute
   (progn
     (is eq nil (test-pattern-substitute nil nil))
@@ -687,7 +676,7 @@
     (is eq 'x (test-pattern-substitute 'x t)))
   (progn
     (is eql 42 (test-pattern-substitute
-                :?x (alist->substitutions '((:?x . 42)))))
+                :?x (substitutions '((:?x 42)))))
     (is eq t (test-pattern-substitute t t))
     (is eq 'x (test-pattern-substitute 'x t))))
 

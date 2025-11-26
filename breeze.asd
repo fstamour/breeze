@@ -34,6 +34,15 @@
   :pathname "src/"
   :components ((:file "generics")))
 
+(defsystem breeze/class-utils
+  :version "0"
+  :maintainer "Francis St-Amour"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :description "Utility macros for defining classes along with common methods."
+  :pathname "src/"
+  :components ((:file "class-utils")))
+
 (defsystem breeze/pattern
   :version "0"
   :maintainer "Francis St-Amour"
@@ -42,7 +51,8 @@
   :description "Pattern matching with first-class patterns"
   :depends-on (;; as of 2025-10-31 — only for "flatten"
                alexandria
-               breeze/generics)
+               breeze/generics
+               breeze/class-utils)
   :pathname "src/pattern/"
   :serial t
   :components ((:file "iterator")
@@ -66,13 +76,13 @@
                uiop
                ;; cl-heap
                breeze/generics
+               breeze/class-utils
                breeze/pattern)
   :pathname "src/"
   :components
   ((:file "logging")
    (:file "cl")
    (:file "utils")
-   (:file "class-utils")
    (:file "indirection")
    (:file "string-utils" :depends-on ("utils"))
    (:file "channel")
@@ -81,7 +91,7 @@
    (:file "configuration")
    (:file "range")
    (:module "parser"
-    :depends-on ("range" "string-utils" "class-utils")
+    :depends-on ("range" "string-utils")
     :serial t
     :components ((:file "parser-state")
                  (:file "parse-tree")

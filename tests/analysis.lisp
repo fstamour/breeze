@@ -7,6 +7,7 @@
                 #:define-test
                 #:define-test+run
                 #:is
+                #:is-values
                 #:true
                 #:false
                 #:of-type
@@ -613,77 +614,60 @@
 ;; TODO test pattern "x"
 ;; TODO test pattern "some-node" (I'll have to think about the syntax)
 
-(defun test-match-vars-against-parse-tree (pattern string
-                                            skip-whitespaces-and-comments
-                                            expected-binding)
-  (let ((binding (test-match-parse pattern string skip-whitespaces-and-comments))
+(defun test-match-vars-against-parse-tree (#| TODO description |#
+                                           pattern string
+                                           skip-whitespaces-and-comments
+                                           expected-substitution)
+  (check-type string string)
+  (let ((substitution (test-match-parse pattern string skip-whitespaces-and-comments))
         (state (parse string)))
-    (cond
-      ((eq t expected-binding)
-       (is eq t binding
-           "matching ~s against ~s (~s) should have returned T, got ~s."
-           pattern string state binding))
-      (expected-binding
-       (true binding
-             "matching ~s against ~s (~s) should have bound something"
-             pattern string state)
-       (parachute:of-type '(or binding substitutions (eql t)) binding)
-       (when (substitutions-p binding)
-         (let ((hash-table (breeze.pattern::bindings binding)))
-           (is = 1 (hash-table-count hash-table)
-               "Expected only 1 binding.")
-           (maphash (lambda (var binding*)
-                      (declare (ignore var))
-                      (setf binding binding*))
-                    hash-table)))
-       (is eq :?x (from binding)
-           "matching ~s against ~s (~s) should have bound the var :?x"
-           pattern string state)
-       (true (to binding)
-             "matching ~s against ~s (~s) should have bound :?x to something"
-             pattern string state)
-       (is eqv expected-binding (value (to binding))
-           "matching ~s against ~s (~s) should have bound :?x to ~s"
-           pattern string state expected-binding))
-      (t
-       (false binding)))))
+    (breeze+parachute:pass-p ('test-match-vars-against-parse-tree)
+      (is eqv
+          expected-substitution
+          substitution
+          ;; TODO add decription "~a: ~&"
+          "matching the pattern ~s~&against the parse tree (~s) of ~&  ~s~&should return the substitution~%  ~s,~&but got ~%  ~s instead"
+          ;; TODO add description
+          pattern
+          state string
+          expected-substitution substitution))))
 
 (define-test+run "match vars against parse trees"
   (progn
     (test-match-vars-against-parse-tree
      :?x "" nil
-     (whitespace 0 0))
+     (substitutions `((:?x ,(iterator-value (whitespace 0 0))))))
     (test-match-vars-against-parse-tree
      :?x "" t
      nil)
     (test-match-vars-against-parse-tree
      :?x "x" nil
-     (token 0 1 :name "X"))
+     (substitutions `((:?x ,(iterator-value (token 0 1 :name "X"))))))
     (test-match-vars-against-parse-tree
      :?x "x" t
-     (token 0 1 :name "X"))
+     (substitutions `((:?x ,(iterator-value (token 0 1 :name "X"))))))
     (test-match-vars-against-parse-tree
      :?x " x" nil
-     (whitespace 0 1)))
+     (substitutions `((:?x ,(iterator-value (whitespace 0 1)))))))
   (progn
     (test-match-vars-against-parse-tree
      '(:?x) "" nil
-     (whitespace 0 0))
+     (substitutions `((:?x ,(iterator-value (whitespace 0 0))))))
     (test-match-vars-against-parse-tree
      '(:?x) "" t
      nil)
     (test-match-vars-against-parse-tree
      '(:?x) "x" nil
-     (token 0 1 :name "X"))
+     (substitutions `((:?x ,(iterator-value (token 0 1 :name "X"))))))
     (test-match-vars-against-parse-tree
      '(:?x) "x" t
-     (token 0 1 :name "X"))
+     (substitutions `((:?x ,(iterator-value (token 0 1 :name "X"))))))
     (test-match-vars-against-parse-tree
      '(:?x) " x" nil
-     (whitespace 0 1))
+     (substitutions `((:?x ,(iterator-value (whitespace 0 1))))))
     (test-match-vars-against-parse-tree
      '(:?x) " x" t
-     (token 1 2 :name "X"))
+     (substitutions `((:?x ,(iterator-value (token 1 2 :name "X"))))))
     ;; TODO I'm not sure I like the behaviour of these last 2:
     ;; A. (match '(:?x) (parens 0 4 #((token 1 3))))
     ;; B. (match '((:?x)) (parens 0 4 #((token 1 3))))
@@ -691,71 +675,55 @@
     ;; if A bound :?x to (parens ...)
     (test-match-vars-against-parse-tree
      '(:?x) "(42)" nil
-     (token 1 3 :name "42"))
+     (substitutions `((:?x ,(iterator-value (token 1 3 :name "42"))))))
     (test-match-vars-against-parse-tree
      '((:?x)) "(42)" nil
-     (token 1 3 :name "42"))
+     (substitutions `((:?x ,(iterator-value (token 1 3 :name "42"))))))
     (test-match-vars-against-parse-tree
      '(defun :?x) "(defun f)" t
-     (token 7 8 :name "F"))
+     (substitutions `((:?x ,(iterator-value (token 7 8 :name "F"))))))
     (test-match-vars-against-parse-tree
      '(defun :?x) "(defun fgh (x) (* x x x))" t
-     (token 7 10 :name "FGH"))
+     (substitutions `((:?x ,(iterator-value (token 7 10 :name "FGH"))))))
     (test-match-vars-against-parse-tree
      '((:either defun defmethod) :?x) "(defun fgh (x) (* x x x))" t
-     (token 7 10 :name "FGH"))
+     (substitutions `((:?x ,(iterator-value (token 7 10 :name "FGH"))))))
     (test-match-vars-against-parse-tree
      '((:either defun defmethod) :?x) "(defmethod g (x) (1+ x))" t
-     (token 11 12 :name "G"))
+     (substitutions `((:?x ,(iterator-value (token 11 12 :name "G"))))))
     (test-match-vars-against-parse-tree
      '(defun (:either :?x (setf :?x))) "(defun fgh (x) (* x x x))" t
-     (token 7 10 :name "FGH"))
+     (substitutions `((:?x ,(iterator-value (token 7 10 :name "FGH"))))))
     (test-match-vars-against-parse-tree
      '(defun (:either :?x (setf :?x))) "(defun (setf x) (* x x x))" t
-     (parens 7 15 (vector (token 8 12 :name "SETF") (whitespace 12 13) (token 13 14 :name "X"))))
+     (substitutions `((:?x ,(iterator-value
+                             (parens 7 15 (vector (token 8 12 :name "SETF")
+                                                  (whitespace 12 13)
+                                                  (token 13 14 :name "X"))))))))
     (test-match-vars-against-parse-tree
      '((:symbol :define-package :uiop) :?x) "(uiop:define-package foo)" t
-     (token 21 24 :name "FOO"))))
+     (substitutions `((:?x ,(iterator-value
+                             (token 21 24 :name "FOO"))))))))
 
 (define-test+run "match vector against parse trees"
   (false (test-match-parse 'x "x"))
   (true (test-match-parse #(x) "x"))
   (true (test-match-parse '((x)) "(x)")))
 
-(defun test-either (pattern string expected-binding
+(defun test-either (pattern string expected-substitution
                     &optional skip-whitespaces-and-comments)
   (finish
    (let* (($node (make-node-iterator string))
           (pattern (compile-pattern pattern))
-          (binding (match pattern $node
-                     :skipp (when skip-whitespaces-and-comments
-                              #'whitespace-or-comment-node-p))))
-     (cond
-       ((eq expected-binding t)
-        (is eq t binding
-            "matching the pattern ~s against the parse tree of ~s should return T, got ~s (of type ~s) instead."
-            pattern string binding (type-of binding)))
-       (expected-binding
-        (and
-         (true binding
-               "the pattern ~s should have matched the parse tree of ~s"
-               pattern string)
-         (of-type 'binding binding
-                  "matching the pattern ~s against the parse tree of ~s should return an object of type \"binding\", got ~s (of type ~s) instead."
-                  pattern string binding (type-of binding))
-         (is eq pattern (from binding)
-             "the binding from matching the pattern ~s against the parse tree of ~s should bind ~s, but got ~s instead"
-             pattern string pattern (from binding))
-         (of-type node-iterator (to binding)
-                  "the binding from matching the pattern ~s against the parse tree of ~s should bind to an object of type node-iterator, but got ~s (type ~s) instead"
-                  pattern string (to binding) (type-of (to binding)))
-         (is equalp expected-binding (node-string (to binding))
-             "the binding from matching the pattern ~s against the parse tree of ~s should bind _to_ ~s, but got ~s instead"
-             pattern string expected-binding (to binding))))
-       (t (false binding
-                 "the pattern ~s should not have matched the parse tree of ~s"
-                 pattern string)))
-     binding)))
+          (actual-substitution (match pattern $node
+                                 :skipp (when skip-whitespaces-and-comments
+                                          #'whitespace-or-comment-node-p))))
+     (is eqv
+         expected-substitution
+         actual-substitution
+         "matching the pattern ~s against the parse tree of ~s should return~%  ~s~&but got ~%  ~s~%instead"
+         pattern string expected-substitution actual-substitution)
+     actual-substitution)))
 
 (define-test+run "match either against parse trees"
   (test-either '(:either a b) "a" t)
@@ -767,51 +735,48 @@
   (test-either '(:either a b) "breeze.analysis::a" nil))
 
 (defun test-repetition (pattern string pos-start pos-end
-                        &optional skip-whitespaces-and-comments)
+                        &key
+                          (expected-substitution t)
+                          skip-ignorable-p)
+  (declare (ignorable pos-start)) ;; TODO
   (let* (($node (make-node-iterator string))
-         (pattern (compile-pattern pattern))
-         (binding (match pattern $node
-                    :skipp (when skip-whitespaces-and-comments
-                             #'whitespace-or-comment-node-p))))
+         (compiled-pattern (compile-pattern pattern))
+         (actual-substitution (match compiled-pattern $node
+                                :skipp (when skip-ignorable-p
+                                         #'whitespace-or-comment-node-p))))
     (is = pos-end (pos $node)
         "matching the pattern ~s against the parse tree of ~s was expected to advance the iterator to ~s"
         pattern string pos-end)
-    (true binding
-          "the pattern ~s was expected to match against the parse tree of ~s."
-          pattern string)
-    (and (plusp pos-end)
-         (of-type 'binding binding
-                  "matching the pattern ~s against the parse tree of ~s should return an object of type \"binding\", got ~s (of type ~s) instead."
-                  pattern string binding (type-of binding))
-         (when binding
-           (let ((from (from binding))
-                 (to (to binding)))
-             (is eq pattern from
-                 "the binding from matching the pattern ~s against the parse tree of ~s should bind ~s, but got ~s instead"
-                 pattern string pattern from)
-             (let (($start (getf to :$start))
-                   ($end (getf to :$end))
-                   (bindings (getf to :bindings))
-                   (times (getf to :times)))
-               (declare (ignorable bindings times)) ;; TODO
-               (is = pos-start (pos $start)
-                   "the bindings from matching the pattern ~s against the parse tree of ~s was expected to start at position ~s, but got ~s instead"
-                   pattern string pos-start (pos $start))
-               (is = pos-end (pos $end)
-                   "the bindings from matching the pattern ~s against the parse tree of ~s
+    (is eqv
+        expected-substitution
+        actual-substitution
+        "matching the pattern ~s against the parse tree of ~s should return~%  ~s~&but got ~%  ~s~%instead"
+        pattern string expected-substitution actual-substitution)
+    #++ ;; TODO test (:named (repetition ...))
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    (let (($start (getf to :$start))
+          ($end (getf to :$end))
+          (bindings (getf to :bindings))
+          (times (getf to :times)))
+      (declare (ignorable bindings times)) ;; TODO
+      (is = pos-start (pos $start)
+          "the bindings from matching the pattern ~s against the parse tree of ~s was expected to start at position ~s, but got ~s instead"
+          pattern string pos-start (pos $start))
+      (is = pos-end (pos $end)
+          "the bindings from matching the pattern ~s against the parse tree of ~s
 was expected to end at position ~s (exclusive), but got ~s instead"
-                   pattern string pos-end (pos $end))
-               ;; TODO check bindings
-               ;; TODO check times
-               ))))
-    ;; TODO maybe check the depth and/or the whole "positions" slot
+          pattern string pos-end (pos $end)))
+    ;; TODO check whole pattern's binding (if named) - the
+    ;; name should be bound to a plist with key :$start :$endand :times
+    ;;
+    ;; TODO check the depth and/or the whole "positions" slot
     ;; of $node
-    binding))
+    actual-substitution))
 
 (define-test+run "match maybe against parse trees"
   ;; TODO these don't check the resulting bindings
   (test-repetition '(:maybe a) "a" 0 1)
-  (test-repetition '(:maybe a) " a" 1 2 :skipp)
+  (test-repetition '(:maybe a) " a" 1 2 :skip-ignorable-p t)
   (test-repetition '(:maybe a) "b" 0 0)
   (test-repetition '(:maybe a) "c" 0 0)
   (test-repetition '(:maybe a) "breeze.test.analysis::a" 0 1)
@@ -826,16 +791,16 @@ was expected to end at position ~s (exclusive), but got ~s instead"
 (define-test+run "match zero-or-more against parse trees"
   (progn
     (test-repetition '(:zero-or-more a) "a" 0 1)
-    (test-repetition '(:zero-or-more a) " a" 1 2 :skipp)
+    (test-repetition '(:zero-or-more a) " a" 1 2 :skip-ignorable-p t)
     (test-repetition '(:zero-or-more a) "b" 0 0)
     (test-repetition '(:zero-or-more a) "c" 0 0)
     (test-repetition '(:zero-or-more a) "breeze.test.analysis::a" 0 1)
     (test-repetition '(:zero-or-more a) "breeze.analysis::a" 0 0))
   (progn
     (test-repetition '(:zero-or-more a) "a a a" 0 1)
-    (test-repetition '(:zero-or-more a) " a a a " 1 6 :skipp)
+    (test-repetition '(:zero-or-more a) " a a a " 1 6 :skip-ignorable-p t)
     (test-repetition '(:zero-or-more a) "a b" 0 1)
-    (test-repetition '(:zero-or-more a) "a b" 0 1 :skipp)
+    (test-repetition '(:zero-or-more a) "a b" 0 1 :skip-ignorable-p t)
     (test-repetition '(:zero-or-more a) "c" 0 0)
     (test-repetition '(:zero-or-more a) "breeze.test.analysis::a" 0 1)
     (test-repetition '(:zero-or-more a) "breeze.analysis::a" 0 0)))
@@ -845,7 +810,7 @@ was expected to end at position ~s (exclusive), but got ~s instead"
     (test-repetition '(:zero-or-more (:either a b))
                      "a" 0 1)
     (test-repetition '(:zero-or-more (:either a b))
-                     " a" 1 2 :skipp)
+                     " a" 1 2 :skip-ignorable-p t)
     (test-repetition '(:zero-or-more (:either a b))
                      "b" 0 1)
     (test-repetition '(:zero-or-more (:either a b))
@@ -858,19 +823,45 @@ was expected to end at position ~s (exclusive), but got ~s instead"
     (test-repetition '(:zero-or-more (:either a b))
                      "a a a" 0 1)
     (test-repetition '(:zero-or-more (:either a b))
-                     " a a a " 1 6 :skipp)
+                     " a a a " 1 6 :skip-ignorable-p t)
     (test-repetition '(:zero-or-more (:either a b))
                      "a b" 0 1)
     (test-repetition '(:zero-or-more (:either a b))
-                     "a b" 0 3 :skipp)
+                     "a b" 0 3 :skip-ignorable-p t)
     (test-repetition '(:zero-or-more (:either a b))
-                     "a b a b b a a c" 0 13 :skipp)
+                     "a b a b b a a c" 0 13 :skip-ignorable-p t)
     (test-repetition '(:zero-or-more (:either a b))
                      "c" 0 0)
     (test-repetition '(:zero-or-more (:either a b))
                      "breeze.test.analysis::b" 0 1)
     (test-repetition '(:zero-or-more (:either a b))
                      "breeze.analysis::a" 0 0)))
+
+
+
+
+(define-test+run "trying to debug malformed-if-node-p"
+  (is eq t (match (compile-pattern '(if)) (parse "if")))
+  (is eq t (match (compile-pattern '(if)) (parse "(if)")))
+  (is eq nil (match (compile-pattern '(if ?cond)) (parse "(if)")))
+  (let* ((parse-state (parse "(if a)"))
+         ($expected-?cond (goto-position (make-node-iterator parse-state) 3)))
+    (is eqv
+        (substitutions `((?cond ,$expected-?cond :pattern nil)))
+        (match (compile-pattern '(if ?cond)) parse-state)))
+  (is eqv
+      (substitutions `((?cond ,(iterator-value (token 4 5 :name "A")))))
+      (match (compile-pattern '(if ?cond)) (parse "(if a)")
+        :skipp #'whitespace-or-comment-node-p))
+  (is eqv
+      (substitutions `((?cond ,(iterator-value (whitespace 3 4)))))
+      (match (compile-pattern '(if ?cond)) (parse "(if a)")))
+  (is eq t (match (compile-pattern '(if (:maybe ?cond))) (parse "(if)")))
+  (is eq t (match (compile-pattern '(if (:maybe ?cond))) (parse "(if)")
+             :skipp #'whitespace-or-comment-node-p))
+  (true (match (compile-pattern '(if (:maybe ?cond))) (parse "(if a)")))
+  (true (match (compile-pattern '(if (:maybe ?cond))) (parse "(if a)")
+          :skipp #'whitespace-or-comment-node-p)))
 
 
 ;;; malformed-if-node-p
@@ -880,13 +871,25 @@ was expected to end at position ~s (exclusive), but got ~s instead"
 
 (define-test+run malformed-if-node-p
   ;; TODO add tests with comments, e.g. (if #|...|# ...)
-  (false (test-malformed-if-node-p "(if a b c)"))
-  (true (test-malformed-if-node-p "(if a)"))
-  (true (test-malformed-if-node-p "(if a b c d)"))
+  (is-values (test-malformed-if-node-p "(if a b)")
+    (eq nil))
+  (is-values (test-malformed-if-node-p "(if a b c)")
+    (eq nil))
+  (is-values (test-malformed-if-node-p "(if a)")
+    (eq t)
+    (eq :missing-then))
+  (is-values (test-malformed-if-node-p "(if)")
+    (eq t)
+    (eq :missing-cond-and-then))
+  (is-values (test-malformed-if-node-p "(if a b c d)")
+    (eq t)
+    (eq :extra-forms))
   ;; TODO this works by shear luck: it successfully match up to "d"
   ;; and considers that a successful match, but it didn't match
   ;; against the whole form.
-  (true (test-malformed-if-node-p "(if a b c d e)")))
+  (is-values (test-malformed-if-node-p "(if a b c d e)")
+    (eq t)
+    (eq :extra-forms)))
 
 
 ;;; Quotepd

@@ -3,6 +3,225 @@
 :END:
 #+title: Pattern matching
 
+* Overview of pattern matching
+:PROPERTIES:
+:ID:       ded97849-bf7a-4034-bc8f-8b987499bd51
+:END:
+
+
+* TODO Use cases for patterns
+:PROPERTIES:
+:ID:       30b733d0-26a1-44fb-8c91-5a2b24a9b909
+:END:
+
+* Types of pattern
+:PROPERTIES:
+:ID:       309589d0-ae7b-471e-8e2b-2500062cdc9a
+:END:
+
+** Summary of the type of patterns
+:PROPERTIES:
+:ID:       04338e5e-5180-4614-aa7f-4782bb282070
+:END:
+
+*** Values
+
+- ~vector~ matches each sub-pattern in sequence
+~ ~string~ are compared using ~string=~
+- other values are compared using ~equal~
+- ~nil~ matches the symbol ~nil~
+
+*** Pattern objects
+
+- ~wildcard~ matches anything and do not create any bindings
+- ~simple-var~ matches anything and creates a binding for it
+  - is is equivalent to a ~var~ with a ~wildcard~ sub-pattern
+- ~var~ matches a sub-pattern and create bindings for it if successful
+- ~repetition~ matches the sub-pattern repeatedly, it can have a
+  minimum and maximum number of matches
+  - ~maybe~ is a shorthand for a repetition with a minimum of 0 and a
+    maximum of 1
+  - can be named, in which case a binding is created that associates
+    that name to the whole range consumed by the pattern
+- ~either~ tries to match each sub-pattern in sequence, stop as soon
+  as one matches successfully
+  - can be named, in which case a binding is created that associates
+    that name to the whole range that was consumed by the pattern
+- ~sym~ matches a symbol
+
+** About "multi-valued" pattern variables
+:PROPERTIES:
+:ID:       d87abb8b-0b06-4723-869c-e05da54abdf8
+:END:
+
+as of 2025-11-25 this feature is a work in progress
+
+Each instance of ~simple-var~ and ~var~ have a flag
+~multiple-valued-p~ which determines what is done when a binding is
+created for the name of the pattern.
+
+- if ~multiple-valued-p~ is ~nil~
+  - if the new bound value is ~eql~ to the existing bound value,
+    nothing happens, the matching continues
+  - if the new bound valus is not ~eql~ to the existing bound value,
+    the matching fails
+- if ~multiple-valued-p~ is ~t~, all bound values are accumulated
+
+** TODO Value patterns
+:PROPERTIES:
+:ID:       1c332211-b4d9-4361-af59-8ccafe816864
+:END:
+
+*** TODO ~vector~ patterns
+
+except strings
+
+**** TODO Constructor
+
+**** TODO DSL
+
+kept as-is by ~compile-pattern~
+
+**** TODO Example of matches
+
+** Pattern objects
+:PROPERTIES:
+:ID:       a701e8f0-1a66-43ee-a64b-4c715702ccf0
+:END:
+
+*** ~wildcard~ patterns
+:PROPERTIES:
+:ID:       d44690d0-de67-483b-ab67-84450b63341f
+:END:
+
+Matches anything and do not create any bindings.
+
+**** Constructor
+
+#+begin_src lisp
+(wildcard)
+#+end_src
+
+The constructor should always return the same object.
+
+#+begin_src lisp
+(eq (wildcard) (wildcard)) => T
+#+end_src
+
+**** Example of matches
+
+#+begin_src lisp
+(match (wildcard) 'anything) => T
+(match (vector (wildcard)) 'anything) => nil
+(match (vector (wildcard)) '#(anything)) => T
+#+end_src
+
+**** DSL
+
+Any symbol starting with the character =_= is compiled to
+~(wildcard)~.
+
+Examples:
+
+#+begin_src lisp
+:_ => (wildcard)
+'(_) => (vector (wildcard))
+#+end_src
+
+*** ~simple-var~ patterns
+:PROPERTIES:
+:ID:       f54a246a-874d-43e2-b748-dc3cc9095e7c
+:END:
+
+Matches anything and do not create any bindings.
+
+**** Constructor
+
+#+begin_src lisp
+(simple-var name &key multi-valued-p)
+(simple-var '?x)
+(simple-var '?*x :multi-valued-p t)
+#+end_src
+
+There is also a shorthand:
+
+#+begin_src lisp
+(svar name &key multi-valued-p)
+(svar '?x)
+(svar '?*x :multi-valued-p t)
+#+end_src
+
+**** DSL
+
+A symbol starting with the character =?= will be compiled to a simple
+var with that symbol as a name.
+
+A symbol starting with the characters =?*= will be compiled to a
+simple var with that symbol as a name, and with the the
+~multiple-valued-p~ flag set to t.
+
+#+begin_src lisp
+?x => (simple-var '?x)
+?*y => (simple-var '?*y :multi-valued-p t)
+#+end_src
+
+**** TODO Example of matches
+
+*** TODO ~var~ patterns
+
+**** TODO Constructor
+
+**** TODO DSL
+
+**** TODO Example of matches
+
+*** TODO ~repetition~ patterns
+
+**** TODO Constructor
+
+**** TODO DSL
+
+**** TODO Example of matches
+
+*** TODO ~either~ patterns
+
+**** TODO Constructor
+
+**** TODO DSL
+
+**** TODO Example of matches
+
+* Substitutions and bindings
+:PROPERTIES:
+:ID:       bc6ebceb-cdd6-4ad6-95e8-b3257ae74a96
+:END:
+
+** Bindings
+:PROPERTIES:
+:ID:       8510189a-7831-4364-9ac3-f02d95cbc3ce
+:END:
+
+A binding is an object that associate a name to something, usually a
+part of the input that was matched.
+
+** Substitutions
+:PROPERTIES:
+:ID:       fba498f1-2e4c-4e4d-aa96-0f7a9b4ff369
+:END:
+
+A substitution is a set of bindings.
+
+It can be represented in different ways:
+- an instance of the class ~substitution~, this is the most general
+  representation, it can represent any set of bindings.
+- an instance of the class ~binding~, in which case it represents a
+  substitution with only one binding.
+- it can be represented by the symbol ~t~, it represents an empty
+  substitution. This is a convenient way to represent a succesful
+  match that did not create new bindings.
+
+* TODO cleanup notes below
+
 #+begin_quote
 This file is meant to document breeze's pattern matching, but for the
 moment™ it's just an amalgation of notes taken from many places.

@@ -44,16 +44,19 @@ slot should be a vector)."))
   (let ((*print-case* :downcase))
     (print-unreadable-object
         (binding stream :type t)
-      ;; TODO prin
+      ;; TODO print children and pattern
       (format stream "~s → ~s" (from binding) (to binding)))))
 
-(defmethod to ((_ null)))
-(defmethod from ((_ null)))
+(defmethod from ((_ symbol)))
+(defmethod to ((_ symbol)))
 
 (defmethod eqv ((a binding) (b binding))
-  ;; TODO
   (and (eqv (from a) (from b))
-       (eqv (to a) (to b))))
+       (eqv (to a) (to b))
+       ;; TODO:
+       ;; (eqv (pattern a) (pattern b))
+       ;; (eqv (children a) (children b))
+       ))
 
 (defclass substitutions ()
   ((bindings
@@ -81,6 +84,19 @@ slot should be a vector)."))
 (defmethod eqv ((a substitutions) (b substitutions))
   (eqv (bindings a) (bindings b)))
 
+(defmethod eqv ((a substitutions) (b (eql t)))
+  (zerop (hash-table-count (bindings a))))
+
+(defmethod eqv ((a (eql t)) (b substitutions))
+  (zerop (hash-table-count (bindings b))))
+
+(defmethod eqv ((a substitutions) (b binding))
+  (and (= 1 (hash-table-count (bindings a)))
+       (eqv (find-binding a (from b)) b)))
+
+(defmethod eqv ((a binding) (b substitutions))
+  (eqv b a))
+
 (defmethod emptyp ((substitutions substitutions))
   (zerop (hash-table-count (bindings substitutions))))
 
@@ -101,6 +117,22 @@ slot should be a vector)."))
 (defun copy-substitutions (substitutions)
   (make-substitutions
    :bindings (alexandria:copy-hash-table (bindings substitutions))))
+
+(defun substitutions (&optional bindings)
+  "Takes a list of list of arguments. The arguments are applied to
+`make-binding' and the bindings are accumulated in a `substitutions'
+object, which is returned."
+  (loop
+    :with substitutions = (make-substitutions)
+    :for make-binding-args :in bindings
+    :for binding = (apply #'make-binding make-binding-args)
+    :do (unless (add-binding substitutions binding)
+          (error "Failed to add bindings ~s" binding))
+    :finally (return substitutions)))
+
+;; (substitutions `((:?x 24)))
+;; => #<substitutions ((:?x . #<binding :?x → 24>))>
+
 
 ;; TODO maybe this could be a method instead of a defun?
 (defun find-binding (substitutions from)
@@ -130,7 +162,7 @@ slot should be a vector)."))
   (let ((old-binding (find-binding substitutions (from new-binding))))
     (and (if old-binding
              ;; (error "Conflicting bindings: ~a ~a" a b)
-               ;; TODO
+             ;; TODO handle multi-valued-p
              (eql (to old-binding) (to new-binding))
              (set-binding substitutions new-binding))
          substitutions)))
@@ -144,7 +176,7 @@ slot should be a vector)."))
     (null nil)
     ((eql t) t)))
 
-  ;; TODO
+  ;; TODO handle multiple-value-p bindings?
 (defun merge-substitutions (bindings1 bindings2)
   (cond
     ((or (null bindings1) (null bindings2)) nil)
@@ -171,7 +203,9 @@ slot should be a vector)."))
      ;; N.B. a disjoint-set data structure could help detect cycles in
      ;; the substitutions.
      ;;
-     ;; TODO this might be faster if it merged the common bindings first, but I'm not sure how many bindings must there be to be worth it.
+     ;; TODO this might be faster if it merged the common bindings
+     ;; first, but I'm not sure how many bindings must there be to be
+     ;; worth it.
      ;;
      ;; TODO another perf heuristic: copy the smallest or biggest
      ;; substitutions. copying the smallest would be faster, but it

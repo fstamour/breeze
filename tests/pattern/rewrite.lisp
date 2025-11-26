@@ -17,7 +17,7 @@
     (is eq 'x (test-pattern-substitute 'x t)))
   (progn
     (is eql 42 (test-pattern-substitute
-                :?x (alist->substitutions '((:?x . 42)))))
+                :?x (substitutions '((:?x 42)))))
     (is eq t (test-pattern-substitute t t))
     (is eq 'x (test-pattern-substitute 'x t))))
 
@@ -37,7 +37,3 @@
 
 #++
 (make-rewrite '(/ ?x 1) ?x)
-
-;; TODO this could be a command:
-;; (parachute:test *package*)
-

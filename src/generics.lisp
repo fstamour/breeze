@@ -39,6 +39,17 @@ TODO
   "Don't care."
   t)
 
+(defmethod eqv (a (b function))
+  "Another special case: delegate to a callback function."
+  (funcall b a))
+
+(defmethod eqv ((a function) b)
+  "Another special case: delegate to a callback function."
+  (funcall a b))
+
+(defmethod eqv ((a function) (b function))
+  (eq a b))
+
 (defmethod eqv ((a symbol) b)
   (eq a b))
 

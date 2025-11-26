@@ -3,14 +3,21 @@
 (in-package #:breeze.test.pattern)
 
 (define-test+run make-binding
-  ;; TODO export 'binding, maybe
   (of-type binding
            (make-binding :?x "a")
            "Make binding should return an instance of the class \"binding\".")
   (is equal "#<binding :?x → a>"
       (prin1-to-string
        (make-binding :?x 'a))
-      "The specialized print-object method on the class \"binding\" should print the slots \"from\" and \"to\"."))
+      "The specialized print-object method on the class \"binding\" should print the slots \"from\" and \"to\".")
+  ;; TODO tests with :pattern and :children
+  )
+
+(define-test+run "binding - eqv"
+  (true (eqv (make-binding :?x "a") (make-binding :?x "a")))
+  (false (eqv (make-binding :?y "a") (make-binding :?z "a")))
+  ;; TODO tests with :pattern and :children
+  )
 
 (defun bindings-alist (substitutions)
   (etypecase substitutions
@@ -48,16 +55,42 @@
        (merge-substitutions (make-substitutions)
                        (merge-substitutions (make-binding :?x 'a)
                                        (make-binding :?y 'b))))
-      "The print-object method specialized on the class \"substitutions\" should print the number of bindings when there's more than 1.")
+      "The print-object method specialized on the class \"substitutions\" should print the number of bindings when there's more than 1."))
+
+(define-test+run "substitutions - eqv"
+  (isnt eqv nil (substitutions))
+  (is eqv (substitutions) (substitutions))
+  (is eqv t (substitutions))
+  (is eqv (substitutions) t)
+  (is eqv (substitutions `((x 1))) (substitutions `((x 1))))
+  (isnt eqv (substitutions `((x 1))) (substitutions))
+  (isnt eqv (substitutions) (substitutions `((x 1))))
+  (isnt eqv t (substitutions `((x 1))))
+  (isnt eqv (substitutions `((x 1))) t)
+  (isnt eqv (substitutions `((x 1))) (substitutions `((x 2))))
+  (isnt eqv (substitutions `((y 2))) (substitutions `((y 1))))
+  (isnt eqv (substitutions `((z 3))) (substitutions `((z 3) (y 4))))
+  (is eqv (substitutions `((a 5))) (make-binding 'a 5))
+  (is eqv (make-binding 'a 5) (substitutions `((a 5))))
+  (isnt eqv (substitutions `((a 5) (b 6))) (make-binding 'a 5))
+  (isnt eqv (make-binding 'a 5) (substitutions `((a 5) (b 6))))
+  (isnt eqv (make-binding 'a 5) (substitutions))
+  (isnt eqv (substitutions) (make-binding 'a 5)))
+
+(define-test+run "substitution - coopy"
   (false
    (let* ((b1 (make-substitutions))
           (b2 (copy-substitutions b1)))
      (eq (bindings b1) (bindings b2)))
-   "Copying a bindind-set should create a different hash-table")
+   "Copying a bindind-set should create a different hash-table"))
+
+(define-test+run "substitution - find-binding"
   (is-values (find-binding (make-substitutions) :?x)
     (eq nil)
     (eq nil)
-    "Should not find a binding in an empty substitutions")
+    "Should not find a binding in an empty substitutions"))
+
+(define-test+run "substitutions - set-binding and add-binding"
   (is equal '(:?x a)
       (let* ((bs (make-substitutions)))
         (set-binding bs (make-binding :?x 'a))

@@ -28,6 +28,9 @@ Trying to document the words/concepts used in the project.
   the case of lisp, it usually means a "listener".
 
 ** e-graph
+:PROPERTIES:
+:ID:       09937194-8b79-43ff-855a-ec33797b19c7
+:END:
 
 "e-graph" stands for "equivalence graph", it is a data structure.
 
@@ -35,11 +38,42 @@ See [[id:32155195-1bc4-4f2d-8f6a-12fb0bd68ecc][E-graphs]].
 
 
 ** TODO Package-local nicknames (PLN)
+:PROPERTIES:
+:ID:       04bdfbdb-ff84-4d7f-a845-a456c886b8f1
+:END:
 
 ** TODO Buffer
+:PROPERTIES:
+:ID:       aef7ae44-a4e2-4a5e-831b-ffc2ae6f085c
+:END:
+
+In breeze, a buffer is an object that represents a file opened in the
+editor.
 
 ** TODO Point
+:PROPERTIES:
+:ID:       b038c05f-dfba-4154-92ca-a3d467e62d3a
+:END:
 
 ** TODO Issues
+:PROPERTIES:
+:ID:       61e1acf2-6ee2-4b87-baf1-4d496859dcf5
+:END:
 
 as in "linter" issue
+
+** Binding
+:PROPERTIES:
+:ID:       5a2bc469-d927-401e-aa77-81b00a9dcd42
+:END:
+
+An association from a name to a value.
+
+** Substitution
+:PROPERTIES:
+:ID:       ea4e8881-2ca6-4c8d-b2dc-dcbd5fdad721
+:END:
+
+A substitution is a set of [[*Binding][bindings]].
+
+See [[id:fba498f1-2e4c-4e4d-aa96-0f7a9b4ff369][Substitutions]] for more details

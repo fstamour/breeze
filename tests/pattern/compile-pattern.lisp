@@ -35,7 +35,9 @@
 
 
 (define-test+run "compile-pattern - wildcard"
-  (is eqv (wildcard) (compile-pattern :_x)))
+  (is eqv (wildcard) (compile-pattern :_x))
+  (is eqv (wildcard) (compile-pattern :_))
+  (is eqv (wildcard) (compile-pattern '_)))
 
 (define-test+run "compile-pattern - atoms"
   (is eqv :x (compile-pattern :x))

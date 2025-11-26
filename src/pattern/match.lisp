@@ -64,11 +64,6 @@
   "Match `nil' against `nil'."
   t)
 
-;; "nil" must not match any other symbols
-(defmethod match ((pattern null) (input symbol) &key)
-  "Matcho `nil' against another (non-`nil') symbol."
-  nil)
-
 ;; TODO regex???
 (defmethod match ((pattern sym) (symbol symbol) &key)
   "Match a pattern of type `sym' against a symbol."
@@ -126,12 +121,15 @@
                  (funcall skipp $input))
          :do (next $input))))
 
-(declaim (inline maybe-stop))
-(defun maybe-stop ($input)
-  (when (donep $input)
-    (throw 'no-match nil)))
+(declaim (inline no-match))
+(defun no-match (reason)
+  (throw 'no-match (values nil reason)))
 
-(declaim (inline go-down-together))
+(declaim (inline maybe-stop))
+(defun maybe-stop ($input &optional (reason :input-done))
+  (when (donep $input)
+    (throw 'no-match (values nil reason))))
+
 (defun go-down-together ($pattern $input)
   (let ((sub-pattern (value $pattern)))
     ;; if the sub-pattern is a vector, we
@@ -142,37 +140,59 @@
       (go-down $input)
       ;; it's possible that there's no data to
       ;; match against in the input's sub-tree
-      (maybe-stop $input))))
+      (maybe-stop $input :input-done-after-going-down)
+      ;; return t, so the caller knows to "go-up" afterwards.
+      t)))
 
-(defmethod match (($pattern pattern-iterator) (iterator iterator) &key skipp)
+(defun go-up-together ($pattern $input)
+  (unless (and (go-up $pattern)
+               (go-up $input))
+    (no-match :out-of-sync-after-going-up)))
+
+(defmethod match ((pattern-iterator pattern-iterator) (iterator iterator) &key skipp)
   (catch 'no-match
     (loop
       :with bindings = t ;; (make-substitutions)
+      :with new-bindings = nil
+      :with $pattern = (copy-iterator pattern-iterator)
       :with $input = (copy-iterator iterator)
-      :until (or (donep $pattern) (donep $input))
-      :for new-bindings = (progn
-                            (skip $input skipp)
-                            (maybe-stop $input)
-                            (go-down-together $pattern $input)
-                            (match (value $pattern) $input))
-      :do (next $pattern) (next $input)
-      :if new-bindings
-        ;; collect all the bindings
-        :do
-           (setf bindings (merge-substitutions bindings new-bindings))
-           ;; The new bindings conflicted with the existing ones...
-           (unless bindings (return nil))
-      :else
-        ;; failed to match, bail out of the whole function
-        :do (return nil)
+      :until (donep $pattern)
+      :for i :from 0
+      :do
+         (skip $input skipp)
+         (let ((went-down (go-down-together $pattern $input)))
+           (setf new-bindings
+                 (match (value $pattern) $input :skipp skipp))
+           (when went-down
+             ;; TODO maybe check if $input is "done at current level",
+             ;; if not then the match failed
+             (go-up-together $pattern $input)))
+         (next $input)
+         (next $pattern)
+         ;; infinite loop guard
+         (when (<= 1000000 i)
+           (break "Infinite loop?"))
+         (cond
+           ;; collect all the bindings
+           (new-bindings
+            (setf bindings (merge-substitutions bindings new-bindings))
+            ;; The new bindings conflicted with the existing ones...
+            (unless bindings (return (values nil :conflicting-bindings))))
+           ;; failed to match, bail out of the whole function
+           (t (return (values nil :failed-submatch))))
       :finally
-         (return
-           ;; We want to match the whole pattern, but whether we want
-           ;; to match the whole input is up to the caller.
-           (when (donep $pattern)
-             ;; update the interator
-             (copy-iterator $input iterator)
-             (or bindings t))))))
+          (return
+            ;; We want to match the whole pattern, but whether we want
+            ;; to match the whole input is up to the caller. So we
+            ;; don't check if $input is done.
+            (cond
+              ((donep $pattern)
+               ;; update the input interator
+               (copy-iterator $input iterator)
+               ;; update the pattern iterator
+               (copy-iterator $pattern pattern-iterator)
+               bindings)
+              (t (values nil :pattern-not-done $pattern (value $pattern)) #++(break "Failed to match")))))))
 
 (defmethod match ((var simple-var) ($input iterator) &key skipp)
   "Match a `var' pattern against the current value of an
@@ -218,6 +238,17 @@ where consumed, for example)."
     (values (match $pattern $input :skipp skipp)
             $input)))
 
+(defmethod match ((pattern vector) (input iterator) &key skipp)
+  (let (($input (copy-iterator input)))
+    (go-down $input)
+    (unless (donep $input)
+      ;; TODO return all the values returned by `match'
+      (let ((substition (match (make-pattern-iterator pattern) $input :skipp skipp)))
+        (when substition
+          (copy-iterator $input input)
+          (go-up input))
+        substition))))
+
 
 ;;; Matching eithers
 
@@ -257,18 +288,31 @@ where consumed, for example)."
              (zerop (minimum pattern)))
     (return-from match t))
   (loop
+    :with substition := t
     :with $pattern := (make-pattern-iterator (pattern pattern))
     :with $input := (copy-iterator iterator)
-    :for $prev-input := (copy-iterator $input)
+    :with maximum := (maximum pattern)
+    :for $prev-input := (copy-iterator $input) ;; TODO should this be nil?
       :then (copy-iterator $input $prev-input)
-    ;; TODO remove infinite loop guard
-    :for i :from 1 :below 1000
+    ;; infinite loop guard
+    :for i :from 1 :below 1000000
     :for new-bindings = (match $pattern $input :skipp skipp)
       :then (progn (reset $pattern)
                    (match $pattern $input :skipp skipp))
     :when new-bindings
-      :collect new-bindings :into bindings
-    :do
+      :do (progn
+            (setf substition (merge-substitutions substition new-bindings))
+            ;; The new substition conflicted with the existing ones...
+            (unless substition
+              (return (values nil :conflicting-bindings))))
+    :until (or (null new-bindings)
+               (donep $input)
+               (and maximum
+                    #| TODO pretty sure this should be <=, not just < |#
+                    (< maximum i))
+               ;; TODO (and (not greedyp) (or (<= (minimum pattern) i) <the next pattern matches>)
+               )
+    :finally
        ;; No more input or, no match
        (when (or
               ;; no more input
@@ -294,27 +338,20 @@ where consumed, for example)."
                  ;; TODO if max = 1, return a "simple" binding
                  ;; TODO return an object (iterator-range? +
                  ;; binding-sets???) instead of a plist
-                 (make-binding
-                  ;; TODO don't create a binding (just return t) if
-                  ;; the pattern has no name
-                  (or (name pattern) pattern)
-                  ;; bindings
-                  (list
-                   :bindings bindings
-                   :$start $start
-                   :$end $end
-                   :times times)))))))))
-
-
-
-;;; Convenience automatic coercions
-
-;; TODO delete this and fix everything that breaks 🙃
-;; TODO this shouldn't be needed, the (macth iterator iterator) should
-;; be able to take care of this.
-;;; OOOORRR make this explicit by having another pattern class to represent "going down" >subtree<
-(defmethod match ((pattern vector) (input iterator) &key skipp)
-  ;; TODO should copy the iterator
-  (go-down input)
-  (unless (donep input)
-    (match (make-pattern-iterator pattern) input :skipp skipp)))
+                 (let ((name (name pattern)))
+                   (when name
+                     (setf substition (add-binding substition
+                                                   (make-binding
+                                                    name
+                                                    ;; bindings
+                                                    (list
+                                                     ;; :bindings bindings
+                                                     :$start $start
+                                                     :$end $end
+                                                     :times times)
+                                                    :pattern pattern)))
+                     ;; The new substition conflicted with the existing ones...
+                     (unless substition
+                       (return (values nil :conflicting-bindings-with-hole-pattern))))
+                   ;; return the substition
+                   substition))))))))

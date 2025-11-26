@@ -569,3 +569,30 @@ I know that sbcl will complain similarily when compiling a file with
 the same defun appering multiple times.
 
 |#
+
+
+#|
+
+A common mistake when using defstruct:
+
+(defstruct name
+  (:constructor ...))
+
+instead of
+
+(defstruct (name
+  (:constructor ...)))
+
+|#
+
+
+#|
+
+(defmacro (&body body)
+  @body)
+
+"body is defined but never used"
+
+=> ,@body
+
+|#
