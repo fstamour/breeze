@@ -5,7 +5,7 @@
 
 (in-package #:breeze.invert)
 
-
+#++
 (unless (donep $node)
   (cond
     ((match (sym :wild t) $node)
@@ -26,5 +26,3 @@
 ;; TODO (null x) <=> x
 ;; TODO {string,char} {=,-{,not-}equal,<,<=,>,>=,-{,not-}lessp,-{,not-}greaterp
 ;; TODO is <=> isnt (parachute)
-
-string-

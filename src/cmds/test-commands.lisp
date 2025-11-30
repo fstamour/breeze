@@ -7,7 +7,10 @@
            #:run-tests-in-package
            #:run-system-tests
            #:run-all-tests
-           #:quickfix-test))
+           #:quickfix-test
+           #:goto-test
+           #:move-to-tests
+           #:undefine-test-at-point))
 
 (in-package #:breeze.test-commands)
 
@@ -116,4 +119,8 @@ dependencies between the tests).
 
 (define-command undefine-test-at-point ()
   "Remove the test at point"
+  'not-implemented)
+
+(define-command move-to-tests ()
+  "Move the code at point to a test file."
   'not-implemented)

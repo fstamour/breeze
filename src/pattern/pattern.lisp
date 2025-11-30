@@ -3,6 +3,8 @@
 (defpackage #:breeze.pattern
   (:documentation "Pattern matching")
   (:use #:cl #:breeze.iterator #:breeze.generics)
+  (:import-from #:breeze.class-utils
+                #:define-class)
   (:export #:compile-pattern)
   (:export #:pattern
            #:patterns
@@ -29,6 +31,10 @@
            #:maximum
            #:either
            #:eitherp
+           #:slot-pattern
+           #:slot-name
+           #:object-pattern
+           #:slots
            #:pattern-iterator
            #:make-pattern-iterator)
   ;; Working with match results
@@ -43,6 +49,8 @@
            #:substitutions-p
            #:merge-sets-of-substitutions
            #:pattern-substitute)
+  (:export #:extract-names
+           #:let-match)
   (:export #:make-rewrite
            #:rewrite-pattern
            #:rewrite-template))
@@ -58,6 +66,13 @@
 (defclass pattern ()
   ()
   (:documentation "Abstract pattern"))
+
+(defmethod name ((pattern pattern))
+  (when (slot-exists-p pattern 'name)
+    (slot-value pattern 'name)))
+
+(defmethod children ((pattern pattern))
+  nil)
 
 (defmethod make-load-form ((s pattern) &optional environment)
   (make-load-form-saving-slots s :environment environment))
@@ -311,6 +326,9 @@ AROUND. Add elipseses before and after if necessary."
 (defmethod make-load-form ((s repetition) &optional environment)
   (make-load-form-saving-slots s :environment environment))
 
+(defmethod children ((repetition repetition))
+  (pattern repetition))
+
 (defun maybe (pattern &optional name)
   "Make a pattern object that optionally matches a pattern once."
   (repetition pattern :min 0 :max 1 :name name))
@@ -326,7 +344,7 @@ AROUND. Add elipseses before and after if necessary."
 
 ;;; Eithers
 
-(defclass either (pattern)
+(defclass either (pattern named)
   ((patterns
     :initform nil
     :initarg :patterns
@@ -362,5 +380,55 @@ subpatterns."
     ;; patterns, or all of them if they're very small.
     (format stream "~s" (length (patterns either)))))
 
+(defmethod children ((either either))
+  (patterns either))
+
 (defmethod make-load-form ((s either) &optional environment)
   (make-load-form-saving-slots s :environment environment))
+
+
+;;; Matching standard objects
+
+(define-class slot-pattern (:superclass pattern
+                            :positional-args (slot-name value))
+  ((slot-name
+    :initform nil
+    :initarg :slot-name
+    :accessor slot-name
+    :documentation "The name of the slot.")
+   (value
+    :initform nil
+    :initarg :value
+    :accessor value
+    :documentation "The value of the slot")))
+
+(defmethod make-load-form ((s slot-pattern) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
+
+;; TODO test
+(defmethod children ((slot-pattern slot-pattern))
+  (vector (slot-name slot-pattern)
+          (value slot-pattern)))
+
+(define-class object-pattern (:superclass (pattern named)
+                              ;; :positional-args (class-name)
+                              :keyword-args (name))
+  ;; this defines methods on cl:class-name... I guess it's fine 🤔
+  ((class-name
+    :initform nil
+    :initarg :class-name
+    :accessor class-name
+    :documentation "The name of the object's class.")
+   (slots
+    :initform nil
+    :initarg :slots
+    :accessor slots
+    :documentation "A vector of slot-patterns.")))
+
+ (defmethod make-load-form ((s object-pattern) &optional environment)
+  (make-load-form-saving-slots s :environment environment))
+
+;; TODO test
+(defmethod children ((object-pattern object-pattern))
+  (vector (class-name object-pattern)
+          (slots object-pattern)))

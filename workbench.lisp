@@ -40,6 +40,23 @@
 (setf *break-on-signals* nil)
 
 
+
+(in-package #:breeze.generics)
+
+(defparameter *break-on-negative-eqv* nil)
+(defparameter *break-on-negative-eqv* t)
+(defmethod eqv :around (a b)
+  (if *break-on-negative-eqv*
+      (multiple-value-call
+          (lambda (result &rest extra-values)
+            (unless result
+              (break "a:~&  ~s~&is not eqv to b:~&  ~s~&extra values:~&  ~s"
+                     a b extra-values))
+            result)
+        (call-next-method))
+      (call-next-method)))
+
+
 (in-package #:breeze.command)
 
 ;;; Tracing important functions in the "command" package.

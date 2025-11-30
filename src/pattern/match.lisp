@@ -105,6 +105,13 @@
 (defmethod make-pattern-iterator ((pattern t))
   (make-pattern-iterator (vector pattern)))
 
+(defmethod children ((iterator pattern-iterator))
+  (unless (donep iterator)
+    (let ((value (value iterator)))
+      (typecase value
+        (vector value)
+        (pattern (children value))))))
+
 
 ;;; Matching sequences
 
@@ -192,7 +199,7 @@
                ;; update the pattern iterator
                (copy-iterator $pattern pattern-iterator)
                bindings)
-              (t (values nil :pattern-not-done $pattern (value $pattern)) #++(break "Failed to match")))))))
+              (t (values nil :pattern-not-done $pattern (value $pattern))))))))
 
 (defmethod match ((var simple-var) ($input iterator) &key skipp)
   "Match a `var' pattern against the current value of an
@@ -243,11 +250,11 @@ where consumed, for example)."
     (go-down $input)
     (unless (donep $input)
       ;; TODO return all the values returned by `match'
-      (let ((substition (match (make-pattern-iterator pattern) $input :skipp skipp)))
-        (when substition
+      (let ((substitution (match (make-pattern-iterator pattern) $input :skipp skipp)))
+        (when substitution
           (copy-iterator $input input)
           (go-up input))
-        substition))))
+        substitution))))
 
 
 ;;; Matching eithers
@@ -286,9 +293,16 @@ where consumed, for example)."
   ;; Early return: successfully match an empty input.
   (when (and (donep iterator)
              (zerop (minimum pattern)))
-    (return-from match t))
+    (let ((name (name pattern)))
+      (return-from match
+        (values (if name
+                    (make-binding name
+                                  (copy-iterator iterator)
+                                  :pattern pattern)
+                    t)
+                :early-return))))
   (loop
-    :with substition := t
+    :with substitution := t
     :with $pattern := (make-pattern-iterator (pattern pattern))
     :with $input := (copy-iterator iterator)
     :with maximum := (maximum pattern)
@@ -301,9 +315,9 @@ where consumed, for example)."
                    (match $pattern $input :skipp skipp))
     :when new-bindings
       :do (progn
-            (setf substition (merge-substitutions substition new-bindings))
-            ;; The new substition conflicted with the existing ones...
-            (unless substition
+            (setf substitution (merge-substitutions substitution new-bindings))
+            ;; The new substitution conflicted with the existing ones...
+            (unless substitution
               (return (values nil :conflicting-bindings))))
     :until (or (null new-bindings)
                (donep $input)
@@ -337,10 +351,10 @@ where consumed, for example)."
                  (copy-iterator $end iterator)
                  ;; TODO if max = 1, return a "simple" binding
                  ;; TODO return an object (iterator-range? +
-                 ;; binding-sets???) instead of a plist
+                 ;; binding???) instead of a plist
                  (let ((name (name pattern)))
                    (when name
-                     (setf substition (add-binding substition
+                     (setf substitution (add-binding substitution
                                                    (make-binding
                                                     name
                                                     ;; bindings
@@ -350,8 +364,109 @@ where consumed, for example)."
                                                      :$end $end
                                                      :times times)
                                                     :pattern pattern)))
-                     ;; The new substition conflicted with the existing ones...
-                     (unless substition
-                       (return (values nil :conflicting-bindings-with-hole-pattern))))
-                   ;; return the substition
-                   substition))))))))
+                     ;; The new substitution conflicted with the existing ones...
+                     (unless substitution
+                       (return (values nil :conflicting-binding-with-whole-pattern-substitution))))
+                   ;; return the substitution
+                   substitution))))))))
+
+
+;;; Matching standard objects
+
+(defmethod match ((slot-pattern slot-pattern) (instance standard-object) &key)
+  (let ((slot-name (slot-name slot-pattern)))
+    (if (slot-exists-p instance slot-name)
+        (if (slot-boundp instance slot-name)
+            (or (match (value slot-pattern) (slot-value instance slot-name))
+                (values nil :slot-does-not-match))
+            (values nil :slot-not-bound))
+        (values nil :slot-does-not-exist))))
+
+;; TODO re-use this to implement and "and" pattern... if I ever need
+;; one...
+(defmethod match-every ((patterns vector) input)
+  (or (zerop (length patterns))
+      (loop
+        :with substitution := t
+        :for pattern :across patterns
+        :do (multiple-value-call
+               (lambda (new-substitution &rest extra-values)
+                 (cond
+                   (new-substitution
+                    (setf substitution
+                          (add-binding substitution new-substitution))
+                    (unless substitution
+                      (values nil :conflicting-bindings)))
+                   (t (return (values nil
+                                      pattern
+                                      extra-values)))))
+             (match pattern input))
+        :finally (return substitution))))
+
+(defmethod match ((object-pattern object-pattern)
+                  (instance standard-object)
+                  &key
+                  &aux
+                    (class-name (class-name object-pattern))
+                    (slots (slots object-pattern)))
+  ;; TODO (if (name object-pattern) (make-binding (name
+  ;; object-pattern) instance) ...)
+  (and
+   ;; match the class-name
+   (or (null class-name)
+       (match class-name (class-name (class-of instance)))
+       (return-from match (values nil :different-class-name)))
+   ;; match the slots
+   (or (null slots)
+       (match-every slots instance))))
+
+
+;;; Matching utilities
+
+(defun extract-names (compiled-pattern)
+  (loop
+    :with names := (make-hash-table)
+    :with it := (make-pattern-iterator compiled-pattern)
+    :until (donep it)
+    :for p := (value it)
+    :when (and (typep p 'pattern) (name p))
+      :do (setf (gethash (name p) names) t)
+    :do
+       (next-preorder it)
+    :finally (return (alexandria:hash-table-keys names))))
+
+#++
+(progn
+  (trace children :methods t)
+  (unwind-protect
+       (let* ((pattern `((:either (progn (:named ?body (:maybe :_))))))
+              (compiled-pattern (compile-pattern pattern)))
+         (extract-names compiled-pattern))
+    (untrace children)))
+
+#++
+(let* ((pattern `((:either (progn (:named ?body (:maybe :?x))))))
+        (compiled-pattern (compile-pattern pattern)))
+   (extract-names compiled-pattern))
+
+(defmacro let-match ((pattern input
+                       &key skipp
+                         (substitution (gensym "substitution"))
+                         (get-binding (gensym "get-bindings")))
+                      &body body)
+  (let* ((compiled-pattern (compile-pattern pattern))
+         (meta-variables (extract-names compiled-pattern))
+         (input-var (gensym "input")))
+    `(let* ((,input-var ,input)
+            (,substitution
+              (match ,compiled-pattern ,input-var :skipp ,skipp)))
+       (flet ((,get-binding (name)
+                (to (find-binding ,substitution name))))
+         (declare (ignorable (function ,get-binding)))
+         (let ,(loop
+                 :for var :in meta-variables
+                 :collect `(,var (,get-binding ',var)))
+           ,@(loop
+               :for var :in meta-variables
+               :collect `(declare (ignorable ,var)))
+           (progn ,@body))))))

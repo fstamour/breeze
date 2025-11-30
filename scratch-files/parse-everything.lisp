@@ -84,8 +84,9 @@ TODO:
 
 (defparameter *top-level-forms*
   (compile-pattern
-   '(:either ((:symbol "DEFPACKAGE" "CL"))
-     ((:symbol "DEFINE-PACKAGE" "UIOP"))
+   '(:either
+     ((:symbol "DEFPACKAGE" "CL") ?package-name)
+     ((:symbol "DEFINE-PACKAGE" "UIOP") ?package-name)
      ((:symbol "IN-PACKAGE" "CL"))
      ((:symbol "DEFSYSTEM"
        ;; "DEFSYSTEM" #++ "ASDF"

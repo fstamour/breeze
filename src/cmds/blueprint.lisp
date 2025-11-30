@@ -6,6 +6,8 @@
 (in-package #:breeze.blueprint)
 
 ;; TODO make "breeze-quickinsert" choose to insert a defun when there's a "defun" at point...
+#|
+
 defun
 
 
@@ -15,3 +17,4 @@ patterns need docstring/documentation/prompt
 
 insert-symbol
 ensure-sym (convert symbol to sym)
+|#

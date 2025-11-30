@@ -53,12 +53,9 @@
    #:insert-fancy-sbcl-shebang
    ;; Other commands
    #:declaim-inline
-   #:quickload
    #:quickinsert
    ;; TODO perhaps "quickfix" should go in "lint.lisp"
-   #:quickfix
-   #:other-file
-   #:other-file-other-window))
+   #:quickfix))
 
 (in-package #:breeze.refactor)
 
@@ -371,36 +368,6 @@ defun."
 
 ;;; TODO move into (new file) +quicklisp
 
-#+quicklisp
-(define-command quickload ()
-  "Choose a system to load with quickload."
-  (let* ((systems (ql-dist:provided-systems t))
-         (mapping (make-hash-table :test 'equal))
-         (choices (mapcar (lambda (system)
-                            (let* ((release (ql-dist:release system))
-                                   (string (format nil "~a (~a ~a)"
-                                                   (ql-dist:name system)
-                                                   (ql-dist:prefix release)
-                                                   (ql-dist:short-description (ql-dist:dist release)))))
-                              (setf (gethash string mapping) system)
-                              string))
-                          systems))
-         (choice (choose "Choose a system: " choices))
-         (chosen-system (gethash choice mapping)))
-    (cond
-      (chosen-system #| TODO |#)
-      (t #| TODO |#))))
-
-;; TODO create a similar commands that uses asdf only
-;; TODO create a similar command that calls (asdf:test-system)
-;; TODO should extract the "choose a system" part
-;;
-;; other "quicklisp" commands:
-;; - intstall ?? meh
-;; - update client
-;; - update dist
-;; - check for update?
-
 
 (define-command insert-make-array ()
   "Insert a make-array form."
@@ -536,24 +503,24 @@ when inserting something.
 
 ;; TODO it shouldn't be too hard to re-use this code to insert other
 ;; kind of `declaim's.
+;;
+;; TODO this only works when the point is at the start of the defun :/
+;; otherwise, it inserts the declaim in weid places
 (define-command declaim-inline ()
   "Declaim inline the current top-level function."
   (let* (($current-node (node-iterator (current-buffer)))
          ;; TODO get the "top-level" node, not the root
          ($root (top-level-node-iterator $current-node)))
     (with-match ($root (defun ?name))
-      (let (($name (get-bindings '?name)))
-        (cond
-          ($name
-           ;; TODO make a function `pulse-node'
-           (pulse (start $name) (end $name))
-           (insert-at
-            (start $root)
-            "(declaim (inline ~a))~%" (node-string $name)))
-          (t
-           ;; TODO make a function `pulse-node'
-           (pulse (start $root) (end $root))
-           (message "Unable to find the current top-level function's name.")))))))
+      (cond
+        (?name
+         (pulse-node ?name)
+         (insert-at
+          (start $root)
+          "(declaim (inline ~a))~%" (node-string ?name)))
+        (t
+         (pulse $root)
+         (message "Unable to find the current top-level function's name."))))))
 
 
 ;;; Quickfix
@@ -629,14 +596,19 @@ For debugging purposes ONLY.")
 
 (defun suggest-lambda ()
   "When inside a higher-order function, like mapcar."
-  ;; TODO™
   nil
-  #++
-  (let* ((buffer (current-buffer))
-         (node-iterator (node-iterator buffer)))
+  #++ ;; TODO
+  (when-let* (($node (current-node-iterator))
+              ($parent (parent $node))
+              ($car (when (parens-node-p parent)
+                     (go-down (copy-iterator $parent))))
+              (name (when (token-node-p $car)
+                      (name $car))))
     ;; TODO Use breeze.cl:higher-order-function-p
+    ;; TODO check the position of $node in its parent (skip whitespace and comments)
     ;; Higher-order functions
-    (when (and node-iterator
+    (when (and $node
+               (parens-node-p parent)
                ;; (child-of-mapcar-node-p node-iterator)
                )
       (shortcircuit 'insert-lambda))))
@@ -789,122 +761,3 @@ TODO there's some different kind of "quickfixes":
 
 #+nil
 (quickfix :buffer-string "   " :point 3)
-
-
-;;; Test files
-
-#++ ;; TODO
-(define-command move-to-tests ())
-
-
-
-(defun candidate-alt-dir (file)
-  "Generate a list of alternate directories."
-  (let ((root (or (breeze.utils:find-version-control-root file)
-                  #++
-                  (uiop:pathname-parent-directory-pathname
-                   ;; TODO this return a list that contains the path to a _file_...
-                   (breeze.utils:find-asdf-in-parent-directories file)))))
-    (loop :for dir :in '("src/" "t/" "test/" "tests/")
-          :for pathname := (merge-pathnames dir root)
-          :collect pathname)))
-
-#++
-(candidate-alt-dir
- (breeze.utils:breeze-relative-pathname
-  "src/refactor.lisp"))
-#|
-=>
-(#P"/home/fstamour/quicklisp/local-projects/breeze/src/"
- #P"/home/fstamour/quicklisp/local-projects/breeze/t/"
- #P"/home/fstamour/quicklisp/local-projects/breeze/test/"
- #P"/home/fstamour/quicklisp/local-projects/breeze/tests/")
-|#
-
-(defun pathname-filename (pathname)
-  (let ((name (pathname-name pathname))
-        (type (pathname-type pathname)))
-    (format nil "~a~:[.~a~;~]" name (eq :unspecific type) type)))
-
-;; TODO the "truename" signals an error if the file doesn't exist...
-(defun candidate-alt-files (file &aux (file (truename file)))
-  (loop
-    :with file-name := (pathname-filename file)
-    :for altdir :in (candidate-alt-dir file)
-    :for altfile := (merge-pathnames file-name altdir)
-    :unless (equal file altfile)
-    :collect altfile))
-
-#++
-(let* ((file (breeze.utils:breeze-relative-pathname "src/refactor.lisp")))
-  (candidate-alt-files file))
-;; => (#P"/home/fstamour/quicklisp/local-projects/breeze/src/" "refactor.lisp")
-
-(defun %other-file (&optional other-window-p)
-  (let* ((file (current-buffer-filename))
-         (candidates (candidate-alt-files file))
-         (candidates (or (remove-if-not #'probe-file candidates)
-                         candidates)))
-    (cond
-      ((null candidates)
-       (message "Couldn't find any \"other file\" for ~a" file))
-      ((breeze.utils:length=1 candidates)
-       (find-file (car candidates) other-window-p))
-      (t
-       (let ((choice (choose "Choose an other file: "
-                             (mapcar #'namestring candidates))))
-         (find-file choice other-window-p))))))
-
-(define-command other-file ()
-  "Find the alternative file for the current file."
-  (%other-file))
-
-(define-command other-file-other-window ()
-  "Find the alternative file for the current file in the other window."
-  (%other-file t))
-
-#++
-(when path
-    (if-let ((vc-root (indirect (find-version-control-root path))))
-      (mapcar)))
-
-#++
-(let ((vc-root (find-version-control-root (breeze.utils:breeze-relative-pathname "."))))
-  (mapcar (lambda (directory)
-            (merge-pathnames directory vc-root))
-          '("" "src/" "source/" "sources/")))
-
-;; 1. generate dirs from "vc-root" '("src" "t" "test" "tests")
-;; 2. find in which directory is the current file
-;; 3. find which alternative directory exists
-;; 4. find which alternative file exists
-
-;; On second thought, the "find test directory"/"find test files" should be part of the "workspace".
-
-#++
-(if-let (buffer-file-name))
-#++
-(if-let ((vc-root (indirect (find-version-control-root path))))
-  (directory-name vc-root))
-
-
-;;; Emacs header-line
-
-;; "this won't introduce any latency /s"
-#++
-(progn
-  (define-command header-line ()
-    "Compute a string to show in emacs' header-line."
-    (return-value-from-command
-     (or (handler-case
-             (format nil "~a ~a" (current-point)
-                     (let ((node-iterator (current-node-iterator)))
-                       (if node-iterator
-                           (let* ((state (breeze.parser:state node-iterator))
-                                  (node (breeze.iterator:value node-iterator)))
-                             (breeze.parser:node-content state node))
-                           "NODE-ITERATOR is nil")))
-           (error (condition) (apply #'format nil (simple-condition-format-control condition)
-                                     (simple-condition-format-arguments condition))))
-         "An error occurred when calling breeze-header-line")))
-  (export 'header-line))

@@ -211,7 +211,7 @@ Design decision(s):
                       ;; TODO matching uiop:define-package is
                       ;; currently broken/not implemented.
                       ((:symbol :define-package :uiop) ?name)))
-          (when-let* ((package-name-node (get-bindings '?name))
+          (when-let* ((package-name-node ?name)
                       (package-name (node-string-designator
                                      package-name-node)))
             (when (string-equal package package-name)

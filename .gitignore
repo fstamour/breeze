@@ -20,5 +20,6 @@ githooks/*.sample
 *~
 /docs/sitemap.org
 
+build/
 *.tar
 *.tar.gz

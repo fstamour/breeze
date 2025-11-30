@@ -586,8 +586,30 @@
     :do (add-offset node offset)
     (next iterator)))
 
+;; TODO move somewhere else, this has nothing to do with "parse-tree"
+(defun top-level-forms ($node)
+  (breeze.pattern:let-match
+      (((:either
+         (progn (:maybe ?body))
+         (eval-when _ (:maybe ?body))
+         ((:either macrolet symbol-macrolet)
+          _ #| definitions |#
+          ;;
+          ;; TODO this doesn't work, I think it's because (match
+          ;; repetition iterator) advances the iterator when
+          ;; there's no match _but_ the match is successful
+          ;; because 'minimum is 0
+          ;;
+          ;; (:zero-or-more (declare _ #| TODO tests|#))
+          (:maybe ?body))
+         ;; TODO locally
+         ))
+       $node
+       :skipp #'whitespace-or-comment-node-p)
+    ?body))
 
 ;; TODO add tests
+;; TODO move somewhere else, this has nothing to do with "parse-tree"
 (defmethod map-top-level-forms (function (state state))
   ;; TODO Recurse into forms that "preserves" top-level-ness:
   ;; progn, locally, macrolet, symbol-macrolet, eval-when

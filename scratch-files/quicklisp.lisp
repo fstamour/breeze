@@ -1,7 +1,3 @@
-(defpackage #:breeze.quicklisp
-  (:documentation "Utilities for quicklisp")
-  (:use #:cl))
-
 (in-package #:breeze.quicklisp)
 
 #++

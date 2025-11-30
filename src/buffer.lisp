@@ -167,5 +167,30 @@ point.")
 ;; TODO (see interactive-eval-command) - get the node, parse it, find the package
 ;; (defmethod current-package ((buffer buffer)))
 
+;; This should probably go elsewhere...
 (defmethod map-top-level-forms (function (buffer buffer))
   (map-top-level-forms function (parse-state buffer)))
+
+
+;;; Emacs header-line
+;;
+;; TODO this should be a slot on buffers
+;;
+;; "this won't introduce any latency /s"
+#++
+(progn
+  (define-command header-line ()
+    "Compute a string to show in emacs' header-line."
+    (return-value-from-command
+     (or (handler-case
+             (format nil "~a ~a" (current-point)
+                     (let ((node-iterator (current-node-iterator)))
+                       (if node-iterator
+                           (let* ((state (breeze.parser:state node-iterator))
+                                  (node (breeze.iterator:value node-iterator)))
+                             (breeze.parser:node-content state node))
+                           "NODE-ITERATOR is nil")))
+           (error (condition) (apply #'format nil (simple-condition-format-control condition)
+                                     (simple-condition-format-arguments condition))))
+         "An error occurred when calling breeze-header-line")))
+  (export 'header-line))

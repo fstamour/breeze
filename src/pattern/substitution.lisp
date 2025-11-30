@@ -148,15 +148,24 @@ object, which is returned."
 (defun set-binding (substitutions binding)
   (setf (gethash (from binding) (bindings substitutions)) binding))
 
-(defmethod add-binding ((substitutions substitutions) (_ (eql t)))
-  ;; nothing to do
-  t ; success
-  )
+(defmethod add-binding ((_a (eql t)) (_b (eql t)))
+  ;; nothing to do: success
+  t)
 
-(defmethod add-binding ((substitutions substitutions) (_ (eql nil)))
-  ;; nothing to do
-  nil ; failure
-  )
+(defmethod add-binding ((substitution substitutions) (_ (eql t)))
+  ;; nothing to do: success
+  substitution)
+
+(defmethod add-binding ((substitution substitutions) (_ (eql nil)))
+  ;; nothing to do: failure
+  nil)
+
+(defmethod add-binding ((substitutions (eql nil)) (_ t))
+  ;; nothing to do: failure
+  nil)
+
+(defmethod add-binding ((substitutions (eql t)) (new-binding binding))
+  new-binding)
 
 (defmethod add-binding ((substitutions substitutions) (new-binding binding))
   (let ((old-binding (find-binding substitutions (from new-binding))))

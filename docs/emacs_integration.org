@@ -57,6 +57,17 @@
 | breeze-other-file                                  | Find the alternative file for the current file.                                 |              |
 | breeze-other-file-other-window                     | Find the alternative file for the current file in the other window.             |              |
 | breeze-quickload                                   | Choose a system to load with quickload.                                         |              |
+| breeze-goto-test                                   | Go to a specific test.                                                          |              |
+| breeze-quickfix-test                               | Tries to fix the test automagically.                                            |              |
+| breeze-run-all-tests                               | Run all the tests...                                                            |              |
+| breeze-run-system-tests                            | Run a system's tests using ~(asdf:test-system)~.                                |              |
+| breeze-run-test-at-point                           | Run the test at point.                                                          |              |
+| breeze-run-tests-in-file                           | Run the all the tests in a file.                                                |              |
+| breeze-run-tests-in-package                        | Run the all the tests in a package.                                             |              |
+| breeze-run-tests-in-suite                          | Run the all the tests in a suite.                                               |              |
+| breeze-undefine-test-at-point                      | Remove the test at point                                                        |              |
+| breeze-move-to-tests                               | Move the code at point to a test file.                                          |              |
+| breeze-scramble                                    | Scramble the code at point.                                                     |              |
 
 
 * Related notes

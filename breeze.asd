@@ -114,17 +114,26 @@
     :depends-on ("xref" "command"))
    (:file "suggestion"
     :depends-on ("listener"))
-   (:file "editing" :depends-on ("analysis" "command"))
    (:file "package" :depends-on ("analysis"))
-   (:file "package-commands" :depends-on ("analysis" "command"))
+
    (:file "lint" :depends-on ("analysis" "command"))
-   (:file "refactor" :depends-on ( "command" "cl" "analysis"
-                                   "utils" "indirection"
-                                   "workspace"))
-   (:file "completion"
-          :depends-on ("command" "analysis"))
-   (:file "project" :depends-on ("utils" "command" "configuration"))
-   (:file "capture" :depends-on ("utils" "command" "configuration")))
+   (:file "refactor" :depends-on ("cmds" "cl"
+                                         "indirection"
+                                         "workspace"))
+
+   (:module "cmds"
+    :depends-on ("command" "analysis" "configuration" "utils")
+    :components ((:file "blueprint")
+                 (:file "completion")
+                 (:file "editing")
+                 (:file "project")
+                 (:file "capture")
+                 (:file "package-commands")
+                 (:file "test-commands")
+                 (:file "other-files")
+                 (:file "quicklisp")
+                 (:file "egraph-command")
+                 (:file "invert"))))
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
@@ -173,7 +182,7 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :depends-on (breeze quickproject)
-  :pathname "src/"
+  :pathname "src/cmds"
   :components
   ((:file "+quickproject")))
 
@@ -216,8 +225,12 @@
    (:file "lint")
    (:file "listener" :depends-on ("command"))
    (:file "logging")
-   (:file "parser" :depends-on ("parser.randomized"))
+   ;; TODO move into new module "parser"
    (:file "parser.randomized")
+   ;; TODO split out "parser.lisp"
+   ;; (:module "parser" ...)
+   (:file "parser" :depends-on ("parser.randomized"))
+   (:file "parse-tree")
    (:file "package")
    (:file "package-commands")
    (:module "pattern"
@@ -227,6 +240,9 @@
                  (:file "substitution")
                  (:file "match")
                  (:file "rewrite")))
+   (:module "cmds"
+    :depends-on ("command")
+    :components ((:file "other-files")))
    (:file "refactor")
    (:file "string-utils")
    (:file "utils")

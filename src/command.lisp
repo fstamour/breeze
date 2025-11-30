@@ -827,6 +827,7 @@ editor. Returns a list of plist."
 (defun command-docstring (function)
   "Return the function's docstring, signals an error if it's nil."
   ;; WIP find-command
+  (check-type function symbol)
   (let ((doc (documentation function 'function)))
     (unless doc
       (error

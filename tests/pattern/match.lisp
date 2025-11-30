@@ -169,6 +169,7 @@
               :always (apply invariant kwargs)))
       substitutions)))
 
+;; TODO need to make sure that the "input" iterator is not advanced when matching zero-or-more
 (define-test+run "match iterators"
   (test-match-iterator
    "matching an empty sequence pattern against an empty input sequence"
@@ -178,24 +179,130 @@
    "matching an empty sequence pattern against a non-empty input sequence"
    #() #(a)
    :expected-substitution t)
-  (loop :for test-case :in (list
-                            #()
-                            #(a)
-                            #(b c)
-                            #(d e f))
-        :do
-           (test-match-iterator
-            "matching a sequence pattern against an identical input sequence"
-            test-case test-case
-            :expected-substitution t)
-           (test-match-iterator
-            "matching a sequence pattern of one simple-var against an input sequence"
-            '(?x) test-case
-            :expected-substitution
-            (unless (zerop (length test-case))
-              (substitutions `((?x ,(let ((it (make-tree-iterator test-case)))
-                                      (go-down it)
-                                      it))))))))
+;;; zero-or-more
+  (test-match-iterator
+   "matching empty :zero-or-more against an empty sequence"
+   ;; TODO what does this pattern even mean?
+   '(:zero-or-more)
+   #()
+   :expected-substitution t)
+  (test-match-iterator
+   "matching empty :zero-or-more against a sequence of 1 element"
+   ;; TODO what does this pattern even mean?
+   '(:zero-or-more)
+   #(a)
+   :expected-substitution t)
+  (test-match-iterator
+   "matching :zero-or-more wildcards against an empty sequence"
+   '(:zero-or-more _)
+   #()
+   :expected-substitution t)
+  (test-match-iterator
+   "matching :zero-or-more wildcards against a sequence of 1 element"
+   '(:zero-or-more _)
+   #(a)
+   :expected-substitution t)
+  (test-match-iterator
+   "matching :zero-or-more simple-vars against an empty sequence"
+   '(:zero-or-more ?x)
+   #()
+   :expected-substitution t)
+  (test-match-iterator
+   "matching :zero-or-more simple-vars against a sequence of 1 element"
+   '(:zero-or-more ?x)
+   #(a)
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+  (test-match-iterator
+   "matching :zero-or-more simple-vars against a sequence of 2 elements #(a a)"
+   '(:zero-or-more ?x)
+   #(a a)
+   ;; TODO assert that it only consumed the first "a"
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+  (test-match-iterator
+   "matching :zero-or-more simple-vars against a sequence of 2 elements #(a b)"
+   '(:zero-or-more ?x)
+   #(a b)
+   ;; TODO assert that it only consumed the first "a"
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+;;;; one-or-more
+  (test-match-iterator
+   "matching empty :one-or-more against an empty sequence"
+   ;; TODO what does this pattern even mean?
+   '(:one-or-more)
+   #()
+   :expected-substitution nil)
+  (test-match-iterator
+   "matching empty :one-or-more against a sequence of 1 element"
+   ;; TODO what does this pattern even mean?
+   '(:one-or-more)
+   #(a)
+   :expected-substitution nil)
+  ;; this fails...
+  ;; (trace match :wherein test-match-iterator)
+  (test-match-iterator
+   "matching :one-or-more wildcards against an empty sequence"
+   ;; TODO this works because the wildcard automatically matches even
+   ;; though the input iterator is done... I'm not sure that's what we
+   ;; want...
+   '(:one-or-more _)
+   #()
+   :expected-substitution t)
+  (test-match-iterator
+   "matching :one-or-more wildcards against a sequence of 1 element"
+   '(:one-or-more _)
+   #(a)
+   :expected-substitution t)
+  (test-match-iterator
+   "matching :one-or-more simple-vars against an empty sequence"
+   '(:one-or-more ?x)
+   #()
+   :expected-substitution nil)
+  (test-match-iterator
+   "matching :one-or-more simple-vars against a sequence of 1 element"
+   '(:one-or-more ?x)
+   #(a)
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+  (test-match-iterator
+   "matching :one-or-more simple-vars against a sequence of 2 elements #(a a)"
+   '(:one-or-more ?x)
+   #(a a)
+   ;; TODO assert that it only consumed the first "a"
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+  (test-match-iterator
+   "matching :one-or-more simple-vars against a sequence of 2 elements #(a b)"
+   '(:one-or-more ?x)
+   #(a b)
+   ;; TODO assert that it only consumed the first "a"
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))))
+(loop :for test-case :in (list
+                          #()
+                          #(a)
+                          #(b c)
+                          #(d e f))
+      :do
+         (test-match-iterator
+          "matching a sequence pattern against an identical input sequence"
+          test-case test-case
+          :expected-substitution t)
+         (test-match-iterator
+          "matching a sequence pattern of one simple-var against an input sequence"
+          '(?x) test-case
+          :expected-substitution
+          (unless (zerop (length test-case))
+            (substitutions `((?x ,(let ((it (make-tree-iterator test-case)))
+                                    (go-down it)
+                                    it))))))
+      #++
+       (test-match-iterator
+        ;; This should fail for input longer than one because
+        ;; there should be conflincting bindings.
+        "matching a :zero-or-more pattern of one simple-var against an input sequence"
+        '(:zero-or-more ?y) test-case
+        :expected-substitution
+        (unless (zerop (length test-case))
+          (substitutions `((?x ,(let ((it (make-tree-iterator test-case)))
+                                  (go-down it)
+                                  it)))))))
 
 #++
 (trace match
@@ -407,3 +514,62 @@
   (is eq t (match (sym :keyword '#:defun) :defun))
   (is eq t (match (sym :keyword :defun) :defun))
   (is eq nil (match (sym :keyword :defun) 'defun)))
+
+
+;;; Matching standard objects
+
+(define-test+run "match slot-pattern"
+  (is eq t (match (slot-pattern 'minimum 0) (repetition 'foo)))
+  (is-values (match (slot-pattern 'minimum 3) (repetition 'foo))
+    (eq nil)
+    (eq :slot-does-not-match))
+  (is-values (match (slot-pattern 'min 0) (repetition 'foo))
+    (eq nil)
+    (eq :slot-does-not-exist))
+  (is-values (match (slot-pattern 'minimum 0)
+               (let ((r (repetition 'foo)))
+                 (slot-makunbound r 'minimum)
+                 r))
+    (eq nil)
+    (eq :slot-not-bound))
+  (is eqv (make-binding '?min 0)
+      (match (slot-pattern 'minimum (svar '?min)) (repetition 'foo))))
+
+(define-test+run "match class-pattern"
+  (is eq t (match (object-pattern) (repetition 'foo)))
+  (is eq t (match (object-pattern :class-name 'repetition) (repetition 'foo)))
+  (is-values (match (object-pattern :class-name 'snake) (repetition 'foo))
+    (eq nil)
+    (eq :different-class-name))
+  (is eq t (match (object-pattern
+                   :slots (vector (slot-pattern 'minimum 0)))
+             (repetition 'foo)))
+  (is eq t (match (object-pattern
+                   :slots (vector (slot-pattern 'minimum 0)
+                                  (slot-pattern 'maximum nil)))
+             (repetition 'foo)))
+  (is-values (match (object-pattern
+                     :slots (vector (slot-pattern 'minimum 3)))
+               (repetition 'foo))
+    (eq nil)
+    (eqv (slot-pattern 'minimum 3))
+    (eqv '(:slot-does-not-match)))
+  (is-values (match (object-pattern
+                     :slots (vector (slot-pattern 'min 0)))
+               (repetition 'foo))
+    (eq nil)
+    (eqv (slot-pattern 'min 0))
+    (eqv '(:slot-does-not-exist)))
+  (is-values (match (object-pattern
+                     :slots (vector (slot-pattern 'minimum 0)))
+               (let ((r (repetition 'foo)))
+                 (slot-makunbound r 'minimum)
+                 r))
+    (eq nil)
+    (eqv (slot-pattern 'minimum 0))
+    (eqv '(:slot-not-bound)))
+  (is eqv (make-binding '?min 0)
+      (match (object-pattern :slots (vector (slot-pattern 'minimum (svar '?min)))) (repetition 'foo))))
+
+
+;;; Matching utilities

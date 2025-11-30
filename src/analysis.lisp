@@ -13,7 +13,6 @@
            #:parse-symbol-node)
   ;; Tree/Form predicate
   (:export #:with-match
-           #:with-match-let
            #:define-node-matcher
            #:quotedp))
 
@@ -262,52 +261,12 @@ The designators can be strings, symbols or packages."
 
 ;; TODO match-case
 
+;; TODO rename to with-match-node? or let-match-node
+;; TODO swap the argument's order to match (ha!) let-match and match
 (defmacro with-match ((node-iterator pattern) &body body)
-  (let* ((compiled-pattern (compile-pattern pattern))
-         (bindings (intern (symbol-name '#:bindings)))
-         (get-bindings (intern (symbol-name '#:get-bindings)))
-         ($node (gensym "$node")))
-    `(let* ((,$node ,node-iterator)
-            (,bindings
-              (and ,$node
-                   (not (donep ,$node))
-                   (match ,compiled-pattern (copy-iterator ,$node)
-                     :skipp #'whitespace-or-comment-node-p))))
-       (flet ((,get-bindings (name)
-                (when ,bindings
-                  (when-let ((binding (find-binding ,bindings name)))
-                    (to binding)))))
-         (declare (ignorable (function ,get-bindings)))
-         ,@body))))
-
-(defmacro with-match-let ((node-iterator pattern) &body body)
-  (let ((meta-variables)
-        (get-bindings (intern (symbol-name '#:get-bindings))))
-    (sublis '((nil . nil))
-            pattern
-            :test (lambda (x y)
-                    (declare (ignore y))
-                    (when (breeze.pattern::var-symbol-p x)
-                      (pushnew x meta-variables))
-                    nil))
-    `(with-match (,node-iterator ,pattern)
-       (let ,(loop
-               :for var :in meta-variables
-               :collect `(,var (,get-bindings ',var)))
-         ,@(loop
-            :for var :in meta-variables
-            :collect `(declare (ignorable ,var)))
-         (progn ,@body)))))
-
-#++
-(let ((meta-variables))
-  (sublis '((nil . nil))
-          '((:symbol "IS" #++ "PARACHUTE") ?cmp ?expected)
-          :test (lambda (x y)
-                  ;; (break)
-                  (when (breeze.pattern::var-symbol-p x)
-                    (pushnew x meta-variables))))
-  meta-variables)
+  `(let-match (,pattern ,node-iterator
+                        :skipp #'whitespace-or-comment-node-p)
+     ,@body))
 
 ;; TODO be able to name the "node-iterator" argument
 ;; TODO maybe, be able to do some checks _before_ trying to match
@@ -316,7 +275,7 @@ The designators can be strings, symbols or packages."
   `(defun ,name (node-iterator)
      ,(format nil "Does NODE-ITERATOR match ~s?" pattern)
      (declare (ignorable node-iterator))
-     (with-match-let (node-iterator ,pattern)
+     (with-match (node-iterator ,pattern)
        ,@body)))
 
 
@@ -374,16 +333,15 @@ TODO
     ;; This matches longer sequence because there's no implicit
     ;; "anchor" at the end of the patterns.
     ((if (:maybe (?cond (:maybe (?then (:maybe (?else (:maybe ?extra)))))))))
-  (when bindings
-    (cond
-      ;; there should be no extra forms
-      (?extra (values t :extra-forms))
-      ;; These are mandatory
-      ((null ?cond) (values t :missing-cond-and-then))
-      ((null ?then) (values t :missing-then)))))
+  (cond
+    ;; there should be no extra forms
+    (?extra (values t :extra-forms))
+    ;; These are mandatory
+    ((null ?cond) (values t :missing-cond-and-then))
+    ((null ?then) (values t :missing-then))))
 
 ;; TODO export
 ;; TODO test
 (defun loop-form-p ($node)
-  (with-match ($node ((cl:loop)))
-    bindings))
+  (with-match ($node ((cl:loop (:named ?body (:maybe _)))))
+    ?body))

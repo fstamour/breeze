@@ -69,8 +69,8 @@ after the list of superclasses) of a cl:defclass form.
                       :append (list (alexandria:make-keyword s) s))))
     `(progn
 ;;; class
-       (defclass ,name (,@(when superclass (list superclass)))
-         ,@(or (list slots)`(()))
+       (defclass ,name (,@(when superclass (alexandria:ensure-list superclass)))
+         ,@(or (list slots) `(()))
          ,@(rest defclass-body))
 ;;; predicate
        ,(when predicate
@@ -132,6 +132,5 @@ after the list of superclasses) of a cl:defclass form.
 
 #++
 (define-class a (:positional-args (start end)
-                 :keyword-args (errors)
-                 )
+                 :keyword-args (errors))
   ((errors :initarg :errors :accessor errors)))

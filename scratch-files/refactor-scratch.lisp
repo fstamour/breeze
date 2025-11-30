@@ -17,7 +17,7 @@
     #++ (node-string
          (to
           (find-binding (match (compile-pattern `((:symbol "IS") ?x)) $node) '?x)))
-    (breeze.analysis::with-match-let ($node ((:symbol "IS" #++ "PARACHUTE")
+    (matching ($node ((:symbol "IS" #++ "PARACHUTE")
                                              ?cmp ?expected (:var ?got (:maybe :_))))
       #++ (loop :for (from . to) :in (breeze.test.pattern::bindings-alist bindings)
             :collect (cons from (node-string to)))
