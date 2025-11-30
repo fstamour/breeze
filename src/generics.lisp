@@ -67,6 +67,7 @@ TODO
 
 (defmethod eqv ((a sequence) (b sequence))
   (or (eq a b)
+      (= (length a) (length b))
       (every #'eqv a b)))
 
 (defmethod eqv ((a cons) (b cons))
