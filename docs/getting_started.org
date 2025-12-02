@@ -9,7 +9,7 @@ Clone this repository, for example, in quicklisp's local-projects
 folder.
 
 #+begin_src shell
-git clone git@gitlab.com:fstamour/breeze.git ~/quicklisp/local-projects/breeze
+git clone --recursive git@codeberg.org:fstamour/breeze.git ~/quicklisp/local-projects/breeze
 #+end_src
 
 * Getting started with Emacs
