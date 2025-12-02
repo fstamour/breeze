@@ -1,8 +1,12 @@
 # Breeze
 
 - [codeberg](https://codeberg.org/fstamour/breeze)
+  - main repo
 - [gitlab](https://gitlab.com/fstamour/breeze)
+  - (as of 2025-11-30) used for CI and documentation hosting (gitlab
+    pages)
 - [github](https://github.com/fstamour/breeze)
+  - (as of 2025-11-30) used for better discoverability
 
 Breeze is a set of tools that aims to make lisp development a breeze
 (hence the name).
