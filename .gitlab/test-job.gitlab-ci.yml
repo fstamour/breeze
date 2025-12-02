@@ -6,4 +6,7 @@ spec:
 test-$[[ inputs.lisp-impl ]]:
   image: registry.gitlab.com/fstamour/breeze/breeze-ci-$[[ inputs.lisp-impl ]]:latest
   script:
-    - ./scripts/test-$[[ inputs.lisp-impl ]].sh
+    - $[[ inputs.lisp-impl ]] --load scripts/quicklisp.lisp
+        --eval "(quicklisp-quickstart:install)"
+        --eval "(ql-util:without-prompting (ql:add-to-init-file))"
+    - scripts/test-$[[ inputs.lisp-impl ]].sh

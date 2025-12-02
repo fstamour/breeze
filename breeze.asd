@@ -138,7 +138,7 @@
   :perform
   (test-op (o c)
            (uiop:symbol-call
-            'breeze.test.main 'run-breeze-tests)))
+            'breeze.test.main 'run-all-tests)))
 
 
 ;;; breeze/docs system

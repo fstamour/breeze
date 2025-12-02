@@ -7,8 +7,6 @@
       (load quicklisp-init)
       (warn "~%~%======~%Quicklisp is not installed.~%======~%~%")))
 
- ;; y(require 'asdf)
-
 (asdf:load-asd (truename "breeze.asd"))
 
 #+quicklisp

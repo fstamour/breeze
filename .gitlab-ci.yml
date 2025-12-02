@@ -53,7 +53,9 @@ pages:
   script:
     - echo "nothing to do!"
   rules:
+    # automatically run on the default branch
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+    # otherwise, the job must be run manually
     - when: manual
   artifacts:
     paths:
