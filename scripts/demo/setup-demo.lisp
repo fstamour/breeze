@@ -1,5 +1,5 @@
 (defpackage #:breeze.setup-demo
-  (:documentation "Load and configure everything needed for a demonstation.")
+  (:documentation "Load and configure everything needed for a demonstration.")
   (:use #:cl))
 
 (in-package #:breeze.setup-demo)

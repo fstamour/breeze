@@ -603,7 +603,7 @@ EGRAPH."
 (defun dump-input-eclasses-forms (egraph)
   (eclasses-forms
    egraph
-   ;; cannonicalize and de-duplicate the input eclasses
+   ;; canonicalize and de-duplicate the input eclasses
    (remove-duplicates
     (mapcar (lambda (eclass-id)
               (eclass-find egraph eclass-id))

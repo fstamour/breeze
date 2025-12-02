@@ -463,7 +463,7 @@ when inserting something.
                               :start (start node)
                               :end position))
               (write-char #\Newline stream)
-              ;; Assumming there's only one newline
+              ;; Assuming there's only one newline
               (loop :repeat indentation
                     :do (write-char #\Space stream))))
            (t
@@ -501,7 +501,7 @@ when inserting something.
 
 ;;;
 
-;; TODO it shouldn't be too hard to re-use this code to insert other
+;; TODO it shouldn't be too hard to reuse this code to insert other
 ;; kind of `declaim's.
 ;;
 ;; TODO this only works when the point is at the start of the defun :/
@@ -634,7 +634,7 @@ For debugging purposes ONLY.")
   (let* ((current-node-iterator (current-node-iterator))
          (current-node (value current-node-iterator))
          ;; TODO we actually want to know if we're in a "top-level"
-         ;; form, not "at the root", becase we want the commands that
+         ;; form, not "at the root", because we want the commands that
          ;; are applicable at top-level to also be applicable in forms
          ;; that preserves top-levelness like `progn'.
          (root-node (root-node (current-node-iterator)))
@@ -660,7 +660,7 @@ commands that the user might want to run."
 
 
 #++
-;; TODO temprarily disable due to a re-organization
+;; TODO temporarily disabled due to a re-organization
 (defun maybe-ask-to-load-system ()
   (when-let ((filename (current-buffer-filename)))
     (multiple-value-bind (status system)

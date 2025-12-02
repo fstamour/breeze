@@ -195,7 +195,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
     (if mock
         (if (eq (car mock) 'mock-recv-into)
             (funcall (cdr mock))
-            (error "Exepected a call to `recv-into' got ~s" (car mock)))
+            (error "Expected a call to `recv-into' got ~s" (car mock)))
         (error "Unexpected recv-into value."))))
 
 (defmethod send-out ((command fake-command-handler) value)
@@ -203,7 +203,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
     (if mock
         (if (eq (car mock) 'mock-send-out)
             (funcall (cdr mock) value)
-            (error "Exepected a call to `send-out' got ~s" (car mock)))
+            (error "Expected a call to `send-out' got ~s" (car mock)))
         (error "Unexpected send-out value: ~s" value))))
 
 (defmacro mock-recv-into (() &body body)
@@ -224,7 +224,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
                              (mocks *command*)))
      ,@body
      ;; TODO check that there are no mocks left
-     ;; (fasle (mocks *command*) "...")
+     ;; (false (mocks *command*) "...")
      ))
 
 (define-test+run insert

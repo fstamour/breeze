@@ -81,7 +81,7 @@
      (is eq t bindings)
      (false (donep iterator)))))
 
-;; TODO export and re-use in tests/analysis.lisp
+;; TODO export and reuse in tests/analysis.lisp
 (defun check-substitution (&key description
                              expected-substitution actual-substitution
                            &allow-other-keys)

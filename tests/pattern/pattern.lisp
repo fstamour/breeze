@@ -38,7 +38,7 @@
     (of-type wildcard wildcard)
     (true (wildcardp wildcard)))
   (is eq (wildcard) (wildcard)
-      "The fuction (wildcard) always return the same instance."))
+      "The function (wildcard) always return the same instance."))
 
 ;; Making sure there's a "make-load-form"...
 #.(wildcard)
@@ -251,7 +251,7 @@
                  (loop)))))
 
 
-;; TODO it might be easier to debug if each patterns are compiled separatedly
+;; TODO it might be easier to debug if each patterns are compiled separately
 #++
 (let* ((name-clause '((:symbol named) ?name))
        ;; TODO not supported: improper list (the "cons")
@@ -274,7 +274,7 @@
                       ;; TODO this kind of repetitions could be
                       ;; handled by a special pattern, not sure about
                       ;; the name "joined-repetition"? it's a
-                      ;; repitition with a separation (here it's 'and)
+                      ;; repetition with a separation (here it's 'and)
                       (:zero-or-more (:symbol and)
                                      ?*var2
                                      ?*form2

@@ -23,7 +23,7 @@ contextual completions:
   (:documentation K)
   (:size L))
 - A must be one of defpackage's options
-- B must not be aleady in another :use option
+- B must not be already in another :use option
   - that would be redundant
 - C should probably not be already in another :import-from options
   - though it's totally legal, and could be done on purpose
@@ -42,7 +42,7 @@ contextual completions:
 (declaim A)
 (defun B (...)
   (declare C))
-- A is very probably a delaration about B
+- A is very probably a declaration about B
   - e.g. inline, ftype, optimization
 - C is probably a declaration about B's arguments
 

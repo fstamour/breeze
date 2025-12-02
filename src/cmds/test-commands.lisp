@@ -18,7 +18,7 @@
 
 ideas:
 - debug tests
-  - maybe implicitely insert breaks
+  - maybe implicitly insert breaks
 - generate tests
 - re-run tests on change (watch)
   - use coverage data (from a full-run) to know which tests to re-run

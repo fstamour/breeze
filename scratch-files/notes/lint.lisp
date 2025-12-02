@@ -555,7 +555,7 @@ In a system definition file (.asd), when there's only one module at the root of 
 Detect when there are multiple tests with the same name, in the same package.
 
 It happened to me that a bunch of tests were failing because of a bad
-copy-paste (I think I had been interupted while I was splitting a big
+copy-paste (I think I had been interrupted while I was splitting a big
 `define-test' in two). Only the second one was being run.
 
 _maybe_ it would be possible to update parachute to detect this
@@ -565,8 +565,8 @@ maybe it's possible to detect that we're currently in `compile-file`,
 and signal a warning (or even an error) when a test is being
 redefined.
 
-I know that sbcl will complain similarily when compiling a file with
-the same defun appering multiple times.
+I know that sbcl will complain similarly when compiling a file with
+the same defun appearing multiple times.
 
 |#
 

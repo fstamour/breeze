@@ -214,11 +214,11 @@ The designators can be strings, symbols or packages."
   (match-symbol-to-token pattern node-iterator))
 
 (defmethod match ((pattern var) (state state) &key skipp)
-  "Match a var againt a parse state."
+  "Match a var against a parse state."
   (match-parser-state pattern state :skipp skipp))
 
 (defmethod match ((pattern simple-var) (state state) &key skipp)
-  "Match a var againt a parse state."
+  "Match a var against a parse state."
   (match-parser-state pattern state :skipp skipp))
 
 ;; TODO One method per type of node

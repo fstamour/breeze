@@ -625,7 +625,7 @@
       (is eqv
           expected-substitution
           substitution
-          ;; TODO add decription "~a: ~&"
+          ;; TODO add description "~a: ~&"
           "matching the pattern ~s~&against the parse tree (~s) of ~&  ~s~&should return the substitution~%  ~s,~&but got ~%  ~s instead"
           ;; TODO add description
           pattern

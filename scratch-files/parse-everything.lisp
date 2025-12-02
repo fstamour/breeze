@@ -1,7 +1,7 @@
 #|
 
 Goal parse the source code of:
-- all of breeze's transitive depdendencies
+- all of breeze's transitive dependencies
 - asdf and uiop
 - sbcl, ecl, etc
 - everything in local-projects/
@@ -12,7 +12,7 @@ Motivation:
 - test the parser, and the pattern matching
 
 What am I going to try first:
-- I aleady have something to parse breeze's files.
+- I already have something to parse breeze's files.
 - And I just wrote something to iterator over every top-level form
 - I should continue with those but adding more systems and files
 

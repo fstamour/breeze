@@ -1,5 +1,5 @@
 (defpackage #:breeze.command-utils
-  (:documentation "Utilties to write commands")
+  (:documentation "Utilities to write commands")
   (:use #:cl #:breeze.command #:breeze.analysis))
 
 (in-package #:breeze.command-utils)

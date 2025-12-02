@@ -66,7 +66,7 @@
           (make-buffer :string " "))
     (fail (interactive-eval)
         'end-of-file))
-  ;; Tetsing that the in-package form is used correctly
+  ;; Testing that the in-package form is used correctly
   (with-fake-command-handler
       ((mock-send-out (value)
          (is equalp '("pulse" 35 44) value))

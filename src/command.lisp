@@ -711,7 +711,7 @@ resulting string to the editor."
     :initform nil
     :initarg :timestamp
     :accessor timestamp
-    :documentation "Timestamp that is updated everytime a command is (re)defined. Used to
+    :documentation "Timestamp that is updated every time a command is (re)defined. Used to
 figure out if the editor is out of sync.")
    (lock
     :initform (bt2:make-lock :name "command-set lock")
@@ -753,7 +753,7 @@ containing at least the keys :lambda-list :documentation and :declarations."
 ;;; *Commands*
 
 (defvar *commands* (make-instance 'command-set)
-  "The set of all registed commands.")
+  "The set of all registered commands.")
 
 (defun register-command* (command details)
   "Register COMMAND in the current command-set `*commands*'."
@@ -779,7 +779,7 @@ exported from its home package."
    (breeze.xref:externalp command)))
 
 (defun list-all-commands ()
-  "Get the list of commands (list of symbols) registerd in the current
+  "Get the list of commands (list of symbols) registered in the current
 command-set `*commands*'."
   (alexandria:hash-table-keys (commands *commands*)))
 

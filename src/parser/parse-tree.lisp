@@ -523,7 +523,7 @@
   (root-value iterator))
 
 (defmethod top-level-node-iterator ((iterator node-iterator))
-  ;; TOOD get the actual top-level node, not the root one (see `map-top-level-forms')
+  ;; TODO get the actual top-level node, not the root one (see `map-top-level-forms')
   (root iterator))
 
 (defmethod start ((node-iterator node-iterator))

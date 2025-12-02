@@ -61,7 +61,7 @@ For now, I'll just accumulate everything (in context's trail).
     :initform nil
     :initarg :var
     :accessor var
-    :documentation "Name of the genereated temp var.")
+    :documentation "Name of the generated temp var.")
    (initial-value
     :initform nil
     :initarg :initial-value

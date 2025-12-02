@@ -194,7 +194,7 @@
             ;; don't check if $input is done.
             (cond
               ((donep $pattern)
-               ;; update the input interator
+               ;; update the input iterator
                (copy-iterator $input iterator)
                ;; update the pattern iterator
                (copy-iterator $pattern pattern-iterator)
@@ -237,7 +237,7 @@ $INPUT."
 
 (defmethod match ((pattern vector) (input vector) &key skipp)
   "Convenience: create an iterator on INPUT, match PATTERN against it and
-return two values: the match result and the interator on the
+return two values: the match result and the iterator on the
 input (which can then be used by the caller to verify if all input
 where consumed, for example)."
   (let (($pattern (make-pattern-iterator pattern))
@@ -272,7 +272,7 @@ where consumed, for example)."
 ;;
 ;; TODO add tests with and without skipp
 (defmethod match ((pattern either) (iterator iterator) &key skipp)
-  "Match an `either' pattern against INTERATOR."
+  "Match an `either' pattern against ITERATOR."
   (let (($input (copy-iterator iterator)))
     (loop :for pat :across (patterns pattern)
           :for bindings = (match pat $input :skipp skipp)
@@ -382,7 +382,7 @@ where consumed, for example)."
             (values nil :slot-not-bound))
         (values nil :slot-does-not-exist))))
 
-;; TODO re-use this to implement and "and" pattern... if I ever need
+;; TODO reuse this to implement and "and" pattern... if I ever need
 ;; one...
 (defmethod match-every ((patterns vector) input)
   (or (zerop (length patterns))
