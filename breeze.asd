@@ -1,13 +1,6 @@
 ;;;; System definitions for breeze and auxiliary systems
 
-
-;;; breeze.asd package
-
-(defpackage #:breeze.asd
-  (:documentation "Package containing breeze's system defintions")
-  (:use :cl :asdf))
-
-(in-package #:breeze.asd)
+(in-package #:asdf-user)
 
 
 ;;; breeze system
