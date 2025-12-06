@@ -20,10 +20,13 @@
            #:valid-position-p
            #:at
            #:at=
+           #:at-equal
            #:current-char
            #:current-char=
+           #:current-char-equal
            #:next-char
-           #:next-char=))
+           #:next-char=
+           #:next-char-equal))
 
 (in-package #:breeze.parser-state)
 
@@ -75,7 +78,7 @@
 (let ((*readtable* (copy-readtable nil)))
   (set-dispatch-macro-character
    #\# #\`
-   #'(lambda(stream subchar arg)
+   #'(lambda (stream subchar arg)
        (declare (ignorable subchar arg))
 
        (let* ((iterator (make-stream-iterator stream))
@@ -137,37 +140,44 @@ Returns nil if POSITION is invalid."
      (unless (donep state)
        (breeze.iterator::read-next-char (iterator state))))))
 
-;; TODO add tests with case-sensitive-p = nil
-;; TODO split into at= and at-equal
-(defun at= (state position char &optional (case-insensitive-p t))
+(defun at= (state position char)
   "Compare the character at POSITION in the STATE's source with the parameter CHAR and returns the CHAR if they're char=.
 Returns nil if POSITION is invalid."
-  (when-let ((c (at state position))) (and
-                                       (if case-insensitive-p
-                                           (char= c char)
-                                           (char-equal c char))
-                                       c)))
+  (when-let ((c (at state position)))
+    (and (char= c char) c)))
+
+(defun at-equal (state position char)
+  "Compare the character at POSITION in the STATE's source with the parameter CHAR and returns the CHAR if they're char-equal.
+Returns nil if POSITION is invalid."
+  (when-let ((c (at state position)))
+    (and (char-equal c char) c)))
 
 (defun current-char (state)
   "Get the character at the current STATE's position, without changing
 the position."
   (at state (current-position state)))
 
-;; TODO add tests with case-sensitive-p = nil
-;; TODO split into current-char= and current-char-equal
-(defun current-char= (state char &optional (case-sensitive-p t))
+(defun current-char= (state char)
   "Get the character at the current STATE's position, without changing
 the position."
-  (at= state (current-position state) char case-sensitive-p))
+  (at= state (current-position state) char))
+
+(defun current-char-equal (state char)
+  "Get the character at the current STATE's position, without changing
+the position."
+  (at-equal state (current-position state) char))
 
 (defun next-char (state &optional (n 1))
   "Peek at the next character to be read, without changing the
 position."
   (at state (+ n (current-position state))))
 
-;; TODO add tests with case-sensitive-p = nil
-;; TODO split into next-char= and next-char-equal
-(defun next-char= (state char &optional (n 1) (case-sensitive-p t))
+(defun next-char= (state char &optional (n 1))
   "Peek at the next character to be read, without changing the
 position."
-  (at= state (+ n (current-position state)) char case-sensitive-p))
+  (at= state (+ n (current-position state)) char))
+
+(defun next-char-equal (state char &optional (n 1))
+  "Peek at the next character to be read, without changing the
+position."
+  (at-equal state (+ n (current-position state)) char))

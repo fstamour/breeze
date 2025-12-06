@@ -77,9 +77,13 @@ after the list of superclasses) of a cl:defclass form.
           `(defun
                ;; name of the predicate
                ,(if (eq t predicate)
-                    (alexandria:symbolicate name '-p)
+                    (alexandria:symbolicate
+                     name (if (position #\- (symbol-name name))
+                           '-p
+                           'p))
                     predicate)
                ;; lambda list
+               ;; TODO don't refer to "nodes"
                (node)
              ;; docstring
              ,(format nil "Is this a node of type ~s" name)
