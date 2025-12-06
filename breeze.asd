@@ -113,9 +113,11 @@
    (:file "refactor" :depends-on ("cmds" "cl"
                                          "indirection"
                                          "workspace"))
-
+   (:file "cmds/command-utils")
    (:module "cmds"
-    :depends-on ("command" "analysis" "configuration" "utils")
+    :depends-on ("command" "cmds/command-utils"
+                           "analysis"
+                           "configuration" "utils")
     :components ((:file "blueprint")
                  (:file "completion")
                  (:file "editing")

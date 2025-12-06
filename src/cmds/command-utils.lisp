@@ -1,6 +1,8 @@
 (defpackage #:breeze.command-utils
   (:documentation "Utilities to write commands")
-  (:use #:cl #:breeze.command #:breeze.analysis))
+  (:use #:cl #:breeze.command #:breeze.analysis)
+  (:export #:pulse-node
+           #:current-node))
 
 (in-package #:breeze.command-utils)
 

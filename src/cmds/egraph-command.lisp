@@ -4,9 +4,10 @@
   (:use #:cl #:breeze.analysis)
   (:import-from #:breeze.command
                 #:define-command
-                #:pulse
-                #:current-buffer
-                #:message))
+                #:message)
+  (:import-from #:breeze.command-utils
+                #:pulse-node
+                #:current-node))
 
 (in-package #:breeze.egraph-command)
 

@@ -20,6 +20,9 @@
                 #:before-last)
   (:import-from #:breeze.indirection
                 #:indirect)
+  (:import-from #:breeze.command-utils
+                #:pulse-node
+                #:current-node)
   (:export
    #:command-description
    ;; Simple transformation commands
@@ -508,7 +511,7 @@ when inserting something.
 ;; otherwise, it inserts the declaim in weid places
 (define-command declaim-inline ()
   "Declaim inline the current top-level function."
-  (let* (($current-node (node-iterator (current-buffer)))
+  (let* (($current-node (current-node :pulsep t))
          ;; TODO get the "top-level" node, not the root
          ($root (top-level-node-iterator $current-node)))
     (with-match ($root (defun ?name))
@@ -519,7 +522,7 @@ when inserting something.
           (start $root)
           "(declaim (inline ~a))~%" (node-string ?name)))
         (t
-         (pulse $root)
+         (pulse-node $root)
          (message "Unable to find the current top-level function's name."))))))
 
 
