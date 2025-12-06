@@ -16,7 +16,9 @@ use cases:
 
 (defpackage #:breeze.abstract-symbolic
   (:documentation "Abstract interpretation and symbolic execution.")
-  (:use #:cl #:breeze.generics))
+  (:use #:cl #:breeze.generics)
+  (:import-from #:breeze.class-utils
+                #:define-class))
 
 (in-package #:breeze.abstract-symbolic)
 
@@ -48,7 +50,7 @@ For now, I'll just accumulate everything (in context's trail).
     :documentation "The trail of information found while walking the forms."))
   (:documentation "The context™"))
 
-(defclass item ()
+(define-class item ()
   ((predecessors
     :initform nil
     :initarg :predecessors
@@ -56,7 +58,9 @@ For now, I'll just accumulate everything (in context's trail).
     :documentation ""))
   (:documentation "An item of a trail."))
 
-(defclass variable-binding (item named)
+(define-class variable-binding
+    (:superclass (item named)
+     :positional-args (name initial-value))
   ((var
     :initform nil
     :initarg :var
@@ -67,15 +71,9 @@ For now, I'll just accumulate everything (in context's trail).
     :initarg :initial-value
     :accessor initial-value
     :documentation "Initial value of the binding."))
-  (:documentation "Denotes the creation of a new binding."))
+ (:documentation "Denotes the creation of a new binding."))
 
-(defmethod print-object ((binding variable-binding) stream)
-  (let ((*print-case* :downcase))
-    (format stream "(~s ~s ~s ~s)"
-            (name (class-of binding))
-            (var binding)
-            (name binding)
-            (initial-value binding))))
+;; (variable-binding 'x 42 :var '#:x)
 
 (defclass lexical-binding (variable-binding) ()
   (:documentation "Denotes the creation of a new lexical-binding."))
@@ -83,34 +81,15 @@ For now, I'll just accumulate everything (in context's trail).
 (defclass dynamic-binding (variable-binding) ()
   (:documentation "Denotes the creation of a new dynamic-binding."))
 
-(defun variable-binding-p (x)
-  (typep x 'variable-binding))
-
-
-
-(defclass unbound (item named) ()
+(define-class unbound (:superclass (item named)
+                       :positional-args (name))
+  ()
   (:documentation "Denotes the reference to a variable that doesn't have a corresponding
 variable binding."))
 
-(defmethod unbound ((symbol symbol))
-  (make-instance 'unbound :name symbol))
-
-(defmethod print-object ((unbound unbound) stream)
-  (let ((*print-case* :downcase))
-    (flet ((pp (x)
-             (cond
-               ((keywordp x) (prin1-to-string x))
-               ((symbolp x) (format nil "'~s" x))
-               (t (prin1-to-string x)))))
-      (format stream "(unbound ~a)" (pp (name unbound))))))
-
-
-(defun unboundp (x)
-  (typep x 'unbound))
-
 
 
-;; TODO test (print-to-string (unbound 'x))
+;; TODO test (prin1-to-string (unbound 'x))
 
 (defun note (context thing)
   "Push THING on top of CONTEXT's trail."
@@ -245,13 +224,13 @@ object. Returns the context."))
 
 (walk '(if p 1 2))
 ;; =>
-;; #<CONTEXT {1013B10413}>
-;; ((:= T-0 (:FUNCALL IF (P 1 2))) (:UNBOUND P))
+;; #<CONTEXT {10150503C3}>
+;; ((:JOIN (unbound p) 1 2) (:CONSTANT 2) (:CONSTANT 1) (unbound p))
 
 (walk '(if p 1))
 ;; =>
 ;; #<CONTEXT {1013C783C3}>
-;; ((:= T-0 (:FUNCALL IF (P 1))) (:UNBOUND P))
+;; ((:JOIN (unbound p) 1 :NULL) :NULL (:CONSTANT 1) (unbound p))
 
 (walk '(let ((x 2))
         (declare (type number x))
