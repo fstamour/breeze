@@ -406,6 +406,15 @@ first node being whitespaces.)"
       (sharp-unknown start (current-position state)
                      :errors `(("Invalid dispatch characters: ~a" ,(char-name c)))))))
 
+(defreader read-sharp-right-paren (start number)
+  "Read \"#)\" which is invalid."
+  (declare (ignore number))
+  (when-let ((c (current-char= state #\))))
+    ;; TODO return something to tell the caller that parsing _could_
+    ;; be started again from where there's a #\)yes
+    (sharp-unknown start (current-position state)
+                   :errors `(("Invalid dispatch characters: ) (right parenthesis)")))))
+
 ;; TODO #) and #<any whitespace> are **invalid**
 ;; See https://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
 (defreader read-sharp-dispatching-reader-macro ()
@@ -440,6 +449,7 @@ first node being whitespaces.)"
               read-sharp-minus
               read-sharp-whitespace
               ;; TODO read-sharp-less-than "#<"
+              read-sharp-right-paren
               ))
            ;; Invalid syntax OR custom reader macro
            (sharp-unknown start +end+))))))
@@ -635,12 +645,19 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       :for el = (read-any state)          ; mutual recursion
       :when el
         :collect el :into content
-      :unless (and el (not (no-end-p el)))
+      :when (or (null el)
+                (no-end-p el))
         :do (return (parens start +end+
                             (ensure-nodes content)
-                            :errors `(,@(when (or (null el)
-                                                  (no-end-p el))
-                                        `(("Missing closing parenthesis."))))))
+                            :errors `(,@(cond
+                                          ((null el)
+                                           `(("Missing closing parenthesis.")))
+                                          ;; TODO make this a warning,
+                                          ;; to make it easier to
+                                          ;; locate the source of the
+                                          ;; issue.
+                                          ((no-end-p el)
+                                           (errors el))))))
       :finally (return (parens start (current-position state)
                                (ensure-nodes content))))))
 

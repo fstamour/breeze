@@ -12,6 +12,7 @@
   ;; Importing non-exported symbols
   (:import-from #:breeze.parser
                 #:read-char*
+                #:read-char=
                 #:read-string
                 #:read-parens
                 #:find-all

@@ -51,10 +51,12 @@ TODO
   (is equal (test-lint "(in-package 42)")
       '((0 15 :warning "Package \"42\" is not currently defined.")))
   ;; TODO handle "#)" better
-  (is equal '((0 nil :error "Missing closing parenthesis."))
+  (is equal '((12 13 :error "Invalid dispatch characters: ) (right parenthesis)")
+              ;; TODO in the future, I would like to see both errors
+              ;; (0 nil :error "Missing closing parenthesis.")
+              )
       (test-lint "(in-package #)"))
-  ;; TODO handle "# " better...
-  (is equal '((0 nil :error "Missing closing parenthesis."))
+  (is equal '((12 14 :error "Invalid dispatch characters: Space"))
       (test-lint "(in-package # )"))
   (is equal '((0 56 :warning
                "Package \"PLEASE-DONT-DEFINE-A-PACKAGE-WITH-THIS-NAME\" is not currently defined."))

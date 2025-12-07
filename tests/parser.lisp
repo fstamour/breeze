@@ -185,10 +185,10 @@ newline or +end+)
   (with-state* ()
     (""
      (test* (list (read-char* state) (current-position state)) '(nil 0))
-     (test* (list (read-char* state #\a) (current-position state)) '(nil 0)))
+     (test* (list (read-char= state #\a) (current-position state)) '(nil 0)))
     ("c"
      (test* (list (read-char* state) (current-position state)) '(#\c 1))
-     (test* (list (read-char* state #\d) (current-position state)) '(nil 0)))))
+     (test* (list (read-char= state #\d) (current-position state)) '(nil 0)))))
 
 ;; TODO test read-while
 (define-test+run read-while)
@@ -1219,13 +1219,29 @@ This is a valid syntax:
                     0 +end+ (nodes (sharp-unknown
                                     1 +end+
                                     :errors '(("Unterminated dispatch character reader macro."))))
-              :errors '(("Missing closing parenthesis."))))
-  (test-parse "(#)" (parens
-                     0 +end+ (nodes (sharp-unknown 1 +end+))
-                     :errors '(("Missing closing parenthesis."))))
+                    :errors '(("Missing closing parenthesis."))))
+  (test-parse "(#)"
+              (parens
+               0 3
+               (nodes (sharp-unknown
+                       1 2
+                       :errors '(("Invalid dispatch characters: ) (right parenthesis)")))))
+              ;; TODO in the future, I would like to see both errors
+              #++
+              (parens
+               0 +end+ (nodes (sharp-unknown 1 +end+))
+               :errors '(("Missing closing parenthesis."))))
+
   ;; This shows that parsing stops when an error is encountered (or at
   ;; least when a node has `no-end-p'
   (test-parse "(#) "
+              (parens
+               0 3
+               (nodes (sharp-unknown
+                       1 2
+                       :errors '(("Invalid dispatch characters: ) (right parenthesis)")))))
+              ;; TODO in the future, I would like to see both errors
+              #++
               (parens
                0 +end+ (nodes (sharp-unknown 1 +end+))
                :errors '(("Missing closing parenthesis.")))
@@ -1261,11 +1277,23 @@ This is a valid syntax:
               (line-comment 9 14)
               (whitespace 14 15)
               (token 15 23 :name "REAALLY?"))
-  (test-parse "(in-package #)" (parens 0 -1
-                                       (nodes (token 1 11 :name "IN-PACKAGE")
-                                              (whitespace 11 12)
-                                              (sharp-unknown 12 -1))
-                                       :errors '(("Missing closing parenthesis."))))
+  (test-parse "(in-package #)" (parens
+                                0 14 #| TODO this should probably be -1... |#
+                                (nodes
+                                 (token 1 11 :name "IN-PACKAGE")
+                                 (whitespace 11 12)
+                                 (sharp-unknown
+                                  12 -1
+                                  :errors '(("Invalid dispatch characters: ~a" "RIGHT_PARENTHESIS"))))
+                                :errors '(("Missing closing parenthesis."))))
+  (test-parse "(in-package # )" (parens
+                                 0 15
+                                 (nodes
+                                  (token 1 11 :name "IN-PACKAGE")
+                                  (whitespace 11 12)
+                                  (sharp-unknown
+                                   12 14
+                                   :errors '(("Invalid dispatch characters: ~a" "Space"))))))
   (test-parse "#!" (shebang 0 2)))
 
 ;; (tree (parse ")(#| #r"))
