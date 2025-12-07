@@ -4,3 +4,6 @@ dum
 isnt
 skipp
 whats
+clos
+iif
+te
