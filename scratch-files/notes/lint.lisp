@@ -596,3 +596,31 @@ instead of
 => ,@body
 
 |#
+
+
+#|
+
+Linter rule to detect "illegal function call"
+
+((fn 2))
+
+possible corrections:
+
+- quote it all:
+  - '((fn 2))
+- make a list:
+  - (list (fn 2))
+- make a list using quasiquoting
+  - `(,(fn 2))
+- remove the extraneous parenthesis
+  - (fn 2)
+
+Depending on the context, there might be other possibilities, or maybe
+some of these correction don't make sense
+
+e.g.
+
+(le ((fn 2)) ...)
+it should probably be =let= instead of =le=
+
+|#
