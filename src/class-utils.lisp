@@ -2,7 +2,8 @@
   (:documentation "Macros to help define classes along with common functions and methods.")
   (:use #:cl #:breeze.generics)
   (:export #:eqv
-           #:define-class))
+           #:define-class
+           #:define-simple-class))
 
 (in-package #:breeze.class-utils)
 
@@ -12,6 +13,18 @@
 ;; TODO setup a print-table that uses *print-quote*, use that
 ;; print-table in the print-object method defined by define-class
 ;; see (defmethod print-object ((sym sym) stream) ...) in pattern.lisp
+
+(defun self-evaluating-symbol-p (s)
+  (and (symbolp s)
+       (boundp s)
+       (eq s (symbol-value s))))
+
+#++
+((self-evaluating-symbol-p 'x)
+ (self-evaluating-symbol-p nil)
+ (self-evaluating-symbol-p t)
+ (self-evaluating-symbol-p :x))
+
 
 ;; TODO this is looking more and more like defstruct, I think it would
 ;; be nice if the syntax was similar too.
@@ -105,22 +118,28 @@ after the list of superclasses) of a cl:defclass form.
 ;;; print-object
        (defmethod print-object ((node ,name) stream)
          (let ((*print-case* :downcase))
-           (write-char #\( stream)
-           ;; print the type of the node
-           (write-string ,(let ((*print-case* :downcase))
-                            (prin1-to-string name)) stream)
-           ;; print the positional arguments
-           ,@(loop :for arg :in positional-args
-                   :collect `(format stream " ~s" (,arg node)))
-           ;; print the keyword arguments. this assumes that they
-           ;; all default to nil
-           ,@(loop :for (kw arg) :on initargs
-                   :by #'cddr
-                   :collect `(let ((,arg (,arg node)))
-                               (when ,arg
-                                 (format stream " ~s ~s"
-                                         ,kw ,arg))))
-           (write-char #\) stream)))
+           (flet ((pp (x)
+             (if (and x (symbolp x)
+                      (not (self-evaluating-symbol-p x)))
+                 (format stream "'~s" x)
+                 (prin1 x stream))))
+             (write-char #\( stream)
+             ;; print the type of the node
+             (write-string ,(let ((*print-case* :downcase))
+                              (prin1-to-string name)) stream)
+             ;; print the positional arguments
+             ,@(loop :for arg :in positional-args
+                     :append `((write-char #\Space stream)
+                               (pp (,arg node))))
+             ;; print the keyword arguments. this assumes that they
+             ;; all default to nil
+             ,@(loop :for (kw arg) :on initargs
+                     :by #'cddr
+                     :collect `(let ((,arg (,arg node)))
+                                 (when ,arg
+                                   (format stream " ~s ~s"
+                                           ,kw ,arg))))
+             (write-char #\) stream))))
 ;;; eqv
        (defmethod eqv ((a ,name) (b ,name))
          (or (eq a b)
@@ -138,3 +157,18 @@ after the list of superclasses) of a cl:defclass form.
 (define-class a (:positional-args (start end)
                  :keyword-args (errors))
   ((errors :initarg :errors :accessor errors)))
+
+(defmacro define-simple-class (name superclass documentation (&body slots))
+  (let ((slots (mapcar #'(lambda (slot)
+                                      (if (listp slot)
+                                          slot
+                                          `(,slot
+                                            :initform nil
+                                            :initarg ,(alexandria:make-keyword slot)
+                                            :accessor ,slot)))
+                       slots)))
+    `(define-class ,name
+         (:superclass ,superclass
+          :positional-args ,(mapcar #'car slots))
+       ,slots
+       (:documentation ,documentation))))

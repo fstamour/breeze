@@ -159,7 +159,7 @@ newline or +end+)
   (test-node-print-object
    (parens 3 5 nil) "(parens 3 5 nil)")
   (test-node-print-object
-   (parens 3 5 'x) "(parens 3 5 x)"))
+   (parens 3 5 'x) "(parens 3 5 'x)"))
 
 (define-test+run ensure-nodes
   (false (ensure-nodes nil))
