@@ -37,12 +37,16 @@ Trying to document the words/concepts used in the project.
 See [[id:32155195-1bc4-4f2d-8f6a-12fb0bd68ecc][E-graphs]].
 
 
-** TODO Package-local nicknames (PLN)
+** Package-local nicknames (PLN)
 :PROPERTIES:
 :ID:       04bdfbdb-ff84-4d7f-a845-a456c886b8f1
+:ROAM_ALIASES: "Local nicknames"
 :END:
 
-** TODO Buffer
+Also known as local nicknames, these are nicknames given to packages,
+but that are scoped to a specific package.
+
+** Buffer
 :PROPERTIES:
 :ID:       aef7ae44-a4e2-4a5e-831b-ffc2ae6f085c
 :END:
@@ -50,17 +54,14 @@ See [[id:32155195-1bc4-4f2d-8f6a-12fb0bd68ecc][E-graphs]].
 In breeze, a buffer is an object that represents a file opened in the
 editor.
 
-** TODO Point
+** Point
 :PROPERTIES:
 :ID:       b038c05f-dfba-4154-92ca-a3d467e62d3a
 :END:
 
-** TODO Issues
-:PROPERTIES:
-:ID:       61e1acf2-6ee2-4b87-baf1-4d496859dcf5
-:END:
+The "point" refers to the current position of the cursor in a buffer.
 
-as in "linter" issue
+Note: emacs' point starts at 1, breeze's point starts at 0.
 
 ** Binding
 :PROPERTIES:
