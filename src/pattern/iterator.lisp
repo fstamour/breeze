@@ -55,6 +55,7 @@ generalization of that first iteration (ha!).
    #:subtree-at-depth
    #:root-subtree
    #:goto-root
+   #:next-up
    #:value-at-depth
    #:parent-value
    #:parent

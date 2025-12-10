@@ -611,14 +611,20 @@
 ;; TODO add tests
 ;; TODO move somewhere else, this has nothing to do with "parse-tree"
 (defmethod map-top-level-forms (function (state state))
-  ;; TODO Recurse into forms that "preserves" top-level-ness:
-  ;; progn, locally, macrolet, symbol-macrolet, eval-when
   (loop :with iterator = (make-node-iterator state)
         :until (donep iterator)
-        :do (let ((node (value iterator)))
-              (unless (whitespace-or-comment-node-p node)
-                (funcall function iterator)))
-            (incf (pos iterator))))
+        :do (let ((node (value iterator))
+                  (body (top-level-forms iterator)))
+              (cond
+                (body (copy-iterator body iterator))
+                (t
+                 (unless (whitespace-or-comment-node-p node)
+                   (funcall function iterator))
+                 ;; advance the iterator
+                 (incf (pos iterator))
+                 ;; go up if the current level is done
+                 (when (next-up iterator)
+                   (incf (pos iterator))))))))
 
 ;; TODO add tests
 (defmethod make-node-iterator ((state state))
