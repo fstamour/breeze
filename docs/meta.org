@@ -59,17 +59,16 @@
 (defun breeze-tasks-find-untagged-nodes ()
   "Find all \"TODO\" nodes that don't have any tags."
   (org-roam-db-query [:select
-                      [id title todo file pos]
+                      [id]
                       :from nodes
                       :where (and (= todo "TODO")
                                   (not-in id [:select [node-id] :from tags]))]))
 
 ;; Visit the first untagged task, if any
 (if-let ((untagged-tasks (breeze-tasks-find-untagged-nodes)))
-    (cl-destructuring-bind (id title todo file pos)
-        (cl-first untagged-tasks)
+    (cl-destructuring-bind (id) (cl-first untagged-tasks)
       (org-roam-node-visit
-       (org-roam-node-create :id id :file file :point pos)))
+       (org-roam-node-from-id id)))
   (message "No untagged tasks found!"))
 #+end_src
 
@@ -93,22 +92,192 @@ For example:
 ,#+title: Candidate Features
 #+end_example
 
+#+begin_src emacs-lisp
+;; TODO use `org-roam-list-files'
+#+end_src
+
+
 * TODO Make sure that all pages are reachable from another page         :doc:
 :PROPERTIES:
 :ID:       c576702c-fd35-4810-b91d-4be37b306b5e
 :END:
 
-#+begin_src emacs-lisp
-(dolist (row (org-roam-db-query [:select
-                      [id properties file pos title]
-                      :from nodes
-                      :where (= todo "TODO")]))
-  (cl-destructuring-bind (id properties file pos title)
-      row
-    (unless (assoc-string "TAGS" properties)
-      (message "Node %S %S doesn't have any tags." id title))))
+** TODO List the orphan nodes
+
+#+begin_src emacs-lisp :results verbatim list replace
+;; (mapcar #'org-roam-backlinks-get (org-roam-node-list))
+
+;; TODO exclude "meta.org"
+;;
+;; TODO this is per-node, but what we actually need is per-file
+(cl-loop
+ for node in (org-roam-node-list)
+ for id = (org-roam-node-id node)
+ for backlinks = (org-roam-backlinks-get node)
+ when (or (null backlinks)
+          (and (null (cdr backlinks))
+               ;; check that it's not a backlink from "meta.org"
+               (string-suffix-p "/breeze/docs/meta.org"
+                                (org-roam-node-file
+                                 (org-roam-backlink-source-node (car backlinks))))))
+ collect (list
+          (org-link-make-string
+           (concat "id:" id)
+           (org-roam-node-formatted node))))
+
 #+end_src
 
+#+RESULTS:
+- [[id:018d969c-f075-406a-95a0-d4bac06df069][Missing Documentation]]
+- [[id:01d38477-8684-4d2a-862c-80ca7459afd9][auto refresh the commands]]
+- [[id:0204d7e7-d311-4c89-b74c-67a9938498db][Pattern matching]]
+- [[id:028bec85-31dc-4cf6-8ef5-792922cdcaf6][Add binding to run test at point]]
+- [[id:02d8e1a2-ecea-4c47-8808-b5f7a906b553][Generate web pages from org files in docs/]]
+- [[id:0316395b-1c55-4fee-ad00-2ed51a353551][Still need to add tests on this...]]
+- [[id:03eebc77-bf6a-4172-8496-4dfb2490c01b][Try out the "new" ~skipped-input-recording-client~]]
+- [[id:04338e5e-5180-4614-aa7f-4782bb282070][Summary of the type of patterns]]
+- [[id:05d41833-138f-43a5-9380-e1dd549ca5d6][multiple-value-bind]]
+- [[id:07224aeb-8306-4668-8ba4-5f0c3cbb3c96][Showcase/demo]]
+- [[id:08754391-271f-4e05-b307-3c912f5f4c0a][Why not use eclector?]]
+- [[id:09937194-8b79-43ff-855a-ec33797b19c7][e-graph]]
+- [[id:09e1f84c-a13d-47ab-848e-d0407e1fdbb4][Add integration tests]]
+- [[id:0cddf3d0-b37a-4a66-83dd-05d1e63dea33][Library "Reader"]]
+- [[id:0e592faa-27e3-4e31-99ed-cb537b4c82f1][Maybe split the "reference" documentation in multiple pages]]
+- [[id:11702123-9dc1-4ca4-9325-53d4ac4188cc][cl-annot]]
+- [[id:1188ce38-45c1-426d-aab1-b4d209baef62][cl-interpol]]
+- [[id:11df3174-782b-443b-831e-0dee6db947aa][In phoe-trash/value-semantics-utils]]
+- [[id:13c163f7-cb82-4433-b3bb-e4f25575c373][bug with quickinsert]]
+- [[id:167c7d99-183c-46ae-8374-fcb727486e36][Follow up on issues]]
+- [[id:16bbdda7-ce07-456b-be44-fd787c712c5f][CommonQt/Qtools]]
+- [[id:1c332211-b4d9-4361-af59-8ccafe816864][Value patterns]]
+- [[id:1d703993-ea72-4ac5-8bf7-9a7032b68274][add import-from]]
+- [[id:1f0cc2b5-78a1-41cc-a7e2-3c04fbdca08a][Add CI pipeline #2]]
+- [[id:1f979dc4-a4b7-4223-af54-82fa3725c8a3][Concrete Syntax Tree]]
+- [[id:23310513-faaa-4ee8-8075-8311f7bb8f4e][Fake packages?]]
+- [[id:24ee6251-db60-4be3-8d57-eb39cf82ca5e][Add code coverage]]
+- [[id:2aad9c0b-a4c2-42b1-9a27-3253be771f23][Breeze shouldn't suggest symbol that are "too far"]]
+- [[id:309589d0-ae7b-471e-8e2b-2500062cdc9a][Types of pattern]]
+- [[id:30b733d0-26a1-44fb-8c91-5a2b24a9b909][Use cases for patterns]]
+- [[id:31aae436-bbf1-4fe0-b1fb-13905ddeed22][Tag descriptions]]
+- [[id:31ea9823-f0eb-44f4-8e3c-451646c338ec][Remove the command ~backward-char~]]
+- [[id:35b3031a-bbd2-4f32-ba1f-7ec7fc268155][slimv]]
+- [[id:3690dffe-5bba-47d0-ba51-2c7ddc5252f1][On first setup, the user has to (ql:quickload 'breeze)]]
+- [[id:373c4a22-b450-40e1-8d00-1319e0277b68][File watching]]
+- [[id:3c054b62-8c27-432d-9bab-273f635c1a96][Suggest corrections when typos are detected]]
+- [[id:3c68d188-b4c9-4ab1-aeb8-cee25aaa8273][Eclector's =syntax-extensions= module]]
+- [[id:40438f6c-4005-482c-a2b9-9094760aa370][Is there a way to run a function when slime's repl is ready #645]]
+- [[id:4075ff13-6333-4575-9576-f9d1c9e25c8f][Add links to all the "TODOs" in the documentation]]
+- [[id:43e20e13-4c71-45ca-9d0e-072a1801b651][~insert-local-nicknames~ insert the nickname at point]]
+- [[id:46aaceb0-ca2b-4c1d-a5db-74295e7ea942][Show how breeze can help create a project from a file]]
+- [[id:4836d845-7be2-4a7d-bbc5-6d7e577292c2]]
+- [[id:488af0d7-7931-4502-8ad3-e151689431de][more generic capture template(s)]]
+- [[id:49d61aff-c1c9-4889-bee2-86e0abefb530][Question: How to generate jobs to test with multiple implementation? #7]]
+- [[id:4bf2a624-61b0-409a-bf6d-046cb19eec7e][Make a "string distance" function that stops after a threshold]]
+- [[id:52254263-fae9-4ead-8467-110735b07a2a][AArtaka]]
+- [[id:57050bba-aa35-41c1-8fed-3ae1d9edd3ff][Ensure every CST element has a SOURCE, suggest how to capture whitespace and comments #28]]
+- [[id:571165a8-a6f6-4820-b57c-19e33e4fdc2b][Ethereal and 10k Bees]]
+- [[id:5875c06a-d046-443c-bf22-c0a45ea08f09][Add command to add package local nicknames]]
+- [[id:58f9beb5-7284-4f42-80ab-e022a9b62dfc][Move top-level form up/down]]
+- [[id:5a2bc469-d927-401e-aa77-81b00a9dcd42][Binding]]
+- [[id:5ceaab80-381e-4e68-b0db-d97020412d8f][False positive matching =in-package=]]
+- [[id:6055422c-7954-4c12-8f0b-32cd757fb2ac][Examples of code that is not handled correctly by slime and sly]]
+- [[id:65b74ecb-13af-457b-b70a-5663a692c99c][Try to detect when the current buffer/file was not loaded (evaluated).]]
+- [[id:68e2f3b0-264e-4844-b38f-92be13cca6ea][Example of a custom reader macro]]
+- [[id:6f7e4fb6-a3b9-45c1-a5a7-3c2fe33403e5][Better explain what Breeze currently is in the readme]]
+- [[id:71f02e53-2520-49f4-866c-40f146712db8][Integration with treemacs]]
+- [[id:73eef5c8-332d-4c76-a8ee-c81ab921c4da][actually call ~breeze.configuration:load-config-file~]]
+- [[id:74475cbe-8b31-4f21-bdb9-7935c4d4953f][Document (with screenshots) how to setup and use emacs integration]]
+- [[id:7509eb33-c031-4ce7-9fb0-d3ab57c19a8b][command to "copy current package" / "package at point"]]
+- [[id:750b05d7-a6f9-4da4-9924-955b5bc0b204][It is not clear when breeze is loading...]]
+- [[id:755fea16-df4d-4b87-a229-b9234b89d46b][Tags]]
+- [[id:758f63fd-5b48-4461-854f-cee3cb617b00][Use header-line in emacs to show the test results]]
+- [[id:76587927-6c35-47a9-8d1b-d3e48b686fe1][Is there a list of commands and bindings?]]
+- [[id:7672a4cb-dd0b-43b1-9de5-8fd975771a26]["Is it possible to see the list of rules?"]]
+- [[id:7c0d94e0-e1d2-4747-85e7-ab144e70038f][Comment current form]]
+- [[id:7ef43b32-986f-477f-a704-17201297a6b0][Unsure if all the commands in emacs are internal or for the end-user]]
+- [[id:824a7d5d-d11f-40b0-ae0e-b83ea7dbf812][REPL]]
+- [[id:82bb6f4b-bd23-46b9-8243-d3dbf5c9ad81][Defuns with bad indentation]]
+- [[id:8510189a-7831-4364-9ac3-f02d95cbc3ce][Bindings]]
+- [[id:87cb103c-906a-46d8-8f90-3b86668bc667][Integration with origami.el]]
+- [[id:8a919b83-89f4-40b8-aeb4-2638c308cddf][Syntax highlighting]]
+- [[id:8b715618-f32c-4ac3-8f1b-9160cacde420][Generate the documentation in the CI]]
+- [[id:8baf278b-432e-46c2-8902-cc959213ea9d][move-form-into-let]]
+- [[id:8e956afc-28f4-4fda-b58f-7c111b0d92b3][Eclector]]
+- [[id:91dd2385-d05e-42b2-9123-68e5eda38a35][Use a heap to find the N closest matches]]
+- [[id:93da5b9d-9593-45b1-9f71-f49d01c3e95d][lisp listener]]
+- [[id:97827397-342a-4789-bb15-01768f61677e][Feedback from users (and non-users)]]
+- [[id:979f0424-ad37-42ee-a1e6-99135fedc6da][Differences between eclector and breeze's parser]]
+- [[id:9a339dd6-9d58-480e-9a79-fcba0eeb62a8][Create a demo to show how to install breeze]]
+- [[id:9ad8200c-7f7d-4d32-834c-691d8c404f08][Utilities to update a set of object while maximising structural sharing #4]]
+- [[id:9b35d7aa-cb8a-433f-b0cb-ba1305740b21][What is this project?]]
+- [[id:9b5d5722-16a2-4b35-affb-4bb674b30cb0][Show the integration with quickproject]]
+- [[id:9c910250-abdc-4cbe-961b-46ad5c4f82d4][Breeze]]
+- [[id:9db977b8-c4cd-4ae1-948f-582f19e24561][linter is mentioned in "getting started" but not in the introduction]]
+- [[id:9eee6140-644d-4615-ae88-be84243f63af][Error recovery]]
+- [[id:9f240ef6-197e-409f-967b-020ae3e3524b][Couldn't find the "refactoring commands"]]
+- [[id:9fdf7c6a-793f-4ea3-b538-0742c7582aa3][Rust analyzer blog]]
+- [[id:a1b34261-e041-412a-a291-c26fd0e34668][Fast Incremental PEG Parsing]]
+- [[id:a3188d26-6d8a-4a56-996d-1cd0c718f452][Document how to use quickproject integration]]
+- [[id:a4441e5d-be6d-4e0d-877c-db4cbb581b35][Add command "got to next documentation"]]
+- [[id:a56d3ee1-b97c-4201-b210-c5d20e602663][Tasks]]
+- [[id:a701e8f0-1a66-43ee-a64b-4c715702ccf0][Pattern objects]]
+- [[id:a91ccca0-d156-4bb3-835d-aecaff9ca886][Integration with which-key]]
+- [[id:aa5237a7-935e-4a94-852a-c1f2aaf1fc4e][In 40ants/ci]]
+- [[id:aa730627-bad7-4dee-ba73-7f16b4502d02][Improve tests #1]]
+- [[id:abd1f951-574d-4cf6-b0ed-c00f0e3e6603][Add command to choose a test and run it]]
+- [[id:ace61035-8bd3-4fd6-9a4e-391907df8993][there's no doc on how to actually use breeze]]
+- [[id:ae4d17b1-5446-4e99-a7ea-ed38c2150779][Maybe add this document (notes.org) to the documentation?]]
+- [[id:aef7ae44-a4e2-4a5e-831b-ffc2ae6f085c][Buffer]]
+- [[id:b038c05f-dfba-4154-92ca-a3d467e62d3a][Point]]
+- [[id:b05affdf-fa20-43aa-a99a-dc051a939285][Try to suggest new and old projects?]]
+- [[id:b060366f-daa6-4a90-a10c-4cd4086df711][document how to configure breeze]]
+- [[id:b276cf1d-e592-4f9a-ac29-23cac0685d2e][When inserting a package definition in an empty buffer, evaluate the buffer]]
+- [[id:bb33517d-41c1-47e9-bb01-03d7d94824bd][let]]
+- [[id:bb511232-ca97-4770-87ae-fc5a4a8d4173]["you mentioned interactive-eval, but it's not in the doc"]]
+- [[id:bc2db964-8402-42e6-8992-dc754941f8c4][Shebang]]
+- [[id:bc6ebceb-cdd6-4ad6-95e8-b3257ae74a96][Substitutions and bindings]]
+- [[id:bce86371-a31d-405a-8a54-09da4c2cf77a][Confusion due to outdated documentation]]
+- [[id:bd256331-c108-4399-8bc8-659e5dbfa93b][figure out how to auto load the "plugins"]]
+- [[id:bda9af01-24aa-4d84-a966-0d5ed27a1ef8][Add method-combination-name-p #4]]
+- [[id:bfaa3158-f35d-4dc7-868e-fb3a7b4b867a][In phoe/external-symbol-not-found]]
+- [[id:c2014248-4bce-4ed5-a67e-17c53be29923][Doesn't like the default ~*capture-template*~]]
+- [[id:c5984bd3-3240-4ebf-bd8f-5b103c0a9f90][Add a macro that transforms the conditions into portable conditions #3]]
+- [[id:d0aee83f-8560-4374-858b-23669635a68a][Add command "go to next missing documentation"]]
+- [[id:d21da464-7b9e-47d2-bc2a-c9ab7a927218][Listener features]]
+- [[id:d3576763-8d86-4886-a279-e7fa11b2c9cb][Vindarel]]
+- [[id:d44690d0-de67-483b-ab67-84450b63341f][~wildcard~ patterns]]
+- [[id:d487821d-01e7-41a1-b9db-1a856fd7eb01][Formatting code]]
+- [[id:d568fb4a-4c09-4fa4-8269-996a9f081ee8][quickfix vs quickinsert]]
+- [[id:d66845eb-b21e-4550-ae9c-f3ea2ecd25a6][Gavinok]]
+- [[id:d87abb8b-0b06-4723-869c-e05da54abdf8][About "multi-valued" pattern variables]]
+- [[id:da4c20d5-9947-434c-909e-3e766357244f][Parse files with conflicts]]
+- [[id:ded97849-bf7a-4034-bc8f-8b987499bd51][Overview of pattern matching]]
+- [[id:e1f105c3-24d6-42e5-a555-75885ceee25c][Tasks]]
+- [[id:e55cab7e-beb6-4cb4-be2e-d0d78a8f568a][Linting asd files]]
+- [[id:ea4e8881-2ca6-4c8d-b2dc-dcbd5fdad721][Substitution]]
+- [[id:eb1f399a-e723-4a5d-91bd-26b473faca5d][Integration with occur]]
+- [[id:eb6f8b43-ee41-46f6-b23a-bcde610dc60c][Make sure that all org file have a front-matter]]
+- [[id:ebbcbf1f-da36-4064-8c22-addd2dc6c664][Integration with flycheck]]
+- [[id:ece84adc-6fe2-4198-96fd-c9fc0e909028][add a "What is this?" section]]
+- [[id:ed224f77-e9b5-4e5d-8a72-8b049729ee6b][Document how to define new commands]]
+- [[id:edbd3cb1-e04b-41f9-b35f-20c123854481][Parsing Common Lisp]]
+- [[id:ee92584d-5ee0-4be4-846a-0de090520d0d][wrap with]]
+- [[id:ef574765-ddf9-445e-a114-214a28a8836e][quickproject integration]]
+- [[id:ef867d3a-897f-43e6-b406-244f448e479a][Symbols with escapes]]
+- [[id:eff9b0b6-ceb3-4882-bdec-1ab212fb20fc][curry-compose-reader-macros]]
+- [[id:f14843c3-d506-4beb-8921-eddbdebea1ba][Basic commands should send the buffer to the editor]]
+- [[id:f3e3952d-e6f7-4bb9-a85c-662ae82874eb][Change Impact Analysis]]
+- [[id:f50fbc39-3148-4ecb-8e46-719ef3e05fd8][Case with correction suggestion]]
+- [[id:f54a246a-874d-43e2-b748-dc3cc9095e7c][~simple-var~ patterns]]
+- [[id:f5fa06ac-75a3-4dbf-8ed3-17c320ff2927][Named readtables]]
+- [[id:f66155a2-d4fd-4aef-8336-8210cd472735][Existing vim plugins for Common Lisp]]
+- [[id:f7cf31f3-4bfb-45f4-b52d-805802400956][Add command "next todo"]]
+- [[id:f845aab2-c76f-467f-af21-3d465df49697][In s-expressionists/Eclector]]
+
+** TODO Make sure all pages are reachable from index.org
+:PROPERTIES:
+:ID:       ec1d7da5-9aa3-43a2-b005-36579ee915f9
+:END:
 
 * Local variables :noexport:
 # local variables:
