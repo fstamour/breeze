@@ -48,7 +48,7 @@ TODO:
 
 (hash-table-count
  (breeze.workspace::buffers *test-workspace*))
-;; => 410
+;; => 430
 
 ;; print all the files the workspace *test-workspace*
 (map-workpace-buffers

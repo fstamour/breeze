@@ -12,6 +12,7 @@
   (:export
    #:breeze-relative-pathname
    #:find-breeze-packages
+   #:generate-breeze-reference
    #:insert-command-test))
 
 (in-package #:breeze.dogfood)
@@ -26,6 +27,7 @@
   (breeze-relative-pathname ""))
 
 (defun find-breeze-packages ()
+  ;; TODO maybe filter out package "breeze.dogfood"
   (remove-if (lambda (package)
                (position #\. (package-name package) :start (length #1="breeze.")))
              (breeze.xref:find-packages-by-prefix #1#)))
@@ -38,6 +40,13 @@
        (breeze.syntax-tree:node-end outer-node-car)
        "define-test")
       (breeze.command:return-from-command))
+
+(defun generate-breeze-reference ()
+  (breeze.documentation::generate-documentation
+   ;; root
+   (breeze-relative-pathname "docs/")
+   ;; packages
+   (find-breeze-packages)))
 
 
 
@@ -67,13 +76,14 @@ newline in the expected result."
 
 (defun test-at-point (buffer)
   (let (($root (root (node-iterator buffer))))
-    (breeze.analysis::with-match
-        ($root
-         ((:either
-           parachute:define-test
-           parachute:define-test+run
-           parachute:define-test+run-interactively) ?name))
-      (when-let ((?name (get-bindings '?name)))
+    (let-match
+        (((:either
+           (:symbol define-test parachute)
+           (:symbol define-test+run parachute)
+           (:symbol define-test+run-interactively parachute))
+          ?name)
+         $root)
+      (when ?name
         (values $root (node-string ?name))))))
 
 (defun command-name-p (string)

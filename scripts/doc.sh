@@ -13,6 +13,7 @@ sbcl --noinform --non-interactive \
      --eval "(declaim (optimize (debug 3) (speed 0) (safety 3)))" \
      --eval "(asdf:load-asd (truename \"breeze.asd\"))" \
      --eval "(ql:quickload '#:breeze/doc)" \
-     --eval '(breeze.documentation::generate-documentation)'
+     --eval "(ql:quickload '#:breeze/dogfood)" \
+     --eval '(breeze.dogfood:generate-breeze-reference)'
 
 cp docs/style.css public/
