@@ -1,5 +1,5 @@
 (defpackage #:breeze.class-utils
-  (:documentation "")
+  (:documentation "Macros to help define classes along with common functions and methods.")
   (:use #:cl #:breeze.generics)
   (:export #:eqv
            #:define-class))
@@ -24,7 +24,7 @@
                            (predicate t)
                            (constructor t))
                         &body defclass-body)
-  "Helper macro to define a class along with common functions.
+  "Helper macro to define a class along with common functions and methods.
 
 Defines:
 - a class
