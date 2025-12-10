@@ -1,5 +1,58 @@
+:PROPERTIES:
+:ID:       8e956afc-28f4-4fda-b58f-7c111b0d92b3
+:END:
+#+title: Eclector
+#+filetags: :reader:
 
+[[https://github.com/s-expressionists/Eclector][Eclector on github]]
 
+#+begin_quote
+A portable Common Lisp reader that is highly customizable, can recover
+from errors and can return concrete syntax trees
+#+end_quote
+
+* Why not use eclector?
+:PROPERTIES:
+:ID:       08754391-271f-4e05-b307-3c912f5f4c0a
+:END:
+
+Simply because eclector was not mature enough back when I tried to use
+it. It had a few updates since then and it might work well now; at
+least the actual reader. I don't know if the CST (Concrete Syntax
+Tree) that it provides would be appropriate all the use cases.
+
+In any case, nothing prevents one to use _both_ reader. Breeze's
+reader is meant to be robust and safe, maybe it would make sense to
+use breeze's parser as a first pass, as a validation, and if
+everything goes well continue with eclector's reader.
+
+* Differences between eclector and breeze's parser
+:PROPERTIES:
+:ID:       979f0424-ad37-42ee-a1e6-99135fedc6da
+:END:
+
+Note: eclector's reader is highly customizable, so I'm trying to
+qualify eclector's default reader. *Also*, I haven't tried eclector in
+a few years, it's highly probable that something changed since.
+
++---------------------------------+--------------------------------------------------------+
+| breeze's parser                 | eclector's reader                                      |
++---------------------------------+--------------------------------------------------------+
+| meant to be used by an editor   | meant to implement ~cl:read~                           |
++---------------------------------+--------------------------------------------------------+
+| is not customizable             | is highly customizable                                 |
++---------------------------------+--------------------------------------------------------+
+| doesn't discard any information |         discard all whitespaces, comments and          |
+|                                 |  feature expressions that fails (e.g. ~#+(or) this~)   |
++---------------------------------+--------------------------------------------------------+
+|   will never singal an error    |  signals error and provide restarts to let the client  |
+|     (unless there's a bug!)     |           decide how to handle the situation           |
++---------------------------------+--------------------------------------------------------+
+
+* TODO Try out the "new" ~skipped-input-recording-client~
+:PROPERTIES:
+:ID:       03eebc77-bf6a-4172-8496-4dfb2490c01b
+:END:
 
 #+begin_src lisp
 (eclector.parse-result:read
