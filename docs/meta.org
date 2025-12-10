@@ -79,7 +79,7 @@ See https://github.com/ahmed-shariff/org-roam-ql - "Query language for
 org-roam".
 
 
-* TODO Make sure that all org file have a front-matter
+* TODO Make sure that all org file have a front-matter                  :doc:
 :PROPERTIES:
 :ID:       eb6f8b43-ee41-46f6-b23a-bcde610dc60c
 :END:
@@ -93,7 +93,10 @@ For example:
 ,#+title: Candidate Features
 #+end_example
 
-* TODO Make sure that all pages are reachable from another page
+* TODO Make sure that all pages are reachable from another page         :doc:
+:PROPERTIES:
+:ID:       c576702c-fd35-4810-b91d-4be37b306b5e
+:END:
 
 #+begin_src emacs-lisp
 (dolist (row (org-roam-db-query [:select

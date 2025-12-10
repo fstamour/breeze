@@ -1,0 +1,285 @@
+:PROPERTIES:
+:ID:       97827397-342a-4789-bb15-01768f61677e
+:END:
+#+title: Feedback from users (and non-users)
+
+* Gavinok
+:PROPERTIES:
+:ID:       d66845eb-b21e-4550-ae9c-f3ea2ecd25a6
+:END:
+
+* Ethereal and 10k Bees
+:PROPERTIES:
+:ID:       571165a8-a6f6-4820-b57c-19e33e4fdc2b
+:END:
+
+- More context-awareness
+
+** DONE less stupid cursor position when inserting or updating source code
+
+** DONE breeze.el was moved, but the doc was not updated
+
+I want to add a test that tries to catch these kind of "documentation drift".
+
+For example, I could extract the ~...~ from the org file and make sure the string can be found in breeze.el
+
+** TODO It's not necessarily obvious what the "other file" commands do.
+
+"Well tbh with semi-automation maybe using multiple files wouldn't be such a misery"
+
+** TODO "propose to load a system" can fail when missing dependencies
+
+There's a feature, when you run quickfix, it'll check if the current
+file is part of a system that was not loaded and asks you if you want
+to load that system.
+
+But if that system's dependencies are not already, ~asdf:load-system~
+will fail.
+
+** TODO the "breeze/test" system has way too many dependencies
+
+the "breeze/documentation" needed by "breeze/test" depends on
+spinneret, which in turns depends on way too many things.
+
+* Vindarel
+:PROPERTIES:
+:ID:       d3576763-8d86-4886-a279-e7fa11b2c9cb
+:END:
+
+- pointed out a few typos
+
+** TODO linter is mentioned in "getting started" but not in the introduction :doc:
+:PROPERTIES:
+:ID:       9db977b8-c4cd-4ae1-948f-582f19e24561
+:END:
+
+** TODO "Is it possible to see the list of rules?"                      :doc:
+:PROPERTIES:
+:ID:       7672a4cb-dd0b-43b1-9de5-8fd975771a26
+:END:
+
+one day... one day...
+
+right now the rule are unnamed and somewhat implicit, especially the
+"syntax errors" checks
+
+** TODO there's no doc on how to actually use breeze                    :doc:
+:PROPERTIES:
+:ID:       ace61035-8bd3-4fd6-9a4e-391907df8993
+:END:
+
+after reading "introduction" and "getting started" you're pretty much
+left on your own.
+
+*** TODO Is there a list of commands and bindings?                      :doc:
+:PROPERTIES:
+:ID:       76587927-6c35-47a9-8d1b-d3e48b686fe1
+:END:
+
+yes, but it's probably not linked...
+
+** TODO It is not clear when breeze is loading...                 :editor:ux:
+:PROPERTIES:
+:ID:       750b05d7-a6f9-4da4-9924-955b5bc0b204
+:END:
+
+#+begin_example
+j'ai tapé C-. dans un fichier .lisp existant, j'ai vu un curseur de chargement puis rien;
+je l'ai tapé dans un nouveau .asd vide, là mon cpu semble faire s'exciter mais je n'ai aucun retour, je ne sais pas ce qu'il se passe.
+Est-ce qu'à la 1ere utilisation breeze.el va télécharger ou compiler tout plein de trucs ? Si oui j'aurais bien voulu le savoir et le faire au préalable.
+AH ! C'est une fois fait que je vois une sortie sur le REPL:
+
+; Loading "breeze"
+[package breeze.generics].........................
+[package breeze.class-utils]......................
+[package breeze.pattern]..........................
+…
+Breeze loaded!
+
+
+donc oui, besoin d'être prévenu / de pouvoir maitriser cette étape !
+#+end_example
+
+** TODO Confusion due to outdated documentation                         :doc:
+:PROPERTIES:
+:ID:       bce86371-a31d-405a-8a54-09da4c2cf77a
+:END:
+
+For now... I just commented out the outdated documentation. Better to
+have no documentation than a misleading one!
+
+*** TODO quickfix vs quickinsert                                        :doc:
+:PROPERTIES:
+:ID:       d568fb4a-4c09-4fa4-8269-996a9f081ee8
+:END:
+
+- the binding =C-.= which is bound to the command ~breeze-quickfix~
+  doesn't take care of inserting things based on the context. There is
+  now a new command ~breeze-quickinsert~, which is bound to ~C-RET~
+  - P.S. =C-.= is not a binding that works inside a terminal :/
+
+*** TODO quickproject integration                                        :ux:
+:PROPERTIES:
+:ID:       ef574765-ddf9-445e-a114-214a28a8836e
+:END:
+
+the introduction mentions an "integration with quickproject"
+
+the command exists, it's ~breeze-quickproject~, but it is not loaded
+by default... at the moment (2025-12-09), you must run ~(ql:quickload
+'breeze/quickproject)~ in cl's repl and then invoke the command
+~M-x breeze-refresh-commands~ in emacs.
+
+**** TODO auto refresh the commands                               :editor:
+:PROPERTIES:
+:ID:       01d38477-8684-4d2a-862c-80ca7459afd9
+:END:
+
+already started on that a while ago... see ~breeze.command::timestamp~
+(todo: export).
+
+**** TODO figure out how to auto load the "plugins"               :config:
+:PROPERTIES:
+:ID:       bd256331-c108-4399-8bc8-659e5dbfa93b
+:END:
+
+it depends a lot on the user's setup... whether they use/have
+quicklisp, vend, ocicl, etc
+
+it also depends on whether they _want_ to load these... maybe it
+should be "dumb": let the user configure that...
+
+I need to think about this a little bit more
+
+** DONE Couldn't find the "refactoring commands"                        :doc:
+:PROPERTIES:
+:ID:       9f240ef6-197e-409f-967b-020ae3e3524b
+:END:
+
+yes, because there's none yet... I removed the documentation
+
+It used to have some, but they were written in emacs lisp using
+regexes and was pretty brittle.
+
+Since then, I wrote a whole parser and pattern matching and some
+protocol between cl and the editor. I'm this 🤏 close to have actual
+refactoring commands.
+
+** DONE bug with quickinsert
+:PROPERTIES:
+:ID:       13c163f7-cb82-4433-b3bb-e4f25575c373
+:END:
+
+Bad timing: I pushed a bug a few hours before Vindarel pulled the
+code.
+
+I was fixed pretty quickly.
+
+#+begin_example
+j'appelle M-x breeze-quickinsert dans un fichier vide:
+"Function "When inside a higher-order function, like mapcar." does not have a documentation string. Is it defined?"
+#+end_example
+
+** Doesn't like the default ~*capture-template*~
+:PROPERTIES:
+:ID:       c2014248-4bce-4ed5-a67e-17c53be29923
+:END:
+
+It was to be expected 😅, that template was somewhat "personal"
+
+- doesn't like the top-level call to quickload
+- he — of course — would personally prefer to insert a ~defpackage~
+  that ~:use~ "ciel" instead of just quickloading "alexandria"
+- hints that there could be multiple templates to choose from (just
+  like org-capture does).
+
+#+begin_example
+M-x breeze-capture
+
+ah ok, c'est pour écrire des snippets rapidement qlq part sur disque…
+pourquoi pas. J'aime bien slime-scratch alors ça pourrait le
+remplacer.
+
+    (ql:quickload '(alexandria))
+
+mouais, pas fan de loader alexandria par défaut, et surtout d'utiliser
+ql:quickload en "top-level". L'évolution typique que les utilisateurs
+vont vouloir, c'est configurer ses propres snippets ! Moi j'y mettrais
+un defpackage qui utilise :ciel (et ainsi j'ai tout, alexandria,
+serapeum, ppcre, json/csv etc).
+#+end_example
+
+*** TODO actually call ~breeze.configuration:load-config-file~ :easy:ux:config:
+:PROPERTIES:
+:ID:       73eef5c8-332d-4c76-a8ee-c81ab921c4da
+:END:
+
+This is silly... I never added the call anywhere 🙃
+
+*** TODO document how to configure breeze                               :doc:
+:PROPERTIES:
+:ID:       b060366f-daa6-4a90-a10c-4cd4086df711
+:END:
+
+especially the template
+
+*** TODO more generic capture template(s)                                :ux:
+:PROPERTIES:
+:ID:       488af0d7-7931-4502-8ad3-e151689431de
+:END:
+
+currently, the ~*capture-template*~ is only a string, to make this
+more flexible, it could be:
+- a function that returns a string
+- a function that interacts with the editor to insert things in the file
+- an alist of (template-name . body)
+- a function that returns an alist
+
+also, the templates don't have to be restricted to setting-up only 1
+files. This concept could "easily" be generalized to setup (scaffold)
+a whole project.
+
+** Unsure if all the commands in emacs are internal or for the end-user
+:PROPERTIES:
+:ID:       7ef43b32-986f-477f-a704-17201297a6b0
+:END:
+
+Except for the major mode, they are all meant to be used by the
+end-user.
+
+*** TODO ~insert-local-nicknames~ insert the nickname at point           :ux:
+:PROPERTIES:
+:ID:       43e20e13-4c71-45ca-9d0e-072a1801b651
+:END:
+
+I think this is one of the source of the confusion: some of the
+commands are way less mature than the others.
+
+At the moment (the end of 2025), I've been working on finding and
+indexing the definitions (using the source code only, no reaching into
+the implementation's guts). The next step was indeed to "fix" this
+command and to add more commands like it to add/manage exports and
+imports.
+
+** TODO "you mentioned interactive-eval, but it's not in the doc"       :doc:
+:PROPERTIES:
+:ID:       bb511232-ca97-4770-87ae-fc5a4a8d4173
+:END:
+
+It is... it's just that you need to know the link by heart and type it
+in the url, duh!
+
+Here is the page: [[id:a7e572ba-a80b-44cf-9fd8-91f50307c675][breeze's eval v.s. sly's and slime's eval]]
+
+I will write some emacs-lisp to validate that all documentation pages
+are reasonably reachable. See [[id:c576702c-fd35-4810-b91d-4be37b306b5e][Make sure that all pages are reachable
+from another page]]
+
+* Zulu
+
+He mentioned 2 things that I think are relevant:
+- he would like something to format the files automatically, he mainly
+  uses notepad++ and said that he miss (just a little) emacs'
+  indentation command
+- he would like to have a CLI to simply run a projects test
+  - recently, vend has added that feature (~vend test~)

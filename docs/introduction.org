@@ -3,7 +3,10 @@
 :END:
 #+title: Introduction
 
-* What is this?
+* What is this project?
+:PROPERTIES:
+:ID:       9b35d7aa-cb8a-433f-b0cb-ba1305740b21
+:END:
 
 This is a git repository that contains lots of common lisp code that I
 use to make developing with common lisp easier. It is a personal
@@ -14,14 +17,15 @@ pretty much all the time.
 
 - Emacs integration
 - Integration with quickproject
-- Context-aware, configurable snippets and refactorings
+- Context-aware, configurable snippets
 - Command for quick code capture (trying out code in a new file)
 - Implemented in common lisp to be able to port it to other editors in
   the future
 
 Currently, breeze's main interface is emacs; =breeze.el= adds a few
-commands and one minor-mode with one bindings (~C-.~).
+commands and one minor-mode.
 
+#+begin_comment
 The one binding calls a command named ~breeze-quickfix~ (might rename
 in the future). This command suggests applicable actions given the
 current context (file name, file content, position in the file,
@@ -50,6 +54,7 @@ port it to other editors (or just the repl) in the future.
 
 I must stress that this whole project is in constant flux, and until I
 add more and more tests, stuff might break any time.
+#+end_comment
 
 * Next
 
