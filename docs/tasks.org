@@ -245,7 +245,7 @@ undefined-function error. We could go one step further and suggest a
 quickfix in the editor. We should probably suggest that quickfix only
 when the edit-distance is not too great, or we would get some wild quickfixes.
 
-** TODO Maybe add this document (notes.org) to the documentation?       :doc:
+** OBSOLETE Maybe add this document (notes.org) to the documentation?   :doc:
 :PROPERTIES:
 :ID:       ae4d17b1-5446-4e99-a7ea-ed38c2150779
 :END:
@@ -391,4 +391,9 @@ that we just moved.
 * TODO command to "copy current package" / "package at point"      :refactor:
 :PROPERTIES:
 :ID:       7509eb33-c031-4ce7-9fb0-d3ab57c19a8b
+:END:
+
+* TODO Document how to define new commands                              :doc:
+:PROPERTIES:
+:ID:       ed224f77-e9b5-4e5d-8a72-8b049729ee6b
 :END:
