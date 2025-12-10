@@ -34,16 +34,16 @@ contains only comments, it will suggest to insert a ~defpackage~ or
 trying to edit/evaluate forms that are in a package that doesn't
 exists (=did you forget to evaluate the ~defpackage~ form?=).
 
-The integration with quickproject is pretty simple and let's you
+The integration with quickproject is pretty simple and lets you
 quickly create new projects from the comfort of your editor. The
 integration consists of one command that asks you for some
 information, like the project name and licence. It takes some default
-values from breeze's configuration, but let's you change them. All
+values from breeze's configuration, but lets you change them. All
 this to ease the use of quickproject.
 
 Another simple command that helps me is ~breeze-capture~, it creates a
 new file in a pre-determined (must be configured) folder and fills it
-with some pre-configured content (template) and let's you code right
+with some pre-configured content (template) and lets you code right
 away. This could've easily be done in emacs (that's how I prototyped
 the first version), but doing this in common lisp makes it easy to
 port it to other editors (or just the repl) in the future.

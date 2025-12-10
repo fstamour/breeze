@@ -35,7 +35,7 @@ the command =breeze-quickfix=).
 (add-hook 'lisp-mode-hook #'breeze-minor-mode)
 #+end_src
 
-Additionally, breeze can be use as a "on-the-fly" linter for common
+Additionally, breeze can be used as a "on-the-fly" linter for common
 lisp source files by enabling flymake and configuring flymake to use
 breeze.
 
