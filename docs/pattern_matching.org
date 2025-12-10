@@ -9,7 +9,7 @@
 :END:
 
 
-* TODO Use cases for patterns
+* TODO Use cases for patterns                                           :doc:
 :PROPERTIES:
 :ID:       30b733d0-26a1-44fb-8c91-5a2b24a9b909
 :END:

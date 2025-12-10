@@ -1,3 +1,5 @@
+;; TODO move under tests/pattern
+
 (defpackage #:breeze.test.iterator
   (:documentation "Tests for the package breeze.iterator")
   (:use #:cl #:breeze.iterator)

@@ -18,3 +18,5 @@
        (node-iterator (node-iterator buffer)))
     (when pulsep (pulse-node node-iterator))
     node-iterator))
+
+;; TODO Maybe make a command "replace-form" or "replace-car"
