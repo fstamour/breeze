@@ -1,0 +1,12 @@
+:PROPERTIES:
+:ID:       d306a11f-4189-4e24-9a26-0b2cb813e54e
+:ROAM_ALIASES: vend
+:END:
+#+title: fosskers/vend
+#+filetags: :tool:
+
+#+begin_quote
+Manage your Common Lisp project dependencies.
+#+end_quote
+
+- [[https://github.com/fosskers/vend][Homepage on GitHub]]
