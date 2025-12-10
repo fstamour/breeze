@@ -42,12 +42,12 @@ Table of Contents:
 * {box-sizing: border-box; border-spacing: 0;}
 header, footer, figure ,table, video, blockquote,
 ul, ol, dl, fieldset, pre, pre > code {
-	display: block;
 	margin: 0.5rem 0rem 1rem;
 	width: 100%;
 	overflow-x: auto;
-	overflow-y: hidden;
+	overflow-y: auto;
 }
+
 body {
 	margin: auto;
 	max-width: 80rem;
