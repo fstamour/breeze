@@ -491,3 +491,11 @@ code span.paren5:hover{
 code span.paren6:hover{
     background-color: #FFBAFF;
 }
+
+
+/* 4. Emacs' org-mode classes
+–––––––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+.tag {
+    background-color: var(--dimmed-text-color);
+}
