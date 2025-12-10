@@ -1,10 +1,11 @@
 
 (message "Installing packages (from ELPA)")
 
-(package-initialize)
-(setf package-selected-packages
-      '(htmlize))
-(package-install-selected-packages t)
+(when package-enable-at-startup
+  (package-initialize)
+  (setf package-selected-packages
+        '(htmlize))
+  (package-install-selected-packages t))
 
 
 (message "Publishing...")
@@ -56,6 +57,6 @@
   (org-id-update-id-locations (directory-files root t "\\.org$"))
   (org-publish project-alist forcep)
   (dolist (file (directory-files "docs/" t "listing-.*\\.html$"))
-    (copy-file file "public/"))
-  (copy-file "docs/reference.html" "public/")
-  (copy-file "docs/style.css" "public/"))
+    (copy-file file "public/" :ok-if-already-exists))
+  (copy-file "docs/reference.html" "public/" :ok-if-already-exists)
+  (copy-file "docs/style.css" "public/" :ok-if-already-exists))
