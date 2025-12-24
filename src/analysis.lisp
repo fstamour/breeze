@@ -9,48 +9,13 @@
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
-  (:export #:node-string-designator
-           #:parse-symbol-node)
+  (:export #:parse-symbol-node)
   ;; Tree/Form predicate
   (:export #:with-match
            #:define-node-matcher
            #:quotedp))
 
 (in-package #:breeze.analysis)
-
-
-;;; Basic utilities for nodes
-
-(defun node-string= (string node &optional state)
-  (when node
-    (etypecase node
-      (node-iterator (node-string= string (value node) (state node)))
-      (node
-       (string= (source state) string
-                :start1 (start node)
-                :end1 (end node))))))
-
-(defun node-string-equal (string $node)
-  (when $node
-    (string-equal (source $node) string
-                  :start1 (start $node)
-                  :end1 (end $node))))
-
-(defun node-string-designator (node-iterator)
-  "Return the string designated by node-iterator."
-  (check-type node-iterator node-iterator)
-  (unless (donep node-iterator)
-    (let ((node (value node-iterator)))
-      (cond
-        ;; TODO handle "`a" "' #| 🤯 |# a" (quote-node and quasiquote
-        ;; TODO (hard) handle "#."
-        ((string-node-p node) (node-string node-iterator))
-        ((sharp-uninterned-node-p node)
-         (let (($node (copy-iterator node-iterator)))
-           (go-down $node)
-           (second (parse-symbol-node $node))))
-        ((token-node-p node)
-         (second (parse-symbol-node node-iterator)))))))
 
 
 ;;; Integrating pattern.lisp and parser.lisp
@@ -72,48 +37,6 @@ match an empty parse tree."
   ;; These should return nil because we're trying to match 1 symbol
   ;; against a list of nodes (even if that list is empty).
   nil)
-
-(defun parse-symbol-node ($node)
-  "Extract information about the package-name and symbol-name of a token, if it can.
-Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
-PACKAGE-NAME is provided for the types :qualified and :possibly-internal.
-TYPE is one of:
-
- - :current
- - :keyword
- - :uninterned
- - :qualified
- - :possibly-internal
- - :nil"
-  (unless (or (donep $node)
-              (not (valid-node-p (value $node))))
-    (let ((node (value $node)))
-     (cond
-       ;; () === nil
-       ((and (parens-node-p node)
-             (every #'ignorable-node-p (children node)))
-        `(:nil "()" (symbol-name :cl)))
-       ((sharp-uninterned-node-p node)
-        `(:uninterned ,(name (children $node))))
-       ((token-node-p node)
-        (with-slots (package-prefix package-marker name)
-            node
-          (let ((marker-length (length package-marker)))
-            (cond
-              ((and (null package-prefix)
-                    (null package-marker))
-               `(:current ,name))
-              ((and package-marker
-                    (= 1 marker-length)
-                    (or (null package-prefix)
-                        #++ (string= "KEYWORD" package-prefix)))
-               `(:keyword ,name))
-              ((and package-marker
-                    (= 1 marker-length))
-               `(:qualified ,name ,package-prefix))
-              ((and package-marker
-                    (= 2 marker-length))
-               `(:possibly-internal ,name ,(or package-prefix "KEYWORD")))))))))))
 
 (defun same-package-p (package-designator1 package-designator2)
   "Check if both package-designators designates the same package.
@@ -222,6 +145,7 @@ The designators can be strings, symbols or packages."
   (match-parser-state pattern state :skipp skipp))
 
 ;; TODO One method per type of node
+;; Update: I recently added "object-patterns"
 #++
 (progn
   whitespace

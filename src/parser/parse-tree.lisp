@@ -125,7 +125,10 @@
            #:parent-node
            #:root-node
            #:top-level-node-iterator
-           #:map-top-level-forms))
+           #:map-top-level-forms)
+  ;; Extracting data
+  (:export #:parse-symbol-node
+           #:node-string-designator))
 
 (in-package #:breeze.parse-tree)
 
@@ -633,3 +636,64 @@
   (make-instance 'node-iterator
                  :root (tree state)
                  :state state))
+
+
+;;; Extracting more information from the parse tree
+
+(defun parse-symbol-node ($node)
+  "Extract information about the package-name and symbol-name of a token, if it can.
+Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
+PACKAGE-NAME is provided for the types :qualified and :possibly-internal.
+TYPE is one of:
+
+ - :current
+ - :keyword
+ - :uninterned
+ - :qualified
+ - :possibly-internal
+ - :nil"
+  (unless (or (donep $node)
+              (not (valid-node-p (value $node))))
+    (let ((node (value $node)))
+     (cond
+       ;; () === nil
+       ((and (parens-node-p node)
+             (every #'ignorable-node-p (children node)))
+        `(:nil "()" (symbol-name :cl)))
+       ((sharp-uninterned-node-p node)
+        `(:uninterned ,(name (children $node))))
+       ((token-node-p node)
+        (with-slots (package-prefix package-marker name)
+            node
+          (let ((marker-length (length package-marker)))
+            (cond
+              ((and (null package-prefix)
+                    (null package-marker))
+               `(:current ,name))
+              ((and package-marker
+                    (= 1 marker-length)
+                    (or (null package-prefix)
+                        #++ (string= "KEYWORD" package-prefix)))
+               `(:keyword ,name))
+              ((and package-marker
+                    (= 1 marker-length))
+               `(:qualified ,name ,package-prefix))
+              ((and package-marker
+                    (= 2 marker-length))
+               `(:possibly-internal ,name ,(or package-prefix "KEYWORD")))))))))))
+
+(defun node-string-designator (node-iterator)
+  "Return the string designated by node-iterator."
+  (check-type node-iterator node-iterator)
+  (unless (donep node-iterator)
+    (let ((node (value node-iterator)))
+      (cond
+        ;; TODO handle "`a" "' #| 🤯 |# a" (quote-node and quasiquote
+        ;; TODO (hard) handle "#."
+        ((string-node-p node) (node-string node-iterator))
+        ((sharp-uninterned-node-p node)
+         (let (($node (copy-iterator node-iterator)))
+           (go-down $node)
+           (second (parse-symbol-node $node))))
+        ((token-node-p node)
+         (second (parse-symbol-node node-iterator)))))))

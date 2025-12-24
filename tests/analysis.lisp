@@ -785,8 +785,7 @@ was expected to end at position ~s (exclusive), but got ~s instead"
 #++
 (trace :wherein test-repetition
        match-symbol-to-token
-       match
-       breeze.analysis::node-string-equal)
+       match)
 
 (define-test+run "match zero-or-more against parse trees"
   (progn

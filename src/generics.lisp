@@ -6,6 +6,9 @@ TODO
 - donep
 - source: TODO use in "reader" and "buffer" (buffer -> node-iterator -> parser-state -> source)
 - register/unregister (e.g. actors, command-set, workspace, ...)
+- hash
+- size
+- copy (maybe copy-into?)
 
 |#
 

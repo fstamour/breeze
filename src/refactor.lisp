@@ -228,11 +228,6 @@ defun."
         ;; TODO Add default license from config
         (licence (read-string "Licence name: "
                               #| TODO infer-licence |#)))
-    (insert "(cl:in-package #:cl)~%~%")
-    ;; TODO don't insert a defpackage if it already exists
-    (insert "(defpackage #:~a.asd~% (:use :cl :asdf))~%~%"
-            system-name)
-    (insert "(in-package #:~a.asd)~%~%" system-name)
     (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
             system-name
             `(":description \"\""

@@ -1,6 +1,7 @@
 (defpackage #:breeze.command-utils
   (:documentation "Utilities to write commands")
   (:use #:cl #:breeze.command #:breeze.analysis)
+  (:import-from #:breeze)
   (:export #:pulse-node
            #:current-node))
 
@@ -20,3 +21,9 @@
     node-iterator))
 
 ;; TODO Maybe make a command "replace-form" or "replace-car"
+
+#++ ;; TODO this is work in progress
+(defun ensure-in-package (package-name)
+  "Insert an ~cl:in-package~ form, if necessary."
+  (let (($package (current-package))))
+  (insert "(cl:in-package #:asdf-user)~%~%"))

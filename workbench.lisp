@@ -159,22 +159,6 @@
  suggest-other)
 
 
-;;; reader.lisp
-
-(in-package #:breeze.reader)
-
-(sb-profile:profile
- parse
- read-all-forms
- eclector.parse:read-from-string
- make-instance
- eclector.parse-result:make-expression-result
- eclector.parse-result:read-preserving-whitespace
- raw)
-
-;; #++ (sb-profile:report)
-
-
 ;;; iterator.lisp
 
 (in-package #:breeze.iterator)
@@ -289,12 +273,7 @@
 (trace
  :wherein test-match-parse
  match
- breeze.analysis::match-symbol-to-token
- breeze.analysis::node-string-equal)
-
-(trace
- :wherein breeze.analysis::match-symbol-to-token
- breeze.analysis::node-string-equal)
+ breeze.analysis::match-symbol-to-token)
 
 (trace match-symbol-to-token match
        breeze.analysis::match-symbol
@@ -305,8 +284,7 @@
 
 (trace :wherein test-either
        match-symbol-to-token
-       match
-       breeze.analysis::node-string-equal)
+       match)
 
 (untrace)
 
@@ -339,7 +317,7 @@
 
 
 
-#+ (or)
+#+(or)
 (type-of *condition*)
 ;; => SB-PCL::MISSING-SLOT
 

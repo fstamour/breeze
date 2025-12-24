@@ -165,7 +165,11 @@ point.")
 
 
 ;; TODO (see interactive-eval-command) - get the node, parse it, find the package
-;; (defmethod current-package ((buffer buffer)))
+;; TODO this method is not done:
+(defmethod current-package* ((buffer buffer))
+  (alexandria:when-let* (($package (current-package))
+                         (package-name (breeze.analysis:node-string-designator $package)))
+    (when $package)))
 
 ;; This should probably go elsewhere...
 (defmethod map-top-level-forms (function (buffer buffer))
