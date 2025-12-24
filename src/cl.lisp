@@ -17,14 +17,18 @@
 (defun higher-order-function-p (function)
   (multiple-value-bind (position _)
       (gethash function
-               #.(alexandria:alist-hash-table '((funcall . 0) (map-into . 1) (mapcon . 0) (mapl . 0) (set-pprint-dispatch . 1)
-                                                (mapcar . 0) (reduce . 0) (maplist . 0) (complement . 0)
-                                                (shared-initialize . 17) (map . 1) (mapcan . 0) (set-macro-character . 1)
-                                                (mapc . 0) (set-dispatch-macro-character . 2) (apply . 0))))
+               #.(alexandria:alist-hash-table
+                  '((funcall . 0) (map-into . 1) (mapcon . 0) (mapl . 0) (set-pprint-dispatch . 1)
+                    (mapcar . 0) (reduce . 0) (maplist . 0) (complement . 0)
+                    (shared-initialize . 17) (map . 1) (mapcan . 0) (set-macro-character . 1)
+                    (mapc . 0) (set-dispatch-macro-character . 2) (apply . 0))))
     (declare (ignore _))
     position))
 
+(defun unsafep (form)
+  (and (not (atom form))))
 
+;; (unsafep 42)
 
 #++
 (higher-order-function-p 'mapcar)
@@ -34,6 +38,60 @@
 (higher-order-function-p '+)
 ;; => nil
 
+(defvar *declarations* (make-hash-table :test 'equal))
+
+;; name + kind is analogous to cl:documentation's x and doc-type
+(defmacro decl ((name kind)
+                &body details)
+  `(let ((key '(,name ,kind)))
+     ;; TODO validate/parse the details; use actual objects
+     (setf (gethash key *declarations*) ',details)))
+
+;; the "->" should be optional, e.g. just for making it easier to read
+
+;; sbcl has a nice "(modifying type-specifier)" annotation
+
+(decl (+ function)
+  (function (&rest number) -> number)
+  ;; TODO technically, it's not commutative or associative for
+  ;; floating point numbers
+  :associative t
+  :commutative t
+  :identity-element 0
+  :inverse -
+  :safe t)
+
+(decl (make-hash-table function)
+  (function (&key
+             test
+             size
+             rehash-size
+             rehash-threshold
+             :+sbcl hash-function
+             :+sbcl weakness
+             :+sbcl synchronized) -> (hash-table)
+            (where ((test (member eq eql equal equalp))
+                    (size (integer 0))
+                    (rehash-size (or (integer 1 *) (float (1.0) *)))
+                    (rehash-threshold (real 0 1)))))
+  :allocate t)
+
+(decl (coerce function)
+  (function (t type-specifier) -> t)
+  :safe t
+  :allocate :probably)
+
+#++
+(defalias function car first)
+
+(decl (car function)
+  :arguments ((cons ?a ?b))
+  :return ?a
+  :alias first
+  :setf-able t
+  :safe t
+  :allocate nil
+  :identity-element nil)
 
 #++
 (do-external-symbols (s :cl) nil (when (ignore-errors (symbol-function s))
@@ -46,7 +104,8 @@
 ;; TODO better name?
 (defparameter *seed*
   `(("Math"
-     ("Arithmetic" (* + - / 1+ 1- MOD REM))
+     ("Arithmetic"
+      (+ - * / 1+ 1- MOD REM))
      ("Comparison" (/= < <= = > >=))
      ("Complex numbers"
       (CONJUGATE IMAGPART REALP REALPART
