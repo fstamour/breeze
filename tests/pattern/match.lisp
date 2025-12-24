@@ -166,7 +166,10 @@
         (loop :for invariant :in '(check-substitution
                                    check-if-iterators-are-updated
                                    check-iterator-depths)
-              :always (apply invariant kwargs)))
+              :always (apply invariant kwargs))
+        ;; TODO I was adding more checks:
+        ;; (break "~s ~s" $input-before $input)
+        )
       substitutions)))
 
 ;; TODO need to make sure that the "input" iterator is not advanced when matching zero-or-more
