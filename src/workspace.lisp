@@ -74,6 +74,16 @@ Design decision(s):
 |#
 
 
+;;; definitions
+
+(breeze.class-utils:define-simple-class
+    definition ()
+    "A definition name and its kind."
+    (name kind))
+
+;; (definition 'defun :macro)
+
+
 ;;; workspace
 
 ;; TODO add mutex
@@ -81,7 +91,12 @@ Design decision(s):
   ((buffers
     :initform (make-hash-table :test 'equal)
     :accessor buffers
-    :documentation ""))
+    :documentation "Map of buffers keyed by their name")
+   (definitions
+    :initform (make-hash-table :test 'equal)
+    :initarg :definitions
+    :accessor definitions
+    :documentation "Map of all the definitions found in the buffers, keyed by their name and type."))
   (:documentation ""))
 
 (defun make-workspace ()
