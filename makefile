@@ -16,6 +16,17 @@ all-tests: test test-emacs emacs/breeze-autoloads.el
 test:
 	scripts/test-sbcl.sh
 
+# Build the executable
+.PHONY: build
+build: build/brz
+# TODO add the dependencies...
+.PHONY: build/brz
+build/brz:
+	sbcl \
+	--eval '(ql:quickload "breeze")' \
+	--eval '(asdf:make "breeze")' \
+	--eval '(quit)'
+
 # Generate the documentation
 .PHONY: doc
 doc:
