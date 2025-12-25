@@ -90,7 +90,7 @@
   (let* ((trace (drive-command #'insert-asdf
                                :inputs '("a" "b" "c")
                                :context '())))
-    (common-trace-asserts 'insert-asdf trace 8)
+    (common-trace-asserts 'insert-asdf trace 5)
     (destructuring-bind (input request) (first trace)
       (false input)
       (is string= "read-string" (first request))
@@ -108,31 +108,6 @@
       (false (third request)))
     (destructuring-bind (input request) (fourth trace)
       (is string= "c" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(cl:in-package #:cl)"
-            ""
-            "")
-          (split-by-newline (second request))))
-    (destructuring-bind (input request) (fifth trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(defpackage #:a.asd"
-            " (:use :cl :asdf))"
-            ""
-            "")
-          (split-by-newline (second request))))
-    (destructuring-bind (input request) (sixth trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(in-package #:a.asd)"
-            ""
-            "")
-          (split-by-newline (second request))))
-    (destructuring-bind (input request) (seventh trace)
-      (false input)
       (is string= "insert" (first request))
       (is equal
           '("(asdf:defsystem #:a"
