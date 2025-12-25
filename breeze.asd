@@ -71,11 +71,6 @@
                breeze/generics
                breeze/class-utils
                breeze/pattern)
-
-  :build-operation "program-op"
-  :build-pathname "../build/brz"
-  :entry-point "breeze.cli:main"
-
   :pathname "src/"
   :components
   ((:file "logging")
@@ -133,9 +128,7 @@
                  (:file "other-files")
                  (:file "quicklisp")
                  (:file "egraph-command")
-                 (:file "invert")))
-   ;; TODO move into its own system
-   (:file "cli" :depends-on ("refactor")))
+                 (:file "invert"))))
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
@@ -145,7 +138,25 @@
 
 ;;; breeze/cli system
 
-
+(asdf:defsystem #:breeze/cli
+  :description ""
+  :version "0.0.1"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :depends-on ("breeze")
+  :pathname "src"
+  :components
+  ((:file "cli"))
+  ;; in order to test this system, load the test system
+  ;; :in-order-to ((test-op (load-op breeze/cli/test)))
+  ;; this tells asdf what to execute to run the tests
+  ;; :perform
+  #++ (test-op (o c)
+           (uiop:symbol-call
+            'breeze/cli.test 'run-tests))
+  :build-operation "program-op"
+  :build-pathname "../build/brz"
+  :entry-point "breeze.cli:main")
 
 
 ;;; breeze/docs system
@@ -154,27 +165,7 @@
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"
-  :licence "BSD 2-Clause License(cl:in-package #:cl)
-
-
-(asdf:defsystem #:breeze/cli
-  :description ""
-  :version "0.0.1"
-  :author "Francis St-Amour"
-  :licence "BSD 2-Clause License"
-  :depends-on ()
-  ;; :pathname "src"
-  ;; :serial t
-  :components
-    (#+(or) (:file "todo"))
-  ;; in order to test this system, load the test system
-  :in-order-to ((test-op (load-op breeze/cli/test)))
-  ;; this tells asdf what to execute to run the tests
-  :perform
-  (test-op (o c)
-           (uiop:symbol-call
-            'breeze/cli.test 'run-tests))
-  )
+  :licence "BSD 2-Clause License
 "
   :depends-on (breeze
                ;; For documentation generation
