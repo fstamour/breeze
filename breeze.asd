@@ -127,7 +127,7 @@
                  (:file "test-commands")
                  (:file "other-files")
                  (:file "quicklisp")
-                 (:file "egraph-command")
+                 (:file "egraph-commands")
                  (:file "invert"))))
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
