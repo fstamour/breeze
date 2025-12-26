@@ -70,23 +70,17 @@
     :unless (equal file altfile)
     :collect altfile))
 
-#++
-(defun candidate-alt-files (file &aux (file (probe-file file)))
-  (loop
-    :with file-name := (pathname-filename file)
-    :for altdir :in (candidate-alt-dir file)
-    :for altfile := (merge-pathnames file-name altdir)
-    :unless (equal file altfile)
-    :collect altfile))
 
 #++
-(let* ((file (breeze.utils:breeze-relative-pathname "src/refactor.lisp")))
+(let* ((file (breeze.dogfood:breeze-relative-pathname "src/refactor.lisp")))
   (candidate-alt-files file))
 ;; => (#P"/home/fstamour/quicklisp/local-projects/breeze/src/" "refactor.lisp")
 
 (defun %other-file (&optional other-window-p)
   (let* ((file (current-buffer-filename))
-         (candidates (candidate-alt-files file))
+         (candidates (remove-duplicates
+                      (candidate-alt-files file)
+                      :test #'equalp))
          (candidates (or (remove-if-not #'probe-file candidates)
                          candidates)))
     (cond
