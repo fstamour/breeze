@@ -24,7 +24,7 @@ build: build/brz
 build/brz:
 	sbcl \
 	--eval '(ql:quickload "breeze")' \
-	--eval '(asdf:make "breeze")' \
+	--eval '(asdf:make "breeze/cli")' \
 	--eval '(quit)'
 
 # Generate the documentation
