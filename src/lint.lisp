@@ -20,7 +20,26 @@
 
 ;;; Utilities to collect "diagnostics"
 
-(defvar *diagnostics* nil)
+(defclass scan ()
+  ((diagnostics
+    :initform nil
+    :initarg :diagnostics
+    :accessor diagnostics
+    :documentation "Collect all the diagnistics")
+  (livep
+    :initform t
+    :initarg :livep
+    :accessor livep
+    :documentation "True if the scan is done for a live session (for example, for n editor
+connected to an image through slime or sly)."))
+  (:documentation "A run of the linter and the diagnistics that were found."))
+
+(defparameter *scan* nil
+  "The current run of the linter. Holds the linter's configurations and keeps track of all the diagnostics.")
+
+(defun livep* ()
+  (livep *scan*))
+
 (defvar *point-max* nil)
 
 (defun make-diagnostic (start end severity format-string format-args)
@@ -31,33 +50,33 @@
 
 (defun push-diagnostic* (start end severity format-string format-args)
   "Create a diagnostic object and push it into the special variable
-*diagnostics*."
+*scan*."
   (let ((diagnostic (make-diagnostic start end
                                      severity
                                      format-string format-args)))
-    (push diagnostic *diagnostics*)
+    (push diagnostic (diagnostics *scan*))
     diagnostic))
 
 ;; Same as push-diagnostic*, but takes a &rest
 (defun push-diagnostic (start end severity format-string &rest format-args)
   "Create a diagnostic object and push it into the special variable
-*diagnostics*."
+*scan*."
   (push-diagnostic* start end severity format-string format-args))
 
 (defun diag-node (node severity format-string &rest format-args)
   "Create a diagnostic object for NODE and push it into the special
-variable *diagnostics*."
+variable *scan*."
   (push-diagnostic* (start node) (end node)
                     severity format-string format-args))
 
 (defun diag-warn (node format-string &rest format-args)
   "Create a diagnostic object for NODE with severity :WARNING and push it
-into the special variable *diagnostics*."
+into the special variable *scan*."
   (apply #'diag-node node :warning format-string format-args))
 
 (defun diag-error (node format-string &rest format-args)
   "Create a diagnostic object for NODE with severity :error and push it
-into the special variable *diagnostics*."
+into the special variable *scan*."
   (apply #'diag-node node :error format-string format-args))
 
 
@@ -153,15 +172,15 @@ found."
         (when (null package)
           package-designator)))))
 
-;; TODO this rule only make sense when "in-image"
 (defun warn-undefined-in-package (node-iterator)
-  (alexandria:when-let* ((package-designator-node (in-package-node-p node-iterator))
-                         (package-name (node-string-designator
-                                        package-designator-node)))
-    (unless (find-package package-name)
-      (breeze.lint::node-style-warning
-       node-iterator
-       (format nil "Package ~s is not currently defined." package-name)))))
+  (when (livep*)
+    (alexandria:when-let* ((package-designator-node (in-package-node-p node-iterator))
+                           (package-name (node-string-designator
+                                          package-designator-node)))
+      (unless (find-package package-name)
+        (breeze.lint::node-style-warning
+         node-iterator
+         (format nil "Package ~s is not currently defined." package-name))))))
 
 
 ;; This assumes that NODE-ITERATOR points to a whitespace node
@@ -301,26 +320,32 @@ when called with arguments
                                       :replacement '(:insert-after " "))))))
         (next-preorder node-iterator)))
 
-(defun lint-buffer (buffer &aux (*diagnostics* '()))
+(defun lint-buffer (buffer
+                    &key
+                      (livep t)
+                      (*scan*
+                       (make-instance 'scan
+                                      :livep livep)))
   "Apply all the linting rules, and accumulate the \"diagnostics\"."
   (check-type buffer buffer)
+  ;; TODO &key livep and scan are mutually exclusive
   (handler-bind
       ((node-parse-error (lambda (condition)
                            (diag-error (target-node condition)
                                        (simple-condition-format-control condition)
                                        (simple-condition-format-arguments condition))
-                           (return-from lint-buffer *diagnostics*)))
+                           (return-from lint-buffer (diagnostics *scan*))))
        (node-style-warning (lambda (condition)
                              (diag-warn (target-node condition)
                                         (simple-condition-format-control condition)
                                         (simple-condition-format-arguments condition)))))
     (analyse buffer))
-  *diagnostics*)
+  (diagnostics *scan*))
 
 ;; TODO currently, this re-analyze the buffer and collects all the
 ;; fixable issues. the issues should be cached (probably in the
 ;; workspace object).
-(defun fix-buffer (buffer)
+(defun fix-buffer (buffer &aux (*scan* (make-instance 'scan :livep nil)))
   (check-type buffer buffer)
   (uiop:while-collecting (conditions)
     (handler-bind ((simple-node-condition

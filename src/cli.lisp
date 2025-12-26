@@ -20,5 +20,6 @@
    (lambda (buffer)
      (format t "~&~a" (breeze.buffer:filename buffer))
      (loop
-       :for diagnostic :in (breeze.lint:lint-buffer buffer)
+       :for diagnostic :in (breeze.lint:lint-buffer buffer
+                                                    :livep nil)
        :do (format t "~&~a" diagnostic)))))
