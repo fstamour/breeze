@@ -80,8 +80,27 @@ TODO
       (test-lint "( x )"))
   (is equalp
       '((1 4 :warning "Missing space between forms."))
-      (test-lint "(\"a\"x)")))
-
+      (test-lint "(\"a\"x)"))
+  ;; TODO I _don't_ want this warning:
+  (is equalp
+      '((4 5 :warning "Extraneous leading whitespaces."))
+      (test-lint "`(,@
+#+a ,a
+#+b ,b)"))
+  ;; TODO do not flag extraneous whitespaces that are used for
+  ;; aligning things into columns
+  (is equalp
+      '((9 18 :warning "Extraneous internal whitespaces."))
+      (test-lint "
+(let ((a         a)
+      (bbbbbbbbb b)))"))
+  ;; TODO do not flag extraneous whitespaces that are used for
+  ;; aligning things into columns
+  (is equalp
+      '((29 38 :warning "Extraneous internal whitespaces."))
+      (test-lint "
+(let ((bbbbbbbbb b)
+      (a         a)))")))
 
 #++
 (trace :wherein test-lint

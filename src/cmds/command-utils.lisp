@@ -26,3 +26,7 @@
   "Insert an ~cl:in-package~ form, if necessary."
   (let (($package (current-package))))
   (insert "(cl:in-package #:asdf-user)~%~%"))
+
+
+;; TODO method "ask licence" and "ask author"
+;; (methods, not defun, for better testability and customization)
