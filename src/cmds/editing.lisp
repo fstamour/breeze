@@ -79,3 +79,5 @@ TODO next-alternative/previous alternative (e.g. :accessor <-> :reader <-> :writ
 #++ ;; TODO
 (define-command beginning-of-defun ()
   "Move backward to the beginning of a defun.")
+
+;; TODO convert between line comment and block-comment

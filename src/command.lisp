@@ -206,6 +206,7 @@ uses the throw tag to stop the command immediately."
   (send-out *command* `(,request ,@data)))
 
 
+
 (defun stop-actor (actor)
   (when-let* ((thread (thread actor)))
     (handler-case
@@ -250,7 +251,7 @@ uses the throw tag to stop the command immediately."
 
 (defun thread-dead-p (command)
   (and (thread command)
-       ;; The thread is finisheds
+       ;; The thread is finished
        (null (bt:thread-alive-p (thread command)))))
 
 (defun donep (command)
@@ -504,7 +505,7 @@ It can be null."
     (node-iterator buffer)))
 
 
-;;; Basic commands, to be composed
+;;; Primitive commands, to be composed
 
 ;; This is mostly to work around window's end of lines...
 (defun format* (control-string args)
@@ -514,6 +515,8 @@ It can be null."
                'control-string)
          args))
 
+;; TODO rename insert-format
+;; TODO add a method named `insert'
 (defun insert (control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
 POSITION."

@@ -284,8 +284,7 @@ defun."
 (define-command insert-defgeneric ()
   "Insert a defgeneric form."
   (declare (context :top-level))
-  (let ((name (read-string
-               "Name of the generic function: ")))
+  (let ((name (read-string "Name of the generic function: ")))
     (insert
      "(defgeneric ~a ()~
      ~%  (:documentation \"\")~
@@ -359,13 +358,6 @@ defun."
       (get-decoded-time))"))
 
 
-;;; Edits
-
-;; TODO convert between line comment and block-comment
-
-
-;;; TODO move into (new file) +quicklisp
-
 
 (define-command insert-make-array ()
   "Insert a make-array form."
@@ -392,6 +384,7 @@ defun."
    ";;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Base: 10; Package: ~a -*-"
    "TODO"))
 
+;; TODO insert-fancy-ecl-shebang
 (define-command insert-fancy-sbcl-shebang ()
   "Insert fancy sbcl shebang at the start of the buffer."
   (declare (context :beginning-of-buffer))

@@ -10,9 +10,8 @@
                 #:in-package-node-p)
   (:export #:target-node
            #:replacement)
-  (:export
-   #:lint-buffer
-   #:fix-buffer)
+  (:export #:lint-buffer
+           #:fix-buffer)
   (:export #:lint))
 
 (in-package #:breeze.lint)
