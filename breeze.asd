@@ -94,8 +94,11 @@
    (:file "workspace" :depends-on ("parser" "buffer"))
    (:file "egraph")
    (:file "analysis" :depends-on ("parser"))
+   (:file "actor"
+    :depends-on ("channel"))
    (:file "command"
-    :depends-on ("utils"
+    :depends-on ("actor"
+                 "utils"
                  "configuration"
                  "indirection"
                  ;; for externalp
