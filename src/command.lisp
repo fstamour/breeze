@@ -831,21 +831,26 @@ Example:
                 :collect specifier :into cl-declarations
               :finally (return (values command-declarations cl-declarations)))
       ;;
-      `(values (prog1
-                   ;; define
-                   (defun ,name ,lambda-list
-                     ;; Add the users' declarations
-                     ,docstring
-                     ,@(loop :for declaration :in cl-declarations
-                             :collect `(declare ,declaration))
-                     (progn ,@remaining-forms)
-                     (send "done"))
-                 ;; register
-                 (register-command* ',name (list
-                                            :lambda-list ',lambda-list
-                                            :documentation ,docstring
-                                            :declarations ',command-declarations)))
-               ',command-declarations))))
+      (let ((recursive-p (intern (string :recursive-p))))
+        `(values (prog1
+                     ;; define
+                     (defun ,name ,(or lambda-list
+                                    `(&key ,recursive-p))
+                       ;; Add the users' declarations
+                       ,docstring
+                       ,@(loop :for declaration :in cl-declarations
+                               :collect `(declare ,declaration))
+                       (multiple-value-prog1
+                           (progn ,@remaining-forms)
+                         ,(if lambda-list
+                              `(send "done")
+                              `(unless ,recursive-p (send "done")))))
+                   ;; register
+                   (register-command* ',name (list
+                                              :lambda-list ',lambda-list
+                                              :documentation ,docstring
+                                              :declarations ',command-declarations)))
+                 ',command-declarations)))))
 
 
 ;;; Utilities to send notifications to the editor
