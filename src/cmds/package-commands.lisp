@@ -20,6 +20,7 @@
   (let ((package-name
           (read-string
            "Name of the package: "
+           :initial-input
            (infer-package-name-from-file (current-buffer-filename)))))
     (when (in-package-cl-user-p)
       (insert

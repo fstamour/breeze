@@ -531,16 +531,32 @@ POSITION, saving and restoring the current position."
    "insert-saving-excursion"
    (format* control-string args)))
 
-(defun read-string (prompt &optional initial-input)
+(defun history-name (history)
+  "Get the name. as a string, of the variable used to store the
+history. Defaults to the name of the current command if HISTORY is
+nil. Prepends th prefix \"breeze-\" if necessary."
+  (breeze.string:ensure-prefix
+   "breeze-"
+   (format nil "~(~a~@[--~a~]~)"
+           (fn *command*) history)))
+
+(defun read-string (prompt &key initial-input history)
   "Send a message to the editor to ask the user to enter a string."
-  (send "read-string" prompt initial-input)
+  (send "read-string" prompt
+        :initial-input initial-input
+        :history (history-name history))
   (recv1))
 
 (defun read-string-then-insert (prompt control-string &optional (fn #'identity))
   (insert control-string
           (funcall fn (read-string prompt))))
 
-(defun choose (prompt collection &key (allow-empty-collection-p t))
+(defun choose (prompt collection
+               &key
+                 (allow-empty-collection-p t)
+                 ;; TODO :select-1
+                 ;; TODO :require-match
+                 history)
   "Send a message to the editor to ask the user to choose one element
 in the collection. The user can also enter a value not in the
 collection."
@@ -550,7 +566,8 @@ collection."
   (when (and (null collection)
              (not allow-empty-collection-p))
     (error "The list of choices is empty."))
-  (send "choose" prompt collection)
+  (send "choose" prompt collection
+        :history (history-name history))
   (recv1))
 
 (defun insert-at (position control-string &rest args)

@@ -224,10 +224,12 @@ defun."
                                   #| TODO infer-system-name |#))
         (author (read-string "Author: "
                              #| TODO infer-autor-name |#
-                             breeze.config:*default-author*))
+                             :initial-input breeze.config:*default-author*
+                             :history 'author))
         ;; TODO Add default license from config
         (licence (read-string "Licence name: "
-                              #| TODO infer-licence |#)))
+                              #| TODO infer-licence |#
+                              :history 'licence)))
     (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
             system-name
             `(":description \"\""

@@ -327,14 +327,40 @@ receiving the data it requested."
 
 ;; TODO maybe add a "narrow" request type?
 ;; TODO use "inhibit-modification-hooks" where necessary...
+
+(defun breeze-history-symbol (history)
+  "Convert the string HISTORY into a symbol, if not nil."
+  (when history
+    ;; TODO validate: must be a string that starts with "breeze-"
+    (intern history)))
+
 (defun breeze-command-process-request (id request)
   "Dispatch REQUESTs from a command."
   (pcase (car request)
     ("choose"
-     (completing-read (cl-second request)
-                      (cl-third request)))
+     ;; TODO :require-match
+     (cl-destructuring-bind (prompt collection
+                                    &key history)
+         (cl-rest request)
+       (completing-read prompt
+                        collection
+                        ;; predicate
+                        nil
+                        ;; require-match
+                        nil
+                        ;; initial-input
+                        nil
+                        ;; hist
+                        (breeze-history-symbol history)
+                        ;; default value
+                        nil)))
     ("read-string"
-     (apply #'read-string (cl-rest request)))
+     (cl-destructuring-bind (prompt &key
+                                    initial-input history)
+         (cl-rest request)
+       (read-string prompt
+                    initial-input
+                    (breeze-history-symbol history))))
     ("insert-at"
      (cl-destructuring-bind (_ position string)
          request

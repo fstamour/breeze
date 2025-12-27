@@ -29,9 +29,11 @@
                  (merge-pathnames project-name
                                   (choose-local-project-directories))))))
          (author (read-string "Author of the project: "
-                              *default-author*))
-         (license (read-string "Licence of the project: "
-                               *default-system-licence*)))
+                              :initial-input *default-author*
+                              :history 'author))
+         (licence (read-string "Licence of the project: "
+                               :initial-input *default-system-licence*
+                               :history 'licence)))
     ;; TODO depends-on
     ;; TODO include-copyright
     ;; TODO template-directory
@@ -41,6 +43,6 @@
      directory
      :name project-name
      :author author
-     :license license)
+     :license licence)
     (message "Project \"~a\" created." directory)
     (find-file directory)))
