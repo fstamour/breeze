@@ -57,7 +57,8 @@ fiind-sym
   (:import-from #:breeze.command
                 #:define-command
                 #:current-buffer
-                #:return-value-from-command)
+                #:return-value-from-command
+                #:noninteractive)
   (:import-from #:breeze.parser
                 #:node-iterator)
   (:export #:completions-at-point))
@@ -69,6 +70,7 @@ fiind-sym
 (define-command completions-at-point (&optional string)
   "completion-at-point"
   (declare (ignorable string))
+  (declare noninteractive)
   (let* (($node (node-iterator (current-buffer)))
          (node (breeze.iterator:value $node)))
     (declare (ignorable node))

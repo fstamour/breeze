@@ -2,6 +2,8 @@
 
 (defpackage #:breeze.test.documentation
   (:use :cl #:breeze.documentation)
+  (:import-from #:breeze.command
+                #:interactivep)
   (:import-from #:breeze.dogfood
                 #:breeze-relative-pathname
                 #:find-breeze-packages)
@@ -227,9 +229,7 @@
                                 (or
                                  (string= '#:breeze.dogfood package-name)
                                  (alexandria:starts-with-subseq "BREEZE.TEST." package-name)
-                                 ;; TODO this is a hack, we should filter out "non interactive" commands
-                                 (member command '(breeze.lint:lint
-                                                   breeze.completion:completions-at-point)))))
+                                 (not (interactivep command)))))
                             (breeze.command:list-all-commands)) #| this is a list of symbols |#)
                (commands-in-the-table (mapcar #'car table-content))
                (command->key-binding)

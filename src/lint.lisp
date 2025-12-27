@@ -385,5 +385,6 @@ when called with arguments
 
 (define-command lint ()
   "Lint the current buffer."
+  (declare noninteractive)
   (return-value-from-command
    (lint-buffer (current-buffer))))

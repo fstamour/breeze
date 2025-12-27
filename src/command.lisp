@@ -70,7 +70,8 @@
    #:command-description
    ;; Utilities to create commands
    #:define-command
-   #:interactive
+   #:noninteractive
+   #:interactivep
    ;; Utilities to send notifications to the editor
    #:notify-editor
    #:notifications))
@@ -78,7 +79,7 @@
 (in-package #:breeze.command)
 
 
-;;; Actors
+;;;; Actors
 
 (defvar *actors* (make-hash-table)
   "Collection of command-handlers")
@@ -193,17 +194,17 @@
   (print-unreadable-object
       (command stream :type t :identity nil)
     (let* ((then (created-at command))
-                   (now (get-internal-real-time))
-                   (diff (- now then))
-                   (seconds (/ diff internal-time-units-per-second)))
-              (multiple-value-bind (m s) (floor seconds 60)
-                (format stream "~s (~dm ~ds ago)" (fn command)
-                        m (ceiling s))))))
+           (now (get-internal-real-time))
+           (diff (- now then))
+           (seconds (/ diff internal-time-units-per-second)))
+      (multiple-value-bind (m s) (floor seconds 60)
+        (format stream "~s (~dm ~ds ago)" (fn command)
+                m (ceiling s))))))
 
 (defmethod thread :around ((_ (eql nil))) nil)
 
 
-;;; Channels
+;;;; Channels
 
 (defmethod channel-in :around (command)
   "Helper method for easier debugging."
@@ -366,14 +367,14 @@ uses the throw tag to stop the command immediately."
          (funcall thunk)
        ;; for breeze interactive-eval, I need the errors to
        ;; propagate...
-         #++
-         (handler-case (funcall thunk)
-             (error (condition)
-               (let ((actor (find-actor id :errorp t)))
-                 (log-error "~&An error occurred in ~a:~%  ~a" actor condition))
-               ;; TODO print the backtrace if possible
-               (cancel-command id condition)
-               (send "done")))
+       #++
+       (handler-case (funcall thunk)
+         (error (condition)
+           (let ((actor (find-actor id :errorp t)))
+             (log-error "~&An error occurred in ~a:~%  ~a" actor condition))
+           ;; TODO print the backtrace if possible
+           (cancel-command id condition)
+           (send "done")))
        (retry-command ()
          :report "Retry calling the command"
          (go :retry)))))
@@ -778,6 +779,12 @@ exported from its home package."
    (find-command command)
    (breeze.xref:externalp command)))
 
+(defun interactivep (function-or-declarations)
+  "Return true if a command's declaration doesn't contain breeze.command:noninteractive."
+  (if (listp function-or-declarations)
+      (null (member 'noninteractive function-or-declarations))
+      (interactivep (getf (find-command function-or-declarations) :declarations))))
+
 (defun list-all-commands ()
   "Get the list of commands (list of symbols) registered in the current
 command-set `*commands*'."
@@ -809,13 +816,13 @@ editor. Returns a list of plist."
   (loop
     :for command-symbol :being :the :hash-key :of (commands *commands*) :using (hash-value details)
     :for documentation := (getf details :documentation)
+    :for declarations := (getf details :declarations)
     :for lambda-list := (command-lambda-list-for-editor (getf details :lambda-list))
-    ;; TODO is interactive
     :for name := (command-name-for-editor command-symbol)
-    ;; The editor should only see the commands that are exported
+    ;; The editor should only see the commands that are exported and
+    ;; interactive.
     :when (and (breeze.xref:externalp command-symbol)
-               ;; TODO this is a hack
-               (not (string= name "breeze-lint")))
+               (interactivep declarations))
       :collect (list
                 :name (make-symbol (string-upcase name))
                 :symbol (symbol-package-qualified-name command-symbol)
@@ -879,9 +886,11 @@ Example:
     ;; "command" declarations.
     (multiple-value-bind (command-declarations cl-declarations)
         (loop :for (_ specifier) :in declarations
-              :for identifier = (car specifier)
+              :for identifier = (if (listp specifier)
+                                    (car specifier)
+                                    specifier)
               ;; recognized declarations:
-              :if (member identifier '(context))
+              :if (member identifier '(context noninteractive))
                 :collect specifier :into command-declarations
               :else
                 :collect specifier :into cl-declarations
