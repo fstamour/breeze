@@ -160,7 +160,6 @@ Design decision(s):
 (defun directory-name (pathname)
   (lastcar (pathname-directory pathname)))
 
-;; TODO move infer-project-name here
 (defun infer-project-name (path)
   "Try to infer the name of the project from the PATH."
   ;; Infer project-name by location .git folder
@@ -168,7 +167,6 @@ Design decision(s):
     (if-let ((vc-root (indirect (find-version-control-root path))))
       (directory-name vc-root))))
 
-;; TODO move infer-is-test-file here
 (defun infer-is-test-file (path)
   "Try to infer if a file is part of the tests."
   (when path
@@ -239,19 +237,20 @@ Design decision(s):
 
 
 
-(defun after-change-function (start stop length &rest rest
-                                              &key
-                                                buffer-name
-                                                buffer-file-name
-                                                insertion
-                                              &allow-other-keys)
-  (declare (ignorable start stop length rest buffer-file-name insertion)) ; yea, you heard me
+(defun after-change-function (start stop length
+                              &rest rest
+                              &key
+                                buffer-name
+                                buffer-file-name
+                                insertion
+                              &allow-other-keys)
+  (declare (ignorable start stop rest buffer-file-name)) ; yea, you heard me
   ;; TODO the following form is just a hack to keep the breeze's
   ;; buffers in sync with the editor's buffers
   (when-let ((buffer (find-buffer buffer-name)))
     (setf (node-iterator buffer) nil))
-  ;; consider ignore-error + logs, because if something goes wrong in
-  ;; this function, editing is going to be funked.
+  ;; TODO consider ignore-error + logs, because if something goes
+  ;; wrong in this function, editing is going to be funked.
   (breeze.incremental-reader:push-edit
    (cond
      ((zerop length)
