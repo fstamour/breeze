@@ -307,17 +307,20 @@ diagnostics)."
    (format "(breeze.command:cancel-command %s %S)" id reason))
   (breeze-debug "Breeze: command %s canceled." id))
 
-(defun breeze-command-continue (id response send-response-p)
+(defun breeze-command-continue (id request response)
   "Send RESPONSE to the command ID so it can continues after
 receiving the data it requested."
-  (let ((request
-         (breeze-eval
-          (if send-response-p
-              (format
-               "(breeze.command:continue-command %s %S)" id response)
-            (format "(breeze.command:continue-command %s)" id)))))
-    (breeze-debug "Breeze: (#%s) request received: %s" id request)
-    request))
+  (let* ((send-response-p
+          (member (car request)
+                  '("choose" "read-string" "buffer-string")))
+         (new-request
+          (breeze-eval
+           (if send-response-p
+               (format
+                "(breeze.command:continue-command %s %S)" id response)
+             (format "(breeze.command:continue-command %s)" id)))))
+    (breeze-debug "Breeze: (#%s) request received: %s" id new-request)
+    new-request))
 
 (defun breeze-deregister-command (id)
   (breeze-eval (format "(breeze.command:deregister %s)" id)))
@@ -389,17 +392,13 @@ receiving the data it requested."
             (cl-loop
              ;; guards against infinite loop
              for i below 1000
-             for
              ;; Get the first request from the command
-             request = (breeze-command-continue id nil nil)
+             for request = (breeze-command-continue id nil nil)
              ;; Continue the command
-             then (breeze-command-continue id response send-response-p)
-             ;; "Request" might be nil, if it is, we're done
+             then (breeze-command-continue id request response)
+             ;; `request' might be nil, if it is, we're done
              while (and request
                         (not (string= "done" (car request))))
-             ;; Whether or not we need to send arguments to the next callback.
-             for send-response-p = (member (car request)
-                                           '("choose" "read-string" "buffer-string"))
              ;; Process the command's request
              for response = (breeze-command-process-request id request)
              ;; Log request and response (for debugging)
