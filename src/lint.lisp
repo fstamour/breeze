@@ -136,13 +136,49 @@ simple-condition-format-control, simple-condition-format-arguments
          (simple-condition-format-arguments c)))
 
 
-;;; Linter rules
+;;; Checks (linter rules)
+
+(defclass check ()
+  ((fn
+    :initform nil
+    :initarg :fn
+    :accessor fn
+    :documentation "The function to call to run this check.")
+   ;; aka selector?
+   (preconditions
+    :initform nil
+    :initarg :preconditions
+    :accessor preconditions
+    :documentation "List of conditions in which this check is applicable.")
+   ;; TODO categories (tags?)
+   ;; TODO doc url??
+   )
+  (:documentation "Represent a linter rule."))
+
+
+#++ ;; TODO make the list of "linting rules" dynamic
+(defvar *rules*
+  (list
+   'error-invalid-node
+   'warn-undefined-in-package
+   '((and (plusp depth)
+      (whitespace-node-p node))
+     'warn-extraneous-whitespaces)))
+
+;; To make the transition from a bunch of functions to something more
+;; structured, I'll make the "defcheck" macro compatible with "defun".
+(defmacro defcheck (name lambda-list &body body)
+  ;; TODO extract docstring
+  ;; TODO validate that docstring is not null
+  ;; TODO "register" the check
+  ;; TODO extract the preconditions
+  `(defun ,name ,lambda-list ,@body))
 
 #++
 (defun check-in-package ()
   "Make sure the previous in-package form desginates a package that can
 be found. If it's not the case (e.g. because the user forgot to define
-a package and/or evaluate the form that defines the package) they show
+a package and/or evaluate the form that defines the package) then show
 a message and stop the current command."
   (let (($package (current-package)))
     (if package
@@ -172,7 +208,7 @@ found."
         (when (null package)
           package-designator)))))
 
-(defun warn-undefined-in-package (node-iterator)
+(defcheck warn-undefined-in-package (node-iterator)
   (when (livep*)
     (alexandria:when-let* ((package-designator-node (in-package-node-p node-iterator))
                            (package-name (node-string-designator
@@ -184,7 +220,7 @@ found."
 
 
 ;; This assumes that NODE-ITERATOR points to a whitespace node
-(defun warn-extraneous-whitespaces (node-iterator)
+(defcheck warn-extraneous-whitespaces (node-iterator)
   (if (rootp node-iterator)
       ;; Check for spaces at top-level, just before a form. Said
       ;; otherwise: an indented top-level form.
@@ -244,7 +280,7 @@ found."
             node-iterator "Extraneous internal whitespaces."
             :replacement " "))))))
 
-(defun warn-missing-indentation (node-iterator)
+(defcheck warn-missing-indentation (node-iterator)
   (node-style-warning
    node-iterator
    "Missing indentation"
@@ -283,14 +319,6 @@ when called with arguments
                                     :do (fresh-line out) (apply #'format out error))))
           (node-parse-error node-iterator "Syntax error")))))
 
-#++ ;; TODO make the list of "linting rules" dynamic
-(defvar *rules*
-  (list
-   'error-invalid-node
-   'warn-undefined-in-package
-   '((and (plusp depth)
-      (whitespace-node-p node))
-     'warn-extraneous-whitespaces)))
 
 (defun analyse (buffer
                 &aux (node-iterator (make-node-iterator buffer)))
