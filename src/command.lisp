@@ -51,6 +51,7 @@
    #:current-node-iterator
    ;; Basic composables commands
    #:insert
+   #:insert-saving-excursion
    #:read-string
    #:choose
    #:read-string-then-insert
@@ -515,10 +516,16 @@ It can be null."
 
 (defun insert (control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
-POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
-position."
+POSITION."
   (send
    "insert"
+   (format* control-string args)))
+
+(defun insert-saving-excursion (control-string &rest args)
+  "Send a message to the editor telling it to insert STRING at
+POSITION, saving and restoring the current position."
+  (send
+   "insert-saving-excursion"
    (format* control-string args)))
 
 (defun read-string (prompt &optional initial-input)
@@ -545,14 +552,12 @@ collection."
 
 (defun insert-at (position control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
-POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
-position."
+POSITION."
   (send "insert-at" position (format* control-string args)))
 
 (defun insert-at-saving-excursion (position control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
-POSITION. Set SAVE-EXCURSION-P to non-nil to keep the current
-position."
+POSITION, saving and restoring the current position."
   (send "insert-at-saving-excursion"
         position
         (format* control-string args)))

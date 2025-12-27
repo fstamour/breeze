@@ -345,6 +345,9 @@ receiving the data it requested."
          (insert string))))
     ("insert"
      (cl-destructuring-bind (_ string) request (insert string)))
+    ("insert-saving-excursion"
+     (cl-destructuring-bind (_ string) request
+       (save-excursion (insert string))))
     ("replace"
      (cl-destructuring-bind
          (point-from point-to replacement-string)

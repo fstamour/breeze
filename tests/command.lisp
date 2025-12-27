@@ -93,6 +93,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
                           (t
                            (error "Missing input for request ~S ~s" request input)))))
                    (:insert)
+                   (:insert-saving-excursion)
                    (:message)
                    (:backward-char))
                  (unless (member request-type '(:choose :read-string))
