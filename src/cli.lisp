@@ -7,19 +7,19 @@
 
 (defun main ()
   ;; list all *.lisp file and print any "diagnostics"
-  (breeze.workspace:add-files-to-workspace
-   (directory
-    (make-pathname
-     :directory
-     `(,@(pathname-directory
-          *default-pathname-defaults*)
-         :wild-inferiors)
-     :name :wild
-     :type "lisp")))
-  (breeze.workspace:map-workpace-buffers
-   (lambda (buffer)
-     (format t "~&~a" (breeze.buffer:filename buffer))
-     (loop
-       :for diagnostic :in (breeze.lint:lint-buffer buffer
-                                                    :livep nil)
-       :do (format t "~&~a" diagnostic)))))
+  (let* ((root *default-pathname-defaults*)
+         (wild-dir `(,@(pathname-directory root) :wild-inferiors)))
+    (breeze.workspace:add-files-to-workspace
+     (directory
+      (make-pathname :directory wild-dir :name :wild :type "asd")))
+    (breeze.workspace:add-files-to-workspace
+     (directory
+      (make-pathname :directory wild-dir :name :wild :type "lisp")))
+    (breeze.workspace:map-workpace-buffers
+     (lambda (buffer)
+       (format t "~&~a"
+               (enough-namestring (breeze.buffer:filename buffer) root))
+       (loop
+         :for diagnostic :in (breeze.lint:lint-buffer buffer
+                                                      :livep nil)
+         :do (format t "~&~a" diagnostic))))))

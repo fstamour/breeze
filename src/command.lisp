@@ -861,8 +861,7 @@ TODO list/document/design/validate custom declarations
 
 |#
 
-(defmacro define-command (name lambda-list
-                          &body body)
+(defmacro define-command (name lambda-list &body body)
   "Macro to define a command.
 
 Example:
