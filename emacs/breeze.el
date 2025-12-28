@@ -187,7 +187,6 @@ value."
 ;; (breeze-inflisp-eval "(member :asdf *features*)")
 ;; (breeze-inflisp-eval "(member :quicklisp *features*)")
 
-
 (defun breeze-eval (string)
   "Evaluate STRING using the CL function breeze.listener:rpc-eval"
   (let ((value (breeze-%eval `(breeze.listener:rpc-eval ,string))))
@@ -362,18 +361,18 @@ receiving the data it requested."
                     initial-input
                     (breeze-history-symbol history))))
     ("insert-at"
-     (cl-destructuring-bind (_ position string)
-         request
+     (cl-destructuring-bind (position string)
+         (cl-rest request)
        (when (numberp position) (goto-char (1+ position)))
        (insert string)))
     ("insert-at-saving-excursion"
-     (cl-destructuring-bind (_ position string)
-         request
+     (cl-destructuring-bind (position string)
+         (cl-rest request)
        (save-excursion
          (when (numberp position) (goto-char (1+ position)))
          (insert string))))
     ("insert"
-     (cl-destructuring-bind (_ string) request (insert string)))
+     (cl-destructuring-bind (string) (cl-rest request) (insert string)))
     ("insert-saving-excursion"
      (cl-destructuring-bind (_ string) request
        (save-excursion (insert string))))
