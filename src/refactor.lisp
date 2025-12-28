@@ -145,12 +145,21 @@ be inserted correctly into a buffer."
   "Start a command to insert a form that has the same shape as a
 defvar."
   (insert "(~a " form-name)
-  (read-string-then-insert "Name: " "~a "
-                           (lambda (name)
-                             (ensure-circumfix circumfix name)))
-  (read-string-then-insert "Initial value: " "~a~%")
-  (read-string-then-insert "Documentation string " "~a)"
-                           #'normalize-docstring))
+  (insert-saving-excursion ")")
+  ;; TODO check that NAME is a valid symbol
+  (read-string-then-insert
+   "Name: " "~a "
+   (lambda (name)
+     (ensure-circumfix circumfix name)))
+  ;; TODO check that it's a valid form
+  ;;
+  ;; TODO it's valid to define a varianble without an initial value,
+  ;; in that case, the docstring must be set using a "(setf
+  ;; (documentation ..."
+  (read-string-then-insert
+   "Initial value: " "~a~%")
+  (read-string-then-insert
+   "Documentation string " "~a)" #'normalize-docstring))
 
 (define-command insert-defvar ()
   "Insert a defvar form."
@@ -179,12 +188,13 @@ defvar."
   "Start a command to insert a form that has the same shape as a
 defun."
   (insert "(~a " form-name)
+  (insert-saving-excursion ")")
   (read-string-then-insert "Name: " "~a " name-callback)
   (read-string-then-insert
    ;; Who needs to loop...?
-   "Enter the arguments: " "~a)~%"
+   "Enter the arguments: " "~a~%  "
    (alexandria:compose #'normalize-lambda-list arguments-callback))
-  #++ ;; TODO
+  #++ ;; TODO insert if not empty
   (read-string-then-insert
    "Documentation string: " "  ~a)"
    #'normalize-docstring))
@@ -192,7 +202,7 @@ defun."
 (define-command insert-defun ()
   "Insert a defun form."
   (declare (context :top-level)
-           #| TODO if current token is top-level and is "defun", just choose this command directly |#)
+           #| TODO if current token at top-level and is "defun", just choose this command directly |#)
   (insert-defun-shaped "defun"))
 
 (define-command insert-setf-defun ()
@@ -351,7 +361,8 @@ defun."
 (define-command insert-lambda ()
   "Insert a lambda form."
   (declare (context :expression))
-  (insert "(lambda ())"))
+  (insert "(lambda (")
+  (insert-saving-excursion "))"))
 
 (define-command insert-decoded-time-multiple-value-bind ()
   "Insert a cl:multiple-value-bind form to bind the output of cl:get-decoded-time"
