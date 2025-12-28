@@ -265,33 +265,43 @@ defun."
     ))
 
 
-
-;; TODO How could I reuse an hypothetical "add-slot" command?
-(define-command insert-defclass ()
-  "Insert a defclass form."
-  (declare (context :top-level))
-  (read-string-then-insert
-   "Name of the class: "
-   "(defclass ~a ()~
-   ~%  ((slot~
-   ~%    :initform nil~
-   ~%    :initarg :slot~
-   ~%    :accessor ~@*~a-slot))~
-   ~%  (:documentation \"\"))"))
-
 (define-command insert-class-slot ()
   "Insert a defclass slot form."
   ;; TODO there's no "cl:defclass "context" just yet, so I've put
   ;; :expression for now.
   ;; (declare (context cl:defclass :slot-specifier))
   (declare (context :expression))
-  (read-string-then-insert
-   "Name of the slot: "
-   "~%  (~a~
+  ;; TODO insert "~% " if necessary (need to make sure the buffer id
+  ;; in sync!)
+  (let ((name (read-string "Name of the slot: "
+                           :history 'slot)))
+    (when (and name (plusp (length name)))
+      (insert
+       "(~a~
    ~%    :initform nil~
    ~%    :initarg :~@*~a~
    ~%    :accessor ~@*~a~
-   ~%    :documentation \"\")"))
+   ~%    :documentation \"\")"
+       name))))
+
+(define-command insert-defclass ()
+  "Insert a defclass form."
+  (declare (context :top-level))
+  (insert "(defclass")
+  (insert-saving-excursion ")")
+  (read-string-then-insert
+   "Name of the class: "
+   " ~a ()~%  (")
+  (insert-saving-excursion ")")
+  (loop :while (insert-class-slot :recursive-p t))
+  ;; TODO make sure "current-point" is in sync.  maybe wait for the
+  ;; "after-change" hook to have run, and he changes processed..c
+  (let ((point (current-point)))
+    (goto-char (1+ point)))
+  ;; ^^^ this doesn't work :/
+  ;; because the point is out-of-sync
+  (insert "~%  (:documentation \"")
+  (insert-saving-excursion "\"))"))
 
 (define-command insert-defgeneric ()
   "Insert a defgeneric form."
