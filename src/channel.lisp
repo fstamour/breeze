@@ -2,6 +2,10 @@
 (defpackage #:breeze.channel
   (:documentation "A simple channel implementation.")
   (:use #:cl)
+  (:import-from #:breeze.queue
+                #:empty-queue-p
+                #:enqueue
+                #:dequeue)
   (:export #:make-channel
            #:channelp
            #:channel
@@ -33,24 +37,6 @@
 (defmethod print-object ((channel channel) stream)
   (print-unreadable-object (channel stream :type t :identity t)
     (format stream "~a" (length (car (slot-value channel 'queue))))))
-
-(declaim (inline empty-queue-p))
-(defun empty-queue-p (q)
-  (and (null (car q)) (null (cdr q))))
-
-(declaim (inline enqueue))
-(defun enqueue (q v)
-  (let ((end (list v)))
-    (if (empty-queue-p q)
-        (setf (car q) end)
-        (setf (cddr q) end))
-    (setf (cdr q) end)))
-
-(declaim (inline dequeue))
-(defun dequeue (q)
-  (prog1 (pop (car q))
-    (unless (car q)
-      (setf (cdr q) nil))))
 
 
 

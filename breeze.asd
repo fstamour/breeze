@@ -78,7 +78,8 @@
    (:file "utils")
    (:file "indirection")
    (:file "string-utils" :depends-on ("utils"))
-   (:file "channel")
+   (:file "queue")
+   (:file "channel" :depends-on ("queue"))
    ;; "test-file" is for parsing ERT files
    (:file "test-file" :depends-on ("utils" "string-utils"))
    (:file "configuration")
