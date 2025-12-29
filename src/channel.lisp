@@ -3,6 +3,7 @@
   (:documentation "A simple channel implementation.")
   (:use #:cl)
   (:import-from #:breeze.queue
+                #:make-queue
                 #:empty-queue-p
                 #:enqueue
                 #:dequeue)
@@ -17,7 +18,7 @@
 
 (defclass channel ()
   ((queue
-    :initform (cons nil nil)
+    :initform (make-queue)
     :documentation "The content of the channel's queue.")
    (lock
     :initform (bt2:make-lock)

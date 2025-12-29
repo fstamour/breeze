@@ -12,6 +12,11 @@ point.")
                 #:if-let
                 #:when-let*
                 #:when-let)
+  (:import-from #:breeze.queue
+                #:make-queue
+                #:empty-queue-p
+                #:enqueue
+                #:dequeue)
   (:export #:buffer
            #:point
            #:name
@@ -81,7 +86,12 @@ point.")
    (in-package-nodes
     :initform nil
     :accessor in-package-nodes
-    :documentation "List of node-iterators pointing to the cl:in-package forms."))
+    :documentation "List of node-iterators pointing to the cl:in-package forms.")
+   (pending-edits
+    :initform (make-queue)
+    :initarg :pending-edits
+    :accessor pending-edits
+    :documentation "List of edits that are to be applied to the source."))
   (:documentation "Represents an editor's buffer (e.g. an opened file)
 
 (Technically, it represents a buffer with the mode \"lisp-mode\"..."))

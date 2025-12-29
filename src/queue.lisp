@@ -3,11 +3,17 @@
 beginning of a proper list and the cdr points to the last car of that
 list.")
   (:use #:cl)
-  (:export #:empty-queue-p
+  (:export #:make-queue
+           #:empty-queue-p
            #:enqueue
            #:dequeue))
 
 (in-package #:breeze.queue)
+
+(declaim (inline make-queue))
+(defun make-queue ()
+  "Create a new empty queue."
+  (cons nil nil))
 
 (declaim (inline empty-queue-p))
 (defun empty-queue-p (q)
