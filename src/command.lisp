@@ -406,7 +406,7 @@ uses the throw tag to stop the command immediately."
 (defun continue-command (id &key response updates)
   "Continue procressing *command*."
   ;; TODO cancel-command-on-error
-  (destructuring-bind (&key point)
+  (destructuring-bind (&key point text-changes &allow-other-keys)
       updates
     (let ((actor (find-actor id :errorp t)))
       (cond

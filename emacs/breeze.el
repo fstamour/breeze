@@ -312,13 +312,17 @@ receiving the data it requested."
   (let* ((send-response-p
           (member (car request)
                   '("choose" "read-string" "buffer-string")))
+         (changes (cl-shiftf breeze-changes nil))
          (new-request
           (breeze-eval
            (format
-            "(breeze.command:continue-command %s %S '%S)"
+            "(breeze.command:continue-command %s :response %S :updates '%S)"
             id
-            :response (when send-response-p response)
-            :updates `(:point ,(point))))))
+            ;; :response
+            (when send-response-p response)
+            ;; :updates
+            `( :point ,(point)
+               :text-changes ,changes)))))
     (breeze-debug "Breeze: (#%s) request received: %s" id new-request)
     new-request))
 
@@ -724,30 +728,27 @@ with which arguments."
 
 ;;; Incremental parsing
 
-(defun breeze-after-change-function (start stop length)
-  nil)
+(defvar breeze-changes ()
+  "Accumulate changes made to buffers handled by breeze.")
 
 (defun breeze-after-change-function (start stop length)
   (unless (breeze-disabled-p)
-    (breeze-ensure
-     (lambda ()
-       (breeze-eval-async
-        (prin1-to-string
-         (let ((base (list 'breeze.workspace:after-change-function
-                           start stop length
-                           :buffer-name (buffer-name)
-                           :buffer-file-name (buffer-file-name))))
-           (if (zerop length)
-               (append base (list :insertion (buffer-substring-no-properties start stop)))
-             base))))))))
+    (push (list start stop length
+                ;; :buffer (current-buffer)
+                :buffer-name (buffer-name)
+                :buffer-file-name (buffer-file-name)
+                :insertion (when (zerop length)
+                             (buffer-substring-no-properties start stop)))
+          breeze-changes)))
 
-(add-hook 'breeze-minor-mode-hook
-          (lambda ()
-            (if breeze-minor-mode
-                ;; When enabling breeze-minor-mode
-                (add-hook 'after-change-functions 'breeze-after-change-function nil t)
-              ;; When disabling breeze-minor-mode
-              (remove-hook 'after-change-functions 'breeze-after-change-function t))))
+(defun breeze-setup-after-change-function ()
+  (if breeze-minor-mode
+      ;; When enabling breeze-minor-mode
+      (add-hook 'after-change-functions 'breeze-after-change-function nil t)
+    ;; When disabling breeze-minor-mode
+    (remove-hook 'after-change-functions 'breeze-after-change-function t)))
+
+(add-hook 'breeze-minor-mode-hook 'breeze-setup-after-change-function)
 
 
 ;;; Hooks for flymake
