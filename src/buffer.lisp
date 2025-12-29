@@ -22,6 +22,7 @@ point.")
            #:cwd
            #:in-package-nodes
            #:make-buffer
+           #:update-point
            #:update-content
            #:index-in-package-nodes
            #:current-package))

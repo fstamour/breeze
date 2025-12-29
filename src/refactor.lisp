@@ -294,14 +294,10 @@ defun."
    " ~a ()~%  (")
   (insert-saving-excursion ")")
   (loop :while (insert-class-slot :recursive-p t))
-  ;; TODO make sure "current-point" is in sync.  maybe wait for the
-  ;; "after-change" hook to have run, and he changes processed..c
   (let ((point (current-point)))
     (goto-char (1+ point)))
-  ;; ^^^ this doesn't work :/
-  ;; because the point is out-of-sync
   (insert "~%  (:documentation \"")
-  (insert-saving-excursion "\"))"))
+  (insert-saving-excursion "\")"))
 
 (define-command insert-defgeneric ()
   "Insert a defgeneric form."

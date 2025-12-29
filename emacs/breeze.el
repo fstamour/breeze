@@ -314,10 +314,11 @@ receiving the data it requested."
                   '("choose" "read-string" "buffer-string")))
          (new-request
           (breeze-eval
-           (if send-response-p
-               (format
-                "(breeze.command:continue-command %s %S)" id response)
-             (format "(breeze.command:continue-command %s)" id)))))
+           (format
+            "(breeze.command:continue-command %s %S '%S)"
+            id
+            :response (when send-response-p response)
+            :updates `(:point ,(point))))))
     (breeze-debug "Breeze: (#%s) request received: %s" id new-request)
     new-request))
 

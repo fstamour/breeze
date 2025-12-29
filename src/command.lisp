@@ -197,10 +197,6 @@ uses the throw tag to stop the command immediately."
   "Meant to be used by the commands."
   (recv-into *command*))
 
-(defun recv1 ()
-  "Meant to be used by the commands."
-  (car (recv)))
-
 (defun send (request &rest data)
   "Meant to be used by the commands."
   (send-out *command* `(,request ,@data)))
@@ -395,7 +391,7 @@ uses the throw tag to stop the command immediately."
                  ;; if the buffer has no content, go get it
                  (t
                   (send "buffer-string")
-                  (let ((buffer-string (recv1)))
+                  (let ((buffer-string (recv)))
                     (breeze.buffer:update-content buffer
                                                   buffer-string
                                                   (current-point))))))
@@ -407,23 +403,31 @@ uses the throw tag to stop the command immediately."
     (id command)))
 
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
-(defun continue-command (id &rest response)
+(defun continue-command (id &key response updates)
   "Continue procressing *command*."
   ;; TODO cancel-command-on-error
-  (let ((actor (find-actor id :errorp t)))
-    (cond
-      ((donep actor) (deregister actor) (list "done"))
-      (t
-       ;; TODO It would be nice to keep track of whether a response
-       ;; is expected or not.
-       (when response (send-into actor response))
-       (let ((request (recv-from actor)))
-         (cond
-           ((null request)
-            (cancel-command id "Request is null."))
-           ((string= "done" (car request))
-            (cancel-command id "Request is \"done\".")))
-         request)))))
+  (destructuring-bind (&key point)
+      updates
+    (let ((actor (find-actor id :errorp t)))
+      (cond
+        ((donep actor)
+         (deregister actor)
+         (list "done"))
+        (t
+         ;; Update the current-buffer's point
+         (when point
+           (when-let ((buffer (current-buffer (context actor))))
+             (breeze.buffer:update-point buffer point)))
+         ;; TODO It would be nice to keep track of whether a response
+         ;; is expected or not.
+         (when response (send-into actor response))
+         (let ((request (recv-from actor)))
+           (cond
+             ((null request)
+              (cancel-command id "Request is null."))
+             ((string= "done" (car request))
+              (cancel-command id "Request is \"done\".")))
+           request))))))
 
 
 ;;; Utilities to get common stuff from the context
@@ -545,7 +549,7 @@ nil. Prepends th prefix \"breeze-\" if necessary."
   (send "read-string" prompt
         :initial-input initial-input
         :history (history-name history))
-  (recv1))
+  (recv))
 
 (defun read-string-then-insert (prompt control-string &optional (fn #'identity))
   (insert control-string
@@ -568,7 +572,7 @@ collection."
     (error "The list of choices is empty."))
   (send "choose" prompt collection
         :history (history-name history))
-  (recv1))
+  (recv))
 
 (defun insert-at (position control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
