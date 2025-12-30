@@ -5,20 +5,20 @@
 
 ;;; breeze system
 
-(defsystem breeze/asdf
+(defsystem "breeze/asdf"
   :version "0"
   :maintainer "Francis St-Amour"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "Utilities for asdf"
-  :depends-on (asdf
+  :depends-on ("asdf"
                ;; as of 2025-10-31 — only for "flatten"
-               alexandria
-               uiop)
+               "alexandria"
+               "uiop")
   :pathname "src/"
   :components ((:file "asdf")))
 
-(defsystem breeze/generics
+(defsystem "breeze/generics"
   :version "0"
   :maintainer "Francis St-Amour"
   :author "Francis St-Amour"
@@ -28,7 +28,7 @@
   :pathname "src/"
   :components ((:file "generics")))
 
-(defsystem breeze/class-utils
+(defsystem "breeze/class-utils"
   :version "0"
   :maintainer "Francis St-Amour"
   :author "Francis St-Amour"
@@ -37,16 +37,16 @@
   :pathname "src/"
   :components ((:file "class-utils")))
 
-(defsystem breeze/pattern
+(defsystem "breeze/pattern"
   :version "0"
   :maintainer "Francis St-Amour"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "Pattern matching with first-class patterns"
   :depends-on (;; as of 2025-10-31 — only for "flatten"
-               alexandria
-               breeze/generics
-               breeze/class-utils)
+               "alexandria"
+               "breeze/generics"
+               "breeze/class-utils")
   :pathname "src/pattern/"
   :serial t
   :components ((:file "iterator")
@@ -56,7 +56,7 @@
                (:file "match")
                (:file "rewrite")))
 
-(defsystem breeze
+(defsystem "breeze"
   :name "breeze"
   :version "0"
   :maintainer "Francis St-Amour"
@@ -64,14 +64,14 @@
   :licence "BSD 2-Clause License"
   :description "A system to help automate work."
   :depends-on (;; Multi-threading
-               bordeaux-threads
+               "bordeaux-threads"
                ;; Utilities
-               alexandria
-               uiop
+               "alexandria"
+               "uiop"
                ;; cl-heap
-               breeze/generics
-               breeze/class-utils
-               breeze/pattern)
+               "breeze/generics"
+               "breeze/class-utils"
+               "breeze/pattern")
   :pathname "src/"
   :components
   ((:file "logging")
@@ -143,7 +143,7 @@
 
 ;;; breeze/cli system
 
-(asdf:defsystem #:breeze/cli
+(asdf:defsystem "breeze/cli"
   :description ""
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -166,18 +166,18 @@
 
 ;;; breeze/docs system
 
-(defsystem breeze/doc
+(defsystem "breeze/doc"
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License
 "
-  :depends-on (breeze
+  :depends-on ("breeze"
                ;; For documentation generation
-               spinneret
-               closer-mop
-               cl-ppcre
-               breeze/asdf)
+               "spinneret"
+               "closer-mop"
+               "cl-ppcre"
+               "breeze/asdf")
   :pathname "src/"
   :serial nil ; <-
   :components
@@ -187,12 +187,12 @@
 
 ;;; breeze/parachute system
 
-(defsystem breeze/parachute
+(defsystem "breeze/parachute"
   :description "Utils for parachute"
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (parachute breeze)
+  :depends-on ("parachute" "breeze")
   :pathname "src/"
   :components
   ((:file "+parachute")))
@@ -200,12 +200,12 @@
 
 ;;; Quickproject
 
-(defsystem breeze/quickproject
+(defsystem "breeze/quickproject"
   :description "Integration with quickproject"
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze quickproject)
+  :depends-on ("breeze" "quickproject")
   :pathname "src/cmds"
   :components
   ((:file "+quickproject")))
@@ -213,7 +213,7 @@
 
 ;;; breeze.dogfood systeam
 
-(asdf:defsystem #:breeze/dogfood
+(asdf:defsystem "breeze/dogfood"
   :description "Breeze commands and utilities to help with breeze's development."
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -226,17 +226,17 @@
 
 ;;; breeze/test system
 
-(defsystem breeze/test
+(defsystem "breeze/test"
   :description "Tests for the breeze system."
   :version "0"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
-  :depends-on (breeze
-               parachute
-               breeze/parachute
-               breeze/doc
-               breeze/quickproject
-               breeze/dogfood)
+  :depends-on ("breeze"
+               "parachute"
+               "breeze/parachute"
+               "breeze/doc"
+               "breeze/quickproject"
+               "breeze/dogfood")
   :pathname "tests"
   :components
   ((:file "analysis" :depends-on ("pattern"))
