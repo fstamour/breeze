@@ -24,6 +24,7 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :description "Generic functions used across breeze's systems."
+  :depends-on ("bordeaux-threads")
   :pathname "src/"
   :components ((:file "generics")))
 

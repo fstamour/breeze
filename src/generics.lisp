@@ -21,10 +21,15 @@ TODO
    #:name
    #:source
    #:start
-   #:end)
-  ;; mixin class
+   #:end
+   #:lock)
+  ;; mixin classes
   (:export
-   #:named))
+   #:named
+   #:lockable)
+  ;; macros
+  (:export
+   #:with-lock))
 
 (in-package #:breeze.generics)
 
@@ -164,3 +169,16 @@ TODO
 
 (defgeneric end (thing)
   (:documentation "Get the end of THING."))
+
+
+
+(defclass lockable ()
+  ((lock
+    :initform (bt2:make-lock)
+    :initarg :lock
+    :accessor lock))
+  (:documentation "A mixin class that adds a slot `lock'."))
+
+(defmacro with-lock ((lockable &key timeout) &body body)
+  `(bt2:with-lock-held ((lock ,lockable) :timeout ,timeout)
+     ,@body))
