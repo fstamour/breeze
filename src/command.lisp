@@ -406,7 +406,7 @@ uses the throw tag to stop the command immediately."
 (defun continue-command (id &key response updates)
   "Continue procressing *command*."
   ;; TODO cancel-command-on-error
-  (destructuring-bind (&key point text-changes &allow-other-keys)
+  (destructuring-bind (&key point edits &allow-other-keys)
       updates
     (let ((actor (find-actor id :errorp t)))
       (cond
@@ -414,10 +414,15 @@ uses the throw tag to stop the command immediately."
          (deregister actor)
          (list "done"))
         (t
+         ;; (format *trace-output* "~&~s updates: ~s" (fn actor) updates)
          ;; Update the current-buffer's point
          (when point
            (when-let ((buffer (current-buffer (context actor))))
              (breeze.buffer:update-point buffer point)))
+         (when edits
+           (note-edits *workspace* edits)
+           (apply-pending-edits *workspace*))
+         ;; (format *trace-output* "~&~s current-sources: ~s" (fn actor) (breeze.parser:source (current-buffer (context actor))))
          ;; TODO It would be nice to keep track of whether a response
          ;; is expected or not.
          (when response (send-into actor response))

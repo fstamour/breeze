@@ -7,7 +7,7 @@
                 #:reparse)
   (:import-from #:alexandria
                 #:when-let)
-  (:export #:push-edit))
+  (:export #:apply-edit-to-source))
 
 (in-package #:breeze.incremental-reader)
 
@@ -36,11 +36,12 @@
              (error "Invalid deletion: ends outside the source")))))
       (error "NIL is not a valid edit")))
 
+;; TODO move into "parse-state.lisp"
 (defun apply-edit-to-source (state edit &aux (source (source state)))
   (destructuring-bind (type position detail)
       edit
     (setf (source state)
-          ;; Would be nice not to have to rebuild the whole
+          ;; TODO Would be nice not to have to rebuild the whole
           ;; buffer's string
           (ecase type
             (:insert-at
@@ -145,17 +146,9 @@
   (with-output-to-string (output)
     (unparse state output)))
 
-
-;;; Integration with the editor
-
-(defun push-edit (edit)
-  (declare (ignore edit))
-  #++ (print edit))
 
 ;; TODO keep track of the buffers/files, process these kind of edits
 ;; "object":
 ;;
 ;; (:DELETE-AT 18361 1)
 ;; (:INSERT-AT 17591 ";")
-
-

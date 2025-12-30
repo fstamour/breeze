@@ -32,15 +32,10 @@
            #:add-to-workspace
            #:add-files-to-workspace
            #:find-buffer
-           #:name
-           #:filename
-           #:parse-state
-           #:point
-           #:point-min
-           #:point-max
            #:map-workpace-buffers
            #:locate-package-definition
-           #:after-change-function)
+           #:after-change-function
+           #:apply-pending-edits)
   (:export #:in-package-cl-user-p
            #:infer-package-name-from-file
            #:infer-project-name
@@ -237,6 +232,21 @@ Design decision(s):
 
 
 
+
+
+(defmethod note-edits ((workspace workspace) edits)
+  "Tell the buffers in the WORKSPACE to take note of theEDITS relevant to
+them (the `note-edits' methods specialized on `buffer' have the
+responsibility of filtering the edits based on the buffer-name)."
+  (map-workpace-buffers (lambda (buffer)
+                          (note-edits buffer edits))
+                        workspace))
+
+(defmethod apply-pending-edits ((workspace workspace))
+  "Tell the buffers in the WORKSPACE to apply all pendind edits that were
+previously noted."
+  (map-workpace-buffers #'apply-pending-edits workspace))
+
 (defun after-change-function (start stop length
                               &rest rest
                               &key
@@ -251,6 +261,7 @@ Design decision(s):
     (setf (node-iterator buffer) nil))
   ;; TODO consider ignore-error + logs, because if something goes
   ;; wrong in this function, editing is going to be funked.
+  #++
   (breeze.incremental-reader:push-edit
    (cond
      ((zerop length)

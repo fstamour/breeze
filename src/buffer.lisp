@@ -3,8 +3,6 @@
   (:documentation "Data structure to hold and manage lisp source code, its parse tree and
 point.")
   (:use #:cl #:breeze.parser)
-  (:import-from #:breeze.generics
-                #:name)
   (:import-from #:breeze.package
                 #:in-package-node-p
                 #:map-top-level-in-package)
@@ -17,6 +15,8 @@ point.")
                 #:empty-queue-p
                 #:enqueue
                 #:dequeue)
+  (:import-from #:breeze.incremental-reader
+                #:apply-edit-to-source)
   (:export #:buffer
            #:point
            #:name
@@ -27,26 +27,18 @@ point.")
            #:cwd
            #:in-package-nodes
            #:make-buffer
+           #:parse-state
            #:update-point
            #:update-content
            #:index-in-package-nodes
-           #:current-package))
+           #:current-package
+           #:note-edits
+           #:apply-pending-edits))
 
 (in-package #:breeze.buffer)
 
-(defclass buffer ()
-  (#++ ;; TODO
-   (editor
-    :initform nil
-    :initarg :editor
-    :accessor editor
-    :documentation "In which editor is this buffer opened?")
-   (name
-    :initform nil
-    :initarg :name
-    :accessor name
-    :documentation "Name of the buffer")
-   (node-iterator
+(defclass buffer (named lockable)
+  ((node-iterator
     :initform nil
     :initarg :node-iterator
     :accessor node-iterator
@@ -209,3 +201,41 @@ point.")
                                      (simple-condition-format-arguments condition))))
          "An error occurred when calling breeze-header-line")))
   (export 'header-line))
+
+(defmethod note-edits ((buffer buffer) edits
+                       &aux (name (name buffer)))
+  "Add applicable EDITS to the BUFFER's list of pending edits."
+  (when-let ((edits (remove-if-not
+                     (lambda (edit)
+                       (string= (getf edit :buffer-name) name))
+                     edits))
+             (q (pending-edits buffer)))
+    (with-lock (buffer)
+      (dolist (edit edits)
+        ;; TODO class "edit" + method "buffer-name"
+        (destructuring-bind (&key buffer-name buffer-file-name
+                               insert-at text
+                               delete-at length)
+            edit
+          (declare (ignore buffer-name buffer-file-name))
+          ;; edit -> (TYPE POSITION DETAIL)
+          (enqueue q
+                   (cond
+                     (insert-at
+                      (list :insert-at insert-at text))
+                     ((plusp length)
+                      (list :delete-at delete-at length))
+                     ;; TODO error?
+                     (t :unknown-edit))))))))
+
+(defmethod apply-pending-edits ((buffer buffer))
+  (let ((q (pending-edits buffer)))
+    (with-lock (buffer)
+      (unless (empty-queue-p q)
+       (loop
+         :with state := (parse-state buffer)
+         :for edit := (dequeue q)
+         :until (empty-queue-p q)
+         :do (apply-edit-to-source state edit)))))
+  ;; TODO parse the source again (update the parse-tree)
+  )

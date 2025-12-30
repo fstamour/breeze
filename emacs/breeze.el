@@ -322,7 +322,7 @@ receiving the data it requested."
             (when send-response-p response)
             ;; :updates
             `( :point ,(point)
-               :text-changes ,changes)))))
+               :edits ,changes)))))
     (breeze-debug "Breeze: (#%s) request received: %s" id new-request)
     new-request))
 
@@ -733,13 +733,19 @@ with which arguments."
 
 (defun breeze-after-change-function (start stop length)
   (unless (breeze-disabled-p)
-    (push (list start stop length
-                ;; :buffer (current-buffer)
-                :buffer-name (buffer-name)
-                :buffer-file-name (buffer-file-name)
-                :insertion (when (zerop length)
-                             (buffer-substring-no-properties start stop)))
-          breeze-changes)))
+    (push
+     (append
+      (list :buffer-name (buffer-name)
+            :buffer-file-name (buffer-file-name))
+      (cond
+       ((zerop length)
+        (list :insert-at (1- start)
+              :text (buffer-substring-no-properties start stop)))
+       ((cl-plusp length)
+        (list :delete-at (1- start) :length length))
+       (t (list :unknown-edit
+                (1- start) (1- stop) length))))
+     breeze-changes)))
 
 (defun breeze-setup-after-change-function ()
   (if breeze-minor-mode

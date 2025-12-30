@@ -339,3 +339,8 @@ TODO Would be nice to have a "Shadow-import all" restart.
 |#
 
 
+
+(in-package #:breeze.workspace)
+
+(trace note-edits apply-pending-edits
+       breeze.incremental-reader:apply-edit-to-source)
