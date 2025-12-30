@@ -404,7 +404,7 @@ receiving the data it requested."
     ("goto-char"
      (cl-destructuring-bind (_ position)
          request
-       (goto-char (1+ position))))
+       (goto-char position)))
     ("pulse"
      (cl-destructuring-bind (_ start end)
          request
