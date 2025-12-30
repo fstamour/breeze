@@ -312,7 +312,7 @@ receiving the data it requested."
   (let* ((send-response-p
           (member (car request)
                   '("choose" "read-string" "buffer-string")))
-         (changes (cl-shiftf breeze-changes nil))
+         (changes (nreverse (cl-shiftf breeze-changes nil)))
          (new-request
           (breeze-eval
            (format
