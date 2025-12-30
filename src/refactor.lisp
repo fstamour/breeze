@@ -296,8 +296,8 @@ defun."
   (loop :while (insert-class-slot :recursive-p t))
   (let ((point (current-point)))
     (goto-char (1+ point)))
-  (insert "~%  (:documentation \"")
-  (insert-saving-excursion "\")"))
+  (insert-saving-excursion "\")")
+  (insert "~%  (:documentation \""))
 
 (define-command insert-defgeneric ()
   "Insert a defgeneric form."
