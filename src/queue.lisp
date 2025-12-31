@@ -4,9 +4,11 @@ beginning of a proper list and the cdr points to the last car of that
 list.")
   (:use #:cl)
   (:export #:make-queue
+           #:copy-queue
            #:empty-queue-p
            #:enqueue
-           #:dequeue))
+           #:dequeue
+           #:clear-queue))
 
 (in-package #:breeze.queue)
 
@@ -14,6 +16,11 @@ list.")
 (defun make-queue ()
   "Create a new empty queue."
   (cons nil nil))
+
+(declaim (inline copy-queue))
+(defun copy-queue (q)
+  "Copy the queue Q."
+  (cons (car q) (cdr q)))
 
 (declaim (inline empty-queue-p))
 (defun empty-queue-p (q)
@@ -36,3 +43,9 @@ pointing to nil)."
   (prog1 (pop (car q))
     (unless (car q)
       (setf (cdr q) nil))))
+
+(declaim (inline clear-queue))
+(defun clear-queue (q)
+  "Remove all values in the queue Q."
+  (setf (car q) nil
+        (cdr q) nil))

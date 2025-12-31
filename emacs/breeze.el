@@ -400,6 +400,11 @@ receiving the data it requested."
      (breeze-deregister-command id)
      (throw 'breeze-run-command (cl-second request)))
     ("buffer-string"
+     ;; remove all pending edits in breeze-changes
+     (setf breeze-changes
+           (cl-delete
+            (buffer-name)
+            breeze-changes :key 'cl-second :test 'string=))
      (buffer-substring-no-properties (point-min) (point-max)))
     ("goto-char"
      (cl-destructuring-bind (_ position)

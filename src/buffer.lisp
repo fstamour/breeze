@@ -12,9 +12,11 @@ point.")
                 #:when-let)
   (:import-from #:breeze.queue
                 #:make-queue
+                #:copy-queue
                 #:empty-queue-p
                 #:enqueue
-                #:dequeue)
+                #:dequeue
+                #:clear-queue)
   (:import-from #:breeze.incremental-reader
                 #:apply-edit-to-source)
   (:export #:buffer
@@ -94,6 +96,10 @@ point.")
         (buffer stream :type t :identity nil)
       (format stream "~s" (name buffer)))))
 
+(defmethod clear-pending-edits ((buffer buffer))
+  "Remove all pending-edits."
+  (clear-queue (pending-edits buffer)))
+
 (defmethod update-point ((buffer buffer) point)
   (when point
     (setf (point buffer) point)
@@ -106,19 +112,21 @@ point.")
 
 (defmethod update-content ((buffer buffer) new-content &optional point)
   "Update the workspace's buffer BUFFER-NAME's content"
-  (when new-content
-    (let ((old-content (source buffer)))
-      (cond
-        ((and old-content
-              (string/= old-content new-content))
-         (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
-         (setf (node-iterator buffer) (make-node-iterator new-content)))
-        ((null old-content)
-         (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
-         (setf (node-iterator buffer) (make-node-iterator new-content)))))
-    ;; update some indexes
-    (index-in-package-nodes buffer))
-  (update-point buffer point)
+  (with-lock (buffer)
+    (when new-content
+      (clear-pending-edits buffer)
+      (let ((old-content (source buffer)))
+        (cond
+          ((and old-content
+                (string/= old-content new-content))
+           (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
+           (setf (node-iterator buffer) (make-node-iterator new-content)))
+          ((null old-content)
+           (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
+           (setf (node-iterator buffer) (make-node-iterator new-content)))))
+      ;; update some indexes
+      (index-in-package-nodes buffer))
+    (update-point buffer point))
   ;; return the buffer
   buffer)
 
@@ -229,9 +237,10 @@ point.")
                      (t :unknown-edit))))))))
 
 (defmethod apply-pending-edits ((buffer buffer))
-  (let ((q (pending-edits buffer)))
-    (with-lock (buffer)
-      (unless (empty-queue-p q)
+  (with-lock (buffer)
+    (let ((q (copy-queue (pending-edits buffer))))
+      (clear-queue (pending-edits buffer))
+     (unless (empty-queue-p q)
        (loop
          :with state := (parse-state buffer)
          :for edit := (dequeue q)

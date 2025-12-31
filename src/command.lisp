@@ -63,6 +63,7 @@
    #:ask-y-or-n-p
    #:return-value-from-command
    #:return-from-command
+   #:request-buffer-string
    #:goto-char
    #:pulse
    ;; Command discovery and documentation
@@ -381,20 +382,6 @@ uses the throw tag to stop the command immediately."
              (check-special-variables)
              (wait-for-sync command)
              (send-started-message command)
-             ;; TODO not all commands would require the buffer's content,
-             ;; move this in a function that can be called on demand.
-             (when buffer
-               (cond
-                 ;; update buffer's point, if the buffer was already parsed
-                 ((breeze.parser:node-iterator buffer)
-                  (breeze.buffer:update-content buffer nil (current-point)))
-                 ;; if the buffer has no content, go get it
-                 (t
-                  (send "buffer-string")
-                  (let ((buffer-string (recv)))
-                    (breeze.buffer:update-content buffer
-                                                  buffer-string
-                                                  (current-point))))))
              ;; TODO use "call-with-correction-suggestion" here too!
              (apply fn extra-args)))))))
     (send-sync command)
@@ -414,15 +401,16 @@ uses the throw tag to stop the command immediately."
          (deregister actor)
          (list "done"))
         (t
-         ;; (format *trace-output* "~&~s updates: ~s" (fn actor) updates)
+         (format *trace-output* "~&~s updates: ~s" (fn actor) updates)
          ;; Update the current-buffer's point
          (when point
            (when-let ((buffer (current-buffer (context actor))))
              (breeze.buffer:update-point buffer point)))
+         (format *trace-output* "~&~s current-source before:~%~s" (fn actor) (breeze.parser:source (current-buffer (context actor))))
          (when edits
            (note-edits *workspace* edits)
            (apply-pending-edits *workspace*))
-         ;; (format *trace-output* "~&~s current-sources: ~s" (fn actor) (breeze.parser:source (current-buffer (context actor))))
+         (format *trace-output* "~&~s current-source after:~%~s" (fn actor) (breeze.parser:source (current-buffer (context actor))))
          ;; TODO It would be nice to keep track of whether a response
          ;; is expected or not.
          (when response (send-into actor response))
@@ -626,6 +614,16 @@ resulting string to the editor."
 
 (defun return-value-from-command (value)
   (send "return" value))
+
+(defun request-buffer-string ()
+  (let ((buffer (current-buffer)))
+    (send "buffer-string")
+    (let ((buffer-string (recv)))
+      (format *trace-output*
+              "~&got buffer-string:~%~s" buffer-string)
+      (breeze.buffer:update-content buffer
+                                    buffer-string
+                                    (current-point)))))
 
 (defun goto-char (position)
   "Move the point to POSITION."
@@ -850,7 +848,11 @@ Example:
                        ,@(loop :for declaration :in cl-declarations
                                :collect `(declare ,declaration))
                        (multiple-value-prog1
-                           (progn ,@remaining-forms)
+                           (progn
+                               ;; TODO not all commands would require
+                               ;; the buffer's content
+                             (request-buffer-string)
+                             ,@remaining-forms)
                          ,(if lambda-list
                               `(send "done")
                               `(unless ,recursive-p (send "done")))))
