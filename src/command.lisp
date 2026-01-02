@@ -390,7 +390,7 @@ uses the throw tag to stop the command immediately."
     (id command)))
 
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
-(defun continue-command (id &key response updates)
+(defun continue-command (id &key request-type response updates)
   "Continue procressing *command*."
   ;; TODO cancel-command-on-error
   (destructuring-bind (&key point edits &allow-other-keys)
@@ -401,12 +401,16 @@ uses the throw tag to stop the command immediately."
          (deregister actor)
          (list "done"))
         (t
+         ;; TODO dispatch on request-type
          (format *trace-output* "~&~s updates: ~s" (fn actor) updates)
+         ;; TODO extract handle-updates?
+         ;; TODO extract handle-point
          ;; Update the current-buffer's point
          (when point
            (when-let ((buffer (current-buffer (context actor))))
              (breeze.buffer:update-point buffer point)))
          (format *trace-output* "~&~s current-source before:~%~s" (fn actor) (breeze.parser:source (current-buffer (context actor))))
+         ;; TODO extract handle-edits
          (when edits
            (note-edits *workspace* edits)
            (apply-pending-edits *workspace*))

@@ -316,8 +316,10 @@ receiving the data it requested."
          (new-request
           (breeze-eval
            (format
-            "(breeze.command:continue-command %s :response %S :updates '%S)"
+            "(breeze.command:continue-command %s :request-type '%S :response %S :updates '%S)"
             id
+            ;; :request-type
+            (car request)
             ;; :response
             (when send-response-p response)
             ;; :updates
