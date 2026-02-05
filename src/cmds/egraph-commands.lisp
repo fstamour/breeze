@@ -7,13 +7,13 @@
                 #:message)
   (:import-from #:breeze.command-utils
                 #:pulse-node
-                #:current-node))
+                #:current-node)
+  (:export #:scramble))
 
 (in-package #:breeze.egraph-command)
 
 ;; "E-Graph Good" → egg →🥚 → scramble
-(export
- (define-command scramble ()
-   "Scramble the code at point."
-   (alexandria:when-let (($node (current-node)))
-     (message (node-string $node)))))
+(define-command scramble ()
+  "Scramble the code at point."
+  (alexandria:when-let (($node (current-node)))
+    (message (node-string $node))))
