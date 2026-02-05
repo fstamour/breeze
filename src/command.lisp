@@ -83,6 +83,13 @@
 
 (in-package #:breeze.command)
 
+#|
+
+TODO maybe add `find-command-handler` which should just call
+`find-actor'; or just re-export `find-actor'?
+
+|#
+
 (defclass command-handler (actor)
   ((context
     :initarg :context
@@ -180,15 +187,19 @@ uses the throw tag to stop the command immediately."
 
 
 (defmethod send-into ((command command-handler) value)
+  "Send VALUE to the command-handler COMMAND."
   (%send (channel-in command) value))
 
 (defmethod recv-from ((command command-handler))
+  "Receive a value from the command-handler COMMAND."
   (%recv (channel-out command)))
 
 (defmethod recv-into ((command command-handler))
+  "From the command-handler COMMAND, reveive a value."
   (%recv (channel-in command)))
 
 (defmethod send-out ((command command-handler) value)
+  "Send VALUE from the command-handler COMMAND"
   (%send (channel-out command) value))
 
 (defvar *command* nil
@@ -428,7 +439,6 @@ uses the throw tag to stop the command immediately."
       (t
        ;; (format *trace-output* "~&~s updates: ~s" fn updates)
        ;; TODO extract handle-updates?
-
        (handle-edits updates)
        (handle-point-update command-handler updates)
        ;; TODO It would be nice to keep track of whether a response
@@ -651,15 +661,8 @@ resulting string to the editor."
 
 (defun request-buffer-string ()
   (send "buffer-string")
-  ;; just wait for the :ok sent by `handle-
-  (recv)
-  #++
-  (let ((buffer-string (recv)))
-    (format *trace-output*
-            "~&got buffer-string:~%~s" buffer-string)
-    (breeze.buffer:update-content buffer
-                                  buffer-string
-                                  (current-point))))
+  ;; just for the :ok sent by `handle-buffer-string'
+  (recv))
 
 (defun goto-char (position)
   "Move the point to POSITION."

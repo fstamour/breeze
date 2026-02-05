@@ -297,3 +297,7 @@ x)
 #++ ;; TODO this used to crash because it would try to call (read "#)") inside
     ;; breeze.analysis::warn-undefined-in-package, add regression test
 (breeze.analysis::analyse :buffer-string "(in-package #)")
+
+
+
+;; TODO run "lint" and "fix" on all the *test-strings*
