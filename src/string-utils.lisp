@@ -301,7 +301,7 @@ c")
 ;; TODO This is a good candidate for a function where the unit tests
 ;; would provide great examples for the documentation.
 (defun around (string position &optional (around 10))
-  "Returns part of STRING, from POSITIONITION - AROUND to POSITIONITION +
+  "Returns part of STRING, from POSITION - AROUND to POSITION +
 AROUND. Add elipseses before and after if necessary."
   (let* ((min-size (1+ (* 2 around)))
          (before (- position around))
