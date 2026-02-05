@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t -*-
 
 (require 'ert)
 
@@ -33,7 +34,7 @@
   (should (breeze--xor
            (breeze-sly-connected-p)
            (breeze-slime-connected-p)))
-  (should (eq t (breeze-check-if-connected-to-listener))))
+  (should (breeze-listener-connected-p)))
 
 (ert-deftest test/breeze-eval ()
   ;; Integers
@@ -44,10 +45,10 @@
   ;; Symbols
   (should (eq (breeze-eval "cl:t") t))
   (should (eq (breeze-eval "cl:nil") nil))
-  (should (eq t (breeze-eval-predicate "t")))
-  (should (eq t (breeze-eval-predicate "T")))
-  (should (eq nil (breeze-eval-predicate "nil")))
-  (should (eq nil (breeze-eval-predicate "NIL"))))
+  (should (eq t (breeze-eval "t")))
+  (should (eq t (breeze-eval "t")))
+  (should (eq nil (breeze-eval "nil")))
+  (should (eq nil (breeze-eval "nil"))))
 
 ;; TODO Figure out how to evaluate something without triggering the debugger when an error occurs
 ;; (ert-deftest breeze-eval-empty-string ()
@@ -67,7 +68,7 @@
 (ert-deftest test/breeze-relative-path ()
   (should (file-exists-p (breeze-relative-path)))
   (should (file-exists-p (breeze-relative-path "src/")))
-  (should (file-exists-p (breeze-relative-path "src/breeze.el")))
+  (should (file-exists-p (breeze-relative-path "emacs/breeze.el")))
   (should (file-exists-p (breeze-relative-path "src/ensure-breeze.lisp"))))
 
 (ert-deftest test/breeze-init ()
@@ -90,3 +91,22 @@
 ;; TODO (ert-deftest test/generate-bindings-documentation )
 
 ;; TODO (ert-deftest test/update-list-of-stubs)
+
+
+;; Testing the "after-change-function"
+
+(ert-deftest test/breeze-after-change-functions ()
+  (let ((breeze-changes))
+    (with-temp-buffer
+      (rename-buffer "test1")
+      (add-hook 'after-change-functions 'breeze-after-change-function nil t)
+      (insert "abcd")
+      (delete-char -1)
+      (goto-char (point-min))
+      (search-forward "bc")
+      (replace-match "BC")
+      (should (equal breeze-changes
+                     '((:buffer-name "test1" :buffer-file-name nil :replace-at 1 :end 3 :text "BC")
+                       (:buffer-name "test1" :buffer-file-name nil :delete-at 3 :length 1)
+                       (:buffer-name "test1" :buffer-file-name nil :insert-at 0 :text "abcd"))))
+      (should (equal "aBC" (buffer-substring-no-properties (point-min) (point-max)))))))

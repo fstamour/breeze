@@ -1,6 +1,8 @@
 
 (cl:in-package #:cl-user)
 
+;; TODO ensure breeze-minor-mode is enabled (it's not when I open a lisp file _before_ there is any connection...)
+
 (defpackage #:breeze.test.incremental-parser
   (:documentation "Test package for #:breeze.incremental-parser")
   (:use #:cl #:breeze.parser #:breeze.incremental-parser)
@@ -42,6 +44,82 @@
           "Should detect invalid deletion: deleting < 0 characters")))
 
 
+;; TODO WIP compact edits
+
+(defun compact-inserts (edits)
+  (loop
+    :with current-edit := (copy-list (first edits))
+    :with current-pos := (+ (second current-edit)
+                            (length (third current-edit)))
+    :for (edit . rest) :on (cdr edits)
+    :if (and (eq :insert-at (first current-edit))
+             (eq :insert-at (first edit))
+             (= current-pos (second edit)))
+      :do (setf (third current-edit) (concatenate 'string (third current-edit)
+                                                  (third edit)))
+          (incf current-pos (length (third edit)))
+    :else
+      :do (return (list current-edit edit rest))
+    :finally
+       (return current-edit)))
+
+(let ((edits ))
+  )
+
+(compact-inserts '((:INSERT-AT 1675 "c")
+                   (:INSERT-AT 1676 "o")
+                   (:INSERT-AT 1677 "m")
+                   (:INSERT-AT 1678 "p")
+                   (:INSERT-AT 1679 "a")
+                   (:INSERT-AT 1680 "c")
+                   (:INSERT-AT 1681 "t")
+                   (:INSERT-AT 1682 " ")
+                   (:INSERT-AT 1683 "e")
+                   (:INSERT-AT 1684 "d")
+                   (:INSERT-AT 1685 "i")
+                   (:INSERT-AT 1686 "t")
+                   (:INSERT-AT 1687 "s")))
+
+
+
+(defun compact-deletes (edits)
+  (loop
+    :with current-edit := (copy-list (first edits))
+    :for edits-left :on (cdr edits)
+    :for edit := (first edits-left)
+    :if (and (eq :delete-at (first current-edit))
+             (eq :delete-at (first edit))
+             (= (second current-edit) (second edit)))
+      :do (setf (third current-edit) (+ (third current-edit) (third edit)))
+    :else
+      :return (values current-edit edits-left)
+    :finally
+       (return current-edit)))
+
+#++
+(compact-deletes '((:DELETE-AT 1675 1)
+                   (:DELETE-AT 1675 1)
+                   (:DELETE-AT 1675 1)
+                   (:DELETE-AT 1675 1)))
+;; => (:DELETE-AT 1675 4)
+
+#++
+(compact-deletes '((:DELETE-AT 1675 1)
+                   (:DELETE-AT 1675 1)
+                   (:insert-AT 1675 "hola")
+                   (:DELETE-AT 1675 1)))
+#| =>
+(:DELETE-AT 1675 2)
+((:INSERT-AT 1675 "hola") (:DELETE-AT 1675 1))
+|#
+
+(compact-deletes '((:insert-at 0 "hi")))
+;; => (:INSERT-AT 0 "hi")
+
+(compact-deletes '((:delete-at 0 1)))
+;; => (:DELETE-AT 0 1)
+
+
 
 (defun test-apply-edit (input edit)
   (let ((state (parse input)))
@@ -57,7 +135,10 @@
   (is equal "a b c" (test-apply-edit "a c" '(:insert-at 1 " b")))
   (is equal "b" (test-apply-edit "ab" '(:delete-at 0 1)))
   (is equal "a" (test-apply-edit "ab" '(:delete-at 1 1)))
-  (is equal "" (test-apply-edit "ab" '(:delete-at 0 2))))
+  (is equal "" (test-apply-edit "ab" '(:delete-at 0 2)))
+  ;; TODO :replace-at
+  (is equal "cd2" (test-apply-edit "" '(:replace-at (0 . 0) "cd2")))
+  (is equal "cd1" (test-apply-edit "ab" '(:replace-at (0 . 2) "cd1"))))
 
 
 

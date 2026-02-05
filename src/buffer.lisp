@@ -17,7 +17,7 @@ point.")
                 #:enqueue
                 #:dequeue
                 #:clear-queue)
-  (:import-from #:breeze.incremental-reader
+  (:import-from #:breeze.incremental-parser
                 #:apply-edit-to-source)
   (:export #:buffer
            #:point
@@ -110,23 +110,26 @@ point.")
   (when-let ((state (parse-state buffer)))
     (source state)))
 
+(defun %update-content (buffer new-content point)
+  "Update the workspace's buffer BUFFER-NAME's content"
+  (let ((old-content (source buffer)))
+    (when (or (null old-content)
+              (string/= old-content new-content))
+      ;; parsing
+      (setf (node-iterator buffer) (make-node-iterator new-content))
+      ;; update some indexes
+      (index-in-package-nodes buffer)
+      ;; update the node-iterator based on the current point
+      (update-point buffer point))))
+
 (defmethod update-content ((buffer buffer) new-content &optional point)
   "Update the workspace's buffer BUFFER-NAME's content"
   (with-lock (buffer)
-    (when new-content
-      (clear-pending-edits buffer)
-      (let ((old-content (source buffer)))
-        (cond
-          ((and old-content
-                (string/= old-content new-content))
-           (breeze.logging:log-debug "re-parsing the buffer ~s from scratch" (name buffer))
-           (setf (node-iterator buffer) (make-node-iterator new-content)))
-          ((null old-content)
-           (breeze.logging:log-debug "parsing the buffer ~s for the first time" (name buffer))
-           (setf (node-iterator buffer) (make-node-iterator new-content)))))
-      ;; update some indexes
-      (index-in-package-nodes buffer))
-    (update-point buffer point))
+    (if new-content
+        (progn
+          (clear-pending-edits buffer)
+          (%update-content buffer new-content point))
+        (update-point buffer point)))
   ;; return the buffer
   buffer)
 
@@ -218,12 +221,15 @@ point.")
                        (string= (getf edit :buffer-name) name))
                      edits))
              (q (pending-edits buffer)))
+    #++
+    (format *trace-output* "~&edits applicable: ~s" edits)
     (with-lock (buffer)
       (dolist (edit edits)
         ;; TODO class "edit" + method "buffer-name"
         (destructuring-bind (&key buffer-name buffer-file-name
                                insert-at text
-                               delete-at length)
+                               delete-at length
+                               replace-at end)
             edit
           (declare (ignore buffer-name buffer-file-name))
           ;; edit -> (TYPE POSITION DETAIL)
@@ -231,20 +237,34 @@ point.")
                    (cond
                      (insert-at
                       (list :insert-at insert-at text))
-                     ((plusp length)
+                     (delete-at
                       (list :delete-at delete-at length))
+                     (replace-at
+                      (list :replace-at (cons replace-at end) text))
                      ;; TODO error?
                      (t :unknown-edit))))))))
 
 (defmethod apply-pending-edits ((buffer buffer))
   (with-lock (buffer)
-    (let ((q (copy-queue (pending-edits buffer))))
-      (clear-queue (pending-edits buffer))
-     (unless (empty-queue-p q)
-       (loop
-         :with state := (parse-state buffer)
-         :for edit := (dequeue q)
-         :until (empty-queue-p q)
-         :do (apply-edit-to-source state edit)))))
-  ;; TODO parse the source again (update the parse-tree)
-  )
+    #++
+    (format *trace-output* "~&buffer ~a pending-edits: ~s"
+            (name buffer)
+            (car (pending-edits buffer)))
+    (let ((state (parse-state buffer))
+          (q (pending-edits buffer)))
+      (unless (empty-queue-p q)
+        (let ((q (copy-queue q)))
+          (clear-queue (pending-edits buffer))
+          ;; This builds a whole new string for each edits, but this
+          ;; isn't as bad as it sounds because there should never be a
+          ;; lot of edits at once because the editors periodically
+          ;; sends the edits (after some debouncing) for linting.
+          (when state
+            (loop
+              :for edit := (dequeue q)
+              :do (apply-edit-to-source state edit)
+              :until (empty-queue-p q))
+            ;; parse the source again (update the parse-tree)
+            ;; TODO (perf) this parse the buffer "from scratch"
+            (setf (node-iterator buffer) (make-node-iterator state))
+            (%update-content buffer (source state) nil)))))))

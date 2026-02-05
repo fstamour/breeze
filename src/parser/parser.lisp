@@ -157,6 +157,7 @@ Returns the character read, or nil if the end was reached."
                            :start (start range)
                            :end (end range)
                            :radix radix)
+            ;; TODO this could be an actual `range' object...
             range)))
 
 ;;; TODO in the following read-sharp-* functions, number should be
@@ -211,26 +212,51 @@ first node being whitespaces.)"
   (when (read-char= state #\')
     (%read-sharp-any state start 'sharp-function)))
 
-(defun read-sharp-left-parens (state start number)
-  (declare (ignore number))
+(defun read-sharp-left-parens (state start length)
+  (declare (ignore length))
   ;; N.B. we use current-char instead of read-char, because we don't
   ;; want to consume the left-parens right away.
   (when (current-char= state #\()
     (let ((form (read-parens state)))
+      (unless form
+        (error "This is a bug in ~s: ~s should have returned something, but it returned nil."
+               'read-sharp-left-parens
+               'read-parens))
       (sharp-vector start (if form (current-position state) +end+)
                     form
-                    :errors `(,@(unless form
-                                ;; TODO error message
-                                ()))))))
+                    :errors `(;; TODO check that length is nil, or an
+                              ;; integer greater or equal to zero
+                              #++
+                              (when (and length
+                                         (< length (length (children form))))
+                                "There are more objects than the length of the vector.")
+                              #++
+                              (when (and length
+                                         (plusp length)
+                                         (zerop (length (children form))))
+                                "Must supply at least one object when the length of a vector is non-zero.")
+                              ;; TODO style #0() => #()
+                              ;; TODO suggest #N(0 0 0 .... 0 0) => #(N 0)
+                              ;; "the last object is used to fill all remaining elements of the vector."
+                              )))))
 
 (defun read-sharp-asterisk (state start length)
   (declare (ignore length))
   (when (read-char= state #\*)
+    ;; TODO instead or `read-number', use "read-while (not-terminatingp char)"
+    ;; TODO it's possible that read-number returns NIL
     (multiple-value-bind (bits range)
         (read-number state 2)
       (declare (ignore range))
-      ;; TODO check (- (cdr range) (car range)) <= length
-      (sharp-bitvector start (current-position state) bits))))
+      #++ (let ((token-length (- (cdr range) (car range))))
+            ;; N.B. token-length _can_ be 0
+            )
+      ;; TODO check token-length <= length
+      ;; TODO check that token-length is plusp when length is supplied (same as with `read-sharp-left-parens')
+      ;; TODO check that all the chararcter in "range" are 0s and 1s (no exception)
+      (sharp-bitvector start (current-position state))
+      ;; TODO style #*0 => #*
+      )))
 
 (defun read-sharp-colon (state start number)
   (declare (ignore number))
@@ -239,10 +265,8 @@ first node being whitespaces.)"
     (let* ((token-start (current-position state))
            (token (or (read-token state)
                       (token token-start token-start :name "")))
-           (end (current-position state))
-           (sharp-uninterned
-             (sharp-uninterned start end token)))
-      sharp-uninterned)))
+           (end (current-position state)))
+      (sharp-uninterned start end token))))
 
 (defun read-sharp-dot (state start number)
   (declare (ignore number))
@@ -449,8 +473,7 @@ first node being whitespaces.)"
               read-sharp-minus
               read-sharp-whitespace
               ;; TODO read-sharp-less-than "#<"
-              read-sharp-right-paren
-              ))
+              read-sharp-right-paren))
            ;; Invalid syntax OR custom reader macro
            (sharp-unknown start +end+))))))
 

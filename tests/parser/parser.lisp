@@ -317,7 +317,7 @@ the function read-sharp-dispatching-reader-macro
       (setf (current-position state) starting-position)
       ;;  make sure expected-children is nil for node types that don't
       ;; support children.
-      (if (member node-type '(sharp-reference))
+      (if (member node-type '(sharp-reference sharp-bitvector))
           (when expected-children
             (error "Node type ~s doesn't have a \"children\" slot, but expected-children is not nil, got: ~s."
                    node-type expected-children))
@@ -428,6 +428,7 @@ the function read-sharp-dispatching-reader-macro
 
 ;;; #*
 
+;; TODO sharp-bitvector doens't have children (for now at least)
 (defun test-read-sharp-asterisk (input &key child end n)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-asterisk
@@ -440,12 +441,12 @@ the function read-sharp-dispatching-reader-macro
 (define-test+run read-sharp-asterisk
   (test-read-sharp-asterisk '("#" "*"))
   (test-read-sharp-asterisk '("#" "* ") :end 2)
-  (test-read-sharp-asterisk '("#" "*0") :child 0)
+  (test-read-sharp-asterisk '("#" "*0"))
   (test-read-sharp-asterisk '("#0" "*") :n 0)
-  (test-read-sharp-asterisk '("#2" "*0") :child 0)
-  (test-read-sharp-asterisk '("#2" "*0") :n 2 :child 0)
+  (test-read-sharp-asterisk '("#2" "*0"))
+  (test-read-sharp-asterisk '("#2" "*0") :n 2)
   ;; TODO this is actually a syntax error, as "101" is longer than 2
-  (test-read-sharp-asterisk '("#2" "*101") :child 5 :n 2))
+  (test-read-sharp-asterisk '("#2" "*101") :n 2))
 
 
 ;;; #:

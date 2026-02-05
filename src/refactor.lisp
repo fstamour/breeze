@@ -746,8 +746,11 @@ will fix the issue and then stop the current command."
   #++ (check-in-package)
   (let ((root (root-node (current-node-iterator))))
     (pulse (start root) (end root))
-    (maybe-apply-fixes))
-  (message "Nothing to fix in the current top-level form."))
+    (maybe-apply-fixes)
+    (message "Nothing automatically fixable in the current top-level form ~s."
+             (list (current-buffer-name)
+                   (start root)
+                   (end root)))))
 
 #|
 

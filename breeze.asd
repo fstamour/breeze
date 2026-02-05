@@ -249,12 +249,13 @@
    (:file "lint")
    (:file "listener" :depends-on ("command"))
    (:file "logging")
-   ;; TODO move into new module "parser"
-   (:file "parser.randomized")
-   ;; TODO split out "parser.lisp"
-   ;; (:module "parser" ...)
-   (:file "parser" :depends-on ("parser.randomized"))
-   (:file "parse-tree")
+   (:module "parser"
+    :components
+    ((:file "parser.randomized")
+     ;; TODO split out "parser.lisp"
+     (:file "parser" :depends-on ("parser.randomized"))
+     (:file "parse-tree" :depends-on ("parser.randomized"))
+     (:file "incremental-parser")))
    (:file "package")
    (:file "package-commands")
    (:module "pattern"

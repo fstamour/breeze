@@ -295,8 +295,7 @@ depth of the tree."))
        (plusp (pos iterator)))))
 
 (defmethod donep ((iterator tree-iterator))
-  (with-slots (depth) iterator
-    (current-depth-done-p iterator)))
+  (current-depth-done-p iterator))
 
 (defmethod next ((iterator tree-iterator))
   (incf (pos iterator)))

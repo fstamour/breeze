@@ -1,5 +1,5 @@
 
-(uiop:define-package #:breeze.incremental-reader
+(uiop:define-package #:breeze.incremental-parser
     (:documentation "Parsing lisp code incrementally")
   (:use #:cl)
   (:use-reexport #:breeze.parser)
@@ -9,7 +9,7 @@
                 #:when-let)
   (:export #:apply-edit-to-source))
 
-(in-package #:breeze.incremental-reader)
+(in-package #:breeze.incremental-parser)
 
 ;; The simplest (stupidest) way to incrementally parse a buffer would
 ;; be to find the first top-level node that includes the changes and
@@ -33,26 +33,40 @@
            (when (minusp detail)
              (error "Invalid deletion of negative number of characters"))
            (when (< (length source) (+ position detail))
-             (error "Invalid deletion: ends outside the source")))))
+             (error "Invalid deletion: ends outside the source")))
+          ;; TODO :replace-at
+          ))
       (error "NIL is not a valid edit")))
 
 ;; TODO move into "parse-state.lisp"
 (defun apply-edit-to-source (state edit &aux (source (source state)))
+  (let ((new-string (apply-edit-to-string edit source)))
+    (setf (source state)
+          new-string
+          (current-position (iterator state)) 0
+          (slot-value (iterator state) 'vector) new-string))
+  (breeze.parser:parse (source state) state))
+
+(defun apply-edit-to-string (edit string)
   (destructuring-bind (type position detail)
       edit
-    (setf (source state)
-          ;; TODO Would be nice not to have to rebuild the whole
-          ;; buffer's string
-          (ecase type
-            (:insert-at
-             (concatenate 'string
-                          (subseq source 0 position)
-                          detail
-                          (subseq source position)))
-            (:delete-at
-             (concatenate 'string
-                          (subseq source 0 position)
-                          (subseq source (+ position detail))))))))
+    ;; TODO Would be nice not to have to rebuild the whole string
+    (ecase type
+      (:insert-at
+       (concatenate 'string
+                    (subseq string 0 position)
+                    detail
+                    (subseq string position)))
+      (:delete-at
+       (concatenate 'string
+                    (subseq string 0 position)
+                    (subseq string (+ position detail))))
+      (:replace-at
+       (destructuring-bind (start . end) position
+         (concatenate 'string
+                      (subseq string 0 start)
+                      detail
+                      (subseq string end)))))))
 
 ;; This is very inefficient, for starter it handles only one edit at a
 ;; time...

@@ -34,6 +34,13 @@
   (apply #'message string objects)
   (apply #'breeze-debug string objects))
 
+;; (kill-buffer (get-buffer-create " *breeze-debug*"))
+;; TODO a function to get the buffer name and/or the " *breeze-debug*" buffer
+;; TODO an emacs command to open the " *breeze-debug*" buffer
+;; TODO an emacs command to clear the " *breeze-debug*" buffer
+;; TODO something to remove the old entries only?
+;; TODO find a way to clean the logs before they're too long
+
 
 ;;; Utilities for integrating with other packages that might or might
 ;;; not be loaded.
@@ -596,7 +603,6 @@ which will redefine the dummy command."
    (t
     (remove-hook 'completion-at-point-functions 'breeze-completion-at-point))))
 
-
 
 ;;; Initializations
 
@@ -697,25 +703,12 @@ listener."
 
 ;;; Listener Hooks
 
-;; TODO This is experimental! I mean... more than the rest xD
-(defun breeze-%%%setup-hooks (listener)
-  "Hook into every hooks in slime and log when it's called along
-with which arguments."
-  (when (eq 'slime listener)
-    (cl-loop for hook in '(slime-connected-hook
-                           slime-inferior-process-start-hook
-                           slime-net-process-close-hooks
-                           slime-cycle-connections-hook
-                           slime-connected-hook
-                           slime-event-hooks)
-             do (add-hook hook (lambda (&rest args) (breeze-debug "%S: %S" hook args) nil)))))
-
 (defun breeze-connected-hook-function ()
   "Hook to be called when a listener is connected."
   (breeze-ensure))
 
 (defun breeze-enable-connected-hook ()
-  "Configure a hook to initialize breeze when connecting to sly or slime."
+  "Configure sly and slime to initialize breeze when they connect to Lisp."
   (interactive)
   (breeze-add-hook 'slime-connected-hook
                    'breeze-connected-hook-function)
@@ -723,9 +716,7 @@ with which arguments."
                    'breeze-connected-hook-function))
 
 (defun breeze-disable-connected-hook ()
-  "Remove 'breeze-connected-hook-function from sly or slime's
-\"connected hook\"."
-  "Remove the hook to initialize breeze when connecting to sly or slime."
+  "Remove the hook to initialize breeze when sly or slime connects to Lisp."
   (interactive)
   (breeze-remove-hook 'slime-connected-hook
                       'breeze-connected-hook-function)
@@ -738,20 +729,23 @@ with which arguments."
 (defvar breeze-changes ()
   "Accumulate changes made to buffers handled by breeze.")
 
-(defun breeze-after-change-function (start stop length)
+(defun breeze-after-change-function (start stop old-length)
   (unless (breeze-disabled-p)
     (push
      (append
       (list :buffer-name (buffer-name)
             :buffer-file-name (buffer-file-name))
       (cond
-       ((zerop length)
+       ((zerop old-length)
         (list :insert-at (1- start)
               :text (buffer-substring-no-properties start stop)))
-       ((cl-plusp length)
-        (list :delete-at (1- start) :length length))
-       (t (list :unknown-edit
-                (1- start) (1- stop) length))))
+       ((and (= start stop)
+             (cl-plusp old-length))
+        (list :delete-at (1- start) :length old-length))
+       (t
+        (list :replace-at (1- start)
+              :end (+ start -1 old-length)
+              :text (buffer-substring-no-properties start stop)))))
      breeze-changes)))
 
 (defun breeze-setup-after-change-function ()

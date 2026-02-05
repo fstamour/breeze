@@ -246,26 +246,3 @@ responsibility of filtering the edits based on the buffer-name)."
   "Tell the buffers in the WORKSPACE to apply all pendind edits that were
 previously noted."
   (map-workpace-buffers #'apply-pending-edits workspace))
-
-(defun after-change-function (start stop length
-                              &rest rest
-                              &key
-                                buffer-name
-                                buffer-file-name
-                                insertion
-                              &allow-other-keys)
-  (declare (ignorable start stop rest buffer-file-name)) ; yea, you heard me
-  ;; TODO the following form is just a hack to keep the breeze's
-  ;; buffers in sync with the editor's buffers
-  (when-let ((buffer (find-buffer buffer-name)))
-    (setf (node-iterator buffer) nil))
-  ;; TODO consider ignore-error + logs, because if something goes
-  ;; wrong in this function, editing is going to be funked.
-  #++
-  (breeze.incremental-reader:push-edit
-   (cond
-     ((zerop length)
-      (list :insert-at start insertion))
-     ((plusp length)
-      (list :delete-at start length))
-     (t :unknown-edit))))

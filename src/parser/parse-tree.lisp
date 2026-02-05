@@ -317,7 +317,7 @@
 (define-node-type sharp-char (:children t))
 (define-node-type sharp-function (:children t))
 (define-node-type sharp-vector (:children t))
-(define-node-type sharp-bitvector (:children t))
+(define-node-type sharp-bitvector ())
 
 ;; TODO use "name" instead of children
 (define-node-type sharp-uninterned (:children t))

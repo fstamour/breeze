@@ -368,8 +368,7 @@ uses the throw tag to stop the command immediately."
   (log-debug "Starting command...")
   (check-type fn (or function symbol))
   (check-type context-plist (or null cons))
-  (let* ((command (make-command-handler fn context-plist))
-         (buffer (current-buffer (context command))))
+  (let* ((command (make-command-handler fn context-plist)))
     ;; Create the thread for the command handler
     (make-actor-thread
      command
@@ -389,42 +388,73 @@ uses the throw tag to stop the command immediately."
     (log-debug "Command started.")
     (id command)))
 
+(defun updates-point (updates)
+  "Get the :point out of UPDATES."
+  (getf updates :point))
+
+(defun updates-edits (updates)
+  "Get the :edits out of UPDATES."
+  (getf updates :edits))
+
+(defun handle-point-update (command-handler updates)
+  "Update the current-buffer's point."
+  (when-let ((point (updates-point updates))
+             (buffer (current-buffer (context command-handler))))
+    (breeze.buffer:update-point buffer point)))
+
+(defun handle-edits (updates)
+  "Apply text changes (edits) to all buffers in the current workspace."
+  (when-let ((edits (updates-edits updates)))
+    (note-edits *workspace* edits)
+    (apply-pending-edits *workspace*)))
+
+(defun handle-buffer-string (command-handler buffer-string updates)
+  ;; TODO make sure the buffer _exists_ before trying to update its
+  ;; content...
+  (let ((buffer (current-buffer (context command-handler))))
+    (breeze.buffer:update-content buffer
+                                  buffer-string
+                                  (updates-point updates))
+    ;; tell the command-handler that the buffer has been updated.
+    (send-into command-handler :ok)))
+
+(defun handle-response (command-handler request-type response updates)
+  (let ((fn (fn command-handler)))
+    ;; dispatch on request-type
+    ;; (format *trace-output* "~&~s current-source before:~%~s" fn (breeze.parser:source (current-buffer (context command-handler))))
+    (cond
+      ((string= request-type "buffer-string")
+       (handle-buffer-string command-handler response updates))
+      (t
+       ;; (format *trace-output* "~&~s updates: ~s" fn updates)
+       ;; TODO extract handle-updates?
+
+       (handle-edits updates)
+       (handle-point-update command-handler updates)
+       ;; TODO It would be nice to keep track of whether a response
+       ;; is expected or not.
+       (when response (send-into command-handler response))))
+    ;; (format *trace-output* "~&~s current-source after:~%~s" fn (breeze.parser:source (current-buffer (context command-handler))))
+    ;; Get the next request from the command handler and return it.
+    (recv-from command-handler)))
+
 ;; TODO Maybe rename ARGUMENTS to RESPONSE?
 (defun continue-command (id &key request-type response updates)
   "Continue procressing *command*."
   ;; TODO cancel-command-on-error
-  (destructuring-bind (&key point edits &allow-other-keys)
-      updates
-    (let ((actor (find-actor id :errorp t)))
-      (cond
-        ((donep actor)
-         (deregister actor)
-         (list "done"))
-        (t
-         ;; TODO dispatch on request-type
-         (format *trace-output* "~&~s updates: ~s" (fn actor) updates)
-         ;; TODO extract handle-updates?
-         ;; TODO extract handle-point
-         ;; Update the current-buffer's point
-         (when point
-           (when-let ((buffer (current-buffer (context actor))))
-             (breeze.buffer:update-point buffer point)))
-         (format *trace-output* "~&~s current-source before:~%~s" (fn actor) (breeze.parser:source (current-buffer (context actor))))
-         ;; TODO extract handle-edits
-         (when edits
-           (note-edits *workspace* edits)
-           (apply-pending-edits *workspace*))
-         (format *trace-output* "~&~s current-source after:~%~s" (fn actor) (breeze.parser:source (current-buffer (context actor))))
-         ;; TODO It would be nice to keep track of whether a response
-         ;; is expected or not.
-         (when response (send-into actor response))
-         (let ((request (recv-from actor)))
+  (let ((actor (find-actor id :errorp t)))
+    ;; (format *trace-output* "~&~s request-type: ~s" (fn actor) request-type)
+    (cond
+      ((donep actor)
+       (deregister actor)
+       (list "done"))
+      (t (let ((request (handle-response actor request-type response updates)))
            (cond
              ((null request)
               (cancel-command id "Request is null."))
              ((string= "done" (car request))
               (cancel-command id "Request is \"done\".")))
-           request))))))
+           request)))))
 
 
 ;;; Utilities to get common stuff from the context
@@ -620,14 +650,16 @@ resulting string to the editor."
   (send "return" value))
 
 (defun request-buffer-string ()
-  (let ((buffer (current-buffer)))
-    (send "buffer-string")
-    (let ((buffer-string (recv)))
-      (format *trace-output*
-              "~&got buffer-string:~%~s" buffer-string)
-      (breeze.buffer:update-content buffer
-                                    buffer-string
-                                    (current-point)))))
+  (send "buffer-string")
+  ;; just wait for the :ok sent by `handle-
+  (recv)
+  #++
+  (let ((buffer-string (recv)))
+    (format *trace-output*
+            "~&got buffer-string:~%~s" buffer-string)
+    (breeze.buffer:update-content buffer
+                                  buffer-string
+                                  (current-point))))
 
 (defun goto-char (position)
   "Move the point to POSITION."
