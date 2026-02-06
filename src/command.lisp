@@ -888,8 +888,8 @@ Example:
                                :collect `(declare ,declaration))
                        (multiple-value-prog1
                            (progn
-                               ;; TODO not all commands would require
-                               ;; the buffer's content
+                             ;; TODO not all commands would require
+                             ;; the buffer's content
                              (request-buffer-string)
                              ,@remaining-forms)
                          ,(if lambda-list

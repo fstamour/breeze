@@ -86,27 +86,33 @@
 
 
 
-(define-test insert-asdf
+(define-test+run insert-asdf
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-asdf
                                :inputs '("a" "b" "c")
                                :context '())))
-    (common-trace-asserts 'insert-asdf trace 5)
-    (destructuring-bind (input request) (first trace)
+    (common-trace-asserts 'insert-asdf trace 6)
+    (destructuring-bind (input request) (pop trace)
       (false input)
-      (is string= "read-string" (first request))
-      (is string= "Name of the system: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (second trace)
+      (is equal '("buffer-string") request)
+      (false (second request)))
+    (destructuring-bind (input request) (pop trace)
+      (is string= "" input)
+      (is equal '("read-string" "Name of the system: "
+                  :initial-input nil
+                  :history "breeze-#<function insert-asdf>")
+          request))
+    (destructuring-bind (input request) (pop trace)
       (is string= "a" input)
-      (is string= "read-string" (first request))
-      (is string= "Author: " (second request))
-      (is string= "" (third request)))
-    (destructuring-bind (input request) (third trace)
+      (is equal '("read-string" "Author: "
+                  :initial-input "" :history "breeze-#<function insert-asdf>--author")
+          request))
+    (destructuring-bind (input request) (pop trace)
       (is string= "b" input)
-      (is string= "read-string" (first request))
-      (is string= "Licence name: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (fourth trace)
+      (is equal '("read-string" "Licence name: "
+                  :initial-input nil :history "breeze-#<function insert-asdf>--licence")
+          request))
+    (destructuring-bind (input request) (pop trace)
       (is string= "c" input)
       (is string= "insert" (first request))
       (is equal
@@ -128,11 +134,12 @@
             "           (uiop:symbol-call"
             "            'a.test 'run-tests))"
             "  )"
-              "")
+            "")
 
           (split-by-newline (second request))))))
 
 (define-test+run insert-breeze-define-command
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-breeze-define-command
                                :inputs '("rmrf")
                                :context '())))
@@ -153,6 +160,7 @@
           (split-by-newline (second request))))))
 
 (define-test+run insert-defun
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-defun
                                :inputs '("real-fun" "a &optional b")
                                :context '())))
@@ -184,6 +192,7 @@
           (split-by-newline (second request))))))
 
 (define-test insert-defvar
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-defvar
                                :inputs '("var" "42" "This is a nice var")
                                :context '())))
@@ -224,6 +233,7 @@
       (is string= "\"This is a nice var\")" (second request)))))
 
 (define-test insert-defclass
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-defclass
                                :inputs '("klass")
                                :context '())))
@@ -246,6 +256,7 @@
           (split-by-newline (second request))))))
 
 (define-test+run insert-defmacro
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-defmacro
                                :inputs '("mac" "(x) &body body")
                                :context '())))
@@ -277,6 +288,7 @@
           (split-by-newline (second request))))))
 
 (define-test+run insert-defgeneric
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-defgeneric
                                :inputs '("gen")
                                :context '())))
@@ -297,6 +309,7 @@
           (split-by-newline (second request))))))
 
 (define-test insert-defmethod
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-defmethod
                                :inputs '("frob")
                                :context '())))
@@ -316,6 +329,7 @@
 
 
 (define-test+run insert-defparameter
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-defparameter
                                :inputs '("param" "\"meh\""
                                          "This is a meh variable")
@@ -357,6 +371,7 @@
       (is string= "\"This is a meh variable\")" (second request)))))
 
 (define-test insert-handler-bind-form
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-handler-bind-form
                                :inputs 'nil
                                :context '())))
@@ -372,6 +387,7 @@
           (split-by-newline (second request))))))
 
 (define-test insert-handler-case-form
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-handler-case-form
                                :inputs 'nil
                                :context '())))
@@ -388,6 +404,7 @@
 
 #++
 (define-test insert-in-package-cl-user
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-in-package-cl-user
                                :inputs 'nil
                                :context '())))
@@ -398,6 +415,7 @@
       (is string= "(cl:in-package #:cl-user)" (second request)))))
 
 (define-test insert-lambda
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-lambda
                                :inputs 'nil
                                :context '())))
@@ -408,6 +426,7 @@
       (is string= "(lambda ())" (second request)))))
 
 (define-test insert-loop-clause-for-hash
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-loop-clause-for-hash
                                :inputs '("key" "*ht*" "v")
                                :context '())))
@@ -445,6 +464,7 @@
       (is string= "v)" (second request)))))
 
 (define-test insert-loop-clause-for-in-list
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-loop-clause-for-in-list
                                :inputs '("el" "list")
                                :context '())))
@@ -473,6 +493,7 @@
       (is string= "list" (second request)))))
 
 (define-test insert-loop-clause-for-on-list
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-loop-clause-for-on-list
                                :inputs '("rest" "list")
                                :context '())))
@@ -501,6 +522,7 @@
       (is string= "list" (second request)))))
 
 (define-test insert-print-unreadable-object-boilerplate
+  :time-limit 0.1
   (let* ((trace (drive-command #'insert-print-unreadable-object-boilerplate
                                :inputs '("node" "node")
                                :context '())))

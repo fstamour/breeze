@@ -17,6 +17,7 @@
 (in-package #:breeze.test.main)
 
 (defparameter cl-user::*exit-on-test-failures* nil)
+(setf parachute:*abort-on-timeout-p* t)
 
 ;; (setf parachute:*silence-plain-compilation-errors-p* nil)
 

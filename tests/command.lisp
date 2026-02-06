@@ -8,6 +8,7 @@
   ;; importing non-exported symbols not exported
   (:import-from #:breeze.command
                 #:id
+                #:fn
                 #:find-actor
                 #:donep
                 #:command-handler
@@ -67,7 +68,7 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
            :with input = nil
            ;; We call continue-command to send the input
            :for request = (if input
-                              (continue-command id input)
+                              (continue-command id :response input)
                               (continue-command id))
            ;; We collect the pair of input/request. This is practically
            ;; an execution trace, and we're going to assert things on
@@ -76,12 +77,10 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
            :do (unless request
                  (error "Commands should not return nil... ideally"))
                ;; Detect when the command is done.
-
            :until (string= "done" (car request))
            ;; Otherwise, check if the request looks ok
            :do (let ((request-type (alexandria:make-keyword (string-upcase (car request)))))
                  (ecase request-type
-                   ;; TODO Add the other types of requests
                    ;; Check if we're missing any input
                    ((:choose :read-string)
                     (if (first inputs)
@@ -89,14 +88,17 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
                         (cond
                           (ask-for-missing-input-p
                            (breeze.command::send-out *command* request)
-                           (setf input (breeze.command::recv1)))
+                           (setf input (breeze.command::recv)))
                           (t
                            (error "Missing input for request ~S ~s" request input)))))
                    (:insert)
                    (:insert-saving-excursion)
                    (:message)
-                   (:backward-char))
-                 (unless (member request-type '(:choose :read-string))
+                   (:goto-char)
+                   (:buffer-string
+                    ;; TODO send something else than the empty string...
+                    (setf input "")))
+                 (unless (member request-type '(:choose :read-string :buffer-string))
                    (setf input nil))))
       ;; This is flaky, the other thread might or might not be done already
       #++
@@ -176,7 +178,12 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 
 
 (defclass fake-command-handler ()
-  ((context
+  ((fn
+    :initform nil
+    :initarg :fn
+    :accessor fn
+    :documentation "The function to be executed by the actor.")
+   (context
     :initarg :context
     :initform (make-hash-table)
     :accessor context
@@ -237,18 +244,18 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 (define-test+run read-string
   (with-fake-command-handler
       ((mock-send-out (value)
-         (is equalp '("read-string" "> " "initial value") value))
+         (is equalp '("read-string" "> " :initial-input "initial value" :history "breeze-nil") value))
        (mock-recv-into ()
-         '("user input")))
+         "user input"))
     (is equalp "user input"
-        (read-string "> " "initial value"))))
+        (read-string "> " :initial-input "initial value"))))
 
 (define-test+run read-string-then-insert
   (with-fake-command-handler
       ((mock-send-out (value)
          (is equalp '("read-string" "> " nil) value))
        (mock-recv-into ()
-         '("user input"))
+         "user input")
        (mock-send-out (value)
          (is equalp '("insert" "~> \"user input\" <~") value)))
     (read-string-then-insert "> " "~~> ~s <~~")))
@@ -265,7 +272,6 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
   (with-fake-command-handler
       ((mock-send-out (value)
          (is equalp '("insert-at" 32 "asdf") value)))
-
     (insert-at 32 "~a" '|asdf|)))
 
 (define-test+run insert-at-saving-excursion

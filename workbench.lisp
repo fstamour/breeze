@@ -79,10 +79,6 @@
  read-string-then-insert
  choose)
 
-(trace
- chanl:send
- chanl:recv)
-
 (untrace)
 
 ;;; Manually testing "actors"
@@ -140,6 +136,15 @@
 (with-answers
     ())
 
+
+(in-package #:breeze.test.command)
+
+(trace drive-command)
+(trace
+ start-command
+ find-actor
+ continue-command
+ :wherein drive-command)
 
 
 ;; refactor.lisp

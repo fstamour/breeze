@@ -39,14 +39,19 @@ connected to an image through slime or sly)."))
 (defun livep* ()
   (livep *scan*))
 
+
+;;; TODO move to diagnostic.lisp
+
 (defvar *point-max* nil)
 
+;; TODO move to diagnostic.lisp
 (defun make-diagnostic (start end severity format-string format-args)
   "Create a \"diagnostic\" object."
   (list start (if (= +end+ end) *point-max* end)
         severity
         (apply #'format nil format-string format-args)))
 
+;; TODO move to diagnostic.lisp
 (defun push-diagnostic* (start end severity format-string format-args)
   "Create a diagnostic object and push it into the special variable
 *scan*."
@@ -56,29 +61,34 @@ connected to an image through slime or sly)."))
     (push diagnostic (diagnostics *scan*))
     diagnostic))
 
+;; TODO move to diagnostic.lisp
 ;; Same as push-diagnostic*, but takes a &rest
 (defun push-diagnostic (start end severity format-string &rest format-args)
   "Create a diagnostic object and push it into the special variable
 *scan*."
   (push-diagnostic* start end severity format-string format-args))
 
+;; TODO move to diagnostic.lisp
 (defun diag-node (node severity format-string &rest format-args)
   "Create a diagnostic object for NODE and push it into the special
 variable *scan*."
   (push-diagnostic* (start node) (end node)
                     severity format-string format-args))
 
+;; TODO move to diagnostic.lisp
 (defun diag-warn (node format-string &rest format-args)
   "Create a diagnostic object for NODE with severity :WARNING and push it
 into the special variable *scan*."
   (apply #'diag-node node :warning format-string format-args))
 
+;; TODO move to diagnostic.lisp
 (defun diag-error (node format-string &rest format-args)
   "Create a diagnostic object for NODE with severity :error and push it
 into the special variable *scan*."
   (apply #'diag-node node :error format-string format-args))
 
 
+;; TODO move to diagnostic.lisp
 ;;; using signals to be able to decide what to do when certain
 ;;; conditions are discovered (e.g. keep note of it v.s. fixing it)
 
