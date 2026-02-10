@@ -272,6 +272,7 @@
    (:file "string-utils")
    (:file "utils")
    (:file "buffer")
+   (:file "cl")
    (:file "workspace")
    (:file "xref" :depends-on ("dummy-package"))
    (:file "main")))
