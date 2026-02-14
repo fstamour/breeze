@@ -24,7 +24,7 @@
 
 ;; (pop org-publish-project-alist)
 (cl-pushnew
- `(breeze
+ `("breeze"
    :base-directory ,(file-name-concat *breeze-root* "docs/")
    :publishing-function org-html-publish-to-html
    :publishing-directory ,(file-name-concat *breeze-root* "public/")
@@ -64,7 +64,7 @@
        (default-directory *breeze-root*)
        (root "docs"))
   (org-id-update-id-locations (directory-files root t "\\.org$"))
-  (org-publish org-publish-project-alist forcep)
+  (org-publish "breeze" forcep)
   (dolist (file (directory-files root t "listing-.*\\.html$"))
     (copy-file file "public/" :ok-if-already-exists))
   (copy-file "docs/reference.html" "public/" :ok-if-already-exists)
