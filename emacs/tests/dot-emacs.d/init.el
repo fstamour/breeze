@@ -125,7 +125,7 @@
              '(find-file-other-window "~/breeze/")
              "Open breeze's directory")
             (insert-command-button-item
-             '(find-file-other-window "~/breeze/tests/emacs/")
+             '(find-file-other-window "~/breeze/emacs/tests/")
              "Open breeze's emacs tests directory")
             (insert-command-button-item
              '(find-file-other-window "~/.emacs.d/init.el")

@@ -78,7 +78,7 @@ FROM integration-tests-base AS integration-tests-run
 
 # TODO
 # Run some test (fails because slime is not started)
-# RUN emacs -batch -l ert -l /breeze/tests/emacs/breeze-test.el -f ert-run-tests-batch-and-exit
+# RUN emacs -batch -l ert -l /breeze/emacs/tests/breeze-test.el -f ert-run-tests-batch-and-exit
 
 # TODO emacs (x11) complains that stdin is not a tty, might need to run it under screen
 #

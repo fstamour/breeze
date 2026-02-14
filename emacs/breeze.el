@@ -504,7 +504,13 @@ Disabling is useful when breeze cannot be loaded or is currently
 broken (e.g. during development of breeze itself).")
 
 (defun breeze-disabled-p ()
-  (let ((connection (breeze-listener-connected-p)))
+  "Check if breeze is disabled for the current connection."
+  ;; It's important that this function returns nil if there are no
+  ;; connection, otherwise the "initialization process" will stop,
+  ;; thinking that breeze was disabled for the connection (instead of
+  ;; just seeing that there are no connections).
+  (when-let ((connection (breeze-listener-connected-p nil)))
+    ;; check if it's disabled for the current connection
     (gethash connection breeze-disabled-p)))
 
 (defun breeze-disable ()
@@ -532,7 +538,9 @@ This doesn't remove any hooks, instead, each breeze's command becomes no-ops."
   "A dummy command that is used to ensure breeze is loaded the first
 time a command is invoked. breeze-refresh-commands is called,
 which will redefine the dummy command."
-  (if (breeze-disabled-p)
+  (message "Called the stub method for the command %S." name)
+  (if (and (breeze-disabled-p)
+           (breeze-listener-connected-p nil))
       nil ;; (warn "Breeze is disabled")
     (and
      (breeze-list-loaded-listeners)
@@ -605,6 +613,17 @@ which will redefine the dummy command."
 
 
 ;;; Initializations
+
+(defun breeze--wait-until (predicate timeout error-message)
+  "Poll until PREDICATE returns non-nil, or signal an error after TIMEOUT
+seconds."
+  (let ((start (current-time)))
+    (while (not (funcall predicate))
+      ;; did we time out?
+      (when (< timeout (float-time (time-subtract (current-time) start)))
+        (error "%s" error-message))
+      ;; wait another 0.5 seconds
+      (accept-process-output nil 0.5))))
 
 (defun breeze-validate-if-package-exists (package)
   "Returns true if the package PACKAGE exists in the inferior lisp."
@@ -689,15 +708,46 @@ listener."
          (breeze-refresh-commands)
          (when callback (funcall callback)))))))
 
+;; TODO if this is flaky, try using the sly/slime's "connected hook"
+;; instead just "connected-p"
+(defun breeze-wait-for-listener ()
+  "Wait up to 1 minute for LISTENER to be ready."
+  (breeze--wait-until
+   (lambda ()
+     (message "Breeze: waiting for listener to be connected...")
+     (breeze-listener-connected-p nil))
+   ;; seconds
+   60
+   "Timed out waiting for a listener (sly or slime) to be connected."))
 
 ;; See slime--setup-contribs, I named this breeze-init so it _could_
 ;; be added to slime-contrib,
+
+;; TODO make sure this (breeze-init) is called only once at a time
+;; (smells like mutex!) -- should be per-connection... but there might
+;; not be a connection at first... so it would require another
+;; (global) mutex?
+
 ;;;###autoload
 (cl-defun breeze-init ()
   "Initialize breeze."
   (interactive)
   (breeze-ensure-listener)
-  (breeze-ensure)
+  (unless (breeze-listener-connected-p nil)
+    (breeze-wait-for-listener ()))
+  ;; wait for the most recent request to finish
+  (breeze-%listener-funcall 'sync)
+  (let ((initialized nil))
+    (breeze-ensure
+     (lambda ()
+       (setf initialized t)))
+    (breeze--wait-until
+     (lambda ()
+       ;; (message "Waiting for breeze to be initialized...")
+       initialized)
+     ;; a whooping 10 minutes!!!
+     600
+     "Timed out waiting for breeze to initialize"))
   (breeze-debug "Breeze initialized (might still be loading in the inferior lisp)."))
 
 

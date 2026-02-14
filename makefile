@@ -9,7 +9,7 @@ SHELL=bash
 MAKEFLAGS += --check-symlink-times
 
 .PHONY: all-tests
-all-tests: test test-emacs emacs/breeze-autoloads.el
+all-tests: test test-emacs-unit emacs/breeze-autoloads.el
 
 # Run the unit tests
 .PHONY: test
@@ -36,11 +36,14 @@ doc:
 # List of lisp implementations available in guix
 LISP_IMPLS := sbcl abcl ecl clisp clasp gcl ccl
 
+# All CI container images
+CI_IMAGES := $(LISP_IMPLS) emacs
+
 ######################################################################
 # Create containers meant to be uploaded (using skopeo), and to be
 # used in CI pipelines.
 CONTAINER_PREFIX := breeze-ci
-CONTAINERS := $(foreach lisp,$(LISP_IMPLS),build/$(CONTAINER_PREFIX)-$(lisp).tar.gz)
+CONTAINERS := $(foreach img,$(CI_IMAGES),build/$(CONTAINER_PREFIX)-$(img).tar.gz)
 
 $(CONTAINERS): build/$(CONTAINER_PREFIX)-%.tar.gz: scripts/manifest-%.scm
 	mkdir -p build/
@@ -58,7 +61,7 @@ build-all-ci-images: $(CONTAINERS)
 ######################################################################
 # Targets to load the container images built with guix into docker
 
-LOAD_CONTAINERS := $(foreach lisp,$(LISP_IMPLS),load-$(CONTAINER_PREFIX)-$(lisp))
+LOAD_CONTAINERS := $(foreach img,$(CI_IMAGES),load-$(CONTAINER_PREFIX)-$(img))
 
 LOAD_CONTAINER_WITNESSES := $(foreach target,$(LOAD_CONTAINERS),build/$(target))
 $(LOAD_CONTAINER_WITNESSES): build/load-%: build/%.tar.gz
@@ -74,6 +77,7 @@ load-all-ci-images: $(LOAD_CONTAINERS)
 ######################################################################
 # Run the tests in a docker container
 
+# TODO generalize (e.g. rename the variable ~lisp~ to something more generic).
 GUIX_CONTAINER_TESTS := $(foreach lisp,$(LISP_IMPLS),guix-container-test-$(lisp))
 .PHONY: $(GUIX_CONTAINER_TESTS)
 $(GUIX_CONTAINER_TESTS): guix-container-test-%: load-$(CONTAINER_PREFIX)-%
@@ -81,7 +85,7 @@ $(GUIX_CONTAINER_TESTS): guix-container-test-%: load-$(CONTAINER_PREFIX)-%
 
 ######################################################################
 # Upload the container images to gitlab
-UPLOAD_CI_IMAGES := $(foreach lisp,$(LISP_IMPLS),upload-$(CONTAINER_PREFIX)-$(lisp))
+UPLOAD_CI_IMAGES := $(foreach img,$(CI_IMAGES),upload-$(CONTAINER_PREFIX)-$(img))
 .PHONY: $(UPLOAD_CI_IMAGES)
 $(UPLOAD_CI_IMAGES): upload-%: build/%.tar.gz
 	skopeo --insecure-policy copy docker-archive:$^ docker://registry.gitlab.com/fstamour/breeze/$*
@@ -103,6 +107,10 @@ $(GUIX_SHELL_TESTS): guix-shell-test-%: scripts/manifest-%.scm
 		-- ./scripts/test-$*.sh
 
 ######################################################################
+# Emacs
+
+.PHONY: test-emacs-all
+test-emacs-all: emacs/breeze-autoloads.el test-emacs-unit test-emacs-slime test-emacs-sly
 
 emacs/breeze-autoloads.el: emacs/breeze.el
 	emacs -batch -f loaddefs-generate-batch emacs/breeze-autoloads.el emacs
@@ -118,29 +126,59 @@ launch-emacs:
 		--preserve='^XAUTHORITY$$' --expose="$${XAUTHORITY}" --preserve='^DISPLAY$$' \
 		--network \
 		--no-cwd --expose=$$PWD=$$HOME/breeze \
-		--expose=$$PWD/tests/emacs/dot-emacs.d=$$HOME/.emacs.d/ \
+		--expose=$$PWD/emacs/tests/dot-emacs.d=$$HOME/.emacs.d/ \
 		-- emacs
 
-# Run **SOME** emacs test in a container, using guix
-.PHONY: test-emacs
-test-emacs:
+# Run emacs unit tests in a guix container
+.PHONY: test-emacs-unit
+test-emacs-unit:
 	guix shell \
-		--manifest=scripts/manifest.scm \
-		--container --preserve='^TERM$$' \
+		--manifest=scripts/manifest-emacs.scm \
+		--container \
+		--preserve='^TERM$$' \
 		--user=user \
 		--no-cwd --expose=$$PWD=$$HOME/breeze \
-		-- emacs --batch \
-		--load \~/breeze/emacs/breeze.el \
-		--load \~/breeze/tests/emacs/no-listener.el \
-		-f ert-run-tests-batch-and-exit
+		-- breeze/scripts/test-emacs.sh
+
+# Run the emacs tests in a docker container
+.PHONY: guix-container-test-emacs
+guix-container-test-emacs: load-$(CONTAINER_PREFIX)-emacs
+	docker run --rm -v $$PWD:/breeze $(CONTAINER_PREFIX)-emacs \
+		/breeze/scripts/test-emacs.sh
+
+### Run the emacs integration (with sly or slime) tests
+
+# sly is incompatible with slime, so we use this environment variable
+# to choose which one to test.
+export BREEZE_LISTENER
+
+.PHONY: test-emacs-slime
+test-emacs-slime: BREEZE_LISTENER=slime
+test-emacs-slime: test-emacs-integration
+
+.PHONY: test-emacs-sly
+test-emacs-sly: BREEZE_LISTENER=sly
+test-emacs-sly: test-emacs-integration
+
+.PHONY: test-emacs-integration
+test-emacs-integration:
+	guix shell \
+		--manifest=scripts/manifest.scm \
+		--container \
+		--preserve='^TERM$$' \
+		--preserve='^BREEZE_LISTENER$$' \
+		--user=user \
+		--no-cwd \
+		--expose=$$PWD=$$HOME/breeze \
+		-- breeze/scripts/test-emacs-integration.sh
 
 ######################################################################
 
 DOCKER_BUILD := DOCKER_BUILDKIT=1 docker build --progress=plain
 
-# This is "generic" makefile target. To use it, tweak the variables
-# (TARGET and DEST) and add it as a dependency.
-# See the targets "dependencies.core" and "public" for examples
+# This is a "generic" makefile target. To use it, tweak the variables
+# (TARGET and DEST) and add it as a dependency.  See the targets
+# "dependencies.core" and "public" for examples
 .PHONY: build-within-container
 build-within-container:
 	$(DOCKER_BUILD) --target=$(TARGET) --output type=local,dest=$(or $(DEST),/dev/null) . 2>&1 | tee $(TARGET).log

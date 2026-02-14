@@ -2,12 +2,17 @@
 Point-Char: |
 
 Name: insert-in-package-cl-user
-Code: breeze-insert-in-package-cl-user
+
+;; TODO make it less annoying to write?
+Code: (lambda ()
+        (lisp-mode)
+        (breeze-init)
+        (breeze-insert-in-package-cl-user))
 
 =-=
 |
 =-=
-(cl:in-package #:cl-user)
+(cl:in-package #:cl-user)|
 =-=-=
 
 
