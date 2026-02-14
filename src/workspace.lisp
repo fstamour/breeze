@@ -120,6 +120,8 @@ Design decision(s):
                          major-mode)
       context-plist
     (declare (ignore major-mode))
+    (unless buffer-name
+      (error "Buffer name is required."))
     (when-let ((buffer (ensure-buffer buffer-name)))
       (breeze.logging:log-debug "add-to-workspace buffer ~s" buffer-name)
       (when buffer-file-name (setf (filename buffer) buffer-file-name))

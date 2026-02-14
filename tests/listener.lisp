@@ -52,7 +52,11 @@
   ;; Empty file
   ;; TODO This should probably print a message instead...
   (with-fake-command-handler
-      ((mock-send-out (value)
+      (empty-file
+       (mock-send-out (value)
+         (is equalp '("buffer-string") value))
+       (mock-recv-into () "")
+       (mock-send-out (value)
          (is equalp '("pulse" 0 0) value)))
     (setf (gethash :buffer (context *command*))
           (make-buffer :string ""))
@@ -60,34 +64,48 @@
         'end-of-file))
   ;; File with only 1 space
   (with-fake-command-handler
-      ((mock-send-out (value)
+      (1-space
+       (mock-send-out (value)
+         (is equalp '("buffer-string") value))
+       (mock-recv-into () " ")
+       (mock-send-out (value)
          (is equalp '("pulse" 0 1) value)))
     (setf (gethash :buffer (context *command*))
           (make-buffer :string " "))
     (fail (interactive-eval)
         'end-of-file))
   ;; Testing that the in-package form is used correctly
-  (with-fake-command-handler
-      ((mock-send-out (value)
-         (is equalp '("pulse" 35 44) value))
-       (mock-send-out (value)
-         (is equalp '("message" #+sbcl "#<PACKAGE \"BREEZE.TEST.COMMAND\">"
-                        #+ecl "#<\"BREEZE.TEST.COMMAND\" package>")
-             value))
-       (mock-send-out (value)
-         (is equalp '("done") value)))
-    (setf (gethash :buffer (context *command*))
-          (make-buffer :string "(in-package #:breeze.test.command)
-*package*"
-                       :point 40))
-    (false (interactive-eval)))
+  (let ((buffer-string "(in-package #:breeze.command)
+*package*"))
+    (with-fake-command-handler
+        (right-package
+         (mock-send-out (value)
+           (is equalp '("buffer-string") value))
+         (mock-recv-into () buffer-string)
+         (mock-send-out (value)
+           (is equalp '("pulse" 30 39) value))
+         (mock-send-out (value)
+           (is equalp '("message"
+                        #+sbcl "#<PACKAGE \"BREEZE.COMMAND\">"
+                        #+ecl "#<\"BREEZE.COMMAND\" package>")
+               value))
+         (mock-send-out (value)
+           (is equalp '("done") value)))
+      (setf (gethash :buffer (context *command*))
+            (make-buffer :string buffer-string
+                         :point 40))
+      (false (interactive-eval))))
   ;; Testing that the current *package* doesn't affect
   ;; interactive-eval if there's an in-package form in the
   ;; buffer (before the point).
   (dolist (*package* (list (find-package '#:cl-user)
                            #.*package*))
     (with-fake-command-handler
-        ((mock-send-out (value)
+        (right-package-again
+         (mock-send-out (value)
+           (is equalp '("buffer-string") value))
+         (mock-recv-into () "")
+         (mock-send-out (value)
            (is equalp '("pulse" 35 44) value))
          (mock-send-out (value)
            (is equalp '("message"
@@ -101,12 +119,17 @@
 *package*"
                          :point 40))
       (false (interactive-eval))))
-  ;; Testing that the current value of *package* does affect interactive-eval if there's no in-package
+  ;; Testing that the current value of *package* does affect
+  ;; interactive-eval if there's no in-package
 
   ;; TODO this test should work even if point == 0 or any upper value.
   (loop :for point :from 1 :upto 3 :do
     (with-fake-command-handler
-        ((mock-send-out (value)
+        (right-package-fallback
+         (mock-send-out (value)
+           (is equalp '("buffer-string") value))
+         (mock-recv-into () "")
+         (mock-send-out (value)
            (is equalp '("pulse" 1 3) value))
          (mock-send-out (value)
            (is equalp '("message" "X") value))
@@ -118,6 +141,9 @@
   #+sbcl
   (with-fake-command-handler
       ((mock-send-out (value)
+         (is equalp '("buffer-string") value))
+       (mock-recv-into () "")
+       (mock-send-out (value)
          (is equalp '("pulse" 0 9) value))
        (mock-send-out (value)
          (is eqv '("message" :_) value)

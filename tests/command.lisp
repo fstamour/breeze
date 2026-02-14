@@ -67,39 +67,40 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
            ;; The first input is always nil
            :with input = nil
            ;; We call continue-command to send the input
-           :for request = (if input
-                              (continue-command id :response input)
-                              (continue-command id))
-           ;; We collect the pair of input/request. This is practically
-           ;; an execution trace, and we're going to assert things on
-           ;; those traces.
-           :collect (list input request)
+           :for request = (continue-command id)
+             :then (continue-command id :response input)
+           ;; Detect when the command is done.
+           :for donep := (string= "done" (car request))
            :do (unless request
                  (error "Commands should not return nil... ideally"))
-               ;; Detect when the command is done.
-           :until (string= "done" (car request))
            ;; Otherwise, check if the request looks ok
-           :do (let ((request-type (alexandria:make-keyword (string-upcase (car request)))))
-                 (ecase request-type
-                   ;; Check if we're missing any input
-                   ((:choose :read-string)
-                    (if (first inputs)
-                        (setf input (pop inputs))
-                        (cond
-                          (ask-for-missing-input-p
-                           (breeze.command::send-out *command* request)
-                           (setf input (breeze.command::recv)))
-                          (t
-                           (error "Missing input for request ~S ~s" request input)))))
-                   (:insert)
-                   (:insert-saving-excursion)
-                   (:message)
-                   (:goto-char)
-                   (:buffer-string
-                    ;; TODO send something else than the empty string...
-                    (setf input "")))
-                 (unless (member request-type '(:choose :read-string :buffer-string))
-                   (setf input nil))))
+           :do (unless donep
+                 (let ((request-type (alexandria:make-keyword (string-upcase (car request)))))
+                   (ecase request-type
+                     ;; Check if we're missing any input
+                     ((:choose :read-string)
+                      (if (first inputs)
+                          (setf input (pop inputs))
+                          (cond
+                            (ask-for-missing-input-p
+                             (breeze.command::send-out *command* request)
+                             (setf input (breeze.command::recv)))
+                            (t
+                             (error "Missing input for request ~S ~s" request input)))))
+                     (:insert)
+                     (:insert-saving-excursion)
+                     (:message)
+                     (:goto-char)
+                     (:buffer-string
+                      ;; TODO send something else than the empty string...
+                      (setf input "")))
+                   (unless (member request-type '(:choose :read-string :buffer-string))
+                     (setf input nil))))
+               ;; We collect the pair of input/request. This is practically
+               ;; an execution trace, and we're going to assert things on
+               ;; those traces.
+           :collect (list :request request :response input)
+           :until donep)
       ;; This is flaky, the other thread might or might not be done already
       #++
       (unless (donep command)
@@ -190,7 +191,13 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
     :documentation "The context of the command.")
    (mocks
     :initform nil
-    :accessor mocks)))
+    :accessor mocks)
+   (mock-index
+    :initform -1
+    :accessor mock-index)))
+
+(defmethod next-mock ((command fake-command-handler))
+  (nth (incf (mock-index command)) (mocks command)))
 
 (defmethod send-into ((command fake-command-handler) value)
   (break "Not implemented: send-into: ~s" value))
@@ -198,21 +205,32 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 (defmethod recv-from ((command fake-command-handler))
   (break "Not implemented: recv-from"))
 
+(defmethod mock-progress ((command fake-command-handler))
+  (format nil "(~d/~d)"
+          (mock-index command)
+          (length (mocks command))))
+
 (defmethod recv-into ((command fake-command-handler))
-  (let ((mock (pop (mocks command))))
+  (let ((mock (next-mock command)))
     (if mock
         (if (eq (car mock) 'mock-recv-into)
             (funcall (cdr mock))
-            (error "Expected a call to `recv-into' got ~s" (car mock)))
-        (error "Unexpected recv-into value."))))
+            (error "~a Expected a call to `recv-into' got ~s"
+                   (mock-progress command)
+                   (car mock)))
+        (error "~a Unexpected recv-into value."
+               (mock-progress command)))))
 
 (defmethod send-out ((command fake-command-handler) value)
-  (let ((mock (pop (mocks command))))
+  (let ((mock (next-mock command)))
     (if mock
         (if (eq (car mock) 'mock-send-out)
             (funcall (cdr mock) value)
-            (error "Expected a call to `send-out' got ~s" (car mock)))
-        (error "Unexpected send-out value: ~s" value))))
+            (error "~s Expected a call to `send-out' got ~s"
+                   (mock-progress command)
+                   (car mock)))
+        (error "~a Unexpected send-out value: ~s" value
+               (mock-progress command)))))
 
 (defmacro mock-recv-into (() &body body)
   `(lambda ()
@@ -224,16 +242,26 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
      ,@body
      nil))
 
+;; TODO this macro sucks... when something fails it can be very hard
+;; to know _where_ and _why_
 (defmacro with-fake-command-handler (mocks
                                      &body body)
-  `(let ((*command* (make-instance 'fake-command-handler)))
-     ,@(loop :for mock :in (reverse mocks)
-             :collect `(push (cons ',(car mock) ,mock)
-                             (mocks *command*)))
-     ,@body
-     ;; TODO check that there are no mocks left
-     ;; (false (mocks *command*) "...")
-     ))
+  (let (name)
+    ;; TODO `name' is supposed to help identifying which test fails,
+    ;; but right not it's only useful if you dig into the inspector
+    ;; when in the debugger.
+    (when (or (symbolp (first mocks))
+              (stringp (first mocks)))
+      (setf name (pop mocks)))
+    `(let ((*command* (make-instance 'fake-command-handler
+                                     :fn ',name)))
+       ,@(loop :for mock :in (reverse mocks)
+               :collect `(push (cons ',(car mock) ,mock)
+                               (mocks *command*)))
+       ,@body
+       ;; TODO check that there are no mocks left
+       ;; (false (mocks *command*) "...")
+       )))
 
 (define-test+run insert
   (with-fake-command-handler
@@ -244,7 +272,10 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 (define-test+run read-string
   (with-fake-command-handler
       ((mock-send-out (value)
-         (is equalp '("read-string" "> " :initial-input "initial value" :history "breeze-nil") value))
+         (is equalp '("read-string" "> "
+                      :initial-input "initial value"
+                      :history "breeze-nil")
+             value))
        (mock-recv-into ()
          "user input"))
     (is equalp "user input"
@@ -253,7 +284,10 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 (define-test+run read-string-then-insert
   (with-fake-command-handler
       ((mock-send-out (value)
-         (is equalp '("read-string" "> " nil) value))
+         (is equalp '("read-string" "> "
+                      :initial-input ()
+                      :history "breeze-nil")
+             value))
        (mock-recv-into ()
          "user input")
        (mock-send-out (value)
@@ -263,9 +297,13 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 (define-test+run choose
   (with-fake-command-handler
       ((mock-send-out (value)
-         (is equalp '("choose" "choose one: " (a b c)) value))
-       (mock-recv-into () '("choice")))
-    (is equalp "choice"
+         (is equalp '("choose" "choose one: " (a b c)
+                      ;; Note: the "nil" here is because (fn
+                      ;; *command*) returned nil...
+                      :history "breeze-nil")
+             value))
+       (mock-recv-into () '("the user's choice")))
+    (is equalp '("the user's choice")
         (choose "choose one: " '(a b c)))))
 
 (define-test+run insert-at

@@ -11,6 +11,11 @@
                 #:insert
                 #:choose
                 #:outer-node)
+  (:import-from #:breeze.generics
+                #:eqv)
+  (:import-from #:breeze.workspace
+                #:*workspace*
+                #:make-workspace)
   (:import-from #:breeze.test.command
                 #:drive-command)
   (:import-from #:breeze.string
@@ -77,482 +82,449 @@
   (check-type command-name symbol)
   (of-type 'list trace
            "Drive-command should return a list.")
-  (false (caar trace) "The first input should always be nil.")
-  (is equal '(nil ("done")) (alexandria:lastcar trace)
-      "The command should be done.")
   (is = expected-length (length trace)
       "The command ~a was expected to have a trace of length ~d, got ~d instead."
       command-name expected-length (length trace)))
+
+(defun expect-done (trace)
+  (is equal '(:request ("done") :response nil) (first trace)
+      "The command should be done.")
+  (false (rest trace) "Some trace left to assert..."))
+
+(defun expect-buffer-string (trace-item &optional (expected-buffer-string ""))
+  (destructuring-bind (&key request response) trace-item
+    (is string= expected-buffer-string response
+        "Expected buffer string ~s but got ~s"
+        expected-buffer-string response)
+    (is equal '("buffer-string") request
+        ;; TODO add a nice description for when the test fails...
+        )))
+
+(defun expect-read-string (trace-item prompt
+                           expected-response
+                           &key initial-input
+                             history)
+  (destructuring-bind (&key request response) trace-item
+    (let ((expected-request (list "read-string"
+                                  ;; expected prompt
+                                  prompt
+                                  :initial-input initial-input
+                                  :history history)))
+      (is equal expected-request request
+          "Expected request ~%  ~s~%but got~%  ~s."
+          expected-request request))
+    (is equal expected-response response
+        "Expected the response~%~s~% to (\"read-string\" ~s ...), but got~%~s."
+        expected-response prompt response)))
+
+(defun expect-insert* (trace-item &key lines saving-excursion-p)
+  (destructuring-bind (&key request response) trace-item
+    (false response
+           "An \"insert\"'s response should be nil, got ~s."
+           response)
+    (is eqv (if saving-excursion-p
+                '("insert-saving-excursion" :_)
+                '("insert" :_))
+        request)
+    (let* ((lines-got (split-by-newline (second request)))
+           (mismatch (mismatch lines lines-got :test #'string=)))
+      (is equal lines lines-got
+          "Line-by-line comparison:~%~{~s~%~}<--- mismatch here --->~%~{~s~^~%~}"
+          (when mismatch
+            (loop
+              :for el :in lines
+              :for i :below mismatch :collect el))
+          (when mismatch
+            (loop
+              :for expected-line :in lines
+              :for line-got :in lines-got
+              :for i :from 0
+              :when (<= mismatch i)
+                :collect (if (string= expected-line line-got)
+                             line-got
+                             (cons expected-line line-got))))))))
+(defun expect-insert (trace-item &rest lines)
+  (expect-insert* trace-item :lines lines))
+
+(defun expect-insert-saving-excursion (trace-item &rest lines)
+  (expect-insert* trace-item :lines lines :saving-excursion-p t))
 
 
 
 (define-test+run insert-asdf
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-asdf
-                               :inputs '("a" "b" "c")
-                               :context '())))
+  (let ((trace (drive-command #'insert-asdf
+                              :inputs '("a" "b" "c")
+                              :context '())))
     (common-trace-asserts 'insert-asdf trace 6)
-    (destructuring-bind (input request) (pop trace)
-      (false input)
-      (is equal '("buffer-string") request)
-      (false (second request)))
-    (destructuring-bind (input request) (pop trace)
-      (is string= "" input)
-      (is equal '("read-string" "Name of the system: "
-                  :initial-input nil
-                  :history "breeze-#<function insert-asdf>")
-          request))
-    (destructuring-bind (input request) (pop trace)
-      (is string= "a" input)
-      (is equal '("read-string" "Author: "
-                  :initial-input "" :history "breeze-#<function insert-asdf>--author")
-          request))
-    (destructuring-bind (input request) (pop trace)
-      (is string= "b" input)
-      (is equal '("read-string" "Licence name: "
-                  :initial-input nil :history "breeze-#<function insert-asdf>--licence")
-          request))
-    (destructuring-bind (input request) (pop trace)
-      (is string= "c" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(asdf:defsystem #:a"
-            "  :description \"\""
-            "  :version \"0.0.1\""
-            "  :author \"b\""
-            "  :licence \"c\""
-            "  :depends-on ()"
-            "  ;; :pathname \"src\""
-            "  ;; :serial t"
-            "  :components"
-            "    (#+(or) (:file \"todo\"))"
-            "  ;; in order to test this system, load the test system"
-            "  :in-order-to ((test-op (load-op a/test)))"
-            "  ;; this tells asdf what to execute to run the tests"
-            "  :perform"
-            "  (test-op (o c)"
-            "           (uiop:symbol-call"
-            "            'a.test 'run-tests))"
-            "  )"
-            "")
-
-          (split-by-newline (second request))))))
+    (expect-buffer-string (pop trace))
+    (expect-read-string
+     (pop trace)
+     "Name of the system: " "a"
+     :history "breeze-#<function insert-asdf>")
+    (expect-read-string
+     (pop trace)
+     "Author: " "b"
+     :initial-input "" ; TODO this is not a useful
+                                        ; initial-input... might as well be nil
+     :history "breeze-#<function insert-asdf>--author")
+    (expect-read-string
+     (pop trace)
+     "Licence name: " "c"
+     :history "breeze-#<function insert-asdf>--licence")
+    (expect-insert
+     (pop trace)
+     "(asdf:defsystem #:a"
+     "  :description \"\""
+     "  :version \"0.0.1\""
+     "  :author \"b\""
+     "  :licence \"c\""
+     "  :depends-on ()"
+     "  ;; :pathname \"src\""
+     "  ;; :serial t"
+     "  :components"
+     "    (#+(or) (:file \"todo\"))"
+     "  ;; in order to test this system, load the test system"
+     "  :in-order-to ((test-op (load-op a/test)))"
+     "  ;; this tells asdf what to execute to run the tests"
+     "  :perform"
+     "  (test-op (o c)"
+     "           (uiop:symbol-call"
+     "            'a.test 'run-tests))"
+     ;; TODO this last parenthesis should not be on its own line
+     "  )"
+     "")
+    (expect-done trace)))
 
 (define-test+run insert-breeze-define-command
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-breeze-define-command
-                               :inputs '("rmrf")
-                               :context '())))
-    (common-trace-asserts 'insert-breeze-define-command trace 3)
-    (destructuring-bind (input request) (first trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Name of the command (symbol): " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (second trace)
-      (declare (ignorable input))
-      (is equal '"rmrf" input) ;; TODO the linter should warn me about the extraneous quote
-      (is string= "insert" (first request))
-      (is equal
-          '("(define-command rmrf ()"
-            "  \"Rmrf.\""
-            "  )")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-breeze-define-command
+                              :inputs '("rmrf")
+                              :context '())))
+    (common-trace-asserts 'insert-breeze-define-command trace 4)
+    (expect-buffer-string (pop trace))
+    (expect-read-string
+     (pop trace)
+     "Name of the command (symbol): "
+     "rmrf"
+     :history "breeze-#<function insert-breeze-define-command>")
+    (expect-insert
+     (pop trace)
+     "(define-command rmrf ()"
+     "  \"Rmrf.\""
+     "  )")
+    (expect-done trace)))
 
 (define-test+run insert-defun
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-defun
-                               :inputs '("real-fun" "a &optional b")
-                               :context '())))
-    (common-trace-asserts 'insert-defun trace 6)
-    (destructuring-bind (input request) (first trace)
-      (declare (ignorable input))
-      (is string= "insert" (first request))
-      (is string= "(defun " (second request)))
-    (destructuring-bind (input request) (second trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Name: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is equal '"real-fun" input)
-      (is string= "insert" (first request))
-      (is string= "real-fun " (second request)))
-    (destructuring-bind (input request) (fourth trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Enter the arguments: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (fifth trace)
-      (is equal '"a &optional b" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(a &optional b))"
-            "")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-defun
+                              :inputs '("real-fun" "a &optional b")
+                              :context '())))
+    (common-trace-asserts 'insert-defun trace 8)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) "(defun ")
+    (expect-insert-saving-excursion (pop trace) ")")
+    (expect-read-string (pop trace) "Name: " "real-fun"
+                        :history "breeze-#<function insert-defun>")
+    (expect-insert (pop trace) "real-fun ")
+    (expect-read-string
+     (pop trace)
+     "Enter the arguments: "
+     "a &optional b"
+     :history "breeze-#<function insert-defun>")
+    (expect-insert (pop trace) "(a &optional b)" "  ")
+    (expect-done trace)))
 
-(define-test insert-defvar
+(define-test+run insert-defvar
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-defvar
-                               :inputs '("var" "42" "This is a nice var")
-                               :context '())))
-    (common-trace-asserts 'insert-defvar trace 8)
-    (destructuring-bind (input request) (first trace)
-      (declare (ignorable input))
-      (is string= "insert" (first request))
-      (is string= "(defvar " (second request)))
-    (destructuring-bind (input request) (second trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Name: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is equal '"var" input)
-      (is string= "insert" (first request))
-      (is string= "*var* " (second request)))
-    (destructuring-bind (input request) (fourth trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Initial value: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (fifth trace)
-      (is equal '"42" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("42"
-            "")
-          (split-by-newline (second request))))
-    (destructuring-bind (input request) (sixth trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Documentation string " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (seventh trace)
-      (is equal '"This is a nice var" input)
-      (is string= "insert" (first request))
-      (is string= "\"This is a nice var\")" (second request)))))
+  (let ((trace (drive-command #'insert-defvar
+                              :inputs '("var" "42" "This is a nice var")
+                              :context '())))
+    (common-trace-asserts 'insert-defvar trace 10)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) "(defvar ")
+    (expect-insert-saving-excursion (pop trace) ")")
+    (expect-read-string (pop trace) "Name: " "var"
+                        :history "breeze-#<function insert-defvar>")
+    (expect-insert (pop trace) "*var* ")
+    (expect-read-string (pop trace)
+                        "Initial value: "
+                        "42"
+                        :history "breeze-#<function insert-defvar>")
+    (expect-insert (pop trace) "42" "")
+    (expect-read-string (pop trace)
+                        "Documentation string "
+                        "This is a nice var"
+                        :history "breeze-#<function insert-defvar>")
+    (expect-insert (pop trace) "\"This is a nice var\"")
+    (expect-done trace)))
 
-(define-test insert-defclass
+(define-test+run insert-defclass
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-defclass
-                               :inputs '("klass")
-                               :context '())))
-    (common-trace-asserts 'insert-defclass trace 3)
-    (destructuring-bind (input request) (first trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Name of the class: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (second trace)
-      (is equal '"klass" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(defclass klass ()"
-            "  ((slot"
-            "    :initform nil"
-            "    :initarg :slot"
-            "    :accessor klass-slot))"
-            "  (:documentation \"\"))")
-          (split-by-newline (second request))))))
+  (let* ((*workspace* (make-workspace))
+         (trace (drive-command #'insert-defclass
+                               :inputs '("klass" "sloot" "")
+                               :context '(:buffer-name "insert-defclass-test.lisp"
+                                          :point 0))))
+    (common-trace-asserts 'insert-defclass trace 15)
+    #| TODO instead of "imperatively" poping trace item from the list of trace, I would like to collect all the assertions into a "model" of what the trace should be.
+    That way it would be much much easier to detect drift between the model and the actual trace. ;
+    Similar to how I print the "mismatch" in "expect-insert*" ;
+    |#
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) "(defclass")
+    (expect-insert-saving-excursion (pop trace) ")")
+    (expect-read-string (pop trace)
+                        "Name of the class: "
+                        "klass"
+                        :history "breeze-#<function insert-defclass>")
+    (expect-insert (pop trace) " klass ()" "  (")
+    (expect-insert-saving-excursion (pop trace) ")")
+;;; first insert-class-slot
+    (expect-buffer-string (pop trace))
+    (expect-read-string (pop trace)
+                        "Name of the slot: "
+                        "sloot"
+                        :history "breeze-#<function insert-defclass>--slot")
+    (expect-insert (pop trace)
+                   "(sloot"
+                   "    :initform nil"
+                   "    :initarg :sloot"
+                   "    :accessor sloot"
+                   "    :documentation \"\")")
+;;; second insert-class-slot
+    (expect-buffer-string (pop trace))
+    (expect-read-string (pop trace)
+                        "Name of the slot: "
+                        ""
+                        :history "breeze-#<function insert-defclass>--slot")
+    ;; TODO expect (goto-char 1)
+    (pop trace)
+    (expect-insert-saving-excursion (pop trace) "\")")
+    (expect-insert (pop trace) "" "  (:documentation \"")
+    (expect-done trace)))
 
 (define-test+run insert-defmacro
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-defmacro
-                               :inputs '("mac" "(x) &body body")
-                               :context '())))
-    (common-trace-asserts 'insert-defmacro trace 6)
-    (destructuring-bind (input request) (first trace)
-      (declare (ignorable input))
-      (is string= "insert" (first request))
-      (is string= "(defmacro " (second request)))
-    (destructuring-bind (input request) (second trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Name: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is equal '"mac" input)
-      (is string= "insert" (first request))
-      (is string= "mac " (second request)))
-    (destructuring-bind (input request) (fourth trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Enter the arguments: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (fifth trace)
-      (is equal '"(x) &body body" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(x) &body body))"
-            "")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-defmacro
+                              :inputs '("mac" "(x) &body body")
+                              :context '())))
+    (common-trace-asserts 'insert-defmacro trace 8)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) "(defmacro ")
+    (expect-insert-saving-excursion (pop trace) ")")
+    (expect-read-string (pop trace) "Name: " "mac"
+                        :history "breeze-#<function insert-defmacro>")
+    (expect-insert (pop trace) "mac ")
+    (expect-read-string
+     (pop trace)
+     "Enter the arguments: "
+     "(x) &body body"
+     :history "breeze-#<function insert-defmacro>")
+    (expect-insert (pop trace) "(x) &body body)" "  ")
+    (expect-done trace)))
 
 (define-test+run insert-defgeneric
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-defgeneric
-                               :inputs '("gen")
-                               :context '())))
-    (common-trace-asserts 'insert-defgeneric trace 3)
-    (destructuring-bind (input request) (first trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Name of the generic function: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (second trace)
-      (is equal '"gen" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(defgeneric gen ()"
-            "  (:documentation \"\")"
-            "  #++(:method-combination + #++ :most-specific-last)"
-            "  (:method () ()))")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-defgeneric
+                              :inputs '("gen")
+                              :context '())))
+    (common-trace-asserts 'insert-defgeneric trace 4)
+    (expect-buffer-string (pop trace))
+    (expect-read-string (pop trace) "Name of the generic function: " "gen"
+                        :history "breeze-#<function insert-defgeneric>")
+    (expect-insert
+     (pop trace)
+     "(defgeneric gen ()"
+     "  (:documentation \"\")"
+     "  #++(:method-combination + #++ :most-specific-last)"
+     "  (:method () ()))")
+    (expect-done trace)))
 
-(define-test insert-defmethod
+(define-test+run insert-defmethod
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-defmethod
-                               :inputs '("frob")
-                               :context '())))
-    (common-trace-asserts 'insert-defmethod trace 3)
-    (destructuring-bind (input request) (first trace)
-      (declare (ignorable input))
-      (is string= "read-string" (first request))
-      (is string= "Name of the method: " (second request))
-      (is string= nil (third request)))
-    (destructuring-bind (input request) (second trace)
-      (is equal '"frob" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(defmethod frob ()"
-            "  )")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-defmethod
+                              :inputs '("frob")
+                              :context '())))
+    (common-trace-asserts 'insert-defmethod trace 4)
+    (expect-buffer-string (pop trace))
+    (expect-read-string (pop trace) "Name of the method: " "frob"
+                        :history "breeze-#<function insert-defmethod>")
+    (expect-insert
+     (pop trace)
+     "(defmethod frob ()"
+     "  )")
+    (expect-done trace)))
 
 
 (define-test+run insert-defparameter
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-defparameter
-                               :inputs '("param" "\"meh\""
-                                         "This is a meh variable")
-                               :context '())))
-    (common-trace-asserts 'insert-defparameter trace 8)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is string= "(defparameter " (second request)))
-    (destructuring-bind (input request) (second trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Name: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is string= "param" input)
-      (is string= "insert" (first request))
-      (is string= "*param* " (second request)))
-    (destructuring-bind (input request) (fourth trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Initial value: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (fifth trace)
-      (is string= "\"meh\"" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("\"meh\""
-            "")
-          (split-by-newline (second request))))
-    (destructuring-bind (input request) (sixth trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Documentation string " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (seventh trace)
-      (is string= "This is a meh variable" input)
-      (is string= "insert" (first request))
-      (is string= "\"This is a meh variable\")" (second request)))))
+  (let ((trace (drive-command #'insert-defparameter
+                              :inputs '("param" "\"meh\""
+                                        "This is a meh variable")
+                              :context '())))
+    (common-trace-asserts 'insert-defparameter trace 10)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) "(defparameter ")
+    (expect-insert-saving-excursion (pop trace) ")")
+    (expect-read-string (pop trace) "Name: " "param"
+                        :history "breeze-#<function insert-defparameter>")
+    (expect-insert (pop trace) "*param* ")
+    (expect-read-string (pop trace)
+                        "Initial value: "
+                        "\"meh\""
+                        :history "breeze-#<function insert-defparameter>")
+    (expect-insert (pop trace) "\"meh\"" "")
+    (expect-read-string (pop trace)
+                        "Documentation string "
+                        "This is a meh variable"
+                        :history "breeze-#<function insert-defparameter>")
+    (expect-insert (pop trace) "\"This is a meh variable\"")
+    (expect-done trace)))
 
-(define-test insert-handler-bind-form
+(define-test+run insert-handler-bind-form
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-handler-bind-form
-                               :inputs 'nil
-                               :context '())))
-    (common-trace-asserts 'insert-handler-bind-form trace 2)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(handler-bind"
-            "  ((error (lambda (condition)"
-            "    (describe condition *debug-io*))))"
-            "  (frobnicate))")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-handler-bind-form
+                              :inputs 'nil
+                              :context '())))
+    (common-trace-asserts 'insert-handler-bind-form trace 3)
+    (expect-buffer-string (pop trace))
+    (expect-insert
+     (pop trace)
+     "(handler-bind"
+     "  ((error (lambda (condition)"
+     "    (describe condition *debug-io*))))"
+     "  (frobnicate))")
+    (expect-done trace)))
 
-(define-test insert-handler-case-form
+(define-test+run insert-handler-case-form
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-handler-case-form
-                               :inputs 'nil
-                               :context '())))
-    (common-trace-asserts 'insert-handler-case-form trace 2)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(handler-case"
-            "  (frobnicate)"
-            "  (error (condition)"
-            "    (describe condition *debug-io*)))")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-handler-case-form
+                              :inputs 'nil
+                              :context '())))
+    (common-trace-asserts 'insert-handler-case-form trace 3)
+    (expect-buffer-string (pop trace))
+    (expect-insert
+     (pop trace)
+     "(handler-case"
+     "  (frobnicate)"
+     "  (error (condition)"
+     "    (describe condition *debug-io*)))")
+    (expect-done trace)))
 
 #++
 (define-test insert-in-package-cl-user
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-in-package-cl-user
-                               :inputs 'nil
-                               :context '())))
+  (let ((trace (drive-command #'insert-in-package-cl-user
+                              :inputs 'nil
+                              :context '())))
     (common-trace-asserts 'insert-in-package-cl-user trace 2)
-    (destructuring-bind (input request) (first trace)
-      (false input)
+    (destructuring-bind (&key request response) (pop trace)
+      (false response)
       (is string= "insert" (first request))
       (is string= "(cl:in-package #:cl-user)" (second request)))))
 
-(define-test insert-lambda
+(define-test+run insert-lambda
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-lambda
-                               :inputs 'nil
-                               :context '())))
-    (common-trace-asserts 'insert-lambda trace 2)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is string= "(lambda ())" (second request)))))
+  (let ((trace (drive-command #'insert-lambda
+                              :inputs 'nil
+                              :context '())))
+    (common-trace-asserts 'insert-lambda trace 4)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) "(lambda (")
+    (expect-insert-saving-excursion (pop trace) "))")
+    (expect-done trace)))
 
-(define-test insert-loop-clause-for-hash
+(define-test+run insert-loop-clause-for-hash
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-loop-clause-for-hash
-                               :inputs '("key" "*ht*" "v")
-                               :context '())))
-    (common-trace-asserts 'insert-loop-clause-for-hash trace 8)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is string= " :for " (second request)))
-    (destructuring-bind (input request) (second trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Enter the variable name for the key: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is string= "key" input)
-      (is string= "insert" (first request))
-      (is string= "key :being :the :hash-key :of " (second request)))
-    (destructuring-bind (input request) (fourth trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Enter the variable name for the hash-table: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (fifth trace)
-      (is string= "*ht*" input)
-      (is string= "insert" (first request))
-      (is string= "*ht* :using (hash-value " (second request)))
-    (destructuring-bind (input request) (sixth trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Enter the variable name for the value: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (seventh trace)
-      (is string= "v" input)
-      (is string= "insert" (first request))
-      (is string= "v)" (second request)))))
+  (let ((trace (drive-command #'insert-loop-clause-for-hash
+                              :inputs '("key" "*ht*" "v")
+                              :context '())))
+    (common-trace-asserts 'insert-loop-clause-for-hash trace 9)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) " :for ")
+    (expect-read-string (pop trace)
+                        "Enter the variable name for the key: "
+                        "key"
+                        :history "breeze-#<function insert-loop-clause-for-hash>")
+    (expect-insert (pop trace) "key :being :the :hash-key :of ")
+    (expect-read-string (pop trace)
+                        "Enter the variable name for the hash-table: "
+                        "*ht*"
+                        :history "breeze-#<function insert-loop-clause-for-hash>")
+    (expect-insert (pop trace) "*ht* :using (hash-value ")
+    (expect-read-string (pop trace)
+                        "Enter the variable name for the value: "
+                        "v"
+                        :history "breeze-#<function insert-loop-clause-for-hash>")
+    (expect-insert (pop trace) "v)")
+    (expect-done trace)))
 
-(define-test insert-loop-clause-for-in-list
+(define-test+run insert-loop-clause-for-in-list
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-loop-clause-for-in-list
-                               :inputs '("el" "list")
-                               :context '())))
-    (common-trace-asserts 'insert-loop-clause-for-in-list trace 6)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is string= " :for " (second request)))
-    (destructuring-bind (input request) (second trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Enter the variable name for the iterator: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is string= "el" input)
-      (is string= "insert" (first request))
-      (is string= "el :in " (second request)))
-    (destructuring-bind (input request) (fourth trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Enter the the list to iterate on: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (fifth trace)
-      (is string= "list" input)
-      (is string= "insert" (first request))
-      (is string= "list" (second request)))))
+  (let ((trace (drive-command #'insert-loop-clause-for-in-list
+                              :inputs '("el" "list")
+                              :context '())))
+    (common-trace-asserts 'insert-loop-clause-for-in-list trace 7)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) " :for ")
+    (expect-read-string (pop trace)
+                        "Enter the variable name for the iterator: "
+                        "el"
+                        :history "breeze-#<function insert-loop-clause-for-in-list>")
+    (expect-insert (pop trace) "el :in ")
+    (expect-read-string (pop trace)
+                        "Enter the the list to iterate on: "
+                        "list"
+                        :history "breeze-#<function insert-loop-clause-for-in-list>")
+    (expect-insert (pop trace) "list")
+    (expect-done trace)))
 
-(define-test insert-loop-clause-for-on-list
+(define-test+run insert-loop-clause-for-on-list
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-loop-clause-for-on-list
-                               :inputs '("rest" "list")
-                               :context '())))
-    (common-trace-asserts 'insert-loop-clause-for-on-list trace 6)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "insert" (first request))
-      (is string= " :for " (second request)))
-    (destructuring-bind (input request) (second trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Enter the variable name for the iterator: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is string= "rest" input)
-      (is string= "insert" (first request))
-      (is string= "rest :on " (second request)))
-    (destructuring-bind (input request) (fourth trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Enter the the list to iterate on: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (fifth trace)
-      (is string= "list" input)
-      (is string= "insert" (first request))
-      (is string= "list" (second request)))))
+  (let ((trace (drive-command #'insert-loop-clause-for-on-list
+                              :inputs '("rest" "list")
+                              :context '())))
+    (common-trace-asserts 'insert-loop-clause-for-on-list trace 7)
+    (expect-buffer-string (pop trace))
+    (expect-insert (pop trace) " :for ")
+    (expect-read-string (pop trace)
+                        "Enter the variable name for the iterator: "
+                        "rest"
+                        :history "breeze-#<function insert-loop-clause-for-on-list>")
+    (expect-insert (pop trace) "rest :on ")
+    (expect-read-string (pop trace)
+                        "Enter the the list to iterate on: "
+                        "list"
+                        :history "breeze-#<function insert-loop-clause-for-on-list>")
+    (expect-insert (pop trace) "list")
+    (expect-done trace)))
 
-(define-test insert-print-unreadable-object-boilerplate
+(define-test+run insert-print-unreadable-object-boilerplate
   :time-limit 0.1
-  (let* ((trace (drive-command #'insert-print-unreadable-object-boilerplate
-                               :inputs '("node" "node")
-                               :context '())))
-    (common-trace-asserts 'insert-print-unreadable-object-boilerplate trace 4)
-    (destructuring-bind (input request) (first trace)
-      (false input)
-      (is string= "read-string" (first request))
-      (is string= "Name of the object (parameter name of the method): " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (second trace)
-      (is string= "node" input)
-      (is string= "read-string" (first request))
-      (is string= "Type of the object: " (second request))
-      (false (third request)))
-    (destructuring-bind (input request) (third trace)
-      (is string= "node" input)
-      (is string= "insert" (first request))
-      (is equal
-          '("(defmethod print-object ((node node) stream)"
-            "  (print-unreadable-object"
-            "      (node stream :type t :identity nil)"
-            "    (format stream \"~s\" (node-something node))))")
-          (split-by-newline (second request))))))
+  (let ((trace (drive-command #'insert-print-unreadable-object-boilerplate
+                              :inputs '("node" "node")
+                              :context '())))
+    (common-trace-asserts 'insert-print-unreadable-object-boilerplate trace 5)
+    (expect-buffer-string (pop trace))
+    (expect-read-string (pop trace)
+                        "Name of the object (parameter name of the method): "
+                        "node"
+                        :history "breeze-#<function insert-print-unreadable-object-boilerplate>")
+    (expect-read-string (pop trace)
+                        "Type of the object: "
+                        "node"
+                        :history "breeze-#<function insert-print-unreadable-object-boilerplate>")
+    (expect-insert
+     (pop trace)
+     "(defmethod print-object ((node node) stream)"
+     "  (print-unreadable-object"
+     "      (node stream :type t :identity nil)"
+     "    (format stream \"~s\" (node-something node))))")
+    (expect-done trace)))
 
 ;; TODO
-;; (define-test+run insert-parachute-define-test)
-
-
-
-;;; TODO
+;; (define-test+run run insert-parachute-define-test+run TODO
 
 (defun call-with-fake-file (fn content
                             &key
@@ -579,7 +551,8 @@
 
 (defun should-suggest-to-insert-package-definition-when (when content)
   (loop :for point :from 1 #| TODO 0 |# :upto (1+ #| TODO remove 1+ |# (length content))
-        :do (is eq 'breeze.package-commands:insert-defpackage (test-suggest-package-definition content :point point)
+        :do (is eq 'breeze.package-commands:insert-defpackage
+                (test-suggest-package-definition content :point point)
                 "Should suggest to insert a package definition when the buffer ~a (point = ~d)."
                 when point)))
 
@@ -644,7 +617,7 @@ strings get concatenated."
 
 
 #++
-(define-test "quickfix: mapcar"
+(define-test+run "quickfix: mapcar"
   ;; TODO Make less brittle assertions, like "Insert lambda form."
   ;; must be suggested, but don't fail the test if there are other
   ;; suggestions.
@@ -655,7 +628,7 @@ strings get concatenated."
        "(mapcar " ")")))
 
 #++
-(define-test "quickfix: suggest inserting lambda"
+(define-test+run "quickfix: suggest inserting lambda"
   ;; TODO Make less brittle assertions, like "Insert lambda form."
   ;; must be suggested, but don't fail the test if there are other
   ;; suggestions.
@@ -692,7 +665,7 @@ strings get concatenated."
 #++ ;; TODO modify a define-package/defpackage form to add 1
 ;; import-from "clause". In this case alexandria:when-let
 (let* ((input
-        "(uiop:define-package #:package
+         "(uiop:define-package #:package
     (:use #:cl)
   (:use-reexport #:breeze.parser #:breeze.pattern)
   ;; Category A
@@ -706,7 +679,7 @@ strings get concatenated."
    #:e
    #:f))")
        (expected-output
-        "(uiop:define-package #:package
+         "(uiop:define-package #:package
     (:use #:cl)
   (:use-reexport #:breeze.parser #:breeze.pattern)
   ;; Category A
@@ -724,32 +697,32 @@ strings get concatenated."
        (state (read-))))
 
 #++ ;; TODO
-(define-test "simple format fixes"
-    (let* ((trace (drive-command #'fix-formatting
-                                 :inputs '()
-                                 :context '())))
-      (common-trace-asserts 'fix-formatting trace 4)
+(define-test+run "simple format fixes"
+  (let* ((trace (drive-command #'fix-formatting
+                               :inputs '()
+                               :context '())))
+    (common-trace-asserts 'fix-formatting trace 4)
 
-      ;; TODO
-      (destructuring-bind (input request) (first trace)
-        (false input)
-        (is string= "read-string" (first request))
-        (is string= "Name of the object (parameter name of the method): " (second request))
-        (false (third request)))
-      (destructuring-bind (input request) (second trace)
-        (is string= "node" input)
-        (is string= "read-string" (first request))
-        (is string= "Type of the object: " (second request))
-        (false (third request)))
-      (destructuring-bind (input request) (third trace)
-        (is string= "node" input)
-        (is string= "insert" (first request))
-        (is equal
-            '("(defmethod print-object ((node node) stream)"
-              "  (print-unreadable-object"
-              "      (node stream :type t :identity nil)"
-              "    (format stream \"~s\" (node-something node))))")
-            (split-by-newline (second request))))))
+    ;; TODO
+    (destructuring-bind (&key request response) (pop trace)
+      (false response)
+      (is string= "read-string" (first request))
+      (is string= "Name of the object (parameter name of the method): " (second request))
+      (false (third request)))
+    (destructuring-bind (&key request response) (pop trace)
+      (is string= "node" response)
+      (is string= "read-string" (first request))
+      (is string= "Type of the object: " (second request))
+      (false (third request)))
+    (destructuring-bind (&key request response) (pop trace)
+      (is string= "node" response)
+      (is string= "insert" (first request))
+      (is equal
+          '("(defmethod print-object ((node node) stream)"
+            "  (print-unreadable-object"
+            "      (node stream :type t :identity nil)"
+            "    (format stream \"~s\" (node-something node))))")
+          (split-by-newline (second request))))))
 
 
 

@@ -31,7 +31,7 @@
   ;; check for missing functions or macros
   (let (missing)
     (do-external-symbols (s :cl)
-      (when (ignore-errors (symbol-function s))
+      (when (or (functionp s) (macro-function s))
         (unless (member s *all-symbols*)
           (push s missing))))
     (is equal '() missing

@@ -6,6 +6,9 @@
   (:documentation "Test package for #:breeze.incremental-parser")
   (:use #:cl #:breeze.parser #:breeze.incremental-parser)
   ;; importing non-exported symbols
+  (:import-from #:breeze.parser
+                #:unparse)
+  ;; importing non-exported symbols
   (:import-from #:breeze.incremental-parser
                 ;; #:edit-and-parse
                 #:check-edit

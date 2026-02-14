@@ -159,7 +159,7 @@ defvar."
   (read-string-then-insert
    "Initial value: " "~a~%")
   (read-string-then-insert
-   "Documentation string " "~a)" #'normalize-docstring))
+   "Documentation string " "~a" #'normalize-docstring))
 
 (define-command insert-defvar ()
   "Insert a defvar form."
