@@ -153,7 +153,7 @@ defvar."
      (ensure-circumfix circumfix name)))
   ;; TODO check that it's a valid form
   ;;
-  ;; TODO it's valid to define a varianble without an initial value,
+  ;; TODO it's valid to define a variable without an initial value,
   ;; in that case, the docstring must be set using a "(setf
   ;; (documentation ..."
   (read-string-then-insert
