@@ -177,4 +177,5 @@ corrections."
        (sb-pcl:class-not-found-error #'suggest-class))
     (funcall function)))
 
-#++ (prinq 42)
+#++ ((equalo)
+     (prinq 42))

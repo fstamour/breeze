@@ -1,6 +1,9 @@
 ;; For examples of equivalent forms, search for the string "==" in
 ;; ~/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/
 
+;; an easy one, strings shouldn't be quoted (in general):
+'"abc" => "abc"
+
 ;; definitely don't need the "if"
 ;; probably don't need the "null"
 (if (null x)
@@ -622,5 +625,74 @@ e.g.
 
 (le ((fn 2)) ...)
 it should probably be =let= instead of =le=
+
+|#
+
+
+
+;;; Here's sample code from #beginners-question on discord
+;; 1. char-equal is used with a string
+;;  (char-equal "x" a) => either (char-equal #\x a) or (string-equal "x" a)
+;; 2. use of dynamic var, and setq
+;; 3. plus(num1 num2)
+;; 4. nested ifs
+(defun calculate ()
+    (setq num1 (or (parse-integer (prompt-read "Enter Number 1: ") :junk-allowed t) 1))
+    (setq operator (prompt-read "Enter The Operator: "))
+    (setq num2 (or (parse-integer (prompt-read "Enter Number 2: ") :junk-allowed t) 1))
+    (if (char-equal operator "+") plus(num1 num2)
+        (if (char-equal operator "-") minus(num1 num2)
+            (if (char-equal operator "*") multiply(num1 num2)
+                (if (char-equal operator "/") divide(num1 num2) (print "Invalid operator, try again"))))))
+
+(cond
+  ((equal "+" operator) (+ num1 num2))
+  ((equal "-" operator) (+ num1 num2))
+  ...
+  (t (print "Invalid operator, try again")))
+
+
+A decent explanation of "cond":
+https://discord.com/channels/297478281278652417/569524818991644692/1462882457945899266
+
+if you use `cond` (which i also recommend), note the syntax:
+```lisp
+(cond (test-form1 result-form1)
+      ((test-function) (result-function))
+      (t (print "Message")))
+```
+since `t` always evaluates to true, it's kind of like an "else" or "otherwise" case
+1 pair of parens per "clause" or "case", with additional parens as needed for function calls or whatever else
+
+
+
+
+(defpackage #:asdfasd
+  (#:use #:cl))
+
+;; Should be :use not #:use
+
+
+(make-hash-table :test eql) => (make-hash-table :test 'eql)
+
+
+(setf (file-position steam) n) => (file-position stream n)
+
+
+
+
+#|
+
+Sometimes, when pasting comments, the closing parenthesis end up being
+commented out.
+
+(defun f (x)
+  |)
+=>
+(defun f (x)
+  ;; just pasted this comment)
+
+it would be nice to look for trailing parenthesis inside comments when
+some parenthesis are not closed correclty
 
 |#

@@ -294,6 +294,7 @@ defun."
    " ~a ()~%  (")
   (insert-saving-excursion ")")
   (loop :while (insert-class-slot :recursive-p t))
+  ;; go forward one char, to get out of the list of slots
   (let ((point (current-point)))
     (goto-char (1+ point)))
   (insert-saving-excursion "\")")

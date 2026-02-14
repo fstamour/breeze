@@ -70,6 +70,8 @@
 
 ;; This is very inefficient, for starter it handles only one edit at a
 ;; time...
+#++ ;; TODO this is completely broken because it was written back when
+    ;; the parse tree was still using lists instead of vectors.
 (defun edit-and-parse (state edit)
   (check-edit (source state) edit)
   (destructuring-bind (type position detail)

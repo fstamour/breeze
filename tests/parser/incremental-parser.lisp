@@ -1,4 +1,3 @@
-
 (cl:in-package #:cl-user)
 
 ;; TODO ensure breeze-minor-mode is enabled (it's not when I open a lisp file _before_ there is any connection...)
@@ -8,7 +7,7 @@
   (:use #:cl #:breeze.parser #:breeze.incremental-parser)
   ;; importing non-exported symbols
   (:import-from #:breeze.incremental-parser
-                #:edit-and-parse
+                ;; #:edit-and-parse
                 #:check-edit
                 #:apply-edit-to-source)
   (:import-from #:parachute
@@ -63,9 +62,7 @@
     :finally
        (return current-edit)))
 
-(let ((edits ))
-  )
-
+#++
 (compact-inserts '((:INSERT-AT 1675 "c")
                    (:INSERT-AT 1676 "o")
                    (:INSERT-AT 1677 "m")
@@ -142,6 +139,7 @@
 
 
 
+#++
 (defun test-edit-and-parse (input edit
                             &optional expected-output expected-tree)
   (let ((state (parse input)))
@@ -155,6 +153,7 @@
           (is-equalp* input tree expected-tree)
           (is-equalp* input tree)))))
 
+#++ ;; TODO fix edit-and-parse (it assumses the parse tree is a list)
 (define-test+run edit-and-parse
   (test-edit-and-parse "" '(:insert-at 0 " ")
                        " " (list (whitespace 0 1)))

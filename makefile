@@ -19,6 +19,7 @@ test:
 # Build the executable
 .PHONY: build
 build: build/brz
+
 # TODO add the dependencies...
 .PHONY: build/brz
 build/brz:
