@@ -555,6 +555,12 @@ In a system definition file (.asd), when there's only one module at the root of 
 
 #|
 
+In a system definition file (.asd), most strings shouldn't contain newlines (e.g. the :licence).
+
+|#
+
+#|
+
 Detect when there are multiple tests with the same name, in the same package.
 
 It happened to me that a bunch of tests were failing because of a bad

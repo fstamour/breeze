@@ -170,8 +170,7 @@
   :description "Breeze component to generate documentation."
   :version "0.0.1"
   :author "Francis St-Amour"
-  :licence "BSD 2-Clause License
-"
+  :licence "BSD 2-Clause License"
   :depends-on ("breeze"
                ;; For documentation generation
                "spinneret"
