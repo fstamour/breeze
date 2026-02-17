@@ -33,6 +33,20 @@ include:
   # - local: .gitlab/test-job.gitlab-ci.yml
   #   inputs:
   #     lisp-impl: clasp
+  - local: .gitlab/emacs-test-job.gitlab-ci.yml
+    inputs:
+      test-name: unit
+      script: scripts/test-emacs.sh
+  - local: .gitlab/emacs-test-job.gitlab-ci.yml
+    inputs:
+      test-name: slime
+      script: scripts/test-emacs-integration.sh
+      breeze-listener: slime
+  - local: .gitlab/emacs-test-job.gitlab-ci.yml
+    inputs:
+      test-name: sly
+      script: scripts/test-emacs-integration.sh
+      breeze-listener: sly
 
 # Build public/ folder using org-publish on docs/
 doc:

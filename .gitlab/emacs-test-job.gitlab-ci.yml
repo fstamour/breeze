@@ -1,0 +1,13 @@
+spec:
+  inputs:
+    test-name:
+    script:
+    breeze-listener:
+      default: ""
+---
+emacs-$[[ inputs.test-name ]]:
+  image: registry.gitlab.com/fstamour/breeze/breeze-ci-emacs:latest
+  variables:
+    BREEZE_LISTENER: $[[ inputs.breeze-listener ]]
+  script:
+    - $[[ inputs.script ]]
