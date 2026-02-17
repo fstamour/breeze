@@ -69,10 +69,6 @@
 ;; (should (eq t (breeze-validate-if-breeze-package-exists)))
 ;; (should (eq t (breeze-ensure)))
 
-;; remove 'vc-refresh-state from find-file-hook because git is not
-;; available in the container and will incorrectly make some tests
-;; fail.
-(remove-hook 'find-file-hook 'vc-refresh-state)
 
 (ert-deftest test/breeze-erts ()
   (ert-test-erts-file
