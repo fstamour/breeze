@@ -302,6 +302,9 @@ prog*
 ;; Find duplicate imports
 ;; Find unused imports
 
+;; Make sure that all conditions (along with their accessors) and
+;; _restarts_ are exported. Otherwise they are very annoying to work
+;; with (and will make @phoe angry).
 
 (if (listp x) x (coerce x))
 ;; is equivalent to
