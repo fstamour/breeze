@@ -50,24 +50,31 @@
   (and (fboundp symbol) symbol))
 
 (defun breeze-keep-fbound (symbols)
+  "Given a list of SYMBOLS, remove those that are not `fboundp'."
   (remove 'nil (mapcar 'breeze-fbound-p symbols)))
 
 (cl-defun breeze-remove-nil (&rest args)
+  "Return a list that contains only the non-nil arguments."
   (remove 'nil args))
 
 (defun breeze-symbol-value (symbol)
+  "Return the value of SYMBOL if it's `boundp'."
   (when (boundp symbol)
     (symbol-value symbol)))
 
 (cl-defun breeze-funcall (symbol &rest args)
+  "Funcall SYMBOL if it's `fboundp'."
   (when (fboundp symbol)
     (apply symbol args)))
 
 (defun breeze-add-hook (hook function &optional depth local)
+  "Add to the value of HOOK, if HOOK is `boundp', the function FUNCTION.
+FUNCTION is not added if already present."
   (when (boundp hook)
     (add-hook hook function depth local)))
 
 (defun breeze-remove-hook (hook function &optional local)
+  "Remove FUNCTION from HOOK’s functions, if HOOK is `boundp'."
   (when (boundp hook)
     (remove-hook hook function local)))
 
@@ -661,9 +668,7 @@ listener."
   (with-temp-buffer
     (insert-file-contents (breeze-relative-path "src/ensure-breeze.lisp"))
     (beginning-of-buffer)
-
     (insert "(cl:multiple-value-bind (#1=#.(gensym \"result\") #2=#.(gensym \"condition\")) (cl:ignore-errors \n")
-
     (end-of-buffer)
     (insert "\n)
 (list #1# (when #2# (format nil \"~A\" #2#)))
