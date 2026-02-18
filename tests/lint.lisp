@@ -81,10 +81,9 @@ TODO
   (is equalp
       '((1 4 :warning "Missing space between forms."))
       (test-lint "(\"a\"x)"))
-  ;; TODO I _don't_ want this warning:
-  (is equalp
-      '((4 5 :warning "Extraneous leading whitespaces."))
-      (test-lint "`(,@
+  ;; Regression test:
+  (false
+   (test-lint "`(,@
 #+a ,a
 #+b ,b)"))
   ;; TODO do not flag extraneous whitespaces that are used for
@@ -222,6 +221,13 @@ x)
           :for node = (value (target-node fix))
           :for replacement = (replacement fix)
           :collect (list node replacement))))
+
+(define-test+run "fix: Extraneous leading whitespaces at top-level."
+  (is eqv `((,(whitespace 0 2) NIL)) (test-fix "  x")
+      "Should remove leading spaces at top-level")
+  (is eqv `((,(whitespace 6 10) ,(format nil "~%~%")))
+       (test-fix ";; foo~%~%  x")
+      "Should remove leading spaces at top-level, and keep the newlines."))
 
 (define-test+run test-fix
   (is equalp nil (test-fix "()"))

@@ -227,7 +227,6 @@ found."
          node-iterator
          (format nil "Package ~s is not currently defined." package-name))))))
 
-
 ;; This assumes that NODE-ITERATOR points to a whitespace node
 (defcheck warn-extraneous-whitespaces (node-iterator)
   (if (rootp node-iterator)
@@ -237,14 +236,15 @@ found."
         (when-let* (($next (next-iterator node-iterator))
                     (next-node (value $next))
                     (whitespaces (node-string node-iterator)))
-          (let ((pos (position #\Newline whitespaces :from-end t)))
-            (when (or (and (null pos) (firstp node-iterator))
-                      (and pos (= pos (length whitespaces))))
-              (char/= #\Newline (char whitespaces (1- (length whitespaces))))
-              (node-style-warning
-               node-iterator
-               "Extraneous leading whitespaces at top-level."
-               :replacement (when pos (subseq whitespaces 0 pos)))))))
+          (unless (every (lambda (c) (char= #\Newline c)) whitespaces)
+            (let ((pos (position #\Newline whitespaces :from-end t)))
+              (when (or (and (null pos) (firstp node-iterator))
+                        (and pos (/= pos (length whitespaces))))
+                (char/= #\Newline (char whitespaces (1- (length whitespaces))))
+                (node-style-warning
+                 node-iterator
+                 "Extraneous leading whitespaces at top-level."
+                 :replacement (when pos (subseq whitespaces 0 (1+ pos)))))))))
       (let ((firstp (firstp node-iterator))
             (lastp (lastp node-iterator)))
         (cond
@@ -252,7 +252,8 @@ found."
            (node-style-warning
             node-iterator "Extraneous whitespaces."
             :replacement nil))
-          (firstp
+          ((and firstp (parens-node-p
+                        (parent-node node-iterator)))
            (node-style-warning
             node-iterator "Extraneous leading whitespaces."
             :replacement nil))
