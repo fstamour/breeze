@@ -36,7 +36,7 @@ to load that system.
 But if that system's dependencies are not already, ~asdf:load-system~
 will fail.
 
-** TODO the "breeze/test" system has way too many dependencies
+** DONE the "breeze/test" system has way too many dependencies
 
 the "breeze/documentation" needed by "breeze/test" depends on
 spinneret, which in turns depends on way too many things.

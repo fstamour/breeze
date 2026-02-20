@@ -324,24 +324,23 @@
   (loop :for command :in (breeze.command:list-all-commands)))
 
 
-(define-test generate-documentation
+(define-test+run generate-documentation
   (let ((root (breeze-relative-pathname "docs/")))
-    (with-output-to-string (*trace-output*)
-      (breeze.documentation::generate-documentation
-       root
-       (find-breeze-packages))
-      (breeze.report::render
-       (make-instance
-        'breeze.report:report
-        :systems `((breeze
-                    ;; Include scratch files
-                    :extra-files ,(directory
-                                   (make-pathname
-                                    :directory
-                                    `(,@(pathname-directory
-                                         (breeze-relative-pathname
-                                          "scratch-files/"))
-                                        :wild-inferiors)
-                                    :name :wild
-                                    :type "lisp"))))
-        :output-dir root)))))
+    (breeze.documentation::generate-documentation
+     root
+     (find-breeze-packages))
+    (breeze.report::render
+     (make-instance
+      'breeze.report:report
+      :systems `((breeze
+                  ;; Include scratch files
+                  :extra-files ,(directory
+                                 (make-pathname
+                                  :directory
+                                  `(,@(pathname-directory
+                                       (breeze-relative-pathname
+                                        "scratch-files/"))
+                                      :wild-inferiors)
+                                  :name :wild
+                                  :type "lisp"))))
+      :output-dir root))))

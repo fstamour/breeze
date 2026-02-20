@@ -9,8 +9,12 @@
                 #:macrop
                 #:classp
                 #:simple-function-p)
+  (:import-from #:breeze.html
+                #:escape-html
+                #:with-html-page)
   (:import-from #:breeze.string
-                #:summarize)
+                #:summarize
+                #:with-fmt)
   (:export
    #:find-undocumented-symbols))
 
@@ -86,48 +90,46 @@
 
 ;;; Utilities for document generation
 
-(defmacro map-external-symbol ((var package)
-                               predicate-body
-                               prelude-body
-                               wrapper
+(defmacro map-external-symbol ((var package
+                                &key predicate
+                                  before
+                                  after)
                                &body loop-body)
   (once-only (package)
     (with-gensyms (symbols)
-      `(spinneret:with-html
-           (let ((,symbols
-                   (sort
-                    (loop :for ,var :being :the :external-symbol :of ,package
-                          :when (eq ,package (symbol-package ,var))
-                            :when ,predicate-body
-                              :collect ,var)
-                    #'string<
-                    :key #'symbol-name)))
-             (when ,symbols
-               ,prelude-body
-               ,(let ((loop `(loop :for ,var :in ,symbols
-                                   ,@loop-body)))
-                  (if wrapper
-                      (list wrapper loop)
-                      loop))))))))
+      `(let ((,symbols
+               (sort
+                (loop :for ,var :being :the :external-symbol :of ,package
+                      :when (eq ,package (symbol-package ,var))
+                        :when ,predicate
+                          :collect ,var)
+                #'string<
+                :key #'symbol-name)))
+         (when ,symbols
+           ,before
+           (loop :for ,var :in ,symbols
+                 ,@loop-body)
+           ,after)))))
 
 ;; TODO turn this into a test
-#+nil
-(map-external-symbol (sym (find-package :br))
-                     (boundp sym)
-                     (print "Symbol found")
-                     print
-  :collect (print sym))
+#++
+(map-external-symbol (sym (find-package :breeze.string)
+                      :predicate (boundp sym)
+                      :before (format t "~%Symbols found"))
+  :do (print sym))
+
 
 ;; TODO turn this into a test
-#+nil
-(map-external-symbol
- (symbol (find-package :br))
- (boundp symbol)
- (:h3 "Special variables")
- :dl
- :do
- (:dt (symbol-name symbol))
- (:dd (documentation symbol 'variable)))
+#++
+(with-output-to-string (out)
+  (with-fmt (out)
+    (map-external-symbol
+        (symbol (find-package :breeze.workspace)
+         :predicate (boundp symbol)
+         :before (fmt "<h3>Special variables</h3>~%"))
+      :do
+      (fmt "<dt>~a</dt>~%" (escape-html (symbol-name symbol)))
+      (fmt "<dd>~a</dd>~%" (escape-html (documentation symbol 'variable))))))
 
 
 ;; TODO
@@ -156,41 +158,51 @@
 - [ ] Type definitions (I'm not sure this one can be done with introspection alone).
 |#
 
-(defun render-reference (packages)
-  (spinneret:with-html
+(defun render-reference (out packages)
+  (with-fmt (out)
     (let ((packages (sort (copy-list packages)
                           #'string<
                           :key #'package-name)))
-      (:h1 (:a :id "reference" "Reference"))
+      (fmt "<h1><a id=\"reference\">Reference</a></h1>~%")
       ;; Package index
-      (:dl
-       (loop
-         :for package :in packages
-         :for package-name = (string-downcase (package-name package))
-         :do
-            (:dt (:a :href (format nil "#~A" package-name) package-name))
-            (:dd
-             (if-let (doc (documentation package t))
-               (summarize doc)))))
+      (fmt "<dl>~%")
       (loop
         :for package :in packages
-        :for package-name = (string-downcase (package-name package))
+        :for package-name = (escape-html (string-downcase (package-name package)))
+        :do
+           (fmt "<dt><a href=\"#~a\">~a</a></dt>~%"
+                package-name package-name)
+           (fmt "<dd>~a</dd>~%"
+                (escape-html
+                 (if-let (doc (documentation package t))
+                   (summarize doc)))))
+      (fmt "</dl>~%")
+      (loop
+        :for package :in packages
+        :for package-name = (escape-html (string-downcase (package-name package)))
         :do
            (macrolet ((gen (title
-                            predicate-body
+                            predicate
                             documentation-type)
                         `(map-external-symbol
-                             (symbol package)
-                             ,predicate-body
-                             (:h3 ,title)
-                             :dl
+                             (symbol package
+                              :predicate ,predicate
+                              :before (progn
+                                        (fmt "<h3>~a</h3>" ,title)
+                                        (fmt "<dl>"))
+                              :after (fmt "</dl>"))
                            :do
-                           (:dt (symbol-name symbol) (function-lambda-list symbol))
-                           (:dd (or (documentation symbol
-                                                   ,documentation-type)
-                                    "No documentation.")))))
-             (:h2 (:a :id package-name package-name))
-             (:p (or (documentation package t) "No description."))
+                           (fmt "<dt>~a ~a</dt>"
+                                (escape-html (symbol-name symbol))
+                                (escape-html (function-lambda-list symbol)))
+                           (fmt "<dd>~a</dd>"
+                                (escape-html
+                                 (or (documentation symbol
+                                                    ,documentation-type)
+                                     "No documentation."))))))
+             (fmt "<h2><a id=\"~a\">~a</a></h2>" package-name package-name)
+             (fmt "<p>~a</p>"
+                  (escape-html (or (documentation package t) "No description.")))
              (gen "Special variables" (specialp symbol) 'variable)
              (gen "Classes" (classp symbol) 'type)
              (gen "Generic methods" (generic-method-p symbol) 'function)
@@ -198,18 +210,11 @@
              (gen "Macros" (macrop symbol) 'function))))))
 
 (defun generate-documentation-to-stream (stream packages)
-  (let ((spinneret:*html* stream))
-    (let ((spinneret:*suppress-inserted-spaces* t)
-          (spinneret:*html-style* :tree)
-          (*print-pretty* nil))
-      (spinneret:with-html
-          (:doctype)
-        (:html
-         (:head
-          (:title "Reference")
-          (:link :rel "stylesheet" :href "style.css"))
-         (:body
-          (render-reference packages)))))))
+  (with-html-page (stream)
+    (fmt "<title>Reference</title>")
+    (fmt "<body>")
+    (render-reference stream packages)
+    (fmt "</body>")))
 
 (defun generate-documentation (root packages)
   (let* ((index (merge-pathnames "reference.html" root))

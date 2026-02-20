@@ -27,7 +27,8 @@
    #:ensure-suffix
    #:ensure-suffixes
    #:ensure-circumfix
-   #:ensure-circumfixes))
+   #:ensure-circumfixes
+   #:with-fmt))
 
 (in-package #:breeze.string)
 
@@ -401,3 +402,12 @@ AROUND. Add elipseses before and after if necessary."
 
 (defun ensure-circumfixes (prefixes string suffixes)
   (ensure-prefixes prefixes (ensure-suffixes suffixes string)))
+
+
+
+
+(defmacro with-fmt ((stream-var) &body body)
+  "Introduce a local function `fmt' that calls `format' on STREAM-VAR"
+  `(labels ((,(intern "FMT") (&rest rest)
+              (apply #'format ,stream-var rest)))
+     ,@body))

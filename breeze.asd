@@ -172,16 +172,15 @@
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
   :depends-on ("breeze"
-               ;; For documentation generation
-               "spinneret"
                "closer-mop"
                "cl-ppcre"
                "breeze/asdf")
   :pathname "src/"
   :serial nil ; <-
   :components
-  ((:file "documentation")
-   (:file "report")))
+  ((:file "html")
+   (:file "documentation" :depends-on ("html"))
+   (:file "report" :depends-on ("html"))))
 
 
 ;;; breeze/parachute system

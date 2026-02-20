@@ -23,13 +23,17 @@ TODO Split comment/paragraphs when the line starts with "TODO"
   (:use #:cl #:breeze.parser)
   (:import-from #:breeze.utils
                 #:nrun)
+  (:import-from #:breeze.string
+                #:with-fmt)
+  (:import-from #:breeze.html
+                #:escape-html
+                #:with-html-file)
   (:export #:report
            #:slug
            #:url-to
            #:pathname-to)
   (:export #:paragraphs
-           #:remove-leading-semicolons
-           #:escape-html)
+           #:remove-leading-semicolons)
   (:export #:link-to-id
            #:link-to-file
            #:link-to-page))
@@ -104,15 +108,6 @@ newlines or more marks the start of a new paragraph)."
    (cl-ppcre:create-scanner "^[ ;]+"
                             :multi-line-mode t)
    string ""))
-
-(defun escape-html (string)
-  (nth-value 0
-      (cl-ppcre:regex-replace-all
-       ;; I'm sure this is rock solid /s
-       (cl-ppcre:create-scanner "<((?!a |\/a|br).*?)>"
-                                :multi-line-mode t)
-       string
-       "&lt;\\1&gt;")))
 
 
 
@@ -275,25 +270,7 @@ newlines or more marks the start of a new paragraph)."
           (render-node out state node)
           (format out "~%</code></pre>")))))
 
-(defmacro with-html ((stream-var) &body body)
-  `(labels ((fmt (&rest rest)
-              (apply #'format ,stream-var rest)))
-     ,@body))
 
-(defmacro with-html-file ((stream-var filename) &body body)
-  `(alexandria:with-output-to-file
-       (,stream-var ,filename :if-exists :supersede)
-     (with-html (,stream-var)
-       (fmt "<!DOCTYPE html>")
-       (fmt "<html>")
-       ;; https://github.com/emareg/classlesscss
-       (fmt "<link rel=\"stylesheet\" href=\"style.css\" title=\"classless\" >")
-       ;; https://github.com/raj457036/attriCSS/tree/master
-       (fmt "<link rel=\"alternate stylesheet\" href=\"brightlight-green.css\" title=attri-css-brightlight-green\" >")
-       (fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/normalize.css\" title=\"concrete\" >")
-       (fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/concrete.css\" title=\"concrete\">")
-       ,@body
-       (fmt "</html>"))))
 
 (defmethod link-to-id (report name id &optional (path ""))
   (format nil "<a href=\"~a#~a\">~a</a>" path id name))
@@ -325,7 +302,7 @@ newlines or more marks the start of a new paragraph)."
 
 (defun render-toc (report out files)
   ;; Table of content
-  (with-html (out)
+  (with-fmt (out)
     (fmt "<ol>")
     (loop
       :for (filename state pages) :in files
@@ -347,7 +324,7 @@ newlines or more marks the start of a new paragraph)."
     (fmt "</ol>")))
 
 (defun render-lisp-file (report out file)
-  (with-html (out)
+  (with-fmt (out)
     (destructuring-bind (filename state pages)
         file
       (let ((number-of-pages (length pages)))
