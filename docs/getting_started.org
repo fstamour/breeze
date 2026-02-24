@@ -21,10 +21,10 @@ git clone --recursive git@codeberg.org:fstamour/breeze.git ~/quicklisp/local-pro
 
 #+begin_src emacs-lisp
 (add-to-list 'load-path "~/quicklisp/local-projects/breeze/emacs/")
-(require 'breeze)
+(require 'breeze-autoloads)
 #+end_src
 
-** Configure emacs to use breeze-minor-mode
+** Configure emacs to use =breeze-minor-mode=
 
 Add a hook to enable breeze's minor mode in =lisp-mode= automatically:
 
@@ -32,7 +32,7 @@ The mode will add some bindings (most notably =C-.=, which is bound to
 the command =breeze-quickfix=).
 
 #+begin_src emacs-lisp
-(add-hook 'lisp-mode-hook #'breeze-minor-mode)
+(add-hook 'lisp-mode-hook #'enable-breeze-minor-mode)
 #+end_src
 
 Additionally, breeze can be used as a "on-the-fly" linter for common
@@ -42,9 +42,6 @@ breeze.
 #+begin_src emacs-lisp
 ;; Ensure breeze is loaded when a sly or slime connection is opened
 (breeze-enable-connected-hook)
-
-;; Enable breeze-minor-mode in lisp-mode
-(breeze-enable-minor-mode-hook)
 
 ;; Enable flymake-mode in breeze-minor-mode
 (breeze-minor-mode-enable-flymake-mode)

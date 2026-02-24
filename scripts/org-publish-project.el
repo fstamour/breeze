@@ -14,6 +14,7 @@
 (require 'org-id)
 (require 'ox-publish)
 (require 'htmlize)
+(require 'org-roam)
 
 (defvar *breeze-root*
   (expand-file-name
@@ -46,7 +47,8 @@
    :html-home/up-format "<div id=\"org-div-home-and-up\"> %s
  <a accesskey=\"H\" href=\"%s\"> HOME </a>
 </div>"
-   :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />"
+   :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />
+<link rel=\"stylesheet\" type=\"text/css\" href=\"src-block.css\" />"
 
    :auto-sitemap t
    ;; https://emacs.stackexchange.com/questions/70824/how-to-use-makeindex
@@ -56,6 +58,31 @@
  org-publish-project-alist
  :key #'car
  :test #'string=)
+
+;; Don't ask for confirmation to run the code blocks.
+(setf org-confirm-babel-evaluate nil)
+
+;; orb-babel: Enable some languages to be able to evaluate the source
+;; blocks when publishing.
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((shell . t)
+   (lisp . t)
+   (plantuml . t)))
+
+;; Set the root of the org-roam files
+(setq org-roam-directory (file-name-concat *breeze-root* "docs/"))
+
+;; Make sure org-roam's database is up-to-date
+(org-roam-db-sync)
+
+;; fontify code in code blocks
+;; (setq org-src-fontify-natively t)
+
+;; Enable syntax coloring when using ox-html to publish to html The
+;; default value 'inline-css it can't be used when emacs is in batch
+;; mode.
+(setf org-html-htmlize-output-type 'css)
 
 ;; See (describe-variable 'org-publish-project-alist)
 ;; See https://orgmode.org/manual/Publishing-options.html for more options
@@ -68,4 +95,5 @@
   (dolist (file (directory-files root t "listing-.*\\.html$"))
     (copy-file file "public/" :ok-if-already-exists))
   (copy-file "docs/reference.html" "public/" :ok-if-already-exists)
-  (copy-file "docs/style.css" "public/" :ok-if-already-exists))
+  (copy-file "docs/style.css" "public/" :ok-if-already-exists)
+  (copy-file "docs/src-block.css" "public/" :ok-if-already-exists))

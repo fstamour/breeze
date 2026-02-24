@@ -67,7 +67,7 @@ created for the name of the pattern.
     the matching fails
 - if ~multiple-valued-p~ is ~t~, all bound values are accumulated
 
-** TODO Value patterns
+** TODO Value patterns                                                  :doc:
 :PROPERTIES:
 :ID:       1c332211-b4d9-4361-af59-8ccafe816864
 :END:

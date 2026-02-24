@@ -2,24 +2,50 @@
 :ID:       4836d845-7be2-4a7d-bbc5-6d7e577292c2
 :END:
 #+title: Documentation validation
+#+property: header-args :exports both
 
 #+begin_quote
-This file contains code (mostly emacs lisp) to find any issues in
-org-mode documentation files.
+This file contains code to find any issues in org-mode documentation
+files.
 #+end_quote
 
 * Some utilities
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results silent
 (defun string-set-difference (s1 s2)
   (cl-set-difference s1 s2 :test #'string=))
 
+(defun without-zero-width-space (string)
+  (string-join
+   (split-string string
+                 (string (char-from-name "ZERO WIDTH SPACE"))) ""))
+
+(defun with-zero-width-space (string)
+  (string-replace
+   "_"
+   (concat (string (char-from-name "ZERO WIDTH SPACE")) "_")
+   string))
+
 (defun link-to-file (file)
-  (format "[[file:%s][%s]]" file file))
+  (if (listp file)
+      (mapcar 'link-to-file file)
+    (format "[[file:%s][%s]]" file (with-zero-width-space file))))
 #+end_src
 
-#+RESULTS:
-: link-to-file
+** Generate css file for source blocks
+
+#+bind: org-html-htmlize-output-type css
+#+begin_src emacs-lisp :var css-file="src-block.css" :results silent
+(if noninteractive
+    (message "Called \"non-interactively\", doing nothing...")
+  (org-html-htmlize-generate-css)
+  (with-current-buffer "*html*"
+    (insert "/* this file was generated using `org-html-htmlize-generate-css' */\n")
+    (write-file css-file)
+    (kill-buffer))
+  (format "#+html_head_extra: <link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"/>"
+          css-file))
+#+end_src
 
 * Tags
 :PROPERTIES:
@@ -34,7 +60,7 @@ org-mode documentation files.
 #+NAME: tags
 | Tag name     | Tag description                                                                               |
 |--------------+-----------------------------------------------------------------------------------------------|
-| 3rd​_parties  | Relating to a third-party, e.g. an external library.                                          |
+| 3rd​_parties | Relating to a third-party, e.g. an external library.                                          |
 | obsolete     | This task is now obsolete.                                                                    |
 | doc          | Relating to the documentation.                                                                |
 | ux           | This task is about improving the user experience                                              |
@@ -47,62 +73,107 @@ org-mode documentation files.
 | refactor     | Relating to breeze's refactoring facilities.                                                  |
 | capture      | Relating to breeze's capture feature.                                                         |
 | quickproject | Relating to quickproject integration.                                                         |
-| tech​_debt    | Due to an ongoing refactoring, to an old hack, incomplete implementation, missing tests, etc. |
-| reader       | Relating to breeze.reader.                                                                    |
+| tech​_debt   | Due to an ongoing refactoring, to an old hack, incomplete implementation, missing tests, etc. |
+| parser       | Relating to breeze.parser.                                                                    |
+| reader       | Relating to cl:reader or equivalent                                                           |
 | noexport     | org-mode internal tag                                                                         |
+| tool         | Relating to existing tool for common lisp                                                     |
+| emacs        | Relating to the emacs editor                                                                  |
 
+** Make sure that all tags in the documentation are present in the table
 
-** TODO replace the tag "reader" by "parser"
-
-** Make sure that all tags in the table have a description.
-
-#+begin_src emacs-lisp :var tags=tags
-;; (prin1-to-string (org-get-buffer-tags))
-;; (prin1-to-string tags)
-
+#+begin_src emacs-lisp :var tags=tags :results value drawer
 ;; Find tags that have no descriptions
 (let ((unknown-tags
        (string-set-difference
-        (mapcar #'car (org-get-buffer-tags))
-        (mapcar #'car tags))))
-  (or unknown-tags
-      "All good, no tags without description found."))
+        ;; List all tags used across all files
+        (mapcar #'car (org-roam-db-query
+                       [:select :distinct [tag] :from tags]))
+        ;; minus those that are described in the table
+        (mapcar (lambda (tag)
+                  (cl-destructuring-bind (name description)
+                      tag
+                    (without-zero-width-space name)))
+                tags))))
+  (if (null unknown-tags)
+      "All good, all tags were found in the table."
+    (apply #'concat
+           "The folling tags are missing from the table:\n"
+           (mapcar (lambda (tag)
+                     (concat " - =:" tag ":=\n"))
+                   unknown-tags))))
 #+end_src
 
 #+RESULTS:
-: All good, no tags without description found.
+:results:
+All good, all tags were found in the table.
+:end:
+
+** Make sure that all tags in the table have a description.
+
+#+begin_src emacs-lisp :var tags=tags :results value drawer
+;; Find tags that have no descriptions
+(let ((tags-without-description
+       (mapcar #'car
+               (cl-remove-if-not
+                (lambda (tag)
+                  (cl-destructuring-bind (name description)
+                      tag
+                    (and description
+                         (string-empty-p description))))
+                tags))))
+  (if (null tags-without-description)
+      "All good, no tags without description found."
+    (apply #'concat
+           "The folling tags don't have any descriptions:\n"
+           (mapcar (lambda (tag)
+                     (concat " - =:" tag ":=\n"))
+                   tags-without-description))))
+#+end_src
+
+#+RESULTS:
+:results:
+The folling tags don't have any descriptions:
+ - =:emacs:=
+:end:
+
 
 ** Make sure all tasks have some tags
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results verbatim list replace
 (defun breeze-tasks-find-untagged-nodes ()
   "Find all \"TODO\" nodes that don't have any tags."
   (org-roam-db-query [:select
-                      [id]
+                      [id title]
                       :from nodes
                       :where (and (= todo "TODO")
                                   (not-in id [:select [node-id] :from tags]))]))
 
 ;; Visit the first untagged task, if any
+(defun breeze-visit-untagged-task ()
+  (if-let ((untagged-tasks (breeze-tasks-find-untagged-nodes)))
+      (cl-destructuring-bind (id title) (cl-first untagged-tasks)
+        (org-roam-node-visit
+         (org-roam-node-from-id id)))
+    (message "No untagged tasks found!")))
+
 (if-let ((untagged-tasks (breeze-tasks-find-untagged-nodes)))
-    (cl-destructuring-bind (id) (cl-first untagged-tasks)
-      (org-roam-node-visit
-       (org-roam-node-from-id id)))
-  (message "No untagged tasks found!"))
+    (cl-loop
+     for (id title) in (breeze-tasks-find-untagged-nodes)
+     collect (format "[[id:%s][%s]]\n" id title))
+  '("All tasks have at least one tag."))
 #+end_src
 
 #+RESULTS:
-
-See https://github.com/ahmed-shariff/org-roam-ql - "Query language for
-org-roam".
+- All tasks have at least one tag.
 
 
-* Make sure that all org file have a front-matter                       :doc:
+* Make sure that all org file have a front-matter
 :PROPERTIES:
 :ID:       eb6f8b43-ee41-46f6-b23a-bcde610dc60c
 :END:
 
-For example:
+Example of what I mean by "front-matter":
 
 #+begin_example
 :PROPERTIES:
@@ -111,44 +182,59 @@ For example:
 ,#+title: Candidate Features
 #+end_example
 
-#+begin_src emacs-lisp
-(string-set-difference
- ;; list of org-ROAM files
- (mapcar #'file-name-base
-         (org-roam-list-files))
- ;; list of org-MODE files
- (mapcar #'file-name-base
-         (org-roam--shell-command-files "find . -type f -name \"*.org\" -printf \"%f\n\"")))
+#+begin_src emacs-lisp :results verbatim list
+(let ((org-roam-files
+       ;; list of org-ROAM files
+       (sort
+        (mapcar '(lambda (row)
+                   (file-name-nondirectory (car row)))
+                (org-roam-db-query [:select
+                                    [file]
+                                    :from nodes
+                                    :where (= pos 1)
+                                    ]))))
+      (org-mode-files
+       ;; list of org-MODE files
+       (mapcar #'file-name-nondirectory
+               (directory-files-recursively "." "\\.org$"))))
+  (let ((missing-front-matter
+         (string-set-difference org-mode-files
+                                org-roam-files)))
+    (link-to-file missing-front-matter)))
+;; (message "All org-mode files has a corresponding org-roam node.")
 #+end_src
 
 #+RESULTS:
+- [[file:sitemap.org][sitemap.org]]
+- [[file:theindex.org][theindex.org]]
 
-#+begin_src shell
-find . -type f -name '*.org' -exec grep '^#+title[^:]' -H '{}' ';'
-#+end_src
-
-#+RESULTS:
-
-* Make sure that all pages are reachable from another page              :doc:
+* Make sure that all pages are reachable from another page
 :PROPERTIES:
 :ID:       c576702c-fd35-4810-b91d-4be37b306b5e
 :END:
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results silent
 (defun filter-backlinks (backlinks)
   (cl-remove-if
    (lambda (backlink)
+     ;; TODO "sitemap.org" "theindex.org"
      (string-suffix-p
       "/breeze/docs/meta.org"
       (org-roam-node-file
        (org-roam-backlink-source-node backlink))))
    backlinks))
 
-(defun node->file (node)
-  (if (stringp node)
-      (node->file (org-roam-node-from-id node))
-    (file-name-nondirectory
-     (org-roam-node-file node))))
+(defun node->file (node-designator)
+  (if (stringp node-designator)
+      ;; if NODE-DESIGNATOR is a string, assume it's an id
+      (node->file (org-roam-node-from-id node-designator))
+    (if (listp node-designator)
+        ;; if NODE-DESIGNATOR is a list, assume the car is a
+        ;; node-designator
+        (node->file (car node-designator))
+      ;; otherwise, assume that NODE-DESIGNATOR is an `org-roam-node'
+      (file-name-nondirectory
+       (org-roam-node-file node-designator)))))
 
 (defun backlink->source-file (backlink)
   (node->file (org-roam-backlink-source-node backlink)))
@@ -194,83 +280,30 @@ find . -type f -name '*.org' -exec grep '^#+title[^:]' -H '{}' ';'
 :ID:       ec1d7da5-9aa3-43a2-b005-36579ee915f9
 :END:
 
-#+begin_src emacs-lisp :results verbatim list replace
-;; list files without backlinks
-(mapcar #'link-to-file (orphan-files *backlinks*))
-#+end_src
-
-#+RESULTS:
-- [[file:missing_documentation.org][missing_documentation.org]]
-- [[file:feedback_from_users.org][feedback_from_users.org]]
-- [[file:tasks.org][tasks.org]]
-- [[file:task-generate_web_pages_from_org_files_in_docs.org][task-generate_web_pages_from_org_files_in_docs.org]]
-- [[file:eclector.org][eclector.org]]
-- [[file:parsing_common_lisp.org][parsing_common_lisp.org]]
-- [[file:slimv.org][slimv.org]]
-- [[file:file_watching.org][file_watching.org]]
-- [[file:aartaka.org][aartaka.org]]
-- [[file:examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org][examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org]]
-- [[file:syntax_highlighting.org][syntax_highlighting.org]]
-- [[file:index.org][index.org]]
-- [[file:error_recovery.org][error_recovery.org]]
-- [[file:rust_analyzer_blog.org][rust_analyzer_blog.org]]
-- [[file:fast_incremental_peg_parsing.org][fast_incremental_peg_parsing.org]]
-- [[file:listener_features.org][listener_features.org]]
-- [[file:vend.org][vend.org]]
-- [[file:formatting_code.org][formatting_code.org]]
-- [[file:parse_files_with_conflicts.org][parse_files_with_conflicts.org]]
-- [[file:linting_asd_files.org][linting_asd_files.org]]
-- [[file:change_impact_analysis.org][change_impact_analysis.org]]
-- [[file:case_with_correction_suggestion.org][case_with_correction_suggestion.org]]
-- [[file:pagefind.org][pagefind.org]]
-
-#+begin_src emacs-lisp
-;; generate a graph (docs/pages.dot) of all th links between the
-;; _files_ (not the nodes)
-(with-temp-buffer
-  (insert "digraph pages {")
-  (let* ((ht (compute-backlinks-per-file))
-         (file->id (cl-loop
-                    with file->id = (make-hash-table :test 'equal)
-                    for i from 0
-                    for file being the hash-keys of ht
-                    for id = (format "id%s" i)
-                    do
-                    (setf (gethash file file->id) id)
-                    (insert "\n" id " [label=\"" (file-name-base file) "\"]")
-                    finally (return file->id))))
-
-    (cl-loop
-     for file being the hash-keys of ht
-     using (hash-values backlinks)
-     ;; unless backlinks
-     for name = (file-name-base file)
-     for id = (gethash file file->id)
-     do (dolist (backlink backlinks)
-          (insert "\n" (gethash backlink file->id) " -> " id))))
-  (insert "\n}")
-  (write-file "pages.dot"))
-#+end_src
-
-#+begin_src emacs-lisp :results verbatim list replace
+#+begin_src emacs-lisp :results silent
 ;; starting from "index.org", find the "depth" of each file
 
-;;; TODO see also org-roam-unlinked-references-section
+;;; TODO see also org-roam-unlinked-references-section (View nodes
+;;; that contain text that match the nodes title/alias but are not
+;;; linked)
 
 (defvar *backlinks* (compute-backlinks-per-file)
   "Hash table file -> list of files")
 
-;; invariant: backlinks should contains every file expect "meta.org"
+;; invariant: backlinks should contains every file except "meta.org"
 (string-set-difference
  (mapcar #'file-name-nondirectory (org-roam-list-files))
  (hash-table-keys *backlinks*))
+;; SHOULD BE:
 ;; => ("meta.org")
+;; ACTUAL:
+;; => ("sitemap.org" "meta.org" "theindex.org")
 
 (defvar *all* (hash-table-keys *backlinks*)
   "List of all files except \"meta.org\".")
 
 (defvar *links* (backlinks->links *backlinks*)
-  "Hash table file -> list of files")
+  "Hash table: file -> list of files")
 
 (defvar *orphans* (orphan-files *backlinks*)
   "List of files without any backlinks (no other files point to them).")
@@ -304,36 +337,110 @@ STARTING-FILE) to it's distance from STARTING-FILE."
 (defvar *cliques*
   (string-set-difference *unreachable* *orphans*)
   "List of files reachable only via links from file that are unrechable from \"index.org\".")
+#+end_src
 
-,*unreachable*
+*** Unreachable files
+
+List files that are not reachable from the index
+
+#+begin_src emacs-lisp :results verbatim list replace
+(link-to-file *unreachable*)
 #+end_src
 
 #+RESULTS:
-- pagefind.org
-- case_with_correction_suggestion.org
-- change_impact_analysis.org
-- linting_asd_files.org
-- parse_files_with_conflicts.org
-- formatting_code.org
-- vend.org
-- listener_features.org
-- breeze_s_eval_v_s_sly_s_and_slime_s_eval.org
-- fast_incremental_peg_parsing.org
-- rust_analyzer_blog.org
-- error_recovery.org
-- syntax_highlighting.org
-- examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org
-- aartaka.org
-- file_watching.org
-- slimv.org
-- parsing_common_lisp.org
-- eclector.org
-- task-generate_web_pages_from_org_files_in_docs.org
-- tasks.org
-- feedback_from_users.org
-- missing_documentation.org
+- [[file:pagefind.org][pagefind.org]]
+- [[file:case_with_correction_suggestion.org][case_with_correction_suggestion.org]]
+- [[file:change_impact_analysis.org][change_impact_analysis.org]]
+- [[file:linting_asd_files.org][linting_asd_files.org]]
+- [[file:parse_files_with_conflicts.org][parse_files_with_conflicts.org]]
+- [[file:formatting_code.org][formatting_code.org]]
+- [[file:vend.org][vend.org]]
+- [[file:listener_features.org][listener_features.org]]
+- [[file:breeze_s_eval_v_s_sly_s_and_slime_s_eval.org][breeze_s_eval_v_s_sly_s_and_slime_s_eval.org]]
+- [[file:fast_incremental_peg_parsing.org][fast_incremental_peg_parsing.org]]
+- [[file:rust_analyzer_blog.org][rust_analyzer_blog.org]]
+- [[file:error_recovery.org][error_recovery.org]]
+- [[file:syntax_highlighting.org][syntax_highlighting.org]]
+- [[file:examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org][examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org]]
+- [[file:aartaka.org][aartaka.org]]
+- [[file:file_watching.org][file_watching.org]]
+- [[file:slimv.org][slimv.org]]
+- [[file:parsing_common_lisp.org][parsing_common_lisp.org]]
+- [[file:eclector.org][eclector.org]]
+- [[file:task-generate_web_pages_from_org_files_in_docs.org][task-generate_web_pages_from_org_files_in_docs.org]]
+- [[file:tasks.org][tasks.org]]
+- [[file:feedback_from_users.org][feedback_from_users.org]]
+- [[file:missing_documentation.org][missing_documentation.org]]
 
+*** Orphan files - files without any links to them
 
+#+begin_src emacs-lisp :results verbatim list replace
+(link-to-file *orphans*)
+#+end_src
+
+#+RESULTS:
+- [[file:missing_documentation.org][missing_documentation.org]]
+- [[file:feedback_from_users.org][feedback_from_users.org]]
+- [[file:tasks.org][tasks.org]]
+- [[file:task-generate_web_pages_from_org_files_in_docs.org][task-generate_web_pages_from_org_files_in_docs.org]]
+- [[file:eclector.org][eclector.org]]
+- [[file:parsing_common_lisp.org][parsing_common_lisp.org]]
+- [[file:slimv.org][slimv.org]]
+- [[file:file_watching.org][file_watching.org]]
+- [[file:aartaka.org][aartaka.org]]
+- [[file:examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org][examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org]]
+- [[file:syntax_highlighting.org][syntax_highlighting.org]]
+- [[file:index.org][index.org]]
+- [[file:error_recovery.org][error_recovery.org]]
+- [[file:rust_analyzer_blog.org][rust_analyzer_blog.org]]
+- [[file:fast_incremental_peg_parsing.org][fast_incremental_peg_parsing.org]]
+- [[file:listener_features.org][listener_features.org]]
+- [[file:vend.org][vend.org]]
+- [[file:formatting_code.org][formatting_code.org]]
+- [[file:parse_files_with_conflicts.org][parse_files_with_conflicts.org]]
+- [[file:linting_asd_files.org][linting_asd_files.org]]
+- [[file:change_impact_analysis.org][change_impact_analysis.org]]
+- [[file:case_with_correction_suggestion.org][case_with_correction_suggestion.org]]
+- [[file:pagefind.org][pagefind.org]]
+
+*** List of files reachable only via links to unrechable files
+
+#+begin_src emacs-lisp :results verbatim list replace
+(link-to-file *cliques*)
+#+end_src
+
+#+RESULTS:
+- [[file:breeze_s_eval_v_s_sly_s_and_slime_s_eval.org][breeze_s_eval_v_s_sly_s_and_slime_s_eval.org]]
+
+*** TODO Graph of links between the files
+
+#+begin_src emacs-lisp
+;; generate a graph (docs/pages.dot) of all the links between the
+;; _files_ (not the nodes)
+(with-temp-buffer
+  (insert "digraph pages {")
+  (let* ((ht (compute-backlinks-per-file))
+         (file->id (cl-loop
+                    with file->id = (make-hash-table :test 'equal)
+                    for i from 0
+                    for file being the hash-keys of ht
+                    for id = (format "id%s" i)
+                    do
+                    (setf (gethash file file->id) id)
+                    (insert "\n" id " [label=\"" (file-name-base file) "\"]")
+                    finally (return file->id))))
+
+    (cl-loop
+     for file being the hash-keys of ht
+     using (hash-values backlinks)
+     ;; unless backlinks
+     for name = (file-name-base file)
+     for id = (gethash file file->id)
+     do (dolist (backlink backlinks)
+          (insert "\n" (gethash backlink file->id) " -> " id))))
+  (insert "\n}")
+  (write-file "pages.dot"))
+#+end_src
 
 * Local variables :noexport:
 # local variables:
