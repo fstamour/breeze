@@ -132,11 +132,12 @@
       (fmt "<dd>~a</dd>~%" (escape-html (documentation symbol 'variable))))))
 
 
-;; TODO
-(defun function-lambda-list (function)
-  "Returns a function's lambda-list"
-  (declare (ignorable function))
-  nil)
+(defun function-lambda-list (symbol)
+  "Returns a string representation of a function's lambda-list"
+  (assert (fboundp symbol))
+  #+sbcl (format nil "~(~a~)"
+                 (sb-introspect:function-lambda-list symbol))
+  #-sbcl nil)
 
 
 ;;; Generate documentation
@@ -188,20 +189,22 @@
                              (symbol package
                               :predicate ,predicate
                               :before (progn
-                                        (fmt "<h3>~a</h3>" ,title)
-                                        (fmt "<dl>"))
-                              :after (fmt "</dl>"))
+                                        (fmt "<h3>~a</h3>~%" ,title)
+                                        (fmt "<dl>~%"))
+                              :after (fmt "</dl>~%"))
                            :do
-                           (fmt "<dt>~a ~a</dt>"
-                                (escape-html (symbol-name symbol))
-                                (escape-html (function-lambda-list symbol)))
-                           (fmt "<dd>~a</dd>"
+                           (fmt "<dt>~a"
+                                (escape-html (symbol-name symbol)))
+                           (when (fboundp symbol)
+                             (fmt " ~a" (escape-html (function-lambda-list symbol))))
+                           (fmt "</dt>~%")
+                           (fmt "<dd>~a</dd>~%"
                                 (escape-html
                                  (or (documentation symbol
                                                     ,documentation-type)
                                      "No documentation."))))))
-             (fmt "<h2><a id=\"~a\">~a</a></h2>" package-name package-name)
-             (fmt "<p>~a</p>"
+             (fmt "<h2><a id=\"~a\">~a</a></h2>~%" package-name package-name)
+             (fmt "<p>~a</p>~%"
                   (escape-html (or (documentation package t) "No description.")))
              (gen "Special variables" (specialp symbol) 'variable)
              (gen "Classes" (classp symbol) 'type)
@@ -211,10 +214,10 @@
 
 (defun generate-documentation-to-stream (stream packages)
   (with-html-page (stream)
-    (fmt "<title>Reference</title>")
-    (fmt "<body>")
+    (fmt "<title>Reference</title>~%")
+    (fmt "<body>~%")
     (render-reference stream packages)
-    (fmt "</body>")))
+    (fmt "</body>~%")))
 
 (defun generate-documentation (root packages)
   (let* ((index (merge-pathnames "reference.html" root))

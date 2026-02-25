@@ -113,11 +113,12 @@ pre {
 
 /*code*/
 pre > code {
+  display: block;
+  overflow-y: hidden;
   margin: 0;
   padding: 0.5rem 1.0rem;
   border-left: 0.3rem solid #3273dc;
   background-color: var(--contrast-background);
-  width: 80em;
 }
 code, kbd, samp {
 	padding: 0.3em; background: var(--contrast-background); white-space: pre; font-size: 90%;

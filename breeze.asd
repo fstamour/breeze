@@ -174,7 +174,8 @@
   :depends-on ("breeze"
                "closer-mop"
                "cl-ppcre"
-               "breeze/asdf")
+               "breeze/asdf"
+               (:feature :sbcl "sb-introspect"))
   :pathname "src/"
   :serial nil ; <-
   :components

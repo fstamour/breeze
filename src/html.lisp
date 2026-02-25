@@ -23,12 +23,11 @@
     `(with-fmt (,stream-var)
        (,fmt "<!DOCTYPE html>")
        (,fmt "<html>")
+       (,fmt "<meta charset=\"UTF-8\" />")
        ;; https://github.com/emareg/classlesscss
-       (,fmt "<link rel=\"stylesheet\" href=\"style.css\" title=\"classless\" >")
+       (,fmt "<link rel=\"stylesheet\" href=\"style.css\" title=\"classless\" />")
        ;; https://github.com/raj457036/attriCSS/tree/master
-       (,fmt "<link rel=\"alternate stylesheet\" href=\"brightlight-green.css\" title=attri-css-brightlight-green\" >")
-       (,fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/normalize.css\" title=\"concrete\" >")
-       (,fmt "<link rel=\"alternate stylesheet\" href=\"https://unpkg.com/concrete.css\" title=\"concrete\">")
+       (,fmt "<link rel=\"alternate stylesheet\" href=\"brightlight-green.css\" title=attri-css-brightlight-green\" />")
        ,@body
        (,fmt "</html>"))))
 
