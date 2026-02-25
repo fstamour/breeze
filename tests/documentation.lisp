@@ -242,9 +242,11 @@
                                                 (member command-name all-commands :test #'string=)
                                                 (member (string-upcase command-string) all-commands :test #'string=)))
                    :do
-                      (true command-symbol
-                            "Couldn't find a symbol corresponding to the command name ~s (~s)"
-                            command-string command-name)
+                      ;; TODO breeze-quickload requires quicklisp which may not be available
+                      (unless (string= command-string "breeze-quickload")
+                        (true command-symbol
+                              "Couldn't find a symbol corresponding to the command name ~s (~s)"
+                              command-string command-name))
                       (when command-symbol
                         (let ((generated-name (breeze.command::command-name-for-editor command-symbol)))
                           (is string= command-string generated-name
