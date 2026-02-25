@@ -4,7 +4,7 @@ spec:
       default: sbcl
 ---
 test-$[[ inputs.lisp-impl ]]:
-  image: registry.gitlab.com/fstamour/breeze/breeze-ci-$[[ inputs.lisp-impl ]]:latest
+  image: $CI_REGISTRY_IMAGE/breeze-ci-$[[ inputs.lisp-impl ]]:latest
   script:
     - $[[ inputs.lisp-impl ]] --load scripts/quicklisp.lisp
         --eval "(quicklisp-quickstart:install)"

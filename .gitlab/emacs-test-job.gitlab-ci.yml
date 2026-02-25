@@ -6,7 +6,7 @@ spec:
       default: ""
 ---
 emacs-$[[ inputs.test-name ]]:
-  image: registry.gitlab.com/fstamour/breeze/breeze-ci-emacs:latest
+  image: $CI_REGISTRY_IMAGE/breeze-ci-emacs:latest
   variables:
     BREEZE_LISTENER: $[[ inputs.breeze-listener ]]
   script:

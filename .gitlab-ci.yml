@@ -50,12 +50,9 @@ include:
 
 # Build public/ folder using org-publish on docs/
 doc:
-  image: docker:24.0.7
-  services:
-    - docker:24.0.5-dind
+  image: $CI_REGISTRY_IMAGE/breeze-ci-emacs:latest
   script:
-    - apk add --no-cache make bash
-    - make public
+    - make doc
   artifacts:
     paths:
       - public

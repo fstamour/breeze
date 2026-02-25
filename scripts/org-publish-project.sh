@@ -7,10 +7,6 @@ set -e
 
 cd $(dirname $0)/../
 
-# This runs _all_ the tests, some of them generates documentation.
-sbcl --noinform --non-interactive \
-     --eval "(load \"scripts/run-tests.lisp\")"
-
 # "test-helpers.el" is loaded for the "remove-hook" (becauze vc/git/etc)
 
 # This converts the org-mode file to html

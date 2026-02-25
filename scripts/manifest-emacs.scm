@@ -2,6 +2,7 @@
  (list
   "coreutils"
   "bash"
+  "make"
 
   "emacs-no-x"
   "emacs-slime"
