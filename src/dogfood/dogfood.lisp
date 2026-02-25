@@ -102,61 +102,17 @@ newline in the expected result."
 (defun update-command-test (node-itereator test-name)
   (message "Not implemented: updating the test ~s" test-name))
 
-(defun generate-command-test (node-itereator)
-  (let* ((name
-           ;; Ask the user
-           (choose "Name of the command (symbol): "
-                   #| Oops: circular dependencies between the "tests" and "dogfood" systems |#
-                   #++
-                   (breeze.test.refactor::missing-tests)
-                   (breeze.command:list-all-commands)))
-         (symbol (etypecase name
-                   (symbol name)
-                   (string (read-from-string name))))
-         #++ #| Oops: circular dependencies between the "tests" and "dogfood" systems |#
-         (trace (breeze.test.refactor::drive-command symbol
-                                                     :inputs '()
-                                                     :context '()
-                                                     :ask-for-missing-input-p t))
-         (inputs (remove-if #'null (mapcar #'first trace)))
-         (*print-case* :downcase))
-    (insert "(define-test+run ~(~a~)" symbol)
-    (insert "~%    (let* ((trace (drive-command #'~(~a~)" symbol)
-    (insert "~%                                 :inputs '~s" inputs)
-    (insert "~%                                 :context '())))")
-    (insert "~%      (common-trace-asserts '~(~a~) trace ~d)"
-            symbol (length trace))
-    (loop
-      :for (input request) :in (butlast trace)
-      :for i :from 1
-      :do
-         (insert "~%      (destructuring-bind (input request) (~:R trace)" i)
-         (insert "~%        (declare (ignorable input))")
-         (if input
-             (insert "(is string= ~s input)" input)
-             (insert "(false input)")
-             ;; (insert "(declare (ignore input))")
-             )
-         (loop
-           :for part :in request
-           :for j :from 1
-           :do (insert-assert-request part j))
-         (insert ")"))
-    (insert "))")))
-
 (define-command insert-command-test ()
   "Insert a missing test!"
   (multiple-value-bind (node-iterator test-name)
       (test-at-point (current-buffer))
+    (declare (ignorable node-iterator))
     ;; (message "Current node: ~s" (when node-iterator (around (node-string node-iterator) 0 30)))
     ;; (message "Current test name: ~s" test-name)
     (when (and test-name
                (not (command-name-p test-name)))
       (message "Cancelling: the test's name doesn't correspond to any command's name.")
-      (return-from-command))
-    (if test-name
-        (update-command-test node-iterator test-name)
-        (generate-command-test node-iterator))))
+      (return-from-command))))
 
 
 ;; This is emacs lisps to add a binding to the command "insert-test"

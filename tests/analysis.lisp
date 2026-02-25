@@ -924,3 +924,23 @@ was expected to end at position ~s (exclusive), but got ~s instead"
               (2 token t)
               (3 parens t))
       (test-quotedp "`(a)")))
+
+
+;;; Self-evaluating forms
+
+(define-test+run number-node-p
+  (true (number-node-p (make-node-iterator "42")))
+  (false (number-node-p (make-node-iterator "4a")))
+  ;; demonstrates that `number-node-p' currently depends on
+  ;; *read-base*.
+  (let ((*read-base* 16))
+    (true (number-node-p (make-node-iterator "4a"))))
+  (false (number-node-p (make-node-iterator ":0")))
+  (false (number-node-p (make-node-iterator "::0")))
+  (false (number-node-p (make-node-iterator "cl:0")))
+  (false (number-node-p (make-node-iterator "'0")))
+  ;; TODO binary #b
+  ;; TODO octal #o
+  ;; TODO hex #x
+  ;; TODO complex #c
+  )

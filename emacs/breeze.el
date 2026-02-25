@@ -342,6 +342,7 @@ receiving the data it requested."
     (breeze-debug "Breeze: (#%s) request received: %s" id new-request)
     new-request))
 
+;; TODO 1. docstring 2. (interactive) 3. ask for confirmation?
 (defun breeze-deregister-command (id)
   (breeze-eval (format "(breeze.command:deregister %s)" id)))
 
@@ -350,10 +351,10 @@ receiving the data it requested."
 
 (defun breeze-history-symbol (history)
   "Convert the string HISTORY into a symbol, if not nil."
-  (when history
-    ;; TODO validate: must be a string that starts with "breeze-"
+  (when (and history (string-prefix-p "breeze-" history))
     (intern history)))
 
+;; TODO split this? perhaps using cl-defgeneric, cl-defmethod, etc
 (defun breeze-command-process-request (id request)
   "Dispatch REQUESTs from a command."
   (pcase (car request)
@@ -434,7 +435,6 @@ receiving the data it requested."
 
 (defun breeze-run-command (name &rest extra-args)
   "Runs a \"breeze command\". TODO Improve this docstring."
-  ;; (interactive)
   (breeze-debug "breeze-run-command")
   (catch 'breeze-run-command
     (let ((id (breeze-command-start name extra-args)))
@@ -519,6 +519,12 @@ broken (e.g. during development of breeze itself).")
   (when-let ((connection (breeze-listener-connected-p nil)))
     ;; check if it's disabled for the current connection
     (gethash connection breeze-disabled-p)))
+
+(defun breeze-enabled-p ()
+  "Check if breeze is enabled for the current connection."
+  (when-let ((connection (breeze-listener-connected-p nil)))
+    ;; check if it's NOT disabled for the current connection
+    (not (gethash connection breeze-disabled-p))))
 
 (defun breeze-disable ()
   "Disable breeze's features for the current connection.
@@ -753,11 +759,15 @@ listener."
      ;; a whooping 10 minutes!!!
      600
      "Timed out waiting for breeze to initialize"))
+  ;; TODO this could be an actual `message'
+  ;; TODO go through all lisp-mode buffer and make sure they are
+  ;; initialised corectly (see doctor.el I guess)
   (breeze-debug "Breeze initialized (might still be loading in the inferior lisp)."))
 
 
 ;;; Listener Hooks
 
+;; TODO this could be a defvar... if someone wants to customize this.
 (defun breeze-connected-hook-function ()
   "Hook to be called when a listener is connected."
   (breeze-ensure))
@@ -844,8 +854,7 @@ for debugging breeze itself."
   ;; this logs way too much (probably slowing down everything too):
   ;; (breeze-debug "flymake: %S" args)
   (if (and
-       (not (breeze-disabled-p))
-       (breeze-listener-connected-p)
+       (breeze-enabled-p)
        ;; TODO breeze-ready-p
        )
       (let ((buffer (current-buffer)))
@@ -998,9 +1007,12 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 (defun breeze-minor-mode-enable-flymake-mode ()
   "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
   (interactive)
-  ;; TODO actually enable flymake
   (add-hook 'breeze-minor-mode-hook 'flymake-mode)
-  (add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend))
+  (add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend)
+  ;; actually enable flymake if breeze-minor-mode is already enabled.
+  (when breeze-minor-mode
+    (breeze-enable-flymake-backend)
+    (flymake-mode)))
 
 (defun breeze-minor-mode-disable-flymake-mode ()
   "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
@@ -1011,17 +1023,19 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
   (remove-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend)
   (breeze-disable-flymake-backend))
 
+;; TODO This should be move to "breeze-autoloads.el"... otherwise it's
+;; somewhat useless...
 (defun breeze-enable-minor-mode-hook ()
   "Configure lisp-mode-hook to automatically enable
 breeze-minor-mode in lisp-mode."
   (interactive)
-  (add-hook 'lisp-mode-hook #'breeze-minor-mode))
+  (add-hook 'lisp-mode-hook #'enable-breeze-minor-mode))
 
 (defun breeze-disable-minor-mode-hook ()
   "Remove breeze-minor-mode from lisp-mode-hook, to stop
 automatically enabling breeze-minor-mode in lisp-mode."
   (interactive)
-  (remove-hook 'lisp-mode-hook #'breeze-minor-mode))
+  (remove-hook 'lisp-mode-hook #'enable-breeze-minor-mode))
 
 ;; TODO use the hook "change-major-mode-hook" (or
 ;; "after-change-major-mode-hook"??) to disable/enable

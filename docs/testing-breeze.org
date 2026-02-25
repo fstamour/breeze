@@ -3,6 +3,19 @@
 :END:
 #+title: Testing Breeze
 
+* Summary of all the tests
+
+- common lisp unit tests
+  - ~make test~
+  - for each common lisp implementation:
+    - ~guix-shell-test-*~
+    - ~guix-container-test-*~
+- emacs lisp unit tests
+- emacs integration tests
+- publish the org-mode documents
+  - ~make public~
+- build the executable
+
 * How to run the tests
 
 #+begin_src lisp

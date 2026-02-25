@@ -13,7 +13,8 @@
   ;; Tree/Form predicate
   (:export #:with-match
            #:define-node-matcher
-           #:quotedp))
+           #:quotedp
+           #:number-node-p))
 
 (in-package #:breeze.analysis)
 
@@ -222,6 +223,39 @@ The designators can be strings, symbols or packages."
 
 (defun quotedp (node-iterator)
   (plusp (quotedness node-iterator)))
+
+
+;;; Self-evaluating forms
+
+(defun number-node-p (node-iterator)
+  (let ((node (value node-iterator)))
+    (cond
+      ((token-node-p node)
+       ;; if it's a token, then we assume it's a decimal number
+       (and (null (package-prefix node))
+            (null (package-marker node))
+            (numberp
+             (read-from-string (node-string node-iterator)))))
+      ;; TODO binary #b
+      ;; TODO octal #o
+      ;; TODO hex #x
+      ;; TODO complex #c
+      )))
+
+(defun self-evaluating-p (node-iterator)
+  (let* ((node (value node-iterator))
+         (type (node-type node))
+         (token-node-p (token-node-p node)))
+    #|
+ TODO:
+- numbers (includes binary, octal, hexa, #r)
+- string literals
+- character literals
+- keywords
+- symbols (depends on the environment)
+    |#
+    (or (and token-node-p
+             (or )))))
 
 
 

@@ -130,6 +130,9 @@ launch-emacs:
 		-- emacs
 
 # Run emacs unit tests in a guix container
+#
+# This target is probably faster than guix-container-test-emacs
+# because it doesn't build a ***docker*** container.
 .PHONY: test-emacs-unit
 test-emacs-unit:
 	guix shell \
@@ -141,10 +144,18 @@ test-emacs-unit:
 		-- breeze/scripts/test-emacs.sh
 
 # Run the emacs tests in a docker container
+# TODO this runs as root (unless docker is running root-less)
 .PHONY: guix-container-test-emacs
 guix-container-test-emacs: load-$(CONTAINER_PREFIX)-emacs
 	docker run --rm -v $$PWD:/breeze $(CONTAINER_PREFIX)-emacs \
 		/breeze/scripts/test-emacs.sh
+
+# Run org-publish in a docker container
+# TODO this runs as root (unless docker is running root-less)
+.PHONY: guix-container-publish-docs
+guix-container-publish-docs: load-$(CONTAINER_PREFIX)-emacs
+	docker run --rm -v $$PWD:/breeze $(CONTAINER_PREFIX)-emacs \
+		/breeze/scripts/publish-docs.sh
 
 ### Run the emacs integration (with sly or slime) tests
 
@@ -218,6 +229,9 @@ watch:
 
 ######################################################################
 ### Targets to help configure git remotes
+#
+# TODO would be nice if theses could add the "https" version of the
+# URLs, for other users than the dev (me).
 
 .PHONY:
 git-setup-remotes: git-add-codeberg git-add-gitlab git-add-github

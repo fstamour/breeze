@@ -124,3 +124,6 @@
 #++
 (if-let ((vc-root (indirect (find-version-control-root path))))
   (directory-name vc-root))
+
+
+;; TODO if the file doesn't exist, but one of the "t" "test" "tests" exits, only suggest that one

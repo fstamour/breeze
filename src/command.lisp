@@ -122,7 +122,7 @@ TODO maybe add `find-command-handler` which should just call
 (defmethod thread :around ((_ (eql nil))) nil)
 
 
-;;;; Channels
+;;; Channels
 
 (defmethod channel-in :around (command)
   "Helper method for easier debugging."

@@ -1,3 +1,11 @@
+#|
+; file: /home/fstamour/quicklisp/local-projects/breeze/src/buffer.lisp
+; in: DEFMETHOD CURRENT-PACKAGE* (BUFFER)
+;     (BREEZE.BUFFER:CURRENT-PACKAGE)
+;
+; caught STYLE-WARNING:
+;   The function CURRENT-PACKAGE is called with zero arguments, but wants at least one.
+|#
 
 (defpackage #:breeze.buffer
   (:documentation "Data structure to hold and manage lisp source code, its parse tree and

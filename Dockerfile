@@ -1,7 +1,7 @@
 ######################################################################
 ### Base layers, setup working directory and quicklisp
 # FROM docker.io/clfoundation/${LISP}:${LISP_VERSION} as base
-FROM alpine:3.18.4 AS base
+FROM alpine:3.23.3 AS base
 
 RUN mkdir /breeze
 WORKDIR /breeze
@@ -42,7 +42,7 @@ RUN sbcl --core dependencies.core \
 
 FROM base AS org-publish
 
-RUN apk add bash ca-certificates emacs
+RUN apk add bash ca-certificates emacs-nox
 
 COPY . .
 COPY --from=test /breeze/docs /breeze/docs
