@@ -3,7 +3,7 @@
 (defpackage #:breeze.test.main
   (:documentation "Entry point for all tests in breeze.")
   (:use #:cl)
-  (:export #:run-all-tests)
+  (:export #:run-tests)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -79,9 +79,9 @@
                        "The file \"src/~a\" doesn't have a correcsponding test file under \"tests/\"." file)))))
 
 
-(defun run-all-tests (&key exitp (report 'parachute:largescale))
-  "Run breeze's tests."
-  (let ((packages (breeze.xref:find-packages-by-prefix "breeze.test")))
+(defun run-tests (&key packages exitp (report 'parachute:largescale))
+  "Run tests for the given packages, defaulting to all breeze test packages."
+  (let ((packages (or packages (breeze.xref:find-packages-by-prefix "breeze.test"))))
     (format *trace-output*
             "~&About to run tests for the packages:~%~{  - ~A~%~}"
             packages)

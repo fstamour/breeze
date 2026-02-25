@@ -404,6 +404,7 @@ defun."
    ";;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Base: 10; Package: ~a -*-"
    "TODO"))
 
+;; TODO insert-rowsell-shebang
 ;; TODO insert-fancy-ecl-shebang
 (define-command insert-fancy-sbcl-shebang ()
   "Insert fancy sbcl shebang at the start of the buffer."

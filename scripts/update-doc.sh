@@ -13,9 +13,8 @@ cd "$(git rev-parse --show-toplevel)"
 
 mkdir -p public/
 
-# This runs _all_ the tests, some of which generate or update files in docs/.
-# TODO run only the relevant tests (currently in package #:breeze.test.documentation)
 sbcl --noinform --non-interactive \
-    --eval "(load \"scripts/run-tests.lisp\")"
+    --eval "(load \"scripts/run-tests.lisp\")" \
+    -- breeze.test.documentation
 
 cp docs/style.css public/

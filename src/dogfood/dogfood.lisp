@@ -41,13 +41,6 @@
        "define-test")
       (breeze.command:return-from-command))
 
-(defun generate-breeze-reference ()
-  (breeze.documentation::generate-documentation
-   ;; root
-   (breeze-relative-pathname "docs/")
-   ;; packages
-   (find-breeze-packages)))
-
 
 
 ;;; Oh yiisss! In this "page", I create a command that can generate

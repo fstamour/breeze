@@ -24,4 +24,12 @@
 #-quicklisp
 (asdf:load-system "breeze/test")
 
-(breeze.test.main:run-all-tests :exitp t)
+;; If package names are passed as arguments, run only those packages;
+;; otherwise run all tests.
+;; e.g. sbcl ... --eval "(load \"scripts/run-tests.lisp\")" -- breeze.test.documentation
+(breeze.test.main:run-tests
+ :packages (mapcar (lambda (name)
+                     (or (find-package (string-upcase name))
+                         (error "Package not found: ~s" name)))
+                   (rest (member "--" (uiop:command-line-arguments) :test #'string=)))
+ :exitp t)
