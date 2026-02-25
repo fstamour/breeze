@@ -10,4 +10,11 @@
                    (setq-local org-roam-db-location
                                (file-name-concat org-roam-directory "org-roam.db"))))
          (org-roam-capture-templates . (("d" "default" plain "%?" :target (file+head "${slug}.org" "#+title: ${title}
-") :unnarrowed t))))))
+") :unnarrowed t)))
+         (eval . (progn
+                   (add-to-list 'ispell-skip-region-alist '(":\\(PROPERTIES\\|LOGBOOK\\):" . ":END:"))
+                   (add-to-list 'ispell-skip-region-alist '("#\\+BEGIN_SRC" . "#\\+END_SRC")))))))
+
+;; TODO maybe set `ispell-local-dictionary', `ispell-dictionary' or
+;; `ispell-personal-dictionary' to have a custom dictionary (see also
+;; `ispell-hunspell-add-multi-dic')
