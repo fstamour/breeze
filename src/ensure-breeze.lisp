@@ -65,4 +65,5 @@ TODO _maybe_ add a variable *breeze-loaded-correctly-p*
                 (prog1
                     "Loaded using asdf:load-system"
                   (asdf:load-system '#:breeze))
+                (eval (read-from-string "(breeze:load-config-file)"))
                 (format t "~&Breeze loaded!~%")))))
