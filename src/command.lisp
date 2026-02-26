@@ -650,11 +650,20 @@ resulting string to the editor."
 
 (defun ask-y-or-n-p (prompt &rest format-arguments)
   "Ask the user a y/n question."
-  (loop :for answer = (read-string (format* prompt format-arguments))
-        :for valid-p = (member answer '("y" "n") :test #'string-equal)
-        :for i :below 3 ; guard against infinite loop
-        :while (not valid-p)
-        :finally (return (string-equal "y" answer))))
+  (loop
+    :with prefix = ""
+    :with valid-answers = '("y" "n" "yes" "no")
+    :for answer = (read-string
+                   (format nil "~a(~{~a~^, ~}) "
+                           (breeze.string:ensure-suffix
+                            " "
+                            (format nil "~a~@?" prefix prompt format-arguments))
+                           valid-answers))
+    :for valid-p = (member answer valid-answers :test #'string-equal)
+    :for i :below 3                     ; guard against infinite loop
+    :while (not valid-p)
+    :do (setf prefix (format nil "(invalid answer ~s) ~%" answer))
+    :finally (return (member answer '("y" "yes") :test #'string-equal))))
 
 (defun return-value-from-command (value)
   (send "return" value))
