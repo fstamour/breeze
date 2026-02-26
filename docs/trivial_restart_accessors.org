@@ -1,0 +1,11 @@
+:PROPERTIES:
+:ID:       f44786f2-53a1-471f-ad85-9934855c9513
+:END:
+#+title: trivial-restart-accessors
+#+filetags: :library:
+
+#+begin_quote
+Wrap implementation-dependent accessor for restarts in CL
+#+end_quote
+
+https://git.sr.ht/~yana/trivial-restart-accessors/

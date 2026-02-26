@@ -2,7 +2,7 @@
 :ID:       8e956afc-28f4-4fda-b58f-7c111b0d92b3
 :END:
 #+title: Eclector
-#+filetags: :reader:
+#+filetags: :library:reader:
 
 [[https://github.com/s-expressionists/Eclector][Eclector on github]]
 

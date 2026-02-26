@@ -1,0 +1,12 @@
+:PROPERTIES:
+:ID:       9577760e-31e6-4343-b1c5-bc79e178a0ac
+:END:
+#+title: Libraries
+
+#+begin_quote
+This page documents other common lisp libraries that might be of
+interest.
+#+end_quote
+
+- [[id:8e956afc-28f4-4fda-b58f-7c111b0d92b3][Eclector]]
+- [[id:f44786f2-53a1-471f-ad85-9934855c9513][trivial-restart-accessors]]
