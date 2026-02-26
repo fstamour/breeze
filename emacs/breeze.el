@@ -773,6 +773,7 @@ listener."
   "Hook to be called when a listener is connected."
   (breeze-ensure))
 
+;; TODO it would be nice if this was available before autoloading...
 (defun breeze-enable-connected-hook ()
   "Configure sly and slime to initialize breeze when they connect to Lisp."
   (interactive)

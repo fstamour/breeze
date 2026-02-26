@@ -3,7 +3,7 @@
 (in-package #:asdf-user)
 
 
-;;; breeze system
+;;; breeze systems
 
 (defsystem "breeze/asdf"
   :version "0"
@@ -12,7 +12,7 @@
   :licence "BSD 2-Clause License"
   :description "Utilities for asdf"
   :depends-on ("asdf"
-               ;; as of 2025-10-31 — only for "flatten"
+               ;; as of 2025-10-31 — alexandria is only used for "flatten"
                "alexandria"
                "uiop")
   :pathname "src/"
@@ -133,7 +133,9 @@
                  (:file "other-files")
                  (:file "quicklisp")
                  (:file "egraph-commands")
-                 (:file "invert"))))
+                 (:file "invert")))
+   (:file "breeze"
+          :depends-on ("configuration" "cmds")))
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
@@ -144,7 +146,7 @@
 ;;; breeze/cli system
 
 (asdf:defsystem "breeze/cli"
-  :description ""
+  :description "A command line interface for breeze."
   :version "0.0.1"
   :author "Francis St-Amour"
   :licence "BSD 2-Clause License"
@@ -162,6 +164,16 @@
   :build-operation "program-op"
   :build-pathname "../build/brz"
   :entry-point "breeze.cli:main")
+
+(asdf:defsystem #:breeze/cli/test
+  :description ""
+  :version "0.0.1"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause Licence"
+  :depends-on ()
+  :pathname "tests"
+  :components
+    ((:file "cli")))
 
 
 ;;; breeze/docs system
@@ -197,7 +209,7 @@
   ((:file "+parachute")))
 
 
-;;; Quickproject
+;;; breeze/quickproject system
 
 (defsystem "breeze/quickproject"
   :description "Integration with quickproject"
@@ -209,8 +221,10 @@
   :components
   ((:file "+quickproject")))
 
+;; TODO breeze/quickproject/test
+
 
-;;; breeze.dogfood systeam
+;;; breeze.dogfood system
 
 (asdf:defsystem "breeze/dogfood"
   :description "Breeze commands and utilities to help with breeze's development."
@@ -275,6 +289,3 @@
    (:file "workspace")
    (:file "xref" :depends-on ("dummy-package"))
    (:file "main")))
-
-
-;; TODO breeze/quickproject/test

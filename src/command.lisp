@@ -155,6 +155,7 @@ TODO maybe add `find-command-handler` which should just call
   ()
   (:documentation "Condition used to stop the current command."))
 
+;; TODO might be useful to add a "reason"
 (defun return-from-command ()
   "Signal a condition of type STOP to stop a command."
   (signal 'stop))
