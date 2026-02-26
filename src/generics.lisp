@@ -17,6 +17,9 @@ TODO
   (:use #:cl)
   ;; generic functions
   (:export
+   #:*file-system*
+   #:file-exists-p*
+   #:file-exists-p
    #:eqv
    #:name
    #:source
@@ -32,6 +35,20 @@ TODO
    #:with-lock))
 
 (in-package #:breeze.generics)
+
+(defvar *file-system* t
+  "The current filesystem. Defaults to T (the real filesystem).")
+
+(defgeneric file-exists-p (file-system pathname)
+  (:documentation "Like cl:probe-file, but dispatches on FILE-SYSTEM.
+The real filesystem is represented by T."))
+
+(defmethod file-exists-p* ((file-system (eql t)) pathname)
+  (probe-file pathname))
+
+(defun file-exists-p* (pathname)
+  "Like cl:probe-file, but dispatches on *file-system*."
+  (file-exists-p *file-system* pathname))
 
 (defgeneric source (x)
   (:documentation "Get the source (usually a string) of x."))
