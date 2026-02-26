@@ -1,0 +1,51 @@
+:PROPERTIES:
+:ID:       a2522c0a-fc97-4309-ad7d-ba0141dddae8
+:END:
+#+title: Lisp implementations
+
+#+begin_quote
+This page contains a survey of existing lisp implementations that
+breeze could be tested against.
+#+end_quote
+
+- abcl
+- allegro
+- ccl
+- clasp
+- clisp
+- cmucl
+- cormal
+- ecl
+- genera
+- jscl
+- lispworks
+- mcl
+- mezzano
+- mkcl
+- mocl
+- sbcl
+- scl
+- xcl
+
+* Lua Common Lisp
+:PROPERTIES:
+:ID:       c38ea260-9875-466e-9bc2-131c9c04cc55
+:END:
+
+#+begin_quote
+Lua Common Lisp is an implementation of Common Lisp targeting the Lua
+language. The goal of this project is to provide an implementation of
+Common Lisp that can be used wherever an unmodified Lua VM is running.
+#+end_quote
+
+- https://codeberg.org/gsou/LCL
+- not complete as of 2026-02-26
+
+* alisp
+:PROPERTIES:
+:ID:       031d2b51-e8fc-4ecb-9d9b-63f672c33923
+:END:
+
+- https://savannah.nongnu.org/projects/alisp/
+- still in development as of 2026-02-26
+- written in C89

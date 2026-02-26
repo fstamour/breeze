@@ -299,7 +299,7 @@ already has a prototype in emacs lisp
 A.k.a transpose-forms, but keep the cursor at the start of the form
 that we just moved.
 
-** Follow up on issues                                          :3rd_parties:
+** Follow up on issues                                          :3rd_party:
 :PROPERTIES:
 :ID:       167c7d99-183c-46ae-8374-fcb727486e36
 :END:

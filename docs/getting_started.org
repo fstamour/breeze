@@ -51,6 +51,16 @@ breeze.
 (setf eldoc-documentation-strategy 'eldoc-documentation-compose)
 #+end_src
 
+* TODO Configure breeze                                                 :doc:
+:PROPERTIES:
+:ID:       a03ee62c-b289-4d28-91f4-dcc5c6e8867b
+:END:
+
+- where is it?
+- what is configurable?
+- how to actually configure?
+- how to reload the configuations?
+
 * See also
 
 - [[id:279c4ea6-2004-4a7a-a2c9-905f27fae42c][Contributing]]

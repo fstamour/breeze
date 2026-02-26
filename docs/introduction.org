@@ -8,54 +8,49 @@
 :ID:       9b35d7aa-cb8a-433f-b0cb-ba1305740b21
 :END:
 
-This is a git repository that contains lots of common lisp code that I
-use to make developing with common lisp easier. It is a personal
-project that I work on from time to time, but that I use (and break)
-pretty much all the time.
+Breeze is a common lisp development tool implemented in common lisp,
+with the goal of being portable to different editors and common lisp
+implementation. Currently it is only integrated with Emacs.
+
+This is a personal project that I work on from time to time and use
+regularly.
 
 * Features
 
-- Emacs integration
-- Integration with quickproject
-- Context-aware, configurable snippets
-- Command for quick code capture (trying out code in a new file)
-- Implemented in common lisp to be able to port it to other editors in
-  the future
+- *On-the-fly linting* via =flymake=.
+  - *Automatic linter fixes* (=breeze-quickfix=)
+  - N.B. as of beginning of 2026, there are not many linter rules
+    implemented.
+- *Snippets*
+  - See =M-x breeze-insert-...=
+- *Context-aware commands*
+  - =breeze-quickinsert= (bound to =M-RET=): suggests applicable
+    snippets given the current context.
+  - =breeze-quickfix= fix one linter issues in the current top-level form.
+  - N.B. as of beginning of 2026, there are not that many context
+    "aware" commands
+- *Quick code capture* (=breeze-capture=)
+  - creates a new lisp file using a template (configurable) in a
+    folder (also configurable), ready for immediate editing.
+  - This was inspired by =org-capture=
+- *Project creation*
+  - =M-x breeze-quickproject=
+  - create a new project interactively, using =quickproject=
+  - configurable default values
+  - the system ="breeze/quickproject"= must be loaded separately.
+    - and you must run =M-x breeze-refresh-commands= afterwards
+- Implemented in Common Lisp to make porting to other editors possible
+  in the future.
 
-Currently, breeze's main interface is emacs; =breeze.el= adds a few
-commands and one minor-mode.
-
-#+begin_comment
-The one binding calls a command named ~breeze-quickfix~ (might rename
-in the future). This command suggests applicable actions given the
-current context (file name, file content, position in the file,
-etc.). For example, if the file ends with ".asd" it will suggest a
-command to insert a ~defsystem~ form. If breeze was already
-configured, it will pre-fill the ~:maintainer~, ~:author~ and
-~:licence~ fields. Another example is that if the file is empty, or
-contains only comments, it will suggest to insert a ~defpackage~ or
-~uiop:define-package~ form. It is also able to detect when you're
-trying to edit/evaluate forms that are in a package that doesn't
-exists (=did you forget to evaluate the ~defpackage~ form?=).
-
-The integration with quickproject is pretty simple and lets you
-quickly create new projects from the comfort of your editor. The
-integration consists of one command that asks you for some
-information, like the project name and licence. It takes some default
-values from breeze's configuration, but lets you change them. All
-this to ease the use of quickproject.
-
-Another simple command that helps me is ~breeze-capture~, it creates a
-new file in a pre-determined (must be configured) folder and fills it
-with some pre-configured content (template) and lets you code right
-away. This could've easily be done in emacs (that's how I prototyped
-the first version), but doing this in common lisp makes it easy to
-port it to other editors (or just the repl) in the future.
-
-I must stress that this whole project is in constant flux, and until I
-add more and more tests, stuff might break any time.
-#+end_comment
+Currently, breeze's main interface is Emacs; =breeze.el= adds a
+minor-mode (=breeze-minor-mode=) and several commands.
 
 * Next
 
 [[id:306350c9-0fb5-478b-958b-b35cae726280][Getting Started]]
+
+* See also
+
+- [[id:6bd2b06d-0a3c-4d32-9a1e-4f6f36e1003d][Emacs integration]] - contains a table of all the commands available
+- [[id:11dd9906-75ff-4abc-82a5-b7dda0936f06][Roadmap]]
+- [[id:bb5c6ad4-0f89-48aa-9295-13e5e248a897][Glossary]]

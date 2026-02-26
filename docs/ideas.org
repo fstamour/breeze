@@ -2,16 +2,24 @@
 :ID:       e2ff6189-1fd8-4d3c-9b7d-3d3ddbf2b0aa
 :END:
 #+title: Ideas
+#+filetags: :idea:
 
 * Related notes
 
+- [[id:f50fbc39-3148-4ecb-8e46-719ef3e05fd8][Case with correction suggestion]]
+- [[id:f3e3952d-e6f7-4bb9-a85c-662ae82874eb][Change Impact Analysis]]
+- [[id:373c4a22-b450-40e1-8d00-1319e0277b68][File watching]]
+- [[id:b139c21c-3a35-4b69-acd5-00b9d71090ce][Helping with setting up slime for remote sessions]]
+- [[id:9dbbf418-de72-4d31-8347-19e3dc7d8df1][Improve CL docstring's at runtime]]
+- [[id:e55cab7e-beb6-4cb4-be2e-d0d78a8f568a][Linting asd files]]
+- [[id:d21da464-7b9e-47d2-bc2a-c9ab7a927218][Listener features]]
+- [[id:018d969c-f075-406a-95a0-d4bac06df069][Missing Documentation]]
 - [[id:69ab6084-2e41-4893-82b8-85ac04b1b1ca][Programming with holes]]
 - [[id:9cb1f9d0-572f-4b8c-bbc8-4c1bb9a54eb4][Reader macros]]
-- [[id:b139c21c-3a35-4b69-acd5-00b9d71090ce][Helping with setting up slime for remote sessions]]
-- [[id:a9a98f8e-b097-4e8c-a2d1-92d8b8a26707][Support for tests]]
-- [[id:1bfee55a-11ef-47d6-924b-2ce1a9b39f3b][Support for bug reports]]
-- [[id:9dbbf418-de72-4d31-8347-19e3dc7d8df1][Improve CL docstring's at runtime]]
 - [[id:54e6cd55-803b-4e15-82bc-a332130d020e][Sly/Slime integration]]
+- [[id:1bfee55a-11ef-47d6-924b-2ce1a9b39f3b][Support for bug reports]]
+- [[id:a9a98f8e-b097-4e8c-a2d1-92d8b8a26707][Support for tests]]
+- [[id:8a919b83-89f4-40b8-aeb4-2638c308cddf][Syntax highlighting]]
 
 * Random ideas
 ** A command to switch between a handler bind/case

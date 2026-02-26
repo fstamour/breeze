@@ -28,8 +28,9 @@ NOT IMPLEMENTED, this is a design document (for the moment)
 
 ** TODO vlime
 
-** TODO slimv
+** slimv
 
+See [[id:35b3031a-bbd2-4f32-ba1f-7ec7fc268155][slimv]]
 
 * Related notes
 

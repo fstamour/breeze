@@ -2,10 +2,39 @@
 :ID:       f44786f2-53a1-471f-ad85-9934855c9513
 :END:
 #+title: trivial-restart-accessors
-#+filetags: :library:
+#+filetags: :3rd_party:
+
+#+begin_quote
+This page is about a library that has nothing to do with breeze. It
+_might_ be useful for later development.
+#+end_quote
+
+https://git.sr.ht/~yana/trivial-restart-accessors/
 
 #+begin_quote
 Wrap implementation-dependent accessor for restarts in CL
 #+end_quote
 
-https://git.sr.ht/~yana/trivial-restart-accessors/
+By "restart accessors", they mean functions that take a restart and
+returns:
+- the restart's report function
+- the restart's continuation function
+  - the function that is called when the restart is invoked
+- the restart's interactive continuation
+  - the function that is called when invoking the restart
+    interactively
+- the restart's test function
+  - this function is called to determine if a restart is applicable
+    (given a condition)
+
+report, continuation, interactive, test
+
+* TODO add =trivial-restart-accessors= to https://portability.cl
+:PROPERTIES:
+:ID:       84800c42-134c-4ba1-a692-56464f578ada
+:END:
+
+* TODO send a patch to =trivial-restart-accessors= to improve the documentation :easy:3rd_party:
+:PROPERTIES:
+:ID:       e3ed7c3c-91be-4679-9acb-f0b27dd58ebc
+:END:

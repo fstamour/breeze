@@ -3,6 +3,8 @@
 :END:
 #+title: Change Impact Analysis
 
+a.k.a. What changes and what's its impact?
+
 I wanted to make breeze able to detect changes that have impacts that
 are hard for beginners to keep in mind (and easy to forget even for
 experienced users).

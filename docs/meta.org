@@ -2,11 +2,12 @@
 :ID:       4836d845-7be2-4a7d-bbc5-6d7e577292c2
 :END:
 #+title: Documentation validation
+#+filetags: :doc:
 #+property: header-args :exports both
 
 #+begin_quote
-This file contains code to find any issues in org-mode documentation
-files.
+This file contains code to find some issues in the org-mode
+documentation.
 #+end_quote
 
 * Some utilities
@@ -60,7 +61,7 @@ files.
 #+NAME: tags
 | Tag name     | Tag description                                                                               |
 |--------------+-----------------------------------------------------------------------------------------------|
-| 3rd​_parties | Relating to a third-party, e.g. an external library.                                          |
+| 3rd​_party   | Relating to a third-party, e.g. an external library.                                          |
 | obsolete     | This task is now obsolete.                                                                    |
 | doc          | Relating to the documentation.                                                                |
 | ux           | This task is about improving the user experience                                              |
@@ -79,8 +80,59 @@ files.
 | noexport     | org-mode internal tag                                                                         |
 | tool         | Relating to existing tool for common lisp                                                     |
 | emacs        | Relating to the emacs editor                                                                  |
+| idea         | Just an idea - don't expect anything on the quality of the idea :D                            |
+
+** TODO Move the "Tag descriptions" into its own file
+:PROPERTIES:
+:ID:       4a834cbb-0c75-4b6c-ada4-b82896b2b095
+:END:
+
+That should make it easier to find and use.
+
+** TODO Make sure the table is sorted by tag name
+:PROPERTIES:
+:ID:       bfd598c9-0499-4313-9235-6cbc2ce79f65
+:END:
+
+** TODO Caveats: org-roam only index nodes with ids
+:PROPERTIES:
+:ID:       977a3d6f-3354-4ca8-9644-57395ba8d735
+:END:
+
+Most code blocks in this file uses =org-roam= to quickly gather
+metadata about the =org-mode= nodes (for example, getting all the
+tags). But there's one big problem with this: =org-roam= only keeps
+metadata on nodes that have an ~:ID:~ property...
+
+Reviewing the documentation can help, to make sure all appropriate
+nodes have an id.
+
+One idea to help this:
+- list the org-mode files
+- map over each file (~find-file~)
+  - map over each node
+    - if a node has a "TODO", it should have an ~:ID:~ property
+      - just call ~org-id-get-create~, it's idempotent, no worry
+  - at the beginning of the buffer (~(goto-char 0)~), call
+    ~org-id-get-create~ to make sure the whole file has an ~:ID:~
+  - make sure the file has a title
+- output the list of new IDs, along with the title of the node, to
+  make it easier to review
+
+** TODO Make sure all files and nodes have a title
+:PROPERTIES:
+:ID:       d55ab54b-82b7-4b95-b45d-4e807357823b
+:END:
+
+** TODO Make sure all files and nodes have a unique title
+:PROPERTIES:
+:ID:       fdcf2b7e-2d17-4023-bd40-2fbd24624cf0
+:END:
 
 ** Make sure that all tags in the documentation are present in the table
+:PROPERTIES:
+:ID:       225eed13-c6c4-4944-99b6-420438564f12
+:END:
 
 #+begin_src emacs-lisp :var tags=tags :results value drawer
 ;; Find tags that have no descriptions
@@ -109,7 +161,18 @@ files.
 All good, all tags were found in the table.
 :end:
 
+** TODO Make sure that all tags in the table are used
+:PROPERTIES:
+:ID:       16c3d064-72f1-487b-89b6-57e2682f17c5
+:END:
+
+If a tag is not used anywhere in the documentation, there's no point
+in keeping it here and documenting it...
+
 ** Make sure that all tags in the table have a description.
+:PROPERTIES:
+:ID:       c534c0d7-7172-4829-9584-3b9fb7cb4962
+:END:
 
 #+begin_src emacs-lisp :var tags=tags :results value drawer
 ;; Find tags that have no descriptions
@@ -133,12 +196,15 @@ All good, all tags were found in the table.
 
 #+RESULTS:
 :results:
-The folling tags don't have any descriptions:
- - =:emacs:=
+All good, no tags without description found.
 :end:
 
-
 ** Make sure all tasks have some tags
+:PROPERTIES:
+:ID:       a838c5e3-367e-443e-8b37-594aadb2767b
+:END:
+
+That would theritically make it easier to prioritize...
 
 #+begin_src emacs-lisp :results verbatim list replace
 (defun breeze-tasks-find-untagged-nodes ()
@@ -166,7 +232,6 @@ The folling tags don't have any descriptions:
 
 #+RESULTS:
 - All tasks have at least one tag.
-
 
 * Make sure that all org file have a front-matter
 :PROPERTIES:
@@ -287,8 +352,10 @@ Example of what I mean by "front-matter":
 ;;; that contain text that match the nodes title/alias but are not
 ;;; linked)
 
-(defvar *backlinks* (compute-backlinks-per-file)
+(defvar *backlinks* nil
   "Hash table file -> list of files")
+
+(setf *backlinks* (compute-backlinks-per-file))
 
 ;; invariant: backlinks should contains every file except "meta.org"
 (string-set-difference
@@ -299,14 +366,20 @@ Example of what I mean by "front-matter":
 ;; ACTUAL:
 ;; => ("sitemap.org" "meta.org" "theindex.org")
 
-(defvar *all* (hash-table-keys *backlinks*)
+(defvar *all* nil
   "List of all files except \"meta.org\".")
 
-(defvar *links* (backlinks->links *backlinks*)
+(setf *all* (hash-table-keys *backlinks*))
+
+(defvar *links* nil
   "Hash table: file -> list of files")
 
-(defvar *orphans* (orphan-files *backlinks*)
+(setf *links* (backlinks->links *backlinks*))
+
+(defvar *orphans* nil
   "List of files without any backlinks (no other files point to them).")
+
+(setf *orphans* (orphan-files *backlinks*))
 
 (cl-defun compute-reachability (links &optional (starting-file "index.org"))
   "Compute the set of files reachable from STARTING-FILE.
@@ -325,21 +398,27 @@ STARTING-FILE) to it's distance from STARTING-FILE."
    while files
    finally (return file->depth)))
 
-(defvar *reachable*
-  (hash-table-keys
-   (compute-reachability *links*))
+(defvar *reachable* nil
   "List of files reachable from \"index.org\".")
 
-(defvar *unreachable*
-  (string-set-difference *all* *reachable*)
+(setf *reachable* (hash-table-keys
+                   (compute-reachability *links*)))
+
+(defvar *unreachable* nil
   "List of files that are not reachable from \"index.org\".")
 
-(defvar *cliques*
-  (string-set-difference *unreachable* *orphans*)
+(setf *unreachable* (string-set-difference *all* *reachable*))
+
+(defvar *cliques* nil
   "List of files reachable only via links from file that are unrechable from \"index.org\".")
+
+(setf *cliques* (string-set-difference *unreachable* *orphans*))
 #+end_src
 
 *** Unreachable files
+:PROPERTIES:
+:ID:       b4639fda-fc35-487d-921f-fbd948711bab
+:END:
 
 List files that are not reachable from the index
 
@@ -348,71 +427,33 @@ List files that are not reachable from the index
 #+end_src
 
 #+RESULTS:
-- [[file:pagefind.org][pagefind.org]]
-- [[file:case_with_correction_suggestion.org][case_with_correction_suggestion.org]]
-- [[file:change_impact_analysis.org][change_impact_analysis.org]]
-- [[file:linting_asd_files.org][linting_asd_files.org]]
-- [[file:parse_files_with_conflicts.org][parse_files_with_conflicts.org]]
-- [[file:formatting_code.org][formatting_code.org]]
-- [[file:vend.org][vend.org]]
-- [[file:listener_features.org][listener_features.org]]
-- [[file:breeze_s_eval_v_s_sly_s_and_slime_s_eval.org][breeze_s_eval_v_s_sly_s_and_slime_s_eval.org]]
-- [[file:fast_incremental_peg_parsing.org][fast_incremental_peg_parsing.org]]
-- [[file:rust_analyzer_blog.org][rust_analyzer_blog.org]]
-- [[file:error_recovery.org][error_recovery.org]]
-- [[file:syntax_highlighting.org][syntax_highlighting.org]]
-- [[file:examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org][examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org]]
-- [[file:aartaka.org][aartaka.org]]
-- [[file:file_watching.org][file_watching.org]]
-- [[file:slimv.org][slimv.org]]
-- [[file:parsing_common_lisp.org][parsing_common_lisp.org]]
-- [[file:eclector.org][eclector.org]]
-- [[file:task-generate_web_pages_from_org_files_in_docs.org][task-generate_web_pages_from_org_files_in_docs.org]]
-- [[file:tasks.org][tasks.org]]
-- [[file:feedback_from_users.org][feedback_from_users.org]]
-- [[file:missing_documentation.org][missing_documentation.org]]
 
 *** Orphan files - files without any links to them
+:PROPERTIES:
+:ID:       e9524c27-d26a-44c2-87cb-ff8918e8416d
+:END:
 
 #+begin_src emacs-lisp :results verbatim list replace
 (link-to-file *orphans*)
 #+end_src
 
 #+RESULTS:
-- [[file:missing_documentation.org][missing_documentation.org]]
-- [[file:feedback_from_users.org][feedback_from_users.org]]
-- [[file:tasks.org][tasks.org]]
-- [[file:task-generate_web_pages_from_org_files_in_docs.org][task-generate_web_pages_from_org_files_in_docs.org]]
-- [[file:eclector.org][eclector.org]]
-- [[file:parsing_common_lisp.org][parsing_common_lisp.org]]
-- [[file:slimv.org][slimv.org]]
-- [[file:file_watching.org][file_watching.org]]
-- [[file:aartaka.org][aartaka.org]]
-- [[file:examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org][examples_of_code_that_is_not_handled_correctly_by_slime_and_sly.org]]
-- [[file:syntax_highlighting.org][syntax_highlighting.org]]
-- [[file:index.org][index.org]]
-- [[file:error_recovery.org][error_recovery.org]]
-- [[file:rust_analyzer_blog.org][rust_analyzer_blog.org]]
-- [[file:fast_incremental_peg_parsing.org][fast_incremental_peg_parsing.org]]
-- [[file:listener_features.org][listener_features.org]]
-- [[file:vend.org][vend.org]]
-- [[file:formatting_code.org][formatting_code.org]]
-- [[file:parse_files_with_conflicts.org][parse_files_with_conflicts.org]]
-- [[file:linting_asd_files.org][linting_asd_files.org]]
-- [[file:change_impact_analysis.org][change_impact_analysis.org]]
-- [[file:case_with_correction_suggestion.org][case_with_correction_suggestion.org]]
-- [[file:pagefind.org][pagefind.org]]
 
 *** List of files reachable only via links to unrechable files
+:PROPERTIES:
+:ID:       aaed3d89-a405-4c9b-ba48-d3e4d882ae73
+:END:
 
 #+begin_src emacs-lisp :results verbatim list replace
 (link-to-file *cliques*)
 #+end_src
 
 #+RESULTS:
-- [[file:breeze_s_eval_v_s_sly_s_and_slime_s_eval.org][breeze_s_eval_v_s_sly_s_and_slime_s_eval.org]]
 
 *** TODO Graph of links between the files
+:PROPERTIES:
+:ID:       6a140ef1-005a-411c-bfb5-4fc61696ea4d
+:END:
 
 #+begin_src emacs-lisp
 ;; generate a graph (docs/pages.dot) of all the links between the
@@ -441,6 +482,17 @@ List files that are not reachable from the index
   (insert "\n}")
   (write-file "pages.dot"))
 #+end_src
+
+** TODO Is it possible to fail the CI when running the check in =meta.org=
+:PROPERTIES:
+:ID:       a6dc287e-0458-4a81-ae27-bf5da5a2f1fb
+:END:
+
+I'm sure it is, but what would be the best way?
+
+- Maybe just throw some error?
+- Maybe accumulate the issue, print them nicely and _then_ throw an error?
+- Maybe convert those "tests" into actual ert tests?
 
 * Local variables :noexport:
 # local variables:

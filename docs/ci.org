@@ -1,0 +1,100 @@
+:PROPERTIES:
+:ID:       de2e109d-6796-46fb-9b56-95a9092dfa13
+:ROAM_ALIASES: CI/CD CD CI
+:END:
+#+title: Continuous Integration
+
+* Overview of breeze's CI/CD
+:PROPERTIES:
+:ID:       ec532523-5261-4ce2-a1b4-f8f524970d6b
+:END:
+
+as of 2026-02-26
+
+GitLab: the main CI pipeline
+  - runs breeze's unit tests
+  - runs breeze's unit and integration with emacs
+  - generates the documentation (which is hosted using [[https://docs.gitlab.com/user/project/pages/][GitLab Pages]])
+
+GitHub:
+  - historically, it's the first CI pipeline that was added for breeze
+  - run breeze's unit test
+    - on linux, mac, and windows
+
+* Details about GitLab's CI
+:PROPERTIES:
+:ID:       71187ec6-a276-424a-80a5-1de85965d830
+:END:
+
+The pipeline are defined in =.gitlab-ci.yml=, that file refers to
+other yaml file under the directory =.gitlab/=.
+
+- GitLab provides a container registry.
+- The container used in the CI were built and uploaded manually, locally.
+  - using ~guix~ to build the images
+  - using ~skopeo~ to upload the images easily
+
+* TODO guix: pin the channel's commit for reproducible builds           :ops:
+:PROPERTIES:
+:ID:       965b000f-35eb-4f24-887c-7d7589813fa6
+:END:
+
+* TODO guix: test multiple versions of each implementations             :ops:
+:PROPERTIES:
+:ID:       b4b2f9e4-1345-4cc2-b8d5-0aa6c64d8344
+:END:
+
+That might be overkill, but I like software that works for a long
+time... Which means making sure that breeze works on old versions of
+sbcl, emacs, etc.
+
+Guix seems like the "perfect" tool for this, but first, I would like
+to investigate how hard it would be. I think it requires using
+"inferiors", but I'm just guessing...
+
+* TODO move CI to codeberg?                                             :ops:
+:PROPERTIES:
+:ID:       1aa88fd3-c5f6-48cf-9150-4bb9e28714ef
+:END:
+
+- Must be requested manually (they don't provide CI to anyone, to
+  avoid using too much resources)
+- It uses [[https://woodpecker-ci.org/][Woodpecker CI]]
+
+Why? There are many reasons... One example that is not talked about
+that much is that they are very annoying to use (e.g. you get
+advertisements at every corners).
+
+** TODO codeberg: request access to CI                                  :ops:
+:PROPERTIES:
+:ID:       950a04ed-d1c6-479f-bb50-5613b63174ae
+:END:
+
+There's a form to fill, see: https://docs.codeberg.org/ci/.
+
+** TODO codeberg: check if it's possible to run macOS and windows (doubt) :ops:
+:PROPERTIES:
+:ID:       cf5c8563-9b13-465d-a12f-26d4d7b9d0fd
+:END:
+
+I seriously doubt codeberg or even woodpecker supports running jobs on
+windows or macos...
+
+Which means that if I really want to keep those pipelines, I would
+have to either keep GitHub, or go with something else like azure
+devops (azure pipelines).
+
+Note: I never had the "macos" pipeline fails when the linux pipeline
+wasn't also broken. On windows, the only issues I've had were because
+of differences in how newlines were handled (p.s. those a very
+annoying).
+
+** TODO codeberg: where to host the pages if I get rid of GitLab?   :doc:ops:
+:PROPERTIES:
+:ID:       5f735fa0-8ff9-4610-8dcb-e9fbaccb1b6d
+:END:
+
+If I decide to completely switch to codeberg, I'm not sure I would
+want to host the documentation on "codeberg pages". It is still in
+heavy development (2026-02-26) and I remember seeing warning about
+the availability being "best-effort" only.

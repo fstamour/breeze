@@ -18,6 +18,14 @@ related to version-state algebras (VSAs).
 I have a proof of concept implementation in common lisp here:
 https://gitlab.com/fstamour/catchall/-/tree/master/egraph
 
+*  Why include e-graphs in breeze?
+:PROPERTIES:
+:ID:       738d1d1b-ef4b-4313-925e-e6e63a4f9fb7
+:END:
+
+Because I want to provide an interactive refactoring tool that can
+search for equivalent implementation of a piece of code.
+
 * References
 
 - https://egraphs-good.github.io/

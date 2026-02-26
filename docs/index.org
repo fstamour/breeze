@@ -9,20 +9,55 @@
 - [[id:11dd9906-75ff-4abc-82a5-b7dda0936f06][Roadmap]]
 - [[id:306350c9-0fb5-478b-958b-b35cae726280][Getting Started]]
 - [[id:5d211d9a-0749-4adb-abe0-e66133d09b5b][Editor integrations]]
-- [[id:14d42b3a-0a2f-4a3b-8937-7175e621c6ec][Design Decisions]]
 - [[id:279c4ea6-2004-4a7a-a2c9-905f27fae42c][Contributing]]
-- [[id:e712f3d1-0734-43f0-886a-3008ca5f722d][Testing Breeze]]
 - [[id:bb5c6ad4-0f89-48aa-9295-13e5e248a897][Glossary]]
-- [[file:reference.html][Reference]]
-- [[file:listing-breeze.html][Source listings]]
 
 * Internal notes
+:PROPERTIES:
+:ID:       e8953676-3641-4df3-a864-e694b166113d
+:END:
 
-- [[id:9577760e-31e6-4343-b1c5-bc79e178a0ac][Libraries]]
-- [[id:598a884c-56d0-4378-b5f5-acb2671d5112][Inbox]]
+- [[id:598a884c-56d0-4378-b5f5-acb2671d5112][Inbox]] - notes that are not "triaged"
+- [[file:reference.html][Reference]] - generated "API" documentation
+- [[file:listing-breeze.html][Source listings]] - the source code renderd as html
+  - is a better format than GitHub, GitLab or Codeberg
+  - it's easier to navigate
+  - much more readable on mobile
+  - it's static
+  - dynamically highlights matching parenthesis
+
+** Project Management
+
+- [[id:a56d3ee1-b97c-4201-b210-c5d20e602663][Tasks]]
+
+*** Ideation
+
 - [[id:e2ff6189-1fd8-4d3c-9b7d-3d3ddbf2b0aa][Ideas]]
-- [[id:b9f7e1f4-dc86-46e0-860b-f845f180110e][Breeze on the internets]]
-- [[id:31236780-159e-4a58-9019-37f57f5b4997][FAQ from newbies about common lisp]]
-- [[id:62112623-6002-4cb9-87de-cb530ce0a36e][Silimar projects]]
 - [[id:13ea055e-4715-4583-811b-bff78ca300ee][Candidate Features]]
+- [[id:31236780-159e-4a58-9019-37f57f5b4997][FAQ from newbies about common lisp]]
+
+** Hacking
+
+- [[id:279c4ea6-2004-4a7a-a2c9-905f27fae42c][Contributing]]
+- [[id:14d42b3a-0a2f-4a3b-8937-7175e621c6ec][Design Decisions]]
+- [[id:e712f3d1-0734-43f0-886a-3008ca5f722d][Testing Breeze]]
+  - [[id:de2e109d-6796-46fb-9b56-95a9092dfa13][Continuous Integration]]
+- [[id:30df21b5-0f78-478d-ae9e-b462b1c00f07][Spell checking]]
+
+** Implementation
+
+- [[id:a74360f6-4947-4864-82e8-602e7705a93c][About breeze's parser]]
+  - [[id:08754391-271f-4e05-b307-3c912f5f4c0a][Why not use eclector?]]
 - [[id:32155195-1bc4-4f2d-8f6a-12fb0bd68ecc][E-graphs]]
+  - [[id:738d1d1b-ef4b-4313-925e-e6e63a4f9fb7][Why include e-graphs in breeze?]]
+
+** Reflections
+
+- [[id:b9f7e1f4-dc86-46e0-860b-f845f180110e][Breeze on the internets]]
+- [[id:97827397-342a-4789-bb15-01768f61677e][Feedback from users]]
+
+** Third parties
+
+- [[id:62112623-6002-4cb9-87de-cb530ce0a36e][Silimar and related projects]]
+- [[id:9577760e-31e6-4343-b1c5-bc79e178a0ac][Libraries]]
+- [[id:a2522c0a-fc97-4309-ad7d-ba0141dddae8][Lisp implementations]]

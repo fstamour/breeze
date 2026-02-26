@@ -1,7 +1,7 @@
 :PROPERTIES:
 :ID:       97827397-342a-4789-bb15-01768f61677e
 :END:
-#+title: Feedback from users (and non-users)
+#+title: Feedback from users
 
 * Gavinok
 :PROPERTIES:

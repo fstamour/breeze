@@ -2,6 +2,8 @@
 :ID:       373c4a22-b450-40e1-8d00-1319e0277b68
 :END:
 #+title: File watching
+#+filetags: :idea:
+
 * Portable file watching
 
 https://www.reddit.com/r/lisp/comments/1iatcd/fswatcher_watches_filesystem_changes/

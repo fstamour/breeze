@@ -3,6 +3,11 @@
 :END:
 #+title: Testing Breeze
 
+#+begin_quote
+This page is about breeze's development. It is not about using breeze
+for testing.
+#+end_quote
+
 * Summary of all the tests
 
 - common lisp unit tests
@@ -34,3 +39,52 @@ OR
 #+begin_src shell
 make test
 #+end_src
+
+* Manual tests
+
+There are tons of automated tests, but unfortunately, not everything
+can be automated easily or not without a lot of time. So here are
+some manual checks that can complement the automated tests.
+
+** Testing the "initialisation" of emacs in emacs
+
+- in emacs
+  - don't start slime or sly
+  - open a lisp file
+  - see if breeze-minor-mode is enabled (~M-; breeze-minor-mode~)
+  - if it is, there should be a header-line (line a mode-line, but at
+    the top, and per-buffer)
+  - if you run a "breeze command", like "quickfix", it should ask you
+    to start a listener
+  - start slime
+  - check that the header-line is updated (it should show the current connection)
+  - try a "breeze command" again
+  - open another lisp file and check the header-line and run a command
+    - I've had issues where the _first_ lisp file opened was not setup
+      correctly, so opening 2 files helps finding these kind of
+      issues.
+
+** Reviewing the documentation
+
+Open =docs/meta.org= and run the code blocks!
+
+** TODO Testing the makefile targets meants for interactive use
+
+In the shell (you must have guix installed), run
+
+** Review workbenches
+
+There are two files =workbench.lisp= and =workbench.el= that contains
+code that is only meaningful when run manually and piecewise.
+
+Once in a while, review those files to make sure
+1. they are not too messy
+2. the content is not obsolete
+3. the content is not duplicated (e.g. ~(trace x)~ in multiple places)
+4. they are somewhat readable
+5. they might contains TODOs, it might make sense to move those
+   somewhere more visible
+
+* See also
+
+- [[id:a2522c0a-fc97-4309-ad7d-ba0141dddae8][Lisp implementations]] for a list of implementations to tests

@@ -1,0 +1,15 @@
+:PROPERTIES:
+:ID:       a74360f6-4947-4864-82e8-602e7705a93c
+:END:
+#+title: About breeze's parser
+
+- [[id:8e956afc-28f4-4fda-b58f-7c111b0d92b3][Eclector]]
+  - [[id:979f0424-ad37-42ee-a1e6-99135fedc6da][Differences between eclector and breeze's parser]]
+  - [[id:08754391-271f-4e05-b307-3c912f5f4c0a][Why not use eclector?]]
+- [[id:9eee6140-644d-4615-ae88-be84243f63af][Parsing Error recovery]]
+- [[id:da4c20d5-9947-434c-909e-3e766357244f][Parse files with conflicts]]
+- [[id:9cb1f9d0-572f-4b8c-bbc8-4c1bb9a54eb4][Reader macros]]
+
+* See also
+
+- [[id:a1b34261-e041-412a-a291-c26fd0e34668][Fast Incremental PEG Parsing]]

@@ -2,8 +2,11 @@
 :ID:       da4c20d5-9947-434c-909e-3e766357244f
 :END:
 #+title: Parse files with conflicts
+#+filetags: :idea:
 
 It would be nice if the parser was able to detect git's conflict
 markers.
 
 It would be ever nicer if breeze could help fixing those conflicts.
+
+In 2025, I actually added _some_ support for that.

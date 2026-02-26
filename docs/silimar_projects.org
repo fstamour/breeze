@@ -1,9 +1,66 @@
 :PROPERTIES:
 :ID:       62112623-6002-4cb9-87de-cb530ce0a36e
 :END:
-#+title: Silimar projects
+#+title: Silimar and related projects
+#+filetags: :3rd_party:
+
+* Common lisp
+
+- [[id:d306a11f-4189-4e24-9a26-0b2cb813e54e][fosskers/vend]] - alternative to quicklisp
+
+** By AArtaka (a.k.a Artyom Bologov)
+:PROPERTIES:
+:ID:       8bb26012-5649-4aa5-a594-dd3ec5b0dd23
+:END:
+
+https://github.com/aartaka/graven-image/tree/master
+
+[[https://github.com/aartaka/lisp-config/blob/601ec9dae39c4741ee1a2a3a2fd3e520643deeca/ed.lisp][https://github.com/aartaka/lisp-config/blob/master/ed.lisp]]
+
+
+* Emacs lisp
+
+- [[id:1a752dd4-50ed-4970-958a-87d2f289d792][Apheleia]] - formatter that doens't move the point
+
+* Rust
+
+** Rust analyzer
+:PROPERTIES:
+:ID:       a4424e2d-ed24-42ec-8b58-945227e5167c
+:END:
+
+- https://rust-analyzer.github.io/
+- https://github.com/rust-lang/rust-analyzer
+- [[id:9fdf7c6a-793f-4ea3-b538-0742c7582aa3][Rust analyzer blog]]
 
 * Python
 
 - [[id:5eb1faac-b7b5-4c99-abe9-b91e77bea4ae][Jedi]]
 - [[id:5265bce5-c6d0-4cda-8d3e-699ceafcab42][Elpy]]
+
+* https://portability.cl
+:PROPERTIES:
+:ID:       bd441458-7a16-4f68-bdc2-b97688fbc628
+:END:
+
+#+begin_quote
+Index page for Common Lisp portability libraries and their current
+support status.
+#+end_quote
+
+It's "related" in the sense that it arguably make CL dev easier.
+
+** TODO send a patch to https://portability.cl to include a link to the forge :easy:3rd_party:
+:PROPERTIES:
+:ID:       9065d7c7-ab2d-4144-a7e4-2a8d76f5d48f
+:END:
+
+It's not obvious where to submit change just from looking at
+https://portability.cl/.
+
+Here it is: https://codeberg.org/shinmera/portability
+
+** TODO send a patch to shinmera/portability to add links to the lisp implementations :easy:3rd_party:
+:PROPERTIES:
+:ID:       a3df51bc-4cbe-460c-bc34-c94f10b274fa
+:END:

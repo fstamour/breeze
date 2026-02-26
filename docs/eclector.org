@@ -2,7 +2,7 @@
 :ID:       8e956afc-28f4-4fda-b58f-7c111b0d92b3
 :END:
 #+title: Eclector
-#+filetags: :library:reader:
+#+filetags: :3rd_party:reader:
 
 [[https://github.com/s-expressionists/Eclector][Eclector on github]]
 
@@ -59,3 +59,13 @@ a few years, it's highly probable that something changed since.
                   (make-instance 'skipped-input-recording-client)
                   stream nil :eof)
 #+end_src
+
+* Eclector's Concrete Syntax Tree
+:PROPERTIES:
+:ID:       1f979dc4-a4b7-4223-af54-82fa3725c8a3
+:END:
+
+https://github.com/s-expressionists/Concrete-Syntax-Tree
+
+This library is intended to solve the problem of source tracking for
+Common Lisp code.

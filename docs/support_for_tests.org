@@ -3,7 +3,12 @@
 :END:
 #+title: Support for tests
 
-* PROtocol and TESTcase manager                         :test:3rd_parties:
+#+begin_quote
+This page is about the development of breeze: how can breeze make
+testing easier?
+#+end_quote
+
+* PROtocol and TESTcase manager                         :test:3rd_party:
 
 [[https://github.com/phoe/protest][phoe/protest]]
 

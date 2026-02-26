@@ -17,3 +17,11 @@
 - Replace slime, sly, slimv, slima, etc
 - Replace existing test framework
 - Force the user to use a set of conventions
+
+* TODO Motivations
+
+#+begin_quote
+This section needs elaboration
+#+end_quote
+
+- [[id:6055422c-7954-4c12-8f0b-32cd757fb2ac][Examples of code that is not handled correctly by slime and sly]]

@@ -27,4 +27,6 @@ Explore the documentation.
 * Related notes
 
 - [[id:14d42b3a-0a2f-4a3b-8937-7175e621c6ec][Design Decisions]]
+- [[id:e5d64314-8b13-4a6b-997f-1aae94910d63][Goals and non-goals]]
 - [[id:11dd9906-75ff-4abc-82a5-b7dda0936f06][Roadmap]]
+- [[id:e8953676-3641-4df3-a864-e694b166113d][Internal notes]]

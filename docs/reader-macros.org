@@ -3,6 +3,11 @@
 :END:
 #+title: Reader macros
 
+#+begin_quote
+This file contains a survey of possible reader macros, to help guiding
+the development of breeze's parser.
+#+end_quote
+
 https://quickdocs.org/-/search?q=reader
 
 * Example of a custom reader macro

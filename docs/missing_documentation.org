@@ -2,6 +2,7 @@
 :ID:       018d969c-f075-406a-95a0-d4bac06df069
 :END:
 #+title: Missing Documentation
+#+filetags: :idea:
 
 I do have some utilities to flag missing documentation.
 

@@ -3,6 +3,11 @@
 :END:
 #+title: Formatting code
 
+* Apheleia                                                        :3rd_party:
+:PROPERTIES:
+:ID:       1a752dd4-50ed-4970-958a-87d2f289d792
+:END:
+
 https://github.com/radian-software/apheleia
 
 🌷 Run code formatter on buffer contents without moving point, using
