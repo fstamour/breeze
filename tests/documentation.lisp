@@ -18,7 +18,6 @@
 (in-package #:breeze.test.documentation)
 
 (defun find-undocumented-symbols-in-dummy-package ()
-  ""
   (labels ((format-symbol (symbol)
              (format nil "~a:~a"
                      (package-name (symbol-package symbol))
@@ -44,17 +43,33 @@
              ;; Find in Dummy package
              (find-undocumented-symbols 'breeze.dummy.test)))))
 
-(define-test find-undocumented-symbols
-  (let ((undocumented-symbols (find-undocumented-symbols-in-dummy-package)))
-    (is
-     equal undocumented-symbols
-     '((:function breeze.dummy.test:function-undocumented)
-       (:generic-method breeze.dummy.test:generic-function-undocumented)
-       (:method breeze.dummy.test:another-generic-function)
-       (:method breeze.dummy.test:generic-function-undocumented)
-       (:package "BREEZE.DUMMY.TEST")
-       (:special-variable breeze.dummy.test:*bound-variable-undocumented*)
-       (:special-variable breeze.dummy.test:*unbound-variable-undocumented*)))))
+(define-test+run find-undocumented-symbols
+  (flet ((sorted (list-of-symbols)
+           (sort list-of-symbols #'string<)))
+    (let* ((undocumented-symbols (find-undocumented-symbols-in-dummy-package))
+           ;; group by type
+           (map (loop :with map = (make-hash-table)
+                      :for (type sym) :in undocumented-symbols
+                      :do (alexandria:appendf (gethash type map) (list sym))
+                      :finally (return map))))
+      ;; (break "~s" (alexandria:hash-table-plist map))
+      (is = 7 (length undocumented-symbols)
+          "There should be 7 undocumented symbols in the \"dummy\" package.")
+      (is equal '(:function :generic-method :method :package :special-variable)
+          (sorted (remove-duplicates (mapcar #'car undocumented-symbols)))
+          "Not exactly the namespaces that was expected...")
+      (is equal '(breeze.dummy.test:function-undocumented)
+          (gethash :function map))
+      (is equal '(breeze.dummy.test:generic-function-undocumented)
+          (gethash :generic-method map))
+      (is equal '(breeze.dummy.test:another-generic-function
+                  breeze.dummy.test:generic-function-undocumented)
+          (sorted (gethash :method map)))
+      (is equal '("BREEZE.DUMMY.TEST")
+          (gethash :package map))
+      (is equal '(breeze.dummy.test:*bound-variable-undocumented*
+                  breeze.dummy.test:*unbound-variable-undocumented*)
+          (gethash :special-variable map)))))
 
 
 ;;;; Updating docs/emacs_integration.org automatically
