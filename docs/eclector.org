@@ -35,19 +35,23 @@ Note: eclector's reader is highly customizable, so I'm trying to
 qualify eclector's default reader. *Also*, I haven't tried eclector in
 a few years, it's highly probable that something changed since.
 
-+---------------------------------+--------------------------------------------------------+
-| breeze's parser                 | eclector's reader                                      |
-+---------------------------------+--------------------------------------------------------+
-| meant to be used by an editor   | meant to implement ~cl:read~                           |
-+---------------------------------+--------------------------------------------------------+
-| is not customizable             | is highly customizable                                 |
-+---------------------------------+--------------------------------------------------------+
-| doesn't discard any information |         discard all whitespaces, comments and          |
-|                                 |  feature expressions that fails (e.g. ~#+(or) this~)   |
-+---------------------------------+--------------------------------------------------------+
-|   will never singal an error    |  signals error and provide restarts to let the client  |
-|     (unless there's a bug!)     |           decide how to handle the situation           |
-+---------------------------------+--------------------------------------------------------+
++------------------------------------+--------------------------------------------------------+
+|          breeze's parser           |                   eclector's reader                    |
++------------------------------------+--------------------------------------------------------+
+|   meant to be used by an editor    |              meant to implement ~cl:read~              |
++------------------------------------+--------------------------------------------------------+
+|        is not customizable         |                 is highly customizable                 |
++------------------------------------+--------------------------------------------------------+
+|  doesn't discard any information   |     discard all whitespaces, comments and feature      |
+|                                    |      expressions that fails (e.g. ~#+(or) this~)       |
++------------------------------------+--------------------------------------------------------+
+| will never signal an error (unless |  signals error and provide restarts to let the client  |
+|          there's a bug!)           |           decide how to handle the situation           |
++------------------------------------+--------------------------------------------------------+
+|  returns nested vector and object  |           returns cons (just like ~cl:read~)           | 
++------------------------------------+--------------------------------------------------------+
+|     does not evaluate anything     |         evaluates #. #+ #- and interns symbols         |
++------------------------------------+--------------------------------------------------------+
 
 * TODO Try out the "new" ~skipped-input-recording-client~
 :PROPERTIES:
