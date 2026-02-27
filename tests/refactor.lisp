@@ -164,7 +164,7 @@ dont Toggle header line
 
 (define-test+run insert-asdf
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-asdf
+  (let ((trace (drive-command 'insert-asdf
                               :inputs '("a" "b" "c")
                               :context '())))
     (common-trace-asserts 'insert-asdf trace 6)
@@ -172,17 +172,17 @@ dont Toggle header line
     (expect-read-string
      (pop trace)
      "Name of the system: " "a"
-     :history "breeze-#<function insert-asdf>")
+     :history "breeze-insert-asdf")
     (expect-read-string
      (pop trace)
      "Author: " "b"
      :initial-input "" ; TODO this is not a useful
                                         ; initial-input... might as well be nil
-     :history "breeze-#<function insert-asdf>--author")
+     :history "breeze-insert-asdf--author")
     (expect-read-string
      (pop trace)
      "Licence name: " "c"
-     :history "breeze-#<function insert-asdf>--licence")
+     :history "breeze-insert-asdf--licence")
     (expect-insert
      (pop trace)
      "(asdf:defsystem #:a"
@@ -209,7 +209,7 @@ dont Toggle header line
 
 (define-test+run insert-breeze-define-command
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-breeze-define-command
+  (let ((trace (drive-command 'insert-breeze-define-command
                               :inputs '("rmrf")
                               :context '())))
     (common-trace-asserts 'insert-breeze-define-command trace 4)
@@ -218,7 +218,7 @@ dont Toggle header line
      (pop trace)
      "Name of the command (symbol): "
      "rmrf"
-     :history "breeze-#<function insert-breeze-define-command>")
+     :history "breeze-insert-breeze-define-command")
     (expect-insert
      (pop trace)
      "(define-command rmrf ()"
@@ -228,7 +228,7 @@ dont Toggle header line
 
 (define-test+run insert-defun
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-defun
+  (let ((trace (drive-command 'insert-defun
                               :inputs '("real-fun" "a &optional b")
                               :context '())))
     (common-trace-asserts 'insert-defun trace 8)
@@ -236,19 +236,19 @@ dont Toggle header line
     (expect-insert (pop trace) "(defun ")
     (expect-insert-saving-excursion (pop trace) ")")
     (expect-read-string (pop trace) "Name: " "real-fun"
-                        :history "breeze-#<function insert-defun>")
+                        :history "breeze-insert-defun")
     (expect-insert (pop trace) "real-fun ")
     (expect-read-string
      (pop trace)
      "Enter the arguments: "
      "a &optional b"
-     :history "breeze-#<function insert-defun>")
+     :history "breeze-insert-defun")
     (expect-insert (pop trace) "(a &optional b)" "  ")
     (expect-done trace)))
 
 (define-test+run insert-defvar
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-defvar
+  (let ((trace (drive-command 'insert-defvar
                               :inputs '("var" "42" "This is a nice var")
                               :context '())))
     (common-trace-asserts 'insert-defvar trace 10)
@@ -256,24 +256,24 @@ dont Toggle header line
     (expect-insert (pop trace) "(defvar ")
     (expect-insert-saving-excursion (pop trace) ")")
     (expect-read-string (pop trace) "Name: " "var"
-                        :history "breeze-#<function insert-defvar>")
+                        :history "breeze-insert-defvar")
     (expect-insert (pop trace) "*var* ")
     (expect-read-string (pop trace)
                         "Initial value: "
                         "42"
-                        :history "breeze-#<function insert-defvar>")
+                        :history "breeze-insert-defvar")
     (expect-insert (pop trace) "42" "")
     (expect-read-string (pop trace)
                         "Documentation string "
                         "This is a nice var"
-                        :history "breeze-#<function insert-defvar>")
+                        :history "breeze-insert-defvar")
     (expect-insert (pop trace) "\"This is a nice var\"")
     (expect-done trace)))
 
 (define-test+run insert-defclass
   :time-limit 0.1
   (let* ((*workspace* (make-workspace))
-         (trace (drive-command #'insert-defclass
+         (trace (drive-command 'insert-defclass
                                :inputs '("klass" "sloot" "")
                                :context '(:buffer-name "insert-defclass-test.lisp"
                                           :point 0))))
@@ -288,7 +288,7 @@ dont Toggle header line
     (expect-read-string (pop trace)
                         "Name of the class: "
                         "klass"
-                        :history "breeze-#<function insert-defclass>")
+                        :history "breeze-insert-defclass")
     (expect-insert (pop trace) " klass ()" "  (")
     (expect-insert-saving-excursion (pop trace) ")")
 ;;; first insert-class-slot
@@ -296,7 +296,7 @@ dont Toggle header line
     (expect-read-string (pop trace)
                         "Name of the slot: "
                         "sloot"
-                        :history "breeze-#<function insert-defclass>--slot")
+                        :history "breeze-insert-defclass--slot")
     (expect-insert (pop trace)
                    "(sloot"
                    "    :initform nil"
@@ -308,7 +308,7 @@ dont Toggle header line
     (expect-read-string (pop trace)
                         "Name of the slot: "
                         ""
-                        :history "breeze-#<function insert-defclass>--slot")
+                        :history "breeze-insert-defclass--slot")
     ;; TODO expect (goto-char 1)
     (pop trace)
     (expect-insert-saving-excursion (pop trace) "\")")
@@ -317,7 +317,7 @@ dont Toggle header line
 
 (define-test+run insert-defmacro
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-defmacro
+  (let ((trace (drive-command 'insert-defmacro
                               :inputs '("mac" "(x) &body body")
                               :context '())))
     (common-trace-asserts 'insert-defmacro trace 8)
@@ -325,25 +325,25 @@ dont Toggle header line
     (expect-insert (pop trace) "(defmacro ")
     (expect-insert-saving-excursion (pop trace) ")")
     (expect-read-string (pop trace) "Name: " "mac"
-                        :history "breeze-#<function insert-defmacro>")
+                        :history "breeze-insert-defmacro")
     (expect-insert (pop trace) "mac ")
     (expect-read-string
      (pop trace)
      "Enter the arguments: "
      "(x) &body body"
-     :history "breeze-#<function insert-defmacro>")
+     :history "breeze-insert-defmacro")
     (expect-insert (pop trace) "(x) &body body)" "  ")
     (expect-done trace)))
 
 (define-test+run insert-defgeneric
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-defgeneric
+  (let ((trace (drive-command 'insert-defgeneric
                               :inputs '("gen")
                               :context '())))
     (common-trace-asserts 'insert-defgeneric trace 4)
     (expect-buffer-string (pop trace))
     (expect-read-string (pop trace) "Name of the generic function: " "gen"
-                        :history "breeze-#<function insert-defgeneric>")
+                        :history "breeze-insert-defgeneric")
     (expect-insert
      (pop trace)
      "(defgeneric gen ()"
@@ -354,13 +354,13 @@ dont Toggle header line
 
 (define-test+run insert-defmethod
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-defmethod
+  (let ((trace (drive-command 'insert-defmethod
                               :inputs '("frob")
                               :context '())))
     (common-trace-asserts 'insert-defmethod trace 4)
     (expect-buffer-string (pop trace))
     (expect-read-string (pop trace) "Name of the method: " "frob"
-                        :history "breeze-#<function insert-defmethod>")
+                        :history "breeze-insert-defmethod")
     (expect-insert
      (pop trace)
      "(defmethod frob ()"
@@ -370,7 +370,7 @@ dont Toggle header line
 
 (define-test+run insert-defparameter
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-defparameter
+  (let ((trace (drive-command 'insert-defparameter
                               :inputs '("param" "\"meh\""
                                         "This is a meh variable")
                               :context '())))
@@ -379,23 +379,23 @@ dont Toggle header line
     (expect-insert (pop trace) "(defparameter ")
     (expect-insert-saving-excursion (pop trace) ")")
     (expect-read-string (pop trace) "Name: " "param"
-                        :history "breeze-#<function insert-defparameter>")
+                        :history "breeze-insert-defparameter")
     (expect-insert (pop trace) "*param* ")
     (expect-read-string (pop trace)
                         "Initial value: "
                         "\"meh\""
-                        :history "breeze-#<function insert-defparameter>")
+                        :history "breeze-insert-defparameter")
     (expect-insert (pop trace) "\"meh\"" "")
     (expect-read-string (pop trace)
                         "Documentation string "
                         "This is a meh variable"
-                        :history "breeze-#<function insert-defparameter>")
+                        :history "breeze-insert-defparameter")
     (expect-insert (pop trace) "\"This is a meh variable\"")
     (expect-done trace)))
 
 (define-test+run insert-handler-bind-form
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-handler-bind-form
+  (let ((trace (drive-command 'insert-handler-bind-form
                               :inputs 'nil
                               :context '())))
     (common-trace-asserts 'insert-handler-bind-form trace 3)
@@ -410,7 +410,7 @@ dont Toggle header line
 
 (define-test+run insert-handler-case-form
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-handler-case-form
+  (let ((trace (drive-command 'insert-handler-case-form
                               :inputs 'nil
                               :context '())))
     (common-trace-asserts 'insert-handler-case-form trace 3)
@@ -426,7 +426,7 @@ dont Toggle header line
 #++
 (define-test insert-in-package-cl-user
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-in-package-cl-user
+  (let ((trace (drive-command 'insert-in-package-cl-user
                               :inputs 'nil
                               :context '())))
     (common-trace-asserts 'insert-in-package-cl-user trace 2)
@@ -437,7 +437,7 @@ dont Toggle header line
 
 (define-test+run insert-lambda
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-lambda
+  (let ((trace (drive-command 'insert-lambda
                               :inputs 'nil
                               :context '())))
     (common-trace-asserts 'insert-lambda trace 4)
@@ -448,7 +448,7 @@ dont Toggle header line
 
 (define-test+run insert-loop-clause-for-hash
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-loop-clause-for-hash
+  (let ((trace (drive-command 'insert-loop-clause-for-hash
                               :inputs '("key" "*ht*" "v")
                               :context '())))
     (common-trace-asserts 'insert-loop-clause-for-hash trace 9)
@@ -457,23 +457,23 @@ dont Toggle header line
     (expect-read-string (pop trace)
                         "Enter the variable name for the key: "
                         "key"
-                        :history "breeze-#<function insert-loop-clause-for-hash>")
+                        :history "breeze-insert-loop-clause-for-hash")
     (expect-insert (pop trace) "key :being :the :hash-key :of ")
     (expect-read-string (pop trace)
                         "Enter the variable name for the hash-table: "
                         "*ht*"
-                        :history "breeze-#<function insert-loop-clause-for-hash>")
+                        :history "breeze-insert-loop-clause-for-hash")
     (expect-insert (pop trace) "*ht* :using (hash-value ")
     (expect-read-string (pop trace)
                         "Enter the variable name for the value: "
                         "v"
-                        :history "breeze-#<function insert-loop-clause-for-hash>")
+                        :history "breeze-insert-loop-clause-for-hash")
     (expect-insert (pop trace) "v)")
     (expect-done trace)))
 
 (define-test+run insert-loop-clause-for-in-list
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-loop-clause-for-in-list
+  (let ((trace (drive-command 'insert-loop-clause-for-in-list
                               :inputs '("el" "list")
                               :context '())))
     (common-trace-asserts 'insert-loop-clause-for-in-list trace 7)
@@ -482,18 +482,18 @@ dont Toggle header line
     (expect-read-string (pop trace)
                         "Enter the variable name for the iterator: "
                         "el"
-                        :history "breeze-#<function insert-loop-clause-for-in-list>")
+                        :history "breeze-insert-loop-clause-for-in-list")
     (expect-insert (pop trace) "el :in ")
     (expect-read-string (pop trace)
                         "Enter the the list to iterate on: "
                         "list"
-                        :history "breeze-#<function insert-loop-clause-for-in-list>")
+                        :history "breeze-insert-loop-clause-for-in-list")
     (expect-insert (pop trace) "list")
     (expect-done trace)))
 
 (define-test+run insert-loop-clause-for-on-list
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-loop-clause-for-on-list
+  (let ((trace (drive-command 'insert-loop-clause-for-on-list
                               :inputs '("rest" "list")
                               :context '())))
     (common-trace-asserts 'insert-loop-clause-for-on-list trace 7)
@@ -502,18 +502,18 @@ dont Toggle header line
     (expect-read-string (pop trace)
                         "Enter the variable name for the iterator: "
                         "rest"
-                        :history "breeze-#<function insert-loop-clause-for-on-list>")
+                        :history "breeze-insert-loop-clause-for-on-list")
     (expect-insert (pop trace) "rest :on ")
     (expect-read-string (pop trace)
                         "Enter the the list to iterate on: "
                         "list"
-                        :history "breeze-#<function insert-loop-clause-for-on-list>")
+                        :history "breeze-insert-loop-clause-for-on-list")
     (expect-insert (pop trace) "list")
     (expect-done trace)))
 
 (define-test+run insert-print-unreadable-object-boilerplate
   :time-limit 0.1
-  (let ((trace (drive-command #'insert-print-unreadable-object-boilerplate
+  (let ((trace (drive-command 'insert-print-unreadable-object-boilerplate
                               :inputs '("node" "node")
                               :context '())))
     (common-trace-asserts 'insert-print-unreadable-object-boilerplate trace 5)
@@ -521,11 +521,11 @@ dont Toggle header line
     (expect-read-string (pop trace)
                         "Name of the object (parameter name of the method): "
                         "node"
-                        :history "breeze-#<function insert-print-unreadable-object-boilerplate>")
+                        :history "breeze-insert-print-unreadable-object-boilerplate")
     (expect-read-string (pop trace)
                         "Type of the object: "
                         "node"
-                        :history "breeze-#<function insert-print-unreadable-object-boilerplate>")
+                        :history "breeze-insert-print-unreadable-object-boilerplate")
     (expect-insert
      (pop trace)
      "(defmethod print-object ((node node) stream)"
@@ -709,7 +709,7 @@ strings get concatenated."
 
 #++ ;; TODO
 (define-test+run "simple format fixes"
-  (let* ((trace (drive-command #'fix-formatting
+  (let* ((trace (drive-command 'fix-formatting
                                :inputs '()
                                :context '())))
     (common-trace-asserts 'fix-formatting trace 4)
