@@ -64,13 +64,15 @@ some manual checks that can complement the automated tests.
       correctly, so opening 2 files helps finding these kind of
       issues.
 
-** Reviewing the documentation
-
-Open =docs/meta.org= and run the code blocks!
-
 ** TODO Testing the makefile targets meants for interactive use
 
 In the shell (you must have guix installed), run
+
+- ~make launch-emacs~ (requires X and guix)
+
+** Reviewing the documentation
+
+Open =docs/meta.org= and run the code blocks!
 
 ** Review workbenches
 

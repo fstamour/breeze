@@ -54,8 +54,8 @@
 | breeze-insert-setf-defun                           | Insert a setf function form e.g. ~(defun (setf ...) ...)~                       |              |
 | breeze-interactive-eval                            | A command to interactively evaluate code.                                       |              |
 | breeze-kill-sexp                                   | Kill the expression following point.                                            |              |
-| breeze-other-file                                  | Find the alternative file for the current file.                                 |              |
-| breeze-other-file-other-window                     | Find the alternative file for the current file in the other window.             |              |
+| breeze-other-file                                  | Open the alternative file for the current file.                                 |              |
+| breeze-other-file-other-window                     | Open the alternative file for the current file, in another window.              |              |
 | breeze-quickload                                   | Choose a system to load with quickload.                                         |              |
 | breeze-goto-test                                   | Go to a specific test.                                                          |              |
 | breeze-quickfix-test                               | Tries to fix the test automagically.                                            |              |

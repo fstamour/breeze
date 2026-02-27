@@ -230,6 +230,9 @@ defun."
 
 ;; TODO insert-let (need to loop probably)
 
+;; TODO rename to "insert-asdf-defsystem"
+;; TODO ask whether to insert `:pathname`, `:serial`, `:perform test-op`
+;;
 (define-command insert-asdf ()
   "Insert an asdf system definition form."
   (declare (context :top-level
@@ -252,9 +255,24 @@ defun."
               ,(format nil ":author \"~a\"" author)
               ,(format nil ":licence \"~a\"" licence)
               ":depends-on ()"
+              ;; TODO do insert this if there is a directory "src"
+              ;; TODO ask the user if they want to create one
               ";; :pathname \"src\""
               ";; :serial t"
               ":components"
+              ;; TODO suggest to add files (e.g. look in the current directory)
+              ;; - list the file in the root of the project
+              ;;   - infer where is the root of the project if there
+              ;;     is no VCS markers nor asdf files
+              ;;   - is there a readme
+              ;;   - if the parent directory is a well-known directory
+              ;;     (like quicklisp's local-projects directory or the
+              ;;     user's home directory), then the directory might
+              ;;     be the root
+              ;;   - (harder?) if a _sibling_ directory is
+              ;;     "definitely" the root of a project, then the
+              ;;     parent directory is _not_ a root, but the current
+              ;;     directory might be one
               "  (#+(or) (:file \"todo\"))"
               ";; in order to test this system, load the test system"
               ,(format nil ":in-order-to ((test-op (load-op ~a/test)))"

@@ -874,6 +874,8 @@ for debugging breeze itself."
     ;; Not connected, so we can't call breeze's linter.
     (funcall report-fn nil)))
 
+
+;;; this:
 ;; TODO breeze-flymake-mode
 ;; TODO 1. ensure-breeze-minor-mode
 ;; TODO 2. add backend

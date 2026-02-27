@@ -397,3 +397,28 @@ that we just moved.
 :PROPERTIES:
 :ID:       ed224f77-e9b5-4e5d-8a72-8b049729ee6b
 :END:
+
+* TODO add link in the "listings" to go back to the rest of the documentation :doc:
+:PROPERTIES:
+:ID:       6abfafc5-4076-4bfd-ac7c-d58fd381a0e9
+:END:
+
+* TODO add link in the "reference" to go back to the rest of the documentation :doc:
+:PROPERTIES:
+:ID:       b8d8f849-cbad-4266-9174-dd26df93c74b
+:END:
+
+* TODO the command "insert parachute test" doesn't keep the parens balanced. :ux:
+:PROPERTIES:
+:ID:       be4dba58-56ed-4f66-ae49-da632d0e893a
+:END:
+
+* TODO [#A] "non-insert" commands appear in the "quickinsert" command's choices of commands :ux:bug:
+:PROPERTIES:
+:ID:       ca294c69-2570-4dfe-ba8d-51616bc0069b
+:END:
+
+* TODO check that all calls to ~choose~, and ~read-string~ have a proper ~:history~ :ux:
+:PROPERTIES:
+:ID:       3c5e297c-cd30-4dba-9197-71199f16225b
+:END:

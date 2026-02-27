@@ -26,7 +26,11 @@ regularly.
 - *Context-aware commands*
   - =breeze-quickinsert= (bound to =M-RET=): suggests applicable
     snippets given the current context.
-  - =breeze-quickfix= fix one linter issues in the current top-level form.
+  - =breeze-quickfix= (bound to =C-.=) fix one linter issues in the
+    current top-level form.
+  - =breeze-other-file= (=C-c C-o=) and
+    =breeze-other-file-other-window= (=C-c o=) to jumb between related
+    files (e.g. implementation and test file)
   - N.B. as of beginning of 2026, there are not that many context
     "aware" commands
 - *Quick code capture* (=breeze-capture=)
