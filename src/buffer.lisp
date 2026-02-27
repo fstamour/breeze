@@ -189,7 +189,7 @@ point.")
 ;; TODO (see interactive-eval-command) - get the node, parse it, find the package
 ;; TODO this method is not done:
 (defmethod current-package* ((buffer buffer))
-  (alexandria:when-let* (($package (current-package))
+  (alexandria:when-let* (($package (current-package #| TODO fixme |#))
                          (package-name (breeze.analysis:node-string-designator $package)))
     (when $package)))
 

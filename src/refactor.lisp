@@ -62,11 +62,13 @@
 
 (in-package #:breeze.refactor)
 
+;; TODO move into command utils
 (defun normalize-docstring (string)
   "Try to normalize docstring entered by the user into something that can
 be inserted correctly into a buffer."
   (ensure-circumfix "\"" (trim-whitespace string)))
 
+;; TODO move into command utils
 (defun normalize-lambda-list (string)
   "Try to normalize lambda-list entered by the user into something that can
 be inserted correctly into a buffer."
@@ -75,6 +77,8 @@ be inserted correctly into a buffer."
 
 ;;; Insertion commands
 
+;; TODO move into src/cmds/breeze-commands.lisp
+;; TODO add commands to insert `defcheck`s
 ;; Dogfood'ing to the max!
 (define-command insert-breeze-define-command ()
   "Insert a breeze:define-command form."
@@ -242,7 +246,8 @@ defun."
                               :history 'licence)))
     (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
             system-name
-            `(":description \"\""
+            `(;; TODO use normalize-docstring
+              ":description \"\""
               ":version \"0.0.1\""
               ,(format nil ":author \"~a\"" author)
               ,(format nil ":licence \"~a\"" licence)
@@ -541,6 +546,7 @@ when inserting something.
   "Create a list of all the commands applicable in the TOP-LEVEL context."
   (remove-if-not (lambda (command)
                    (eq (get command 'context) :top-level))
+                 ;; TODO filter by ":category :template"
                  (list-all-commands)))
 
 (defun commands-applicable-in-a-loop-form ()

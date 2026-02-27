@@ -25,6 +25,7 @@
     (declare (ignore _))
     position))
 
+;; very WIP much TODO
 (defun unsafep (form)
   (and (not (atom form))))
 
@@ -38,6 +39,7 @@
 (higher-order-function-p '+)
 ;; => nil
 
+;; TODO THIS IS JUST A DRAFT/BRAINSTORMING
 (defvar *declarations* (make-hash-table :test 'equal))
 
 ;; name + kind is analogous to cl:documentation's x and doc-type

@@ -468,6 +468,7 @@ receiving the data it requested."
 ;;; Dynamically define interactive (cl-driven) commands in emacs
 
 ;; TODO This creates new commands, but what happens if a command was removed?
+;; TODO somehow call this automatically
 (defun breeze-refresh-commands ()
   "Ask the inferior lisp which commands it has and define corresponding
 commands in emacs."
@@ -1074,6 +1075,9 @@ automatically enabling breeze-minor-mode in lisp-mode."
      ,docstring
      (interactive)
      (breeze--stub ,(symbol-name name))))
+
+;; TODO make a stub for breeze-quickproject that load the
+;; corresponding system (breeze/quickproject)
 
 
 ;;; This page is auto-generated (see ../workbench.el), don't edit it

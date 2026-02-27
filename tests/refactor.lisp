@@ -1,3 +1,14 @@
+;; TODO test quickinsert
+
+#|
+quickfix-1 - current top (or root?) only 1
+quickfix-current-sexp - look outward, upto the root
+quickfix-buffer
+quickfix-all - all files
+
+dont Toggle header line
+|#
+
 (cl:in-package #:common-lisp-user)
 
 (uiop:define-package #:breeze.test.refactor

@@ -14,6 +14,7 @@
 ;; print-table in the print-object method defined by define-class
 ;; see (defmethod print-object ((sym sym) stream) ...) in pattern.lisp
 
+;; TODO move into xref.lisp
 (defun self-evaluating-symbol-p (s)
   (and (symbolp s)
        (boundp s)
@@ -159,13 +160,14 @@ after the list of superclasses) of a cl:defclass form.
   ((errors :initarg :errors :accessor errors)))
 
 (defmacro define-simple-class (name superclass documentation (&body slots))
+  "Define a class and some utility methods. The constructor takes only positional arguments. The docstring is mandatory."
   (let ((slots (mapcar #'(lambda (slot)
-                                      (if (listp slot)
-                                          slot
-                                          `(,slot
-                                            :initform nil
-                                            :initarg ,(alexandria:make-keyword slot)
-                                            :accessor ,slot)))
+                           (if (listp slot)
+                               slot
+                               `(,slot
+                                 :initform nil
+                                 :initarg ,(alexandria:make-keyword slot)
+                                 :accessor ,slot)))
                        slots)))
     `(define-class ,name
          (:superclass ,superclass

@@ -74,7 +74,7 @@ Design decision(s):
 (breeze.class-utils:define-simple-class
     definition ()
     "A definition name and its kind."
-    (name kind))
+    (pkg name kind))
 
 ;; (definition 'defun :macro)
 
@@ -87,6 +87,13 @@ Design decision(s):
     :initform (make-hash-table :test 'equal)
     :accessor buffers
     :documentation "Map of buffers keyed by their name")
+   ;; TODO NOT USED YET
+   (diagnostics
+    :initform nil
+    :initarg :diagnostics
+    :accessor diagnostics
+    :documentation "Cached buffer diagnostics, and cross-buffer diagnostics.")
+   ;; TODO NOT USED YET
    (definitions
     :initform (make-hash-table :test 'equal)
     :initarg :definitions

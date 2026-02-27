@@ -6,6 +6,7 @@
 (in-package #:breeze.cli)
 
 (defun main ()
+  (print "I BEG YOU! DONT USE THE CLI, ITS NOT READY!")
   ;; list all *.lisp file and print any "diagnostics"
   (let* ((root *default-pathname-defaults*)
          (wild-dir `(,@(pathname-directory root) :wild-inferiors)))
