@@ -337,7 +337,7 @@ receiving the data it requested."
             ;; :response
             (when send-response-p response)
             ;; :updates
-            `( :point ,(point)
+            `( :point ,(1- (point))
                :edits ,changes)))))
     (breeze-debug "Breeze: (#%s) request received: %s" id new-request)
     new-request))
@@ -426,7 +426,7 @@ receiving the data it requested."
     ("goto-char"
      (cl-destructuring-bind (_ position)
          request
-       (goto-char position)))
+       (goto-char (1+ position))))
     ("pulse"
      (cl-destructuring-bind (_ start end)
          request

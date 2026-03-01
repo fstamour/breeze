@@ -218,7 +218,7 @@
   (with-temp-buffer
     (insert "hello world")
     (breeze-command-process-request nil '("goto-char" 3))
-    (should (= 3 (point)))))
+    (should (= 4 (point)))))
 
 (ert-deftest test/breeze-command-process-request/buffer-string ()
   (with-temp-buffer

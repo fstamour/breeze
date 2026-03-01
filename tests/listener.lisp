@@ -48,6 +48,14 @@
        "breeze.dummy.dum.dum:hjkl")))
 ;; => #<SB-INT:SIMPLE-READER-PACKAGE-ERROR "Package ~A does not exist." {1025D737E3}>
 
+;; TODO should evaluate (+ 2 3)
+;; currently tries to evaluate the whitespace after the point...
+"(in-package)
+
+(+ 2 3)|
+
+"
+
 (define-test+run interactive-eval ()
   ;; Empty file
   ;; TODO This should probably print a message instead...
