@@ -58,6 +58,6 @@
 
 ** Third parties
 
-- [[id:62112623-6002-4cb9-87de-cb530ce0a36e][Silimar and related projects]]
+- [[id:62112623-6002-4cb9-87de-cb530ce0a36e][Similar and related projects]]
 - [[id:9577760e-31e6-4343-b1c5-bc79e178a0ac][Libraries]]
 - [[id:a2522c0a-fc97-4309-ad7d-ba0141dddae8][Lisp implementations]]

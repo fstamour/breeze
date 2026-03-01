@@ -1,7 +1,7 @@
 :PROPERTIES:
 :ID:       62112623-6002-4cb9-87de-cb530ce0a36e
 :END:
-#+title: Silimar and related projects
+#+title: Similar and related projects
 #+filetags: :3rd_party:
 
 * Common lisp
