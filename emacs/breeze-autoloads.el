@@ -10,7 +10,9 @@
 ;;; Generated autoloads from breeze.el
 
 (autoload 'breeze-init "breeze" "\
-Initialize breeze." t)
+Initialize breeze.
+
+(fn)" t)
 (autoload 'breeze-minor-mode "breeze" "\
 Toggle Breeze minor mode on or off
 
@@ -35,10 +37,6 @@ disabled.
 Enable breeze-minor-mode." t)
 (autoload 'disable-breeze-minor-mode "breeze" "\
 Disable breeze-minor-mode." t)
-(autoload 'breeze-major-mode "breeze" "\
-
-
-(fn)" t)
 (autoload 'breeze--defstub "breeze" "\
 Macro to define a stub function for the command NAME.
 
