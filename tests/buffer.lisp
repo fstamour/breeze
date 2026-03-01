@@ -23,18 +23,18 @@
            (prin1-to-string (make-buffer :name "foo.lisp"
                                          :string ""))))
 
-(define-test+run current-package
+(define-test+run current-package-node
   (false (let* ((string "(in-package #:cl-user)")
                 (buffer (make-buffer :string string)))
            (setf (point buffer) 0)
-           (current-package buffer)))
+           (current-package-node buffer)))
   (false (let* ((string "(in-package #:cl-user)")
                 (buffer (make-buffer :string string)))
            (setf (point buffer) 10)
-           (current-package buffer)))
+           (current-package-node buffer)))
   (is equalp '(:uninterned "CL-USER")
       (let* ((string "(in-package #:cl-user)")
                 (buffer (make-buffer :string string)))
            (setf (point buffer) (length string))
-           (let (($node (current-package buffer)))
+           (let (($node (current-package-node buffer)))
              (breeze.analysis:parse-symbol-node $node)))))

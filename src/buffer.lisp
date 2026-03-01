@@ -1,11 +1,3 @@
-#|
-; file: /home/fstamour/quicklisp/local-projects/breeze/src/buffer.lisp
-; in: DEFMETHOD CURRENT-PACKAGE* (BUFFER)
-;     (BREEZE.BUFFER:CURRENT-PACKAGE)
-;
-; caught STYLE-WARNING:
-;   The function CURRENT-PACKAGE is called with zero arguments, but wants at least one.
-|#
 
 (defpackage #:breeze.buffer
   (:documentation "Data structure to hold and manage lisp source code, its parse tree and
@@ -41,6 +33,7 @@ point.")
            #:update-point
            #:update-content
            #:index-in-package-nodes
+           #:current-package-node
            #:current-package
            #:note-edits
            #:apply-pending-edits))
@@ -174,10 +167,12 @@ point.")
                    buffer))
                 'vector)))
 
-;; TODO rename to current-package-node
 ;; TODO when in an *.asd file, fallback to :asdf-user if no in-package
 ;; is found
-(defmethod current-package ((buffer buffer) &optional point)
+;; TODO "interpret" emacs prop lines too
+(defmethod current-package-node ((buffer buffer) &optional point)
+  "Find the ~(in-package ...)~ form closest to POINT in BUFFER.
+Returns a parse-tree _node_, not a package."
   (let ((position (or point (point buffer)))
         (candidates (or
                      (in-package-nodes buffer)
@@ -188,10 +183,11 @@ point.")
 
 ;; TODO (see interactive-eval-command) - get the node, parse it, find the package
 ;; TODO this method is not done:
-(defmethod current-package* ((buffer buffer))
-  (alexandria:when-let* (($package (current-package #| TODO fixme |#))
-                         (package-name (breeze.analysis:node-string-designator $package)))
-    (when $package)))
+(defmethod current-package ((buffer buffer))
+  "Find the ~(in-package ...)~ form closest to POINT in BUFFER and returns the _package_."
+  (alexandria:when-let* (($package (current-package-node buffer))
+                         (package-name (node-string-designator $package)))
+    (find-package package-name)))
 
 ;; This should probably go elsewhere...
 (defmethod map-top-level-forms (function (buffer buffer))

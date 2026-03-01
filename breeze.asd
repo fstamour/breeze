@@ -109,7 +109,7 @@
    (:file "xref" :depends-on ("utils"))
    (:file "doctor")
    (:file "listener"
-    :depends-on ("xref" "command"))
+    :depends-on ("xref" "command" "cmds/command-utils"))
    (:file "suggestion"
     :depends-on ("listener"))
    (:file "package" :depends-on ("analysis"))

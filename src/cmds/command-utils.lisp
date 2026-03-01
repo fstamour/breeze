@@ -40,7 +40,7 @@
 #++ ;; TODO this is work in progress
 (defun ensure-in-package (package-name)
   "Insert an ~cl:in-package~ form, if necessary."
-  (let (($package (current-package))))
+  (let (($package (current-package-node))))
   (insert "(cl:in-package #:asdf-user)~%~%"))
 
 

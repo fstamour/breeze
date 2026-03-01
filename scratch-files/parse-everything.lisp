@@ -223,7 +223,7 @@ TODO:
                              (node (binding->node bindings from)))
                          (when node
                            (let* ((symbol-name (name node))
-                                  (package-name (breeze.buffer:current-package
+                                  (package-name (breeze.buffer:current-package-node
                                                  buffer (start node)))
                                   (ref (list
                                         $node

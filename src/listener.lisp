@@ -15,6 +15,8 @@
   (:import-from #:breeze.buffer
                 #:current-package
                 #:point)
+  (:import-from #:breeze.command-utils
+                #:pulse-node)
   (:export
    #:rpc-eval
    #:interactive-eval-string
@@ -97,26 +99,29 @@ differences between swank and slynk."
   (let* ((context (context*))
          (buffer (current-buffer context))
          ($node (node-iterator buffer))
-         ($package (current-package buffer))
-         (*package* *package*))
+         (*package* (or (current-package buffer)
+                        *package*)))
     ;; TODO if the form is a comment
     (when (whitespace-or-comment-node-p $node)
       ;; TODO find the closest node to evaluate
       ;; TODO check if "firstp" and/or "lastp"
       (when-let ((previous (previous-sibling $node
                                              #| TODO add :skipp to previous-sibling |#)))
+        #++ (break "point: ~s   end previous: ~s"
+               (point buffer) (end previous))
+        #++
         (when (= (point buffer) (end previous))
-          (decf (pos $node)))))
-    ;; TODO add more to the "last context": the package, and the string to be evaluated
-    (setf *interactive-eval-last-context* context)
-    (when $package
-      (when-let* ((package-name (breeze.analysis:node-string-designator $package)))
-        (setf *package* (find-package package-name))))
+          (decf (pos $node)))
+        (decf (pos $node))))
+    (setf *interactive-eval-last-context*
+          (list :context context
+                :*package* *package*))
     (when-let* (($node (root $node))
                 (node (value $node)))
-      ;; TODO use pulse-node
-      (pulse (start node) (end node))
+      (pulse-node node)
       (let ((string (node-string $node)))
-        (interactive-eval-string string)
-        ;; (message "~s" string)
-        ))))
+        (setf *interactive-eval-last-context*
+              (list :context context
+                    :*package* *package*
+                    :string string))
+        (interactive-eval-string (node-string $node))))))

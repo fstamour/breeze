@@ -189,7 +189,7 @@ simple-condition-format-control, simple-condition-format-arguments
 be found. If it's not the case (e.g. because the user forgot to define
 a package and/or evaluate the form that defines the package) then show
 a message and stop the current command."
-  (let (($package (current-package)))
+  (let (($package (current-package-node (current-buffer))))
     (if package
         (let ((package-name (node-string-designator $package)))
           (unless (find-package package-name)

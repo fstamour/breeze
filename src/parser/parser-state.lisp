@@ -48,16 +48,7 @@
     :initform 0
     :initarg :pos
     :accessor tree
-    :documentation "The parsed nodes.")
-   ;; TODO current-package is not used just yet
-   (current-package
-    :initform nil
-    :accessor current-package
-    :documentation "Current package"))
-  ;; TODO More state:
-  ;; - readtable case (is it case converting)
-  ;; - current input base (base of numbers)
-  ;; - labels and references (#n= and #n#)
+    :documentation "The parsed nodes."))
   (:documentation "The reader's state"))
 
 (defun make-state (string)
