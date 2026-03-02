@@ -63,10 +63,18 @@
 (in-package #:breeze.refactor)
 
 ;; TODO move into command utils
+;; TODO more tests (nil, "", "\"\"", ...)
 (defun normalize-docstring (string)
   "Try to normalize docstring entered by the user into something that can
-be inserted correctly into a buffer."
-  (ensure-circumfix "\"" (trim-whitespace string)))
+be inserted correctly into a buffer.
+Returns nil if string is nil, empty, contains only whitespaces, or
+contains only two or less double-quote."
+  (when string
+    (let ((trimmed (trim-whitespace string)))
+      (when (plusp (length trimmed))
+        (let ((quoted (ensure-circumfix "\"" trimmed)))
+          (when (< 2 (length quoted))
+            quoted))))))
 
 ;; TODO move into command utils
 (defun normalize-lambda-list (string)

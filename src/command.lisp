@@ -590,8 +590,9 @@ nil. Prepends th prefix \"breeze-\" if necessary."
   (recv))
 
 (defun read-string-then-insert (prompt control-string &optional (fn #'identity))
-  (insert control-string
-          (funcall fn (read-string prompt))))
+  (let ((processed-input (funcall fn (read-string prompt))))
+    (when processed-input
+      (insert control-string processed-input))))
 
 (defun choose (prompt collection
                &key
