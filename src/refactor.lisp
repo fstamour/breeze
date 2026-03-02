@@ -596,15 +596,19 @@ TODO maybe find a better nomenclature?"
   "Data from the latest quickfix invocation.
 For debugging purposes ONLY.")
 
+(defun ensure-flat-list (x)
+  "~(flatten (ensure-list))~"
+  (alexandria:flatten
+   (copy-seq
+    (alexandria:ensure-list x))))
+
 (defun sanitize-list-of-commands (commands)
   ;; Some methods returns lists, some just a symbol.
   ;; We flatten that to just a list of symbols.
-  (setf commands
-        (alexandria:flatten
-         (copy-seq
-          (alexandria:ensure-list commands))))
+  (setf commands (ensure-flat-list commands))
   ;; Fallback to suggesting _all_ commands.
   (unless commands
+    ;; TODO This is wrong when called from "quickinsert"
     (setf commands (copy-seq (list-all-commands))))
   ;; Deduplicate commands
   (setf commands (remove-duplicates commands))
@@ -630,6 +634,7 @@ For debugging purposes ONLY.")
      ;; an empty file is pretty much just my personal preference.
      #++
      (shortcircuit 'breeze.package-commands:insert-defpackage)
+     ;; TODO also suggest to insert "in-package", or a propline
      'breeze.package-commands:insert-defpackage)))
 
 (defun suggest-system-definition ()
@@ -736,12 +741,12 @@ will fix the issue and then stop the current command."
   ;; didn't get fixed by quickfix. Currently the command "fix buffer"
   ;; only returns `simple-node-conditions' that have a `replacement`.
   (when-let* ((fixes (breeze.lint:fix-buffer (current-buffer)))
-              (current-top-level-node (root-node (current-node-iterator)))
+              (top-level-node (root-node (current-node-iterator)))
               (applicable-fixes
                (remove-if-not
                 (lambda (fix)
                   ;; keep only fixes that are part of the current top-level form
-                  (eq current-top-level-node
+                  (eq top-level-node
                       (root-node (breeze.lint:target-node fix))))
                 fixes)))
     ;; Apply the fix
