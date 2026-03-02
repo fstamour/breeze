@@ -309,13 +309,13 @@ defun."
   ;; :expression for now.
   ;; (declare (context cl:defclass :slot-specifier))
   (declare (context :expression))
-  ;; TODO insert "~% " if necessary (need to make sure the buffer id
-  ;; in sync!)
   (let ((name (read-string "Name of the slot: "
                            :history 'slot)))
     (when (and name (plusp (length name)))
+      ;; TODO insert "~% " if necessary (need to make sure the buffer
+      ;; is in sync!)
       (insert
-       "(~a~
+       "~%(~a~
    ~%    :initform nil~
    ~%    :initarg :~@*~a~
    ~%    :accessor ~@*~a~

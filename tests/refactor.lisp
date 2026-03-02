@@ -310,6 +310,7 @@ dont Toggle header line
                         "sloot"
                         :history "breeze-insert-defclass--slot")
     (expect-insert (pop trace)
+                   ""
                    "(sloot"
                    "    :initform nil"
                    "    :initarg :sloot"
