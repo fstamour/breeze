@@ -194,9 +194,11 @@ defvar."
   (declare (context :top-level))
   (insert-defvar-shaped "define-constant"))
 
-(defun insert-defun-shaped (form-name &optional
-                                        (name-callback #'identity)
-                                        (arguments-callback #'identity))
+(defun insert-defun-shaped (form-name
+                            &key
+                              (name-callback #'identity)
+                              (arguments-callback #'identity)
+                              body)
   "Start a command to insert a form that has the same shape as a
 defun."
   (insert "(~a " form-name)
@@ -206,10 +208,13 @@ defun."
    ;; Who needs to loop...?
    "Enter the arguments: " "~a~%  "
    (alexandria:compose #'normalize-lambda-list arguments-callback))
-  #++ ;; TODO insert if not empty
   (read-string-then-insert
-   "Documentation string: " "  ~a)"
-   #'normalize-docstring))
+   "Documentation string: "
+   "  ~a~%"
+   #'normalize-docstring)
+  (when body
+    ;; TODO maybe a plain "insert" function would be useful
+    (insert "~a" body)))
 
 (define-command insert-defun ()
   "Insert a defun form."
@@ -222,8 +227,10 @@ defun."
   (declare (context :top-level))
   (insert-defun-shaped
    "defun"
+   :name-callback
    (lambda (name)
      (ensure-circumfixes '("(" "setf" " ") name ")"))
+   :arguments-callback
    (lambda (arguments)
      (if (string= "" arguments)
          "(new-value)"

@@ -86,7 +86,8 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
                              (breeze.command::send-out *command* request)
                              (setf input (breeze.command::recv)))
                             (t
-                             (error "Missing input for request ~S ~s" request input)))))
+                             (true nil
+                                   "Missing input for request ~S ~s" request input)))))
                      (:insert)
                      (:insert-saving-excursion)
                      (:message)

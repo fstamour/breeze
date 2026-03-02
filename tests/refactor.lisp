@@ -139,6 +139,8 @@ dont Toggle header line
         request)
     (let* ((lines-got (split-by-newline (second request)))
            (mismatch (mismatch lines lines-got :test #'string=)))
+      ;; TODO only do line-by-line comparison when there are more than
+      ;; one line
       (is equal lines lines-got
           "Line-by-line comparison:~%~{~s~%~}<--- mismatch here --->~%~{~s~^~%~}"
           (when mismatch
@@ -229,9 +231,9 @@ dont Toggle header line
 (define-test+run insert-defun
   :time-limit 0.1
   (let ((trace (drive-command 'insert-defun
-                              :inputs '("real-fun" "a &optional b")
+                              :inputs '("real-fun" "a &optional b" "docstring a")
                               :context '())))
-    (common-trace-asserts 'insert-defun trace 8)
+    (common-trace-asserts 'insert-defun trace 10)
     (expect-buffer-string (pop trace))
     (expect-insert (pop trace) "(defun ")
     (expect-insert-saving-excursion (pop trace) ")")
@@ -244,6 +246,16 @@ dont Toggle header line
      "a &optional b"
      :history "breeze-insert-defun")
     (expect-insert (pop trace) "(a &optional b)" "  ")
+    ;; TODO variant with empty docstring
+    (expect-read-string
+     (pop trace)
+     "Documentation string: "
+     "docstring a"
+     :history "breeze-insert-defun")
+    (expect-insert
+     (pop trace)
+     "  \"docstring a\""
+     "")
     (expect-done trace)))
 
 (define-test+run insert-defvar
@@ -318,9 +330,9 @@ dont Toggle header line
 (define-test+run insert-defmacro
   :time-limit 0.1
   (let ((trace (drive-command 'insert-defmacro
-                              :inputs '("mac" "(x) &body body")
+                              :inputs '("mac" "(x) &body body" "\"docstring b\"")
                               :context '())))
-    (common-trace-asserts 'insert-defmacro trace 8)
+    (common-trace-asserts 'insert-defmacro trace 10)
     (expect-buffer-string (pop trace))
     (expect-insert (pop trace) "(defmacro ")
     (expect-insert-saving-excursion (pop trace) ")")
@@ -333,6 +345,16 @@ dont Toggle header line
      "(x) &body body"
      :history "breeze-insert-defmacro")
     (expect-insert (pop trace) "(x) &body body)" "  ")
+    ;; TODO variant with empty docstring
+    (expect-read-string
+     (pop trace)
+     "Documentation string: "
+     "\"docstring b\""
+     :history "breeze-insert-defmacro")
+    (expect-insert
+     (pop trace)
+     "  \"docstring b\""
+     "")
     (expect-done trace)))
 
 (define-test+run insert-defgeneric
