@@ -56,6 +56,7 @@
    #:insert-fancy-sbcl-shebang
    ;; Other commands
    #:declaim-inline
+   #:extract-as-defun
    #:quickinsert
    ;; TODO perhaps "quickfix" should go in "lint.lisp"
    #:quickfix))
@@ -610,6 +611,25 @@ TODO maybe find a better nomenclature?"
 (defparameter *qf* nil
   "Data from the latest quickfix invocation.
 For debugging purposes ONLY.")
+
+(define-command extract-as-defun ()
+  "Extract as defun."
+  ;; TODO if current node is a lamda, replace "lambda" by defun,
+  ;; choose a name, don't ask about the lamda-list (unless it's a
+  ;; closure!), and replace the expression by '<the-name> (or #'...)
+  ;;
+  ;; TODO if current node is whitespace-node-p, extract the "next"
+  ;; (non-comment or whitespace) node
+  (let* (($node (current-node-iterator))
+         ($top (top-level-node-iterator $node)))
+    ;; TODO replace $node by (<name> ...<args>)
+    ;; TODO (harder) detect "free" variables and use them to populate
+    ;; the lambda-list
+    (goto-char (start $top))
+    (insert-saving-excursion "~%~%")
+    (insert-defun-shaped
+     "defun"
+     :body (node-string $node))))
 
 (defun ensure-flat-list (x)
   "~(flatten (ensure-list))~"
