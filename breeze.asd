@@ -113,17 +113,19 @@
    (:file "suggestion"
     :depends-on ("listener"))
    (:file "package" :depends-on ("analysis"))
-
    (:file "lint" :depends-on ("analysis" "command"))
-   (:file "refactor" :depends-on ("cmds" "cl"
-                                         "indirection"
-                                         "workspace"))
    (:file "cmds/command-utils")
    (:module "cmds"
     :depends-on ("command" "cmds/command-utils"
                            "analysis"
-                           "configuration" "utils")
-    :components ((:file "blueprint")
+                           "configuration"
+                           "utils"
+                           "cl"
+                           "indirection"
+                           "workspace")
+    :components ((:file "refactor"
+                  :depends-on ("package-commands"))
+                 (:file "blueprint")
                  (:file "completion")
                  (:file "editing")
                  (:file "project")
@@ -135,7 +137,7 @@
                  (:file "egraph-commands")
                  (:file "invert")))
    (:file "breeze"
-          :depends-on ("configuration" "cmds")))
+    :depends-on ("configuration" "cmds")))
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
@@ -280,8 +282,8 @@
                  (:file "rewrite")))
    (:module "cmds"
     :depends-on ("command")
-    :components ((:file "other-files")))
-   (:file "refactor")
+    :components ((:file "refactor")
+                 (:file "other-files")))
    (:file "string-utils")
    (:file "utils")
    (:file "buffer")
