@@ -43,7 +43,7 @@ TODO
   (:documentation "Like cl:probe-file, but dispatches on FILE-SYSTEM.
 The real filesystem is represented by T."))
 
-(defmethod file-exists-p* ((file-system (eql t)) pathname)
+(defmethod file-exists-p ((file-system (eql t)) pathname)
   (probe-file pathname))
 
 (defun file-exists-p* (pathname)
