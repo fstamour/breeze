@@ -403,9 +403,17 @@ defun."
    ~%  \"Initialize an instance of the class ~~~:*~a~~)\"~
    ~%  (apply #'shared-initialize ~:*~a t initargs))"))
 
+(defun ensure-space ()
+  "Makes sure there is a space preceding the point."
+  (let ((node (previous-sibling (current-node))))
+    (when (and node
+               (not (whitespace-node-p node)))
+      (insert " "))))
+
 (define-command insert-lambda ()
   "Insert a lambda form."
   (declare (context :expression))
+  (ensure-space)
   (insert "(lambda (")
   (insert-saving-excursion "))"))
 

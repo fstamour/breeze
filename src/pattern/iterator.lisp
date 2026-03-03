@@ -507,6 +507,10 @@ depth of the tree."))
         (vector (aref subtree (1- pos)))
         (t nil)))))
 
+(defmethod previous-sibling ((iterator (eql nil)))
+  "Get the previous value at the same depth, or nil if there's is none."
+  nil)
+
 ;; TODO tests
 (defmethod next-sibling ((iterator tree-iterator))
   "Get the next value at the same depth, or nil if there's is none."
