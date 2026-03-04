@@ -222,7 +222,7 @@ first node being whitespaces.)"
         (error "This is a bug in ~s: ~s should have returned something, but it returned nil."
                'read-sharp-left-parens
                'read-parens))
-      (sharp-vector start (if form (current-position state) +end+)
+      (sharp-vector start (current-position state)
                     form
                     :errors `(;; TODO check that length is nil, or an
                               ;; integer greater or equal to zero
@@ -247,7 +247,7 @@ first node being whitespaces.)"
     ;; TODO it's possible that read-number returns NIL
     (multiple-value-bind (bits range)
         (read-number state 2)
-      (declare (ignore range))
+      (declare (ignore range bits))
       #++ (let ((token-length (- (cdr range) (car range))))
             ;; N.B. token-length _can_ be 0
             )

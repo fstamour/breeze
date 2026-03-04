@@ -93,8 +93,8 @@ after the list of superclasses) of a cl:defclass form.
                ,(if (eq t predicate)
                     (alexandria:symbolicate
                      name (if (position #\- (symbol-name name))
-                           '-p
-                           'p))
+                              '-p
+                              'p))
                     predicate)
                ;; lambda list
                ;; TODO don't refer to "nodes"
@@ -119,11 +119,12 @@ after the list of superclasses) of a cl:defclass form.
 ;;; print-object
        (defmethod print-object ((node ,name) stream)
          (let ((*print-case* :downcase))
+           ;; TODO pp is unused
            (flet ((pp (x)
-             (if (and x (symbolp x)
-                      (not (self-evaluating-symbol-p x)))
-                 (format stream "'~s" x)
-                 (prin1 x stream))))
+                    (if (and x (symbolp x)
+                             (not (self-evaluating-symbol-p x)))
+                        (format stream "'~s" x)
+                        (prin1 x stream))))
              (write-char #\( stream)
              ;; print the type of the node
              (write-string ,(let ((*print-case* :downcase))

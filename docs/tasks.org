@@ -422,3 +422,11 @@ that we just moved.
 :PROPERTIES:
 :ID:       3c5e297c-cd30-4dba-9197-71199f16225b
 :END:
+
+* TODO ci: make sure the autoloads are up-to-date
+:PROPERTIES:
+:ID:       f0cc75a5-7a7a-4f4b-ab1f-e9cb0b21c925
+:END:
+
+1. run ~make emacs/breeze-autoloads.el~
+2. check if =emacs/breeze-autoloads.el= has any changes

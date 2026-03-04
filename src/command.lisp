@@ -566,6 +566,7 @@ POSITION."
    "insert"
    (format* control-string args)))
 
+;; TODO rename to "insert-after-point"
 (defun insert-saving-excursion (control-string &rest args)
   "Send a message to the editor telling it to insert STRING at
 POSITION, saving and restoring the current position."
