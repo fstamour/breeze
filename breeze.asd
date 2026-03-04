@@ -125,6 +125,14 @@
                            "workspace")
     :components ((:file "refactor"
                   :depends-on ("package-commands"))
+                 (:file "boilerplate"
+                  :depends-on ("refactor"))
+                 (:file "quickfix"
+                  :depends-on ("refactor"))
+                 (:file "quickinsert"
+                  :depends-on ("boilerplate"))
+                 (:file "breeze-commands"
+                  :depends-on ("refactor"))
                  (:file "blueprint")
                  (:file "completion")
                  (:file "editing")

@@ -21,7 +21,8 @@ dont Toggle header line
                 #:define-command
                 #:insert
                 #:choose
-                #:outer-node)
+                #:outer-node
+                #:command-description)
   (:import-from #:breeze.generics
                 #:eqv)
   (:import-from #:breeze.workspace

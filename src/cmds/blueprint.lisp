@@ -18,3 +18,15 @@ patterns need docstring/documentation/prompt
 insert-symbol
 ensure-sym (convert symbol to sym)
 |#
+
+#++ ;; TODO snippet draft:
+`(define-command (:the symbol ?name) () \n
+   (fmt "\"~@(~a~).\"" ?name))
+
+;; DSL:
+#++
+((sym "make-array" "cl")
+ '(0)
+ :element-type <>
+ :adjustable t
+ :fill-pointer t)
