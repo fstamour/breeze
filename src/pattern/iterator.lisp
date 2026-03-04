@@ -65,7 +65,8 @@ generalization of that first iteration (ha!).
    #:previous-sibling
    #:next-sibling
    #:previous-iterator
-   #:next-iterator)
+   #:next-iterator
+   #:map-subtree-preorder)
   ;; Other utility functions
   (:export
    #:firstp
@@ -429,6 +430,20 @@ depth of the tree."))
        (setf went-down t)
     :finally (when went-down
                (funcall hook-up))))
+
+(defmethod map-subtree-preorder ((iterator tree-iterator)
+                                 callback)
+  "Map over the subtree designated by ITERATOR, applying CALLBACK to the
+parent node then to the children."
+  (loop
+    :with initial-depth = (slot-value iterator 'depth)
+    :with initial-pos = (pos iterator)
+    :with positions = (slot-value iterator 'positions)
+    :while (and (not (donep iterator))
+                (= initial-pos
+                   (aref positions initial-depth)))
+    :do (funcall callback iterator)
+        (next-preorder iterator)))
 
 
 ;;; Other methods on vector-iterator
