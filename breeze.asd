@@ -113,7 +113,13 @@
    (:file "suggestion"
     :depends-on ("listener"))
    (:file "package" :depends-on ("analysis"))
-   (:file "lint" :depends-on ("analysis" "command"))
+   (:file "diagnostics")
+   (:file "defcheck")
+   (:module "checks"
+    :depends-on ("analysis" "command" "diagnostics" "defcheck")
+    :components ((:file "whitespaces-checks")
+                 (:file "package-checks")))
+   (:file "lint" :depends-on ("checks"))
    (:file "cmds/command-utils")
    (:module "cmds"
     :depends-on ("command" "cmds/command-utils"
@@ -143,7 +149,8 @@
                  (:file "other-files")
                  (:file "quicklisp")
                  (:file "egraph-commands")
-                 (:file "invert")))
+                 (:file "invert")
+                 (:file "configuration-commands")))
    (:file "breeze"
     :depends-on ("configuration" "cmds")))
   :in-order-to ((test-op (load-op breeze/test)))
