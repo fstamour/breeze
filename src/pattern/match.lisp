@@ -451,12 +451,12 @@ where consumed, for example)."
 
 (defmacro let-match ((pattern input
                        &key skipp
+                         (input-var (gensym "input"))
                          (substitution (gensym "substitution"))
                          (get-binding (gensym "get-bindings")))
                       &body body)
   (let* ((compiled-pattern (compile-pattern pattern))
-         (meta-variables (extract-names compiled-pattern))
-         (input-var (gensym "input")))
+         (meta-variables (extract-names compiled-pattern)))
     `(let* ((,input-var ,input)
             (,substitution
               (match ,compiled-pattern ,input-var :skipp ,skipp)))
