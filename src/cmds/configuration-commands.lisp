@@ -1,6 +1,8 @@
 (defpackage #:breeze.configuration-commands
   (:documentation "Commands to help configure breeze.")
-  (:use #:cl #:breeze.command
+  (:use #:cl
+        #:breeze.configuration
+        #:breeze.command
         #:breeze.command-utils)
   (:export #:open-config-file
            #:update-config-file
@@ -40,7 +42,7 @@ Generates the config file if it does not already exist."
 (define-command update-config-file ()
   "Create or update breeze's config file."
   (ensure-config-directory)
-  (let ((path (merge-pathnames "config.lisp" config-root)))
+  (let ((path (config-file-path)))
     (when (probe-file path)
       (unless (ask-y-or-n-p "This is going to overwrite the file ~s, are you sure?"
                             path)
