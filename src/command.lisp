@@ -574,6 +574,48 @@ POSITION, saving and restoring the current position."
    "insert-saving-excursion"
    (format* control-string args)))
 
+;; TODO WIP this is not used yet
+#|
+
+The idea is to add some :name (or :input-name) keyword argument to the primitive
+commands for user input (`read-string', `choose',
+`ask-y-or-n-p' (which uses `read-string' under the hood)) and
+automatically manage configurations to change the :initial-input and
+:history of these input.
+
+For example, the call to =(read-string "What's your name?" :input-name
+'user-name)= could automatically get the initial value from the
+current configuration.
+
+The main concern that I have at the moment is that this is
+somewhat "too dynamic", it would be nice to know before run-time what
+configurations is available to the user.
+
+In the same vein, it would be good if each "configuration" had a
+docstring and validators, etc... pretty much like emacs' customisation
+system.
+
+On the other hand... making this as simple as adding an :input-name to
+a function call is very appealing.
+
+|#
+(defun initial-input-config-key (name)
+  "Get the key used to get the initial-input value from the
+configurations.
+
+Takes a symbol, returns a list of two keywords corresponding to the
+symbol's package's name and the symbol's name.
+
+For example: (initial-input-config-key 'cl:+) => '(:cl :+)
+"
+  ;; TODO maybe also support `name' already being a (list keyword keyword)
+  ;; TODO maybe support lists of arbitrary length; this would behave like a path
+  (check-type name symbol)
+  (when name
+    (let ((config-package #.(find-package 'keyword)))
+      (list (intern (package-name (symbol-package name)) config-package)
+            (intern (symbol-name name) config-package)))))
+
 (defun history-name (name)
   "Get the name, as a string, of the variable used to store the
 history. Defaults to the name of the current command if NAME is
