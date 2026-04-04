@@ -12,6 +12,40 @@ folder.
 git clone --recursive git@codeberg.org:fstamour/breeze.git ~/quicklisp/local-projects/breeze
 #+end_src
 
+* Get the dependencies
+
+Obviously, you should have a lisp implementation installed. In doubt,
+just use [[https://www.sbcl.org/][sbcl]], it is very eazy to switch implementations anytime.
+
+For getting the libraries that breeze depends on, we suggest using
+[[https://www.quicklisp.org/beta/][quicklisp]], but in any case breeze only has 3 dependencies, of which
+only 2 needs to be installed (the other one, =uiop=, is part of =asdf=
+and is probably included with your lisp implementation):
+- [[https://gitlab.common-lisp.net/asdf/asdf/-/tree/master/uiop?ref_type=heads][=uiop=]], the Utilities for Implementation- and OS- Portability
+  - it is part of [[https://asdf.common-lisp.dev/][=asdf=]], so you should already have it.
+- [[https://gitlab.common-lisp.net/alexandria/alexandria][=alexandria=]] a conservative set of portable public domain utilities
+- [[https://github.com/sionescu/bordeaux-threads][=bordeaux-threads=]], portable threading library
+- (optional) [[https://www.xach.com/lisp/quickproject/][quickproject]]
+
+* Load it
+
+This will make sure that you have all the dependencies installed. And
+will make it load faster for next time. For example, if breeze is
+initialized by the editor, it would be much faster to load breeze if
+there are fast loading files (*.fasl) ready to be loaded.
+
+In the lisp repl of you choice:
+
+#+begin_src lisp
+;; Using quicklisp to install the dependencies as well as loading breeze
+(ql:quickload "breeze")
+#+end_src
+
+#+begin_src lisp
+;; If you already have the dependencies installed:
+(asdf:load-system "breeze")
+#+end_src
+
 * Getting started with Emacs
 :PROPERTIES:
 :ID:       3976965c-cb83-4901-9587-3897cc207682
@@ -20,7 +54,9 @@ git clone --recursive git@codeberg.org:fstamour/breeze.git ~/quicklisp/local-pro
 ** Load in emacs
 
 #+begin_src emacs-lisp
+;; add breeze to emacs' load path
 (add-to-list 'load-path "~/quicklisp/local-projects/breeze/emacs/")
+;; load the "autoload definitions"
 (require 'breeze-autoloads)
 #+end_src
 
