@@ -425,7 +425,7 @@ subpatterns."
     :accessor slots
     :documentation "A vector of slot-patterns.")))
 
- (defmethod make-load-form ((s object-pattern) &optional environment)
+(defmethod make-load-form ((s object-pattern) &optional environment)
   (make-load-form-saving-slots s :environment environment))
 
 ;; TODO test

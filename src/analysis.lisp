@@ -190,7 +190,7 @@ The designators can be strings, symbols or packages."
 ;; TODO swap the argument's order to match (ha!) let-match and match
 (defmacro with-match ((node-iterator pattern) &body body)
   `(let-match (,pattern ,node-iterator
-                        :skipp #'whitespace-or-comment-node-p)
+               :skipp #'whitespace-or-comment-node-p)
      ,@body))
 
 ;; TODO be able to name the "node-iterator" argument
