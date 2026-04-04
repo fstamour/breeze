@@ -574,14 +574,14 @@ POSITION, saving and restoring the current position."
    "insert-saving-excursion"
    (format* control-string args)))
 
-(defun history-name (history)
-  "Get the name. as a string, of the variable used to store the
-history. Defaults to the name of the current command if HISTORY is
+(defun history-name (name)
+  "Get the name, as a string, of the variable used to store the
+history. Defaults to the name of the current command if NAME is
 nil. Prepends th prefix \"breeze-\" if necessary."
+  (check-type name symbol)
   (breeze.string:ensure-prefix
    "breeze-"
-   (format nil "~(~a~@[--~a~]~)"
-           (fn *command*) history)))
+   (format nil "~(~a~@[--~a~]~)" (fn *command*) name)))
 
 (defun read-string (prompt &key initial-input history)
   "Send a message to the editor to ask the user to enter a string."
