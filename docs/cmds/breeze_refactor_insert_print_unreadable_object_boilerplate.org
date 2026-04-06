@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       8a2a7eb1-d596-41e7-bee4-4f893d427407
+:END:
+#+title: Command: ~breeze.refactor:insert-print-unreadable-object-boilerplate~
+
+#+begin_quote
+Insert a print-object method form.
+#+end_quote

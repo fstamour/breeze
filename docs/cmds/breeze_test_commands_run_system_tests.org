@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       c363bad1-73f2-4f1e-be8e-bd411969f7d3
+:END:
+#+title: Command: ~breeze.test-commands:run-system-tests~
+
+#+begin_quote
+Run a system's tests using ~(asdf:test-system)~.
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       67516a3f-6f9f-4aba-aab5-b11ec753df00
+:END:
+#+title: Command: ~breeze.refactor:insert-define-constant~
+
+#+begin_quote
+Insert a alexandria:define-constant form.
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       b0f15593-7b98-4f05-bea8-121a01461b26
+:END:
+#+title: Command: ~breeze.refactor:insert-lambda~
+
+#+begin_quote
+Insert a lambda form.
+#+end_quote

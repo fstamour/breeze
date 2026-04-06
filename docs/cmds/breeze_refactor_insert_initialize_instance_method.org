@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       07077a3f-084b-458a-90f1-0661dc862ffd
+:END:
+#+title: Command: ~breeze.refactor:insert-initialize-instance~method~
+
+#+begin_quote
+Insert a ~(defmethod initialize-instance ...)~ form.
+#+end_quote

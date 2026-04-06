@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       96d105c6-d28b-4bd3-beb8-995d953fa7a4
+:END:
+#+title: Command: ~breeze.listener:interactive-eval~
+
+#+begin_quote
+A command to interactively evaluate code.
+#+end_quote

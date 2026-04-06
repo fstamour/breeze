@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       ea1d381d-5d59-4649-bdc4-99f055c8fe5d
+:END:
+#+title: Command: ~breeze.refactor:insert-setf-defun~
+
+#+begin_quote
+Insert a setf function form e.g. ~(defun (setf ...) ...)~
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       0379c9a4-de66-487a-8087-91b54c128232
+:END:
+#+title: Command: ~breeze.refactor:insert-defconstant~
+
+#+begin_quote
+Insert a defconstant form.
+#+end_quote

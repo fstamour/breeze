@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       9045780f-a7cc-4286-8c3e-b320d64b34a5
+:END:
+#+title: Command: ~breeze.refactor:insert-loop-clause-for-hash~
+
+#+begin_quote
+Insert a loop clause to iterate on a hash-table.
+#+end_quote

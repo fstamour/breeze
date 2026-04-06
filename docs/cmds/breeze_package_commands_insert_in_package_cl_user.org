@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       b890c466-8515-4d5b-9fd7-bfdcbd80aabb
+:END:
+#+title: Command: ~breeze.package-commands:insert-in-package-cl-user~
+
+#+begin_quote
+Insert ~(cl:in-package #:cl-user)~.
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       a4591f01-9307-4836-8a73-91048c7c71f0
+:END:
+#+title: Command: ~breeze.other-files:other-file~
+
+#+begin_quote
+Open the alternative file for the current file.
+#+end_quote

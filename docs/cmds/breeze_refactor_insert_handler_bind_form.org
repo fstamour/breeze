@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       267e30d7-8bb9-4d53-957d-f8d0eda4f8a3
+:END:
+#+title: Command: ~breeze.refactor:insert-handler-bind-form~
+
+#+begin_quote
+Insert handler bind form.
+#+end_quote

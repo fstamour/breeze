@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       eacbba76-a44f-4f09-8d04-ba93a0f498bf
+:END:
+#+title: Command: ~breeze.refactor:insert-make-array~
+
+#+begin_quote
+Insert a make-array form.
+#+end_quote

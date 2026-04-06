@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       b84645ad-3ab7-4f42-8649-69146cd8fd3e
+:END:
+#+title: Command: ~breeze.editing:kill-sexp~
+
+#+begin_quote
+Kill the expression following point.
+#+end_quote

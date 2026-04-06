@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       761b2736-803b-4b2b-80bb-adfa22edf5c9
+:END:
+#+title: Command: ~breeze.package-commands:insert-local-nicknames~
+
+#+begin_quote
+Insert local nicknames.
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       707c9f7c-5f3a-4e35-9a1b-aa54b6f709f6
+:END:
+#+title: Command: ~breeze.package-commands:export-symbol-at-point~
+
+#+begin_quote
+Export symbol at point.
+#+end_quote

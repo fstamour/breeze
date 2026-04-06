@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       13b16b31-6ac3-49c8-acb0-537888b27bf2
+:END:
+#+title: Command: ~breeze.package-commands:goto-package-definition~
+
+#+begin_quote
+Goto package definition (of the current package).
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       72b61c62-65cb-4b54-9d93-c01da3a86401
+:END:
+#+title: Command: ~breeze.configuration-commands:reload-config~
+
+#+begin_quote
+Reload breeze's configuration file.
+#+end_quote

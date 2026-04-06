@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       caf8f777-fbd0-4df1-bba0-0037394de7f4
+:END:
+#+title: Command: ~breeze.test-commands:move-to-tests~
+
+#+begin_quote
+Move the code at point to a test file.
+#+end_quote

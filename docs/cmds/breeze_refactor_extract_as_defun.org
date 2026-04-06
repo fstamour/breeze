@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       cab52713-0a52-40a0-8ce0-bd45f91052db
+:END:
+#+title: Command: ~breeze.refactor:extract-as-defun~
+
+#+begin_quote
+Extract as defun.
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       2c650aa9-f9b6-491b-b1ea-df9a165afcc6
+:END:
+#+title: Command: ~breeze.test-commands:undefine-test-at-point~
+
+#+begin_quote
+Remove the test at point
+#+end_quote

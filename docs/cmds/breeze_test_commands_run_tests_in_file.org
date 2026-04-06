@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       9671babe-ea43-4bbe-bdec-afdc78f1f0e9
+:END:
+#+title: Command: ~breeze.test-commands:run-tests-in-file~
+
+#+begin_quote
+Run the all the tests in a file.
+#+end_quote

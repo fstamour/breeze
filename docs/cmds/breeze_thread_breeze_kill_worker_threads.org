@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       ed721787-7358-44ea-b15f-51167fffcbd7
+:END:
+#+title: Command: ~breeze.thread:breeze-kill-worker-threads~
+
+#+begin_quote
+Find threads named "worker", then destroy them.
+#+end_quote

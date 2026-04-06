@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       698f43e7-b550-468b-b812-3655c37cc775
+:END:
+#+title: Command: ~breeze.refactor:insert-defmethod~
+
+#+begin_quote
+Insert a defmethod form.
+#+end_quote

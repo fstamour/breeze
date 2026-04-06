@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       99a18730-e7be-4bc5-a933-e7a8a13190c9
+:END:
+#+title: Command: ~breeze.refactor:insert-defparameter~
+
+#+begin_quote
+Insert a defparameter form.
+#+end_quote

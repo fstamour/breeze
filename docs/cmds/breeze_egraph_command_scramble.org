@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       d7d533ec-a054-479d-b013-954ae41839f5
+:END:
+#+title: Command: ~breeze.egraph-command:scramble~
+
+#+begin_quote
+Scramble the code at point.
+#+end_quote

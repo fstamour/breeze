@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       058809b1-8405-4468-8351-db296d4c0810
+:END:
+#+title: Command: ~breeze.package-commands:previous-in-package~
+
+#+begin_quote
+Go to the nearest previous ~cl:in-package~ form.
+#+end_quote

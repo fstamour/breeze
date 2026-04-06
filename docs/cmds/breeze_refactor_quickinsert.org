@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       45aa9808-8e23-4d0a-978b-cd491c8159ca
+:END:
+#+title: Command: ~breeze.refactor:quickinsert~
+
+#+begin_quote
+Given the context, suggest applicable snippets.
+#+end_quote

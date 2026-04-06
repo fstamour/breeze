@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       5d15d8f0-630c-43bb-adc4-3a52e299f63b
+:END:
+#+title: Command: ~breeze.refactor:insert-defclass~
+
+#+begin_quote
+Insert a defclass form.
+#+end_quote

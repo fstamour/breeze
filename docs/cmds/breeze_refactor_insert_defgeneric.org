@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       0236df96-f773-4cf6-8a9e-4471d70a9d25
+:END:
+#+title: Command: ~breeze.refactor:insert-defgeneric~
+
+#+begin_quote
+Insert a defgeneric form.
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       cfa68ce0-4caf-4f5e-aae7-e224c98710de
+:END:
+#+title: Command: ~breeze.capture:capture~
+
+#+begin_quote
+Quickly create a lisp file in a pre-determined directory.
+#+end_quote

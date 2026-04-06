@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       268436b0-28eb-4de9-a49e-53616e28fdef
+:END:
+#+title: Command: ~breeze.test-commands:run-tests-in-suite~
+
+#+begin_quote
+Run the all the tests in a suite.
+#+end_quote

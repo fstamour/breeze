@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       30c20517-462d-48f1-a729-007b1f54213d
+:END:
+#+title: Command: ~breeze.refactor:insert-decoded-time-multiple-value-bind~
+
+#+begin_quote
+Insert a cl:multiple-value-bind form to bind the output of cl:get-decoded-time
+#+end_quote

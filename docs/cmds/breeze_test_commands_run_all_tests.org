@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       61e02bcd-8664-4245-b8e2-055ddbad0bb3
+:END:
+#+title: Command: ~breeze.test-commands:run-all-tests~
+
+#+begin_quote
+Run all the tests...
+#+end_quote

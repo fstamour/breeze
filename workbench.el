@@ -278,8 +278,61 @@ slime-net-processes
              (buffer-substring-no-properties (point-min) (point-max)))))))
     (save-buffer)))
 
+
+;;; Generating documentation file for each commands
 
+;; TODO this includes only the "breeze commands", it doesn't include
+;; the commands that are purely in emacs lisp, like `breeze-init'.
 
+(dolist (command (breeze-list-commands))
+  (let* ((symbol-name (get command 'breeze-symbol))
+         (slug (org-roam-node-slug
+                (org-roam-node-create :title symbol-name)))
+         (filename (expand-file-name (concat
+                                      "../../docs/cmds/"
+                                      slug
+                                      ".org")
+                                     breeze-breeze.el)))
+    (progn
+      ;; if (file-exists-p filename)
+      ;;    (message "already exists: %S" filename)
+      (save-window-excursion
+        ;; Open the file
+        (find-file filename)
+        ;; Go at the start of the buffer
+        ;; TODO maybe "unnarrow"
+        (goto-char (point-min))
+        ;; Set the title of the file
+        (org-roam-set-keyword
+         "title"
+         (concat "Command: ~" (downcase symbol-name) "~"))
+        ;; ensure the file has an ID property (required by org-roam to
+        ;; recognize the file as a node)
+        (org-id-get-create)
+        ;; remove extraneous newlines before the title
+        (save-excursion
+          (goto-char (point-min))
+          (when (search-forward "\n\n#+title:" nil t)
+            (replace-match "\n#+title:")))
+        ;; go just after the file's title
+        (goto-char (point-min))
+        (search-forward "#+title:")
+        (forward-line 1)
+        ;; delete up to "Example" or to the end of the file
+        (let ((start (point))
+              (end (point-max)))
+          (when (search-forward "* Example" nil t)
+            (beginning-of-line)
+            (setf end (point)))
+          (delete-region start end))
+        ;; insert the command's docstring
+        (insert "\n#+begin_quote\n"
+                (documentation command t)
+                "\n#+end_quote\n\n")
+        ;; Save!
+        (save-buffer)))))
+
+
 
 (documentation 'breeze-quickfix t)
-(symbol-plist )
+(symbol-plist 'breeze-quickfix)

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       6f2a27d3-0780-470c-ba0a-bcb8efe9f0f2
+:END:
+#+title: Command: ~breeze.refactor:insert-defvar~
+
+#+begin_quote
+Insert a defvar form.
+#+end_quote

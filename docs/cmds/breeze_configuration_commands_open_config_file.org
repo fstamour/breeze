@@ -1,0 +1,9 @@
+:PROPERTIES:
+:ID:       b1b36fda-8e67-4db7-9d46-a17e3484917e
+:END:
+#+title: Command: ~breeze.configuration-commands:open-config-file~
+
+#+begin_quote
+Open breeze's config file.
+Generates the config file if it does not already exist.
+#+end_quote

@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       15126f3a-07c8-4f8a-9e87-fcca74bbf55e
+:END:
+#+title: Command: ~breeze.test-commands:run-tests-in-package~
+
+#+begin_quote
+Run the all the tests in a package.
+#+end_quote

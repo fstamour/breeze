@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       adb46ed3-3b7b-461e-9ffc-da673419c29b
+:END:
+#+title: Command: ~breeze.refactor:insert-fancy-sbcl-shebang~
+
+#+begin_quote
+Insert fancy sbcl shebang at the start of the buffer.
+#+end_quote

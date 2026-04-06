@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       bffcfa8b-63a1-4070-9ccc-f6938932df75
+:END:
+#+title: Command: ~breeze.refactor:quickfix~
+
+#+begin_quote
+Given the context, suggest some applicable commands.
+#+end_quote

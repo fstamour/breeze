@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       60f39667-aca0-4c0c-afb6-ccef59527a9c
+:END:
+#+title: Command: ~breeze.refactor:insert-make-load-form-boilerplate~
+
+#+begin_quote
+Insert a make-load-form method form.
+#+end_quote

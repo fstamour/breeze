@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       663dc5ae-ad4e-443c-8f86-3fec1dbdb14b
+:END:
+#+title: Command: ~breeze.other-files:other-file-other-window~
+
+#+begin_quote
+Open the alternative file for the current file, in another window.
+#+end_quote

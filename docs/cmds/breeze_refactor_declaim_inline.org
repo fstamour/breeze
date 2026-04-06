@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       c32d562a-f5f0-4063-9536-5a0186a8fb5d
+:END:
+#+title: Command: ~breeze.refactor:declaim-inline~
+
+#+begin_quote
+Declaim inline the current top-level function.
+#+end_quote

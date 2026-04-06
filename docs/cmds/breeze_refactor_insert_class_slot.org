@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       2e84d548-a481-47b5-9c5d-1fb003ce7bad
+:END:
+#+title: Command: ~breeze.refactor:insert-class-slot~
+
+#+begin_quote
+Insert a defclass slot form.
+#+end_quote

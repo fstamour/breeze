@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       6e5d56f1-128c-4b45-a5d2-c75374ad0b22
+:END:
+#+title: Command: ~breeze.refactor:insert-breeze-define-command~
+
+#+begin_quote
+Insert a breeze:define-command form.
+#+end_quote

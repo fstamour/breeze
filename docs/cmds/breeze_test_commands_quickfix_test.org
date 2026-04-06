@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       bbfa431b-3657-48a5-becd-4b04be58b22c
+:END:
+#+title: Command: ~breeze.test-commands:quickfix-test~
+
+#+begin_quote
+Tries to fix the test(s) automagically.
+#+end_quote

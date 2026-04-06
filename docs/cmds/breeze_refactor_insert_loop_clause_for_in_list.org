@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       ef2777d4-add2-4394-b188-b9d35108f944
+:END:
+#+title: Command: ~breeze.refactor:insert-loop-clause-for-in-list~
+
+#+begin_quote
+Insert a loop clause to iterate in a list.
+#+end_quote

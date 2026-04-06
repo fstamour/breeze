@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       9534b338-9b57-4d1a-a220-872ec3bbee3b
+:END:
+#+title: Command: ~breeze.refactor:insert-defun~
+
+#+begin_quote
+Insert a defun form.
+#+end_quote

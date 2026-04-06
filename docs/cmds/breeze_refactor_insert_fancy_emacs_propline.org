@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       5169fc34-f494-4a8e-b720-2b387df0bcc2
+:END:
+#+title: Command: ~breeze.refactor:insert-fancy-emacs-propline~
+
+#+begin_quote
+Insert a fancy emacs propline.
+#+end_quote

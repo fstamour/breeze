@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       55795355-404c-4f45-83c7-4d36dab2ead4
+:END:
+#+title: Command: ~breeze.configuration-commands:update-config-file~
+
+#+begin_quote
+Create or update breeze's config file.
+#+end_quote

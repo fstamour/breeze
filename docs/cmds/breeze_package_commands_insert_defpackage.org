@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       340e3231-79d0-487a-b490-6c6d923ce96b
+:END:
+#+title: Command: ~breeze.package-commands:insert-defpackage~
+
+#+begin_quote
+Insert a defpackage form.
+#+end_quote
