@@ -746,7 +746,7 @@ listener."
   (interactive)
   (breeze-ensure-listener)
   (unless (breeze-listener-connected-p nil)
-    (breeze-wait-for-listener ()))
+    (breeze-wait-for-listener))
   ;; wait for the most recent request to finish
   (breeze-%listener-funcall 'sync)
   (let ((initialized nil))
