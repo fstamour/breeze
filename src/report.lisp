@@ -36,7 +36,9 @@ TODO Split comment/paragraphs when the line starts with "TODO"
            #:remove-leading-semicolons)
   (:export #:link-to-id
            #:link-to-file
-           #:link-to-page))
+           #:link-to-page)
+  ;; TODO this could go into its own "html formatter"
+  (:export #:render-buffer-to-html))
 
 (in-package #:breeze.report)
 
@@ -248,6 +250,20 @@ newlines or more marks the start of a new paragraph)."
     (t (format out "<span class=\"~a\">~a</span>"
                (string-downcase (node-type node))
                (escaped-node-content state node)))))
+
+;; TODO perhaps show where the point is
+;; TODO show diagnostics
+(breeze:define-command render-buffer-to-html ()
+  "Render the current buffer to html."
+  (breeze:return-value-from-command
+   (with-output-to-string (out)
+     (let* ((buffer (breeze:current-buffer))
+            (state (breeze.buffer:parse-state buffer)))
+       (format out "~%<pre class=\"src\"><code>")
+       (map nil (lambda (node)
+                  (render-node out state node))
+            (breeze.parser:tree state))
+       (format out "~%</code></pre>")))))
 
 (defun render-page (out state page)
   "Render 1 page as html, where PAGE is a list of nodes."
