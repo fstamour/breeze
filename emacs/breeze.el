@@ -494,7 +494,8 @@ commands in emacs."
                                (breeze-run-command ,symbol ,@lambda-list)
                              (breeze--stub ,symbol))))))
           (insert (format "%S\n" defun))
-          (insert (format "%S\n" `(setf (get ',name 'breeze-command-p) t))))))
+          (insert (format "%S\n" `(setf (get ',name 'breeze-command-p) t
+                                        (get ',name 'breeze-symbol) ,symbol))))))
     ;; (debug)
     (eval-buffer)))
 
