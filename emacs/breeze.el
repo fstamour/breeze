@@ -102,13 +102,14 @@ FUNCTION is not added if already present."
   "Check if either sly or slime is loaded and connected."
   (or (breeze-sly-connected-p)
       (breeze-slime-connected-p)
-      (breeze-inf-lisp-connected-p)
+      ;; (breeze-inf-lisp-connected-p)
       (and errorp
            (error "Please start either slime, sly or inferior-lisp."))))
 
 (cl-defun breeze-list-loaded-listeners (&optional (errorp t))
   "Returns a list of loaded listeners (sly or slime)."
-  (or (breeze-keep-fbound '(slime sly inferior-lisp))
+  (or (breeze-keep-fbound '(slime sly ;; inferior-lisp
+                                  ))
       (and errorp
            (error "Please load either slime or sly."))))
 
