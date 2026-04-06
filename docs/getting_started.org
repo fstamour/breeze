@@ -3,7 +3,7 @@
 :END:
 #+title: Getting Started
 
-* Clone
+* Get breeze's code
 
 Clone this repository, for example, in quicklisp's local-projects
 folder.
@@ -27,7 +27,7 @@ and is probably included with your lisp implementation):
 - [[https://github.com/sionescu/bordeaux-threads][=bordeaux-threads=]], portable threading library
 - (optional) [[https://www.xach.com/lisp/quickproject/][quickproject]]
 
-* Load it
+* Load breeze and its dependencies in a common lisp process
 
 This will make sure that you have all the dependencies installed. And
 will make it load faster for next time. For example, if breeze is
@@ -53,38 +53,106 @@ In the lisp repl of you choice:
 
 ** Load in emacs
 
+First, you need to tell emacs where to look:
+
+#+name: load-path
 #+begin_src emacs-lisp
 ;; add breeze to emacs' load path
 (add-to-list 'load-path "~/quicklisp/local-projects/breeze/emacs/")
+
 ;; load the "autoload definitions"
 (require 'breeze-autoloads)
 #+end_src
 
+After this, whenever one of breeze's commands or functions is called,
+emacs will automatically load ~breeze.el~.
+
 ** Configure emacs to use =breeze-minor-mode=
+
+This will:
+- ensure that breeze is automatically initialised
+- will add a "header-line" that indicates whether there is an active
+  lisp connection.
+- introduce some key bindings (see [[id:934e7e97-4f46-4cfd-9843-fcace98cd17e][Keymap]]).
+
+*** Using =lisp-mode-hook=
 
 Add a hook to enable breeze's minor mode in =lisp-mode= automatically:
 
-The mode will add some bindings (most notably =C-.=, which is bound to
-the command =breeze-quickfix=).
-
+#+name: lisp-mode-hook
 #+begin_src emacs-lisp
+;; Enable breeze-minor-more whenever lisp-mode is enabled.
 (add-hook 'lisp-mode-hook #'enable-breeze-minor-mode)
 #+end_src
+
+*** Using sly or slime's =*-connected-hook=
+
+Emacs can also be configured to automatically initialize breeze when a
+new connection is created with sly or slime.
+
+Slime:
+#+name: slime-connected-hook
+#+begin_src emacs-lisp
+;; when slime is loaded, configure slime to initialise breeze once
+;; slime connects to lisp.
+(with-eval-after-load 'slime
+  (add-hook 'slime-connected-hook #'breeze-init))
+#+end_src
+
+Sly:
+#+name: sly-connected-hook
+#+begin_src emacs-lisp
+;; when sly is loaded, configure sly to initialise breeze once sly
+;; connects to lisp.
+(with-eval-after-load 'sly
+  (add-hook 'sly-connected-hook #'breeze-init))
+#+end_src
+
+*** Flymake
 
 Additionally, breeze can be used as a "on-the-fly" linter for common
 lisp source files by enabling flymake and configuring flymake to use
 breeze.
 
+#+name: flymake
 #+begin_src emacs-lisp
-;; Ensure breeze is loaded when a sly or slime connection is opened
-(breeze-enable-connected-hook)
+;; Add breeze to the list of flymake backends.
+(add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend)
+;; Automatically enable flymake-mode in breeze-minor-mode
+(add-hook 'breeze-minor-mode-hook (lambda () (flymake-mode 1)))
+#+end_src
 
-;; Enable flymake-mode in breeze-minor-mode
-(breeze-minor-mode-enable-flymake-mode)
+Bonus: tell eldoc to show all documentation at point. This should
+allow showing both sly and slime's autodoc along with any linter
+diagnostics if they are both available at point.
 
+#+name: eldoc
+#+begin_src emacs-lisp
 ;; Configure eldoc to show both documentation and flymake's messages
 ;; See https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc for a fancier solution
 (setf eldoc-documentation-strategy 'eldoc-documentation-compose)
+#+end_src
+
+** Other commands that could be interesting to bind to a key
+
+#+begin_src emacs-lisp
+;; Use breeze interactive-eval instead of sly or slime's
+(keymap-set breeze-minor-mode-map "C-M-x" #'breeze-interactive-eval)
+#+end_src
+
+** Example of emacs configuration
+
+#+begin_src emacs-lisp :noweb yes
+<<load-path>>
+
+<<lisp-mode-hook>>
+
+<<slime-connected-hook>>
+<<sly-connected-hook>>
+
+<<flymake>>
+
+<<eldoc>>
 #+end_src
 
 * TODO Configure breeze                                                 :doc:
@@ -102,3 +170,8 @@ breeze.
 - [[id:279c4ea6-2004-4a7a-a2c9-905f27fae42c][Contributing]]
 - [[id:bb5c6ad4-0f89-48aa-9295-13e5e248a897][Glossary]]
 - [[id:31236780-159e-4a58-9019-37f57f5b4997][FAQ from newbies about common lisp]]
+
+* Local variables :noexport:
+# local variables:
+# org-confirm-babel-evaluate: nil
+# end:

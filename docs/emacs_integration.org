@@ -69,6 +69,30 @@
 | breeze-move-to-tests                               | Move the code at point to a test file.                                          |              |
 | breeze-scramble                                    | Scramble the code at point.                                                     |              |
 
+* Keymap
+:PROPERTIES:
+:ID:       934e7e97-4f46-4cfd-9843-fcace98cd17e
+:END:
+
+#+begin_src emacs-lisp :exports results
+(add-to-list 'load-path "../emacs/")
+(require 'breeze)
+
+(defvar *keymaps-descriptions*)
+(setf *keymaps-descriptions*
+      (cl-loop for keymap-var in '(breeze-minor-mode-map
+                                   breeze-test-map)
+               collect
+               (save-window-excursion
+                 (describe-keymap keymap-var)
+                 (with-current-buffer (get-buffer "*Help*")
+                   (string-replace "\n[back]" ""
+                                   (buffer-string))))))
+
+(string-trim
+ (apply 'concat *keymaps-descriptions*))
+#+end_src
+
 * Initialisation of breeze
 :PROPERTIES:
 :ID:       156b2ecb-b87b-4ef8-b60b-e688d5da4bc1
