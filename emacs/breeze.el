@@ -948,13 +948,11 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 ;; (define-key breeze-minor-mode-map (kbd "C-c C-,") 'breeze-insert)
 (keymap-set breeze-minor-mode-map "M-RET" #'breeze-quickinsert)
 
-;; Analogous to org-goto
-(keymap-set breeze-minor-mode-map "C-c C-j" #'imenu)
-
-;; Analogous to Visual Studio Code's "quickfix"
 (keymap-set breeze-minor-mode-map "C-." #'breeze-quickfix)
-
-;; TODO M-n M-p https://www.gnu.org/software/emacs/manual/html_node/flymake/Finding-diagnostics.html
+;; C-. cannot be typed from a terminal; emacs would only receive "."
+;; instead. So we provide a second binding:
+(keymap-set breeze-minor-mode-map "C-c q" #'breeze-quickfix)
+;; TODO (keymap-set breeze-minor-mode-map "C-c Q" #'breeze-quickfix-all)
 
 (keymap-set breeze-minor-mode-map "M-p" #'breeze-previous-note)
 (keymap-set breeze-minor-mode-map "M-n" #'breeze-next-note)
@@ -1013,7 +1011,7 @@ Breeze minor mode is an Emacs minor mode that complements lisp-mode."
 (defun breeze-minor-mode-enable-flymake-mode ()
   "Configure a hook to enable flymake-mode when breeze-minor mode is enabled"
   (interactive)
-  (add-hook 'breeze-minor-mode-hook '(lambda () (flymake-mode 1)))
+  (add-hook 'breeze-minor-mode-hook #'(lambda () (flymake-mode 1)))
   (add-hook 'breeze-minor-mode-hook 'breeze-enable-flymake-backend)
   ;; actually enable flymake if breeze-minor-mode is already enabled.
   (when breeze-minor-mode
