@@ -9,6 +9,7 @@
   "emacs-sly"
   "emacs-org-roam"
   "emacs-htmlize"
+  "emacs-with-simulated-input"
 
   "sbcl-bordeaux-threads"
   "sbcl-alexandria"
