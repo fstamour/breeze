@@ -27,6 +27,7 @@
 (cl-pushnew
  `("breeze"
    :base-directory ,(file-name-concat *breeze-root* "docs/")
+   :recursive t
    :publishing-function org-html-publish-to-html
    :publishing-directory ,(file-name-concat *breeze-root* "public/")
 
@@ -34,12 +35,15 @@
    :creator "Francis St-Amour"
    :with-author nil
 
+   ;; See also: org-html-head-include-default-style,
+   ;; org-html-style-default, org-html-style
    :html-style nil
+   :html-head-include-default-style nil
 
    :html-validation-link nil
 
    :html-link-up ""                     ; this is the default
-   :html-link-home "index.html"
+   :html-link-home "/index.html"
 
    ;; this is a format string, the first %s is the up "url",
    ;; and the second is the "home" url. Here, we assume the
@@ -47,8 +51,8 @@
    :html-home/up-format "<div id=\"org-div-home-and-up\"> %s
  <a accesskey=\"H\" href=\"%s\"> HOME </a>
 </div>"
-   :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />
-<link rel=\"stylesheet\" type=\"text/css\" href=\"src-block.css\" />"
+   :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\" />
+<link rel=\"stylesheet\" type=\"text/css\" href=\"/src-block.css\" />"
 
    :auto-sitemap t
    ;; https://emacs.stackexchange.com/questions/70824/how-to-use-makeindex
