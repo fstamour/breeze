@@ -28,7 +28,10 @@
    #:ensure-suffixes
    #:ensure-circumfix
    #:ensure-circumfixes
-   #:with-fmt))
+   #:with-fmt
+   #:index-lines
+   #:position-to-line-col
+   #:line-content))
 
 (in-package #:breeze.string)
 
@@ -411,3 +414,38 @@ AROUND. Add elipseses before and after if necessary."
   `(labels ((,(intern "FMT") (&rest rest)
               (apply #'format ,stream-var rest)))
      ,@body))
+
+
+
+(defun index-lines (source)
+  "Build a vector of offsets where each line starts, for fast position lookups.
+For example, the Nth line starts just after the position stored in the
+N-1 th element of the vector (N-1 because the 0th is implicit)."
+  (coerce
+   (loop :for i :below (length source)
+         :when (char= (char source i) #\Newline)
+         :collect i)
+   'vector))
+
+(defun position-to-line-col (position line-index)
+  "Convert a character POSITION to (values line col), both 1-indexed,
+using a precomputed LINE-INDEX (see `index-line`)."
+  (loop
+    :for line :from 1
+    :for i :below (length line-index)
+    :for previous-newline := -1 :then newline
+    :for newline := (aref line-index i)
+    :while (< newline position)
+    :finally
+       (return (values line
+                       (- position previous-newline)))))
+
+(defun line-content (string line-number line-index)
+  "Return the content of the line LINE-NUMBER (1-indexed) in STRING without the
+trailing newline; using the index of newlines LINE-INDEX."
+  (let* ((i (1- line-number))
+         (line-start (if (= 1 line-number) 0 (1+ (aref line-index (1- i)))))
+         (line-end (if (< i (length line-index))
+                       (aref line-index i)
+                       (length string))))
+    (subseq string line-start line-end)))

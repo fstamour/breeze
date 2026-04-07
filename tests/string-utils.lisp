@@ -166,3 +166,32 @@
   (is equal "(setf a)" (ensure-circumfixes '("(" "setf" " ") "setf a)" '(")")))
   (is equal "(setf a)" (ensure-circumfixes '("(" "setf" " ") " a)" '(")")))
   (is equal "(setf a)" (ensure-circumfixes '("(" "setf" " ") "a)" '(")"))))
+
+(define-test+run "line index"
+  (is equalp #() (index-lines ""))
+  (is equalp #(0) (index-lines (format nil "~%")))
+  (is equalp #(1) (index-lines (format nil " ~%")))
+  (is equalp '(" " "a" "b" "ccc" "")
+      (let* ((string (format nil " ~%a~%b~%ccc~%~%"))
+             (line-index (index-lines string)))
+        (loop :for i :below (count #\Newline string)
+              :collect (line-content string (1+ i) line-index))))
+  (is equalp '((1 1) (1 2)
+               (2 1) (2 2)
+               (3 1) (3 2)
+               (4 1) (4 2) (4 3) (4 4))
+      (let* ((string (format nil " ~%a~%b~%ccc~%"))
+             (line-index (index-lines string)))
+        (loop :for i :from 0
+              :for c :across string
+              :collect (multiple-value-list (position-to-line-col i line-index)))))
+  (is equalp '((1 1)
+               (2 1)
+               (3 1) (3 2)
+               (4 1) (4 2)
+               (5 1))
+      (let* ((string (format nil "~%~%a~%b~%~%"))
+             (line-index (index-lines string)))
+        (loop :for i :from 0
+              :for c :across string
+              :collect (multiple-value-list (position-to-line-col i line-index))))))
