@@ -664,7 +664,9 @@ Example:
 "))
 
 (defmethod eqv ((a iterator-value) (b iterator))
-  (eqv (value a) (value b)))
+  (unless (donep b)
+    (eqv (value a) (value b))))
 
 (defmethod eqv ((a iterator) (b iterator-value))
-  (eqv (value a) (value b)))
+  (unless (donep a)
+    (eqv (value a) (value b))))
