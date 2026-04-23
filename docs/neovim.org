@@ -26,7 +26,12 @@ NOT IMPLEMENTED, this is a design document (for the moment)
 :ID:       f66155a2-d4fd-4aef-8336-8210cd472735
 :END:
 
-** TODO vlime
+** vlime
+:PROPERTIES:
+:ID:       0a99239f-3950-4579-9797-ce718e2d5e9b
+:END:
+
+See [[id:5caac65d-2e3d-44f0-8d51-5bb74df332ef][vlime]]
 
 ** slimv
 

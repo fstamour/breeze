@@ -1,0 +1,28 @@
+:PROPERTIES:
+:ID:       5caac65d-2e3d-44f0-8d51-5bb74df332ef
+:END:
+#+title: vlime
+
+https://github.com/vlime/vlime
+
+- written in vimscript
+- wraps swank in json
+- doesn't come with paredit or equivalent
+
+#+begin_quote
+It provides REPL integration, as well as omni-completions, cross
+reference utilities, a nice inspector, debugger support, and many
+other great facilities to aid you in your glorious Common Lisp hacking
+quest.
+
+[...]
+
+Vlime consists of a server written in Common Lisp, and a client
+written in Vimscript.
+
+The server is basically a wrapped Swank server. The extra wrapper code
+translates the messages from JSON to Swank commands, and vise versa.
+
+The client handles user input, emits JSON messages, and communicates
+with the server via Vim channels, or Neovim Jobs.
+#+end_quote
