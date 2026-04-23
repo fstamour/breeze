@@ -705,3 +705,8 @@ it would be nice to look for trailing parenthesis inside comments when
 some parenthesis are not closed correclty
 
 |#
+
+
+
+
+;; in typecase, you don't want 'nil as one of the types, you probably meant null
