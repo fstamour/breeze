@@ -81,6 +81,14 @@ The real filesystem is represented by T."))
 (defmethod eqv (a (b symbol))
   (eq a b))
 
+(defmethod eqv ((a symbol) (b (eql :_)))
+  "Don't care."
+  t)
+
+(defmethod eqv ((a (eql :_)) (b symbol))
+  "Don't care."
+  t)
+
 (defmethod eqv ((a (eql nil)) b)
   (eq a b))
 
