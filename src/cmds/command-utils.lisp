@@ -22,8 +22,6 @@
       (t (message "Aborted by user")
          (return-from-command)))))
 
-(defun node-at-point ())
-
 ;; TODO This should go in a file for "commands that uses parse trees"
 (defun pulse-node (node)
   (pulse (start node) (end node)))
