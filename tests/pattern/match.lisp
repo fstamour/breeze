@@ -368,6 +368,22 @@
   #++ ;; TODO non-greedy repetition
   (false (test-match pat 'c)))
 
+(define-test+run "match eithers - named"
+  ;; Non-iterator: a named either binds the matched value to the name.
+  (test-match* "named either matching first alternative"
+               '(:named ?x (:either a b)) 'a
+               (make-binding '?x 'a))
+  (test-match* "named either matching second alternative"
+               '(:named ?x (:either a b)) 'b
+               (make-binding '?x 'b))
+  (test-match* "named either with no match returns nil"
+               '(:named ?x (:either c d)) 'e
+               nil)
+  (test-match* "named either with sub-patterns that creates bindings should all be returned."
+               '((:named ?match (:either (x ?a) (y ?b)))) '#(x c)
+               (substitutions `((?match ,(iterator-value 'x))
+                                (?a ,(iterator-value 'c))))))
+
 ;; TODO test (:zero-or-more :wildcard)
 
 ;; TODO actually check the content of :$start and :$end

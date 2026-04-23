@@ -265,7 +265,14 @@ where consumed, for example)."
   (loop :for pat :across (patterns pattern)
         :for bindings = (match pat input :skipp skipp)
         :when bindings
-          :return (values bindings pat)))
+          :return
+          (let ((name (name pattern)))
+            (values (if name
+                        (merge-substitutions
+                         bindings
+                         (make-binding name input :pattern pattern))
+                        bindings)
+                    pat))))
 
 ;; TODO add test (:either (a) (b)): if no sub-pattern match, the
 ;; iterator should not be updated.
@@ -273,13 +280,21 @@ where consumed, for example)."
 ;; TODO add tests with and without skipp
 (defmethod match ((pattern either) (iterator iterator) &key skipp)
   "Match an `either' pattern against ITERATOR."
-  (let (($input (copy-iterator iterator)))
+  (let* (($before (copy-iterator iterator))
+         ($input (copy-iterator iterator)))
     (loop :for pat :across (patterns pattern)
           :for bindings = (match pat $input :skipp skipp)
           :when bindings
             :do
                (copy-iterator $input iterator)
-               (return (values bindings pat)))))
+               (return
+                 (let ((name (name pattern)))
+                   (values (if name
+                               (merge-substitutions
+                                bindings
+                                (make-binding name $before :pattern pattern))
+                               bindings)
+                           pat))))))
 
 
 ;;; repetitions
