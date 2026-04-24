@@ -165,7 +165,6 @@ The designators can be strings, symbols or packages."
   string
   quote
   quasiquote
-  dot
   comma
   sharp
   sharp-char

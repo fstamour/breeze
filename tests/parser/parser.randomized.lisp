@@ -21,7 +21,7 @@
                 #:read-line-comment
                 #:read-sharp-dispatching-reader-macro
                 #:read-quote
-                #:read-punctuation
+                #:read-pagebreak
                 #:read-block-comment
                 #:read-quoted-string
                 #:not-terminatingp

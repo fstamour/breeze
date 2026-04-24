@@ -988,21 +988,6 @@ This is a valid syntax:
 
 
 
-(defun test-read-dot (input expected-type)
-  (with-state (input)
-    (is-equalp* input
-                (read-punctuation state)
-                (when expected-type
-                  (dot 0 1))
-                'eqv)))
-
-(define-test+run read-dot
-  :depends-on (current-char)
-  (test-read-dot "" nil)
-  (test-read-dot " " nil)
-  (test-read-dot "." t))
-
-
 ;; TODO Add tests with VALIDP
 (define-test+run read-quoted-string
   :depends-on (at)
@@ -1104,6 +1089,10 @@ This is a valid syntax:
                    '(("Missing name after package marker.")))
   (test-read-token "::" 2 nil nil '(1 0)
                    '(("Missing name after package marker."))))
+
+;; (read-from-string "..") => error "too many dots"
+;; (read-from-string "..a") => '..a
+;; (read-from-string ".\\") => error "eof after single escape character
 
 ;; TODO read-extraneous-closing-parens
 

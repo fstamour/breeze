@@ -190,7 +190,7 @@
  read-block-comment
  read-line-comment
  read-sharp-dispatching-reader-macro
- read-punctuation
+ read-pagebreak
  ;; read-quoted-string
  read-string
  read-token

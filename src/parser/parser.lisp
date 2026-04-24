@@ -43,33 +43,14 @@ Returns the character read, or nil if the end was reached."
     (incf (current-position state))
     c))
 
-;; 2025-10-07 only used in read-number
-(defun read-while (state predicate &key (advance-position-p t)
-                                     (start (current-position state)))
-  "Returns nil or (list start end)"
-  (loop
-    ;; :for guard :from 0
-    :for pos :from start
-    :for c = (at state pos)
-    ;; :when (< 9000 guard) :do (error "read-while might be looping indefinitely...")
-    :do (when (or (null c) (not (funcall predicate c)))
-          (when (/= start pos)
-            (when advance-position-p (setf (current-position state) pos))
-            (return (range start pos)))
-          (return nil))))
-
-;; Will be useful for finding some synchronization points
-;;
 ;; 2023-05-20 not used anymore, since I refactored read-block-comment
-;;
-;; TODO maybe add a callback instead of building up a list... (not
-;; sure if it's worth it (performance-wise), it'll heavily depends on
-;; how and _if_ I use this).
+;; 2026-04-23 keeping it because it will be useful for finding
+;; synchronization points
 (defun find-all (needle string)
   (when (and (plusp (length needle))
              (plusp (length string)))
     (loop :for pos = (search needle string :start2 0)
-            :then (search needle string :start2 (+ pos (length needle)))
+          :then (search needle string :start2 (+ pos (length needle)))
           :while pos
           :collect pos)))
 
@@ -77,6 +58,8 @@ Returns the character read, or nil if the end was reached."
 ;;; Actual reader
 
 (defmacro defreader (name lambda-list &body body)
+  "defun with an extra &aux to save the current position when the
+function is called."
   (multiple-value-bind (required optional rest keyword allow-other-key-p aux)
       (alexandria:parse-ordinary-lambda-list lambda-list)
     (declare (ignore allow-other-key-p))
@@ -148,24 +131,24 @@ Returns the character read, or nil if the end was reached."
   (when (read-char= state #\;)
     (line-comment start (read-up-to-newline state))))
 
-;; TODO rename read-integer
-(defun read-number (state &optional (radix 10))
-  (when-let ((range (read-while state
-                                (lambda (char)
-                                  (digit-char-p char radix)))))
-    (values (parse-integer (source state)
-                           :start (start range)
-                           :end (end range)
+(defreader read-natural-number (&optional (radix 10))
+  (loop
+    :for pos :from start
+    :for char = (at state pos)
+    :do (when (or (null char) (not (digit-char-p char radix)))
+          (when (/= start pos)
+            (setf (current-position state) pos)
+            (return (values
+                     (parse-integer (source state)
+                           :start start
+                           :end pos
                            :radix radix)
-            ;; TODO this could be an actual `range' object...
-            range)))
+                     (range start pos))))
+          (return nil))))
 
-;;; TODO in the following read-sharp-* functions, number should be
-;;; renamed "prefix"
-
-(defun read-sharp-backslash (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-backslash (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\\)
     (decf (current-position state))
     (let ((token (when (valid-position-p state (1+ (current-position state)))
@@ -206,9 +189,9 @@ first node being whitespaces.)"
                    :end end
                    :children children)))
 
-(defun read-sharp-quote (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-quote (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\')
     (%read-sharp-any state start 'sharp-function)))
 
@@ -243,10 +226,10 @@ first node being whitespaces.)"
 (defun read-sharp-asterisk (state start length)
   (declare (ignore length))
   (when (read-char= state #\*)
-    ;; TODO instead or `read-number', use "read-while (not-terminatingp char)"
-    ;; TODO it's possible that read-number returns NIL
+    ;; TODO instead or `read-natural-number', use "read-while (not-terminatingp char)"
+    ;; TODO it's possible that read-natural-number returns NIL
     (multiple-value-bind (bits range)
-        (read-number state 2)
+        (read-natural-number state 2)
       (declare (ignore range bits))
       #++ (let ((token-length (- (cdr range) (car range))))
             ;; N.B. token-length _can_ be 0
@@ -258,9 +241,9 @@ first node being whitespaces.)"
       ;; TODO style #*0 => #*
       )))
 
-(defun read-sharp-colon (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-colon (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\:)
     (let* ((token-start (current-position state))
            (token (or (read-token state)
@@ -268,15 +251,15 @@ first node being whitespaces.)"
            (end (current-position state)))
       (sharp-uninterned start end token))))
 
-(defun read-sharp-dot (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-dot (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\.)
     (%read-sharp-any state start 'sharp-eval)))
 
 (defun %read-sharp-number (state start type radix)
-  "Read a number"
-  (let ((n (read-number state radix)))
+  "Helper for read-sharp-b (binary), read-sharp-o (octal) and read-sharp-x (hexa)"
+  (let ((n (read-natural-number state radix)))
     (make-instance
      type
      :start start
@@ -285,24 +268,24 @@ first node being whitespaces.)"
                    ;; TODO error message
                    ())))))
 
-(defun read-sharp-b (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-b (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char-equal state #\b)
     (%read-sharp-number state start 'sharp-binary 2)))
 
-(defun read-sharp-o (state start number)
+(defun read-sharp-o (state start prefix)
   (when (read-char-equal state #\o)
-    (if number
-        ;; TODO (if number) => invalid syntax
+    (if prefix
+        ;; TODO (if prefix) => invalid syntax
         (sharp-octal start +end+ nil
                      :errors `(;; TODO error message
                                ()))
         (%read-sharp-number state start 'sharp-octal 8))))
 
-(defun read-sharp-x (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-x (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char-equal state #\x)
     (%read-sharp-number state start 'sharp-hexa 16)))
 
@@ -314,7 +297,7 @@ first node being whitespaces.)"
 
        ;; Some ideas to improve error detection, reporting and correction
        ;;
-       ;; TODO here we could try to call "read-number" anyway
+       ;; TODO here we could try to call "read-natural-number" anyway
        ;;
        ;; TODO we could try with radix = 36 to be the "most
        ;; inclusive", if that fails we can tell the user "char <X> is
@@ -350,15 +333,15 @@ first node being whitespaces.)"
                     :errors `(("Illegal radix ~s, must be an integer between 2 and 36 (inclusively)." ,radix))))
       (t
        ;; TODO BUG: here we read an INTEGER, but it should be a RATIONAL
-       (let ((n (read-number state radix)))
+       (let ((n (read-natural-number state radix)))
          (sharp-radix start (if n (current-position state) +end+) n radix
                       :errors `(,@(unless n
                                 ;; TODO error message
                                 ()))))))))
 
-(defun read-sharp-c (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-c (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char-equal state #\c)
     (let ((form (read-parens state)))
       (sharp-complex start (if form (current-position state) +end+) form
@@ -375,64 +358,64 @@ first node being whitespaces.)"
                                  ;; TODO error message
                                  ()))))))
 
-(defun read-sharp-s (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-s (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char-equal state #\s)
     (%read-sharp-any state start 'sharp-structure)))
 
-(defun read-sharp-p (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-p (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char-equal state #\p)
     ;; TODO here we should expect a string
     (%read-sharp-any state start 'sharp-pathname)))
 
-(defun read-sharp-equal (state start number)
+(defun read-sharp-equal (state start prefix)
   (when (read-char= state #\=)
     (multiple-value-bind (end children)
         (read-any* state)
-      (sharp-label start end number children))))
+      (sharp-label start end prefix children))))
 
-(defun read-sharp-sharp (state start number)
+(defun read-sharp-sharp (state start prefix)
   (when (read-char= state #\#)
-    (let ((valid-number-p (and (integerp number)
-                               (<= 0 number))))
+    (let ((valid-number-p (and (integerp prefix)
+                               (<= 0 prefix))))
       ;; TODO it would be great if we could check if there's a
       ;; corresponding "#=" before.
       (sharp-reference start (if valid-number-p
                                  (current-position state)
                                  +end+)
-                       number
+                       prefix
                        ;; TODO add more precise errors
-                       :errors `(,@(unless (and number valid-number-p)
-                                     `(("Invalid label ~s, it must be an unsigned decimal integer." ,number))))))))
+                       :errors `(,@(unless (and prefix valid-number-p)
+                                     `(("Invalid label ~s, it must be an unsigned decimal integer." ,prefix))))))))
 
-(defun read-sharp-plus (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-plus (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\+)
     (%read-sharp-any state start 'sharp-feature)))
 
-(defun read-sharp-minus (state start number)
-  (declare (ignore number))
-  ;; TODO (if number) => invalid syntax
+(defun read-sharp-minus (state start prefix)
+  (declare (ignore prefix))
+  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\-)
     (%read-sharp-any state start 'sharp-feature-not)))
 
 ;; TODO add tests
-(defreader read-sharp-whitespace (start number)
+(defreader read-sharp-whitespace (start prefix)
   "Read \"#\" followed by a whitespace, this is invalid."
-  (declare (ignore number))
+  (declare (ignore prefix))
   (when-let ((c (current-char state)))
     (when (whitespacep c)
       (incf (current-position state))
       (sharp-unknown start (current-position state)
                      :errors `(("Invalid dispatch characters: ~a" ,(char-name c)))))))
 
-(defreader read-sharp-right-paren (start number)
+(defreader read-sharp-right-paren (start prefix)
   "Read \"#)\" which is invalid."
-  (declare (ignore number))
+  (declare (ignore prefix))
   (when-let ((c (current-char= state #\))))
     ;; TODO return something to tell the caller that parsing _could_
     ;; be started again from where there's a #\)yes
@@ -444,7 +427,7 @@ first node being whitespaces.)"
 (defreader read-sharp-dispatching-reader-macro ()
   "Read reader macros #..."
   (when (read-char= state #\#)
-    (let ((number (read-number state)))
+    (let ((prefix (read-natural-number state)))
       (if (null (current-char state))
           (sharp-unknown
            start +end+
@@ -452,7 +435,7 @@ first node being whitespaces.)"
           (or
            (some
             (lambda (fn)
-              (funcall fn state start number))
+              (funcall fn state start prefix))
             '(read-sharp-backslash
               read-sharp-quote
               read-sharp-left-parens
@@ -508,16 +491,13 @@ first node being whitespaces.)"
                                 ;; TODO error message
                                 ()))))))
 
-;; TODO this is also a weird function name... (its "historical")
-(defreader read-punctuation ()
-  "Read . or pagebreak (^L)"
-  (when-let* ((current-char (current-char state))
-              (foundp (assoc current-char
-                              '((#\. . dot)
-                                (#\page . page))
-                              :test #'char=)))
-    (prog1 (make-instance (cdr foundp) :start start :end (1+ start))
-      (incf (current-position state)))))
+;; TODO remove read-pagebreak: reading pagebreak separately from the
+;; other whitespace was a hack I introduced for rendering source code
+;; as html
+(defreader read-pagebreak ()
+  "Read pagebreak (^L)"
+  (when (read-char= state #\page)
+    (make-instance 'page :start start :end (1+ start))))
 
 (defun read-quoted-string (state delimiter escape &optional validp)
   "Read strings delimited by DELIMITER where the single escape character
@@ -589,6 +569,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
       :for char = (current-char state)
       :while (not-terminatingp char)
       :do (cond
+            ;; | => read until next |
             ((char= char #\|)
              (multiple-value-bind (range string)
                  (read-quoted-string state #\| #\\)
@@ -596,19 +577,23 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                (when (no-end-p range)
                  (setf end (end range))))
              (decf (slot-value (iterator state) 'position)))
+            ;; backslash: read next char and append it to the name
             ((char= char #\\)
              (next (iterator state))
              (let ((escaped-char (current-char state)))
                (when escaped-char
                  (write-char escaped-char name))))
+            ;; column: take note of its position
             ((char= char #\:)
              (write-string (get-output-stream-string name) prefix)
              (push (current-position state) markers))
+            ;; anything else: upcase and append to name
             (t
              (write-char
               ;; TODO this assumes *read-case* is :upcase
               (char-upcase char)
               name)))
+          ;; read next char
           (next (iterator state))
       :while (and (not-terminatingp (current-char state))
                   (not (donep state))))
@@ -699,7 +684,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                read-string
                read-line-comment
                read-quote
-               read-punctuation
+               read-pagebreak
                read-token
                read-parens                ; recursion
                read-extraneous-closing-parens))
