@@ -277,8 +277,7 @@ newline or +end+)
                            expected-pos
                            expected-children
                            expected-errors
-                           extra-initargs
-                           given-numeric-argument)
+                           extra-initargs)
   "Helps testing the read-sharp-* functions.
 
 SHARPSING-READER-FUNCTION is the function under test.
@@ -297,14 +296,11 @@ EXPECTED-END is the expected node's end. E.g. (true (eql expected-end (node-end 
 EXPECTED-POS is the expected position of the parser's state after the
 SHARPSING-READER-FUNCTION's execution.
 
-EXPECTED-CHILDREN is the expected list of node's children
-
-GIVEN-NUMERIC-ARGUMENT is passed to SHARPSING-READER-FUNCTION as the
-\"optional sequence of digits\" (in the hyperspec's words) read by
-the function read-sharp-dispatching-reader-macro
-"
-  (let* ((starting-position (if (listp input) (length (first input)) 1))
-         (input (if (listp input) (apply 'concatenate 'string input) input))
+EXPECTED-CHILDREN is the expected list of node's children"
+  ;; not using parse-integer's second return value for starting
+  ;; position because it will wrongly consider + and - as digits...
+  (let* ((starting-position (position-if-not (lambda (c) (digit-char-p c)) input :start 1))
+         (numeric-argument (parse-integer input :start 1 :junk-allowed t))
          (expected-end (or expected-end (length input)))
          (expected-pos (or expected-pos expected-end))
          (expected-children (if (listp expected-children)
@@ -313,10 +309,15 @@ the function read-sharp-dispatching-reader-macro
                                     (ensure-nodes expected-children)
                                     (first expected-children))
                                 expected-children)))
+    #|
+    NUMERIC-ARGUMENT is passed to SHARPSING-READER-FUNCTION as the ;
+    \"optional sequence of digits\" (in the hyperspec's words) read by ;
+    the function read-sharp-dispatching-reader-macro ;
+    |#
     (with-state (input)
       (setf (current-position state) starting-position)
-      ;;  make sure expected-children is nil for node types that don't
-      ;; support children.
+      ;; make sure expected-children is nil for node types that
+      ;; don't support children.
       (if (member node-type '(sharp-reference sharp-bitvector))
           (when expected-children
             (error "Node type ~s doesn't have a \"children\" slot, but expected-children is not nil, got: ~s."
@@ -337,10 +338,10 @@ the function read-sharp-dispatching-reader-macro
                               state
                               ;; Assumes we started reading the
                               ;; # as the first character.
-                              0 ;; TODO shouldn't this be "starting-position"?
-                              given-numeric-argument)
+                              0
+                              numeric-argument)
                 :form (list sharpsing-reader-function
-                            state 0 given-numeric-argument)
+                            state 0 numeric-argument)
                 :expected expected)))
         ;; Collecting samples for further tests
         (setf (gethash input *sharp-reader-test-cases*) expected)
@@ -356,16 +357,18 @@ the function read-sharp-dispatching-reader-macro
 
 ;;; #\
 
-(defun test-read-sharp-backslash (input expected-end expected-token-name)
+(defun test-read-sharp-backslash (input expected-end expected-token-name
+                                  &key expected-errors)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-backslash
    :node-type 'sharp-char
    :input input
    :expected-end expected-end
    :expected-children (unless (= +end+ expected-end)
-                        (token 1 expected-end
-                               :name expected-token-name))))
-
+                        (token (nth-value 1 (parse-integer input :start 1 :junk-allowed t))
+                               expected-end
+                               :name expected-token-name))
+   :expected-errors expected-errors))
 
 (define-test+run read-sharp-backslash
   (test-read-sharp-backslash "#\\a" 3 "a")
@@ -376,7 +379,8 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-backslash "#\\C(" 3 "C")
   (test-read-sharp-backslash "#\\de" 4 "dE")
   (test-read-sharp-backslash "#\\De" 4 "DE")
-  (test-read-sharp-backslash "#\\" +end+ nil)
+  (test-read-sharp-backslash "#\\" +end+ nil
+                             :expected-errors '(("Unterminated #\\")))
   (test-read-sharp-backslash "#\\ " 3 " ")
   (test-read-sharp-backslash "#\\  " 3 " ")
   (test-read-sharp-backslash "#\\Space" 7 "SPACE")
@@ -384,69 +388,88 @@ the function read-sharp-dispatching-reader-macro
   (test-read-sharp-backslash "#\\  Space" 3 " ")
   (test-read-sharp-backslash "#\\ Space" 8 " SPACE")
   (test-read-sharp-backslash "#\\bell" 6 "bELL")
-  (test-read-sharp-backslash "#\\;" 3 ";"))
+  (test-read-sharp-backslash "#\\;" 3 ";")
+  (test-read-sharp-backslash "#23\\a" 5 "a"
+                             :expected-errors '(("Reader macro #\\ does not support numeric arguments."))))
 
 
 ;;; #'
 
-(defun test-read-sharp-quote (input child expected-end)
+(defun test-read-sharp-quote (input child expected-end &key expected-errors)
   (test-read-sharp*
    :sharpsing-reader-function #'read-sharp-quote
    :node-type 'sharp-function
    :input input
    :expected-end expected-end
-   :expected-children child))
+   :expected-children child
+   :expected-errors expected-errors))
 
 (define-test+run read-sharp-quote
   (test-read-sharp-quote "#'" nil +end+)
   (test-read-sharp-quote "#' " (nodes (whitespace 2 3)) +end+)
   (test-read-sharp-quote "#'a" (nodes (token 2 3 :name "A")) 3)
   (test-read-sharp-quote "#' a" (nodes (whitespace 2 3)
-                                           (token 3 4 :name "A"))
-                             4)
+                                       (token 3 4 :name "A"))
+                         4)
   (test-read-sharp-quote "#'(lambda...)" (nodes (parens 2 13
                                                         (nodes (token 3 12 :name "LAMBDA..."))))
-                             13))
+                         13)
+  (test-read-sharp-quote
+   "#42'(lambda...)"
+   (nodes (parens 4 15
+                  (nodes (token 5 14 :name "LAMBDA..."))))
+   15
+   :expected-errors '(("Reader macro #' does not support numeric arguments."))))
 
 
 ;;; #(
 
-(defun test-read-sharp-left-parens (input child expected-end)
+(defun test-read-sharp-left-parens (input child expected-end
+                                    &key expected-errors)
   (test-read-sharp*
    :sharpsing-reader-function #'read-sharp-left-parens
    :node-type 'sharp-vector
    :input input
    :expected-end expected-end
-   :expected-children child))
+   :expected-children child
+   :expected-errors expected-errors))
 
 (define-test+run read-sharp-left-parens
   (test-read-sharp-left-parens "#()" (parens 1 3 nil) 3)
   (test-read-sharp-left-parens "#( )" (parens 1 4 (nodes (whitespace 2 3))) 4)
-  (test-read-sharp-left-parens '("#1" "()") (parens 2 4 nil) 4)
-  (test-read-sharp-left-parens '("#2" "( )") (parens 2 5 (nodes (whitespace 3 4))) 5))
+  (test-read-sharp-left-parens "#1()" (parens 2 4 nil) 4
+                               :expected-errors '(("Must supply at least one object when the length of a vector is non-zero.")))
+  (test-read-sharp-left-parens "#2( )" (parens 2 5 (nodes (whitespace 3 4))) 5
+                               :expected-errors '(("Must supply at least one object when the length of a vector is non-zero.")))
+  (test-read-sharp-left-parens "#1(1)" (parens 2 5 (nodes (token 3 4 :name "1"))) 5)
+  (test-read-sharp-left-parens "#1(1 2)" (parens 2 7 (nodes (token 3 4 :name "1")
+                                                            (whitespace 4 5)
+                                                            (token 5 6 :name "2"))) 7
+                               :expected-errors '(("There are more objects than the length of the vector."))))
+
+;; (trace test-read-sharp-left-parens read-sharp-left-parens is-equalp)
 
 
 ;;; #*
 
 ;; TODO sharp-bitvector doens't have children (for now at least)
-(defun test-read-sharp-asterisk (input &key child end n)
+(defun test-read-sharp-asterisk (input &key child end)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-asterisk
    :node-type 'sharp-bitvector
    :input input
    :expected-end end
-   :expected-children child
-   :given-numeric-argument n))
+   :expected-children child))
 
 (define-test+run read-sharp-asterisk
-  (test-read-sharp-asterisk '("#" "*"))
-  (test-read-sharp-asterisk '("#" "* ") :end 2)
-  (test-read-sharp-asterisk '("#" "*0"))
-  (test-read-sharp-asterisk '("#0" "*") :n 0)
-  (test-read-sharp-asterisk '("#2" "*0"))
-  (test-read-sharp-asterisk '("#2" "*0") :n 2)
+  (test-read-sharp-asterisk "#*")
+  (test-read-sharp-asterisk "#* " :end 2)
+  (test-read-sharp-asterisk "#*0")
+  (test-read-sharp-asterisk "#0*")
+  (test-read-sharp-asterisk "#2*0")
+  (test-read-sharp-asterisk "#2*0")
   ;; TODO this is actually a syntax error, as "101" is longer than 2
-  (test-read-sharp-asterisk '("#2" "*101") :n 2))
+  (test-read-sharp-asterisk "#2*101"))
 
 
 ;;; #:
@@ -573,31 +596,16 @@ the function read-sharp-dispatching-reader-macro
 
 ;;; #r sharp-radix
 
-(defun split-at (string char)
-  (let ((p (position-if (lambda (c)
-                          (char-equal c char))
-                        string)))
-    (list (subseq string 0 p)
-          (subseq string p))))
-
-;; (split-at "#01r23" #\r)
-;; => ("#01" "r23")
-
 (defun test-read-sharp-r (input &key end errors)
   (check-type input string)
-  (let* (;; assumes input is a string
-         (input (split-at input #\r))
-         ;; assumes input starts with #
-         (numeric-argument (let ((prefix (first input)))
-                             (when (< 1 (length prefix))
-                               ;; :start 1 to skip the "#"
-                               (parse-integer prefix :start 1))))
-         (child (let ((suffix (second input)))
-                  (when (< 1 (length suffix))
-                    ;; :start 1 to skip the "r"
-                    (ignore-errors
-                     (parse-integer suffix :start 1
-                                    :radix numeric-argument))))))
+  (let* (;; assumes input starts with #
+         (numeric-argument
+           ;; :start 1 to skip the "#"
+           (parse-integer input :start 1 :junk-allowed t))
+         (child (when (and numeric-argument (< 1 numeric-argument 37))
+                  (parse-integer input :start (1+ (position #\r input :test #'char-equal))
+                                       :radix numeric-argument
+                                       :junk-allowed t))))
     (test-read-sharp*
      :sharpsing-reader-function 'read-sharp-r
      :node-type 'sharp-radix
@@ -605,8 +613,7 @@ the function read-sharp-dispatching-reader-macro
      :expected-end end
      :expected-children child
      :extra-initargs `(:radix ,numeric-argument)
-     :expected-errors errors
-     :given-numeric-argument numeric-argument)))
+     :expected-errors errors)))
 
 (define-test+run read-sharp-r
   ;; no radix
@@ -703,30 +710,29 @@ the function read-sharp-dispatching-reader-macro
 
 ;;; #a
 
-(defun test-read-sharp-a (input &key child end n)
+(defun test-read-sharp-a (input &key child end)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-a
    :node-type 'sharp-array
    :input input
    :expected-end end
-   :expected-children child
-   :given-numeric-argument n))
+   :expected-children child))
 
 (define-test+run read-sharp-a
-  (test-read-sharp-a '("#" "a") :end +end+)
-  (test-read-sharp-a '("#" "a ") :end +end+)
-  (test-read-sharp-a '("#" "a0") :end +end+)
-  (test-read-sharp-a '("#0" "a") :end +end+)
-  (test-read-sharp-a '("#2" "a0") :end +end+)
-  (test-read-sharp-a '("#2" "a0") :end +end+)
+  (test-read-sharp-a "#a" :end +end+)
+  (test-read-sharp-a "#a " :end +end+)
+  (test-read-sharp-a "#a0" :end +end+)
+  (test-read-sharp-a "#0a" :end +end+)
+  (test-read-sharp-a "#2a0" :end +end+)
+  (test-read-sharp-a "#2a0" :end +end+)
   ;; TODO this is actually a syntax error, as "101" is longer than 2
-  (test-read-sharp-a '("#2" "a()") :child (parens 3 5 nil))
-  (test-read-sharp-a '("#2" "a(1 2)")
+  (test-read-sharp-a "#2a()" :child (parens 3 5 nil))
+  (test-read-sharp-a "#2a(1 2)"
                          :child (parens 3 8
                                         (nodes (token 4 5 :name "1")
                                                (whitespace 5 6)
                                                (token 6 7 :name "2"))))
-  (test-read-sharp-a '("#2" "A()") :child (parens 3 5 nil)))
+  (test-read-sharp-a "#2A()" :child (parens 3 5 nil)))
 
 
 ;;; #s
@@ -788,7 +794,6 @@ This is a valid syntax:
    :input input
    :expected-end end
    :expected-children child
-   :given-numeric-argument label
    :extra-initargs `(:label ,label)))
 
 (define-test+run read-sharp-equal
@@ -798,33 +803,33 @@ This is a valid syntax:
      :end +end+
      :child nil)
     (test-read-sharp-equal
-     '("#1" "=")
+     "#1="
      :child nil
      :end +end+
      :label 1)
     (test-read-sharp-equal
-     '("#2" "= ")
+     "#2= "
      :child (nodes (whitespace 3 4))
      :end +end+
      :label 2)
     (test-read-sharp-equal
-     '("#3" "=(foo)")
+     "#3=(foo)"
      :child (nodes (parens 3 8 (nodes (token 4 7 :name "FOO"))))
      :label 3)
     (test-read-sharp-equal
-     '("#4" "= (foo)")
+     "#4= (foo)"
      :child (nodes (whitespace 3 4) (parens 4 9 (nodes (token 5 8 :name "FOO"))))
      :label 4))
   (progn
     (test-read-sharp-equal
-     '("#" "=")
+     "#="
      :child nil
      :end +end+)
     (test-read-sharp-equal
-     '("#" "=(bar)")
+     "#=(bar)"
      :child (nodes (parens 2 7 (nodes (token 3 6 :name "BAR")))))
     (test-read-sharp-equal
-     '("#" "= (bar)")
+     "#= (bar)"
      :child (nodes (whitespace 2 3) (parens 3 8 (nodes (token 4 7 :name "BAR")))))))
 
 
@@ -838,16 +843,15 @@ This is a valid syntax:
    :input input
    :expected-end end
    :expected-errors errors
-   :extra-initargs `(:label ,label)
-   :given-numeric-argument label))
+   :extra-initargs `(:label ,label)))
 
 (define-test+run read-sharp-sharp
   (test-read-sharp-sharp
    "##"
    :end +end+
    :errors '(("Invalid label ~s, it must be an unsigned decimal integer." nil)))
-  (test-read-sharp-sharp '("#1" "#") :label 1)
-  (test-read-sharp-sharp '("#2" "# ") :label 2 :end 3))
+  (test-read-sharp-sharp "#1#" :label 1)
+  (test-read-sharp-sharp "#2# " :label 2 :end 3))
 
 
 ;;; #+
@@ -1110,7 +1114,7 @@ This is a valid syntax:
   (test-read-parens "(" +end+ '(("Missing closing parenthesis.")))
   (test-read-parens "()" 2 nil)
   (test-read-parens "(x)" 3 nil (token 1 2 :name "X"))
-  (test-read-parens "(.)" 3 nil (dot 1 2))
+  (test-read-parens "(.)" 3 nil (token 1 2 :name "."))
   (test-read-parens "( () )" 6 nil
                     (whitespace 1 2)
                     (parens 2 4 nil)
@@ -1177,7 +1181,8 @@ This is a valid syntax:
                                 (token 2 6 :name "ASDF")))
   (test-parse "#2()"
               (sharp-vector 0 4
-                            (parens 2 4 nil)))
+                            (parens 2 4 nil)
+                            :errors '(("Must supply at least one object when the length of a vector is non-zero."))))
   (test-parse "#<>" (sharp-unknown 0 +end+))
   (test-parse "#+ x" (sharp-feature 0 4
                                     (nodes
@@ -1209,18 +1214,15 @@ This is a valid syntax:
                     0 +end+ (nodes (sharp-unknown
                                     1 +end+
                                     :errors '(("Unterminated dispatch character reader macro."))))
-                    :errors '(("Missing closing parenthesis."))))
+                    :errors '(("Missing closing parenthesis.")
+                              ("Unterminated dispatch character reader macro."))))
   (test-parse "(#)"
               (parens
                0 3
-               (nodes (sharp-unknown
-                       1 2
-                       :errors '(("Invalid dispatch characters: ) (right parenthesis)")))))
-              ;; TODO in the future, I would like to see both errors
-              #++
-              (parens
-               0 +end+ (nodes (sharp-unknown 1 +end+))
-               :errors '(("Missing closing parenthesis."))))
+               (nodes (sharp-unknown 1 2 :errors '(("Invalid dispatch characters: ) (right parenthesis)"))))
+               ;; TODO in the future, I would like to see both errors
+               ;; :errors '(("Missing closing parenthesis."))
+               ))
 
   ;; This shows that parsing stops when an error is encountered (or at
   ;; least when a node has `no-end-p'
@@ -1230,12 +1232,10 @@ This is a valid syntax:
                (nodes (sharp-unknown
                        1 2
                        :errors '(("Invalid dispatch characters: ) (right parenthesis)")))))
+              (whitespace 3 4)
               ;; TODO in the future, I would like to see both errors
-              #++
-              (parens
-               0 +end+ (nodes (sharp-unknown 1 +end+))
-               :errors '(("Missing closing parenthesis.")))
-              #++ (whitespace 3 4))
+              ;; :errors '(("Missing closing parenthesis."))
+              )
   ;; TODO it would be nice if the "#' node would have an error instead
   ;; of "parens" missing a closing parenthesis and getting an
   ;; "extraneous-closing-parens" node
@@ -1273,9 +1273,10 @@ This is a valid syntax:
                                  (token 1 11 :name "IN-PACKAGE")
                                  (whitespace 11 12)
                                  (sharp-unknown
-                                  12 -1
-                                  :errors '(("Invalid dispatch characters: ~a" "RIGHT_PARENTHESIS"))))
-                                :errors '(("Missing closing parenthesis."))))
+                                  12 13
+                                  :errors '(("Invalid dispatch characters: ) (right parenthesis)"))))
+                                ;; TODO :errors '(("Missing closing parenthesis."))
+                                ))
   (test-parse "(in-package # )" (parens
                                  0 15
                                  (nodes

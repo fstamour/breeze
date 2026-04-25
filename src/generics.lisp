@@ -100,13 +100,16 @@ The real filesystem is represented by T."))
 
 (defmethod eqv ((a sequence) (b sequence))
   (or (eq a b)
-      (= (length a) (length b))
-      (every #'eqv a b)))
+      (and (= (length a) (length b))
+           (every #'eqv a b))))
 
 (defmethod eqv ((a cons) (b cons))
   (or (eq a b)
       (loop :for x :on a
             :for y :on b
+            :when (or (and (null (cdr x)) (cdr y))
+                      (and (cdr x) (null (cdr y))))
+              :return nil
             :always (eqv (car x) (car y)))))
 
 ;; TODO this is utterly untested (not even in the repl)

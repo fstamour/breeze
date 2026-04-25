@@ -49,7 +49,6 @@
            #:string-node
            #:quote-node
            #:quasiquote
-           #:dot
            #:page
            #:comma
            #:comma-at
@@ -174,7 +173,8 @@
   (and (eq (node-type a)
            (node-type b))
        (range= a b)
-       (eqv (children a) (children b))))
+       (eqv (children a) (children b))
+       (eqv (errors a) (errors b))))
 
 (defmethod eqv ((a node) (b node))
   (node= a b))
@@ -241,6 +241,16 @@
 ;; TODO
 (defgeneric copy-node (node))
 
+(defun normalize-errors (errors)
+  (if (stringp errors)
+      (list (list errors))
+      (loop :for error :in errors
+            :when error
+              :if (stringp error)
+                :collect (list error)
+            :else
+              :collect error)))
+
 (defmacro define-node-type (name
                             (&key
                                (superclass 'node)
@@ -258,9 +268,7 @@
                                positional-args))
         :keyword-args (errors)
         :constructor ,(when constructor
-                        `(:let* ((errors (if (stringp errors)
-                                             (list (list errors))
-                                             errors)))))
+                        `(:let* ((errors (normalize-errors errors)))))
         :predicate ,(intern (breeze.string:ensure-suffixes
                              '("-NODE" "-P")
                              (symbol-name name))))
@@ -306,7 +314,6 @@
 (define-node-type string-node ())
 (define-node-type quote-node (:children t))
 (define-node-type quasiquote (:children t))
-(define-node-type dot ())
 (define-node-type comma (:children t))
 (define-node-type comma-dot (:children t))
 (define-node-type comma-at (:children t))

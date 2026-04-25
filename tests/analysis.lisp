@@ -118,7 +118,7 @@
     (is eq nil (test-match-parse (sym nil :wild :wild) "x"))
     (is eq nil (test-match-parse (sym :keyword :wild :wild) "x"))
     #++ ;; TODO need some kind of *current-package* here, because it
-        ;; cannot be reliably inferred from the string alone.
+    ;; cannot be reliably inferred from the string alone.
     (progn
       (is eq nil (test-match-parse (sym :cl :wild :wild) "x"))
       (is eq nil (test-match-parse (sym #.*package* :wild :wild) "x"))
@@ -960,7 +960,7 @@ SEARCH-STRING.  Useful for simulating 'cursor inside a form'."
 (defun test-npp (description &key matcher string at expect)
   "Test normalize-pattern-predicate."
   (is eqv expect (funcall (normalize-pattern-predicate matcher)
-                         (iterator-at string :at at))
+                          (iterator-at string :at at))
       "the matcher ~s ~a"
       matcher
       description))
@@ -1077,9 +1077,9 @@ SEARCH-STRING.  Useful for simulating 'cursor inside a form'."
   (test-find-nearest "parent node starts with the right symbol"
                      :matcher 'b
                      :string "(b c)" :at "c"
-                     :expect (iterator-value (parens 0 5 #((token 1 2 :name "B")
-                                                           (whitespace 2 3)
-                                                           (token 3 4 :name "C")))))
+                     :expect (iterator-value (parens 0 5 (nodes (token 1 2 :name "B")
+                                                                (whitespace 2 3)
+                                                                (token 3 4 :name "C")))))
   (test-find-nearest "parent node start with the wrong symbol"
                      :matcher 'd
                      :string "(e f g)" :at "f"
@@ -1090,9 +1090,9 @@ SEARCH-STRING.  Useful for simulating 'cursor inside a form'."
                      :expect (iterator-value
                               (parens 3 8
                                       ;; notice: it returned the second 'h, not the first
-                                      #((token 4 5 :name "H")
-                                        (whitespace 5 6)
-                                        (token 6 7 :name "I"))))))
+                                      (nodes (token 4 5 :name "H")
+                                             (whitespace 5 6)
+                                             (token 6 7 :name "I"))))))
 
 ;; with-trace (match eqv)
 
@@ -1111,9 +1111,9 @@ SEARCH-STRING.  Useful for simulating 'cursor inside a form'."
   (test-find-furthest "parent node starts with the right symbol"
                       :matcher 'b
                       :string "(b c)" :at "c"
-                      :expect (iterator-value (parens 0 5 #((token 1 2 :name "B")
-                                                            (whitespace 2 3)
-                                                            (token 3 4 :name "C")))))
+                      :expect (iterator-value (parens 0 5 (nodes (token 1 2 :name "B")
+                                                                 (whitespace 2 3)
+                                                                 (token 3 4 :name "C")))))
   (test-find-furthest "parent node starts with the wrong symbol"
                       :matcher 'd
                       :string "(e f g)" :at "f"
@@ -1124,25 +1124,25 @@ SEARCH-STRING.  Useful for simulating 'cursor inside a form'."
                       :expect (iterator-value
                                (parens 0 9
                                        ;; notice: it returned the first 'h, not the second
-                                       #((token 1 2 :name "H")
-                                         (whitespace 2 3)
-                                         (parens 3 8
-                                          #((token 4 5 :name "H")
-                                            (whitespace 5 6)
-                                            (token 6 7 :name "I"))))))))
+                                       (nodes (token 1 2 :name "H")
+                                              (whitespace 2 3)
+                                              (parens 3 8
+                                                      (nodes (token 4 5 :name "H")
+                                                             (whitespace 5 6)
+                                                             (token 6 7 :name "I"))))))))
 
 (define-test+run find-all-enclosing-nodes
   (false (find-all-enclosing-nodes (iterator-at "a") 'a)
          "no parent node")
-  (is eqv (list (iterator-value (parens 0 5 #((token 1 2 :name "B")
-                                              (whitespace 2 3)
-                                              (token 3 4 :name "C")))))
+  (is eqv (list (iterator-value (parens 0 5 (nodes (token 1 2 :name "B")
+                                                   (whitespace 2 3)
+                                                   (token 3 4 :name "C")))))
       (find-all-enclosing-nodes (iterator-at "(b c)" :at "c") 'b)
       "one matching parent")
   (is eqv nil
       (find-all-enclosing-nodes (iterator-at "(e f g)" :at "f") 'd)
       "no match")
-  (is eqv (list (iterator-value (parens 6 11 #(:_)))
-                (iterator-value (parens 0 13 #(:_))))
+  (is eqv (list (iterator-value (parens 6 11 :_))
+                (iterator-value (parens 0 13 :_)))
       (find-all-enclosing-nodes (iterator-at "(h (g (h i)))" :at "i") 'h)
       "nested forms: returns all matches, nearest-first"))

@@ -27,11 +27,17 @@ common lisp.")
 ;;; Low-level parsing helpers
 
 (defun read-char= (state char)
+  "Read a char from state's source and increment the position if it's
+`char=' to CHAR. On match, returns the character read, nil
+otherwise or if the end was reached."
   (when-let ((c (current-char= state char)))
     (incf (current-position state))
     c))
 
 (defun read-char-equal (state char)
+  "Read a char from state's source and increment the position if it's
+`char-equal' to CHAR. On match, returns the character read, nil
+otherwise or if the end was reached."
   (when-let ((c (current-char-equal state char)))
     (incf (current-position state))
     c))
@@ -146,18 +152,19 @@ function is called."
                      (range start pos))))
           (return nil))))
 
+(defun unsupported-numeric-argument (dispatch-char)
+  (format nil "Reader macro #~c does not support numeric arguments." dispatch-char))
+
 (defun read-sharp-backslash (state start prefix)
-  (declare (ignore prefix))
-  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\\)
     (decf (current-position state))
     (let ((token (when (valid-position-p state (1+ (current-position state)))
                    (read-token state))))
       (sharp-char start (if token (current-position state) +end+)
                   token
-                  :errors `(,@(unless token
-                                ;; TODO error message
-                                ()))))))
+                  :errors (list
+                           (when prefix (unsupported-numeric-argument #\\))
+                           (unless token "Unterminated #\\"))))))
 
 (defun read-any* (state)
   "Like READ-ANY, but return the end of the read and a sequence of nodes
@@ -181,22 +188,21 @@ first node being whitespaces.)"
           (return))))
     (values end (nodes (nreverse children)))))
 
-(defun %read-sharp-any (state start type)
+(defun %read-sharp-any (state start type &key errors)
   (multiple-value-bind (end children)
       (read-any* state)
     (make-instance type
                    :start start
                    :end end
-                   :children children)))
+                   :children children
+                   :errors (breeze.parse-tree::normalize-errors errors))))
 
 (defun read-sharp-quote (state start prefix)
-  (declare (ignore prefix))
-  ;; TODO (if prefix) => invalid syntax
   (when (read-char= state #\')
-    (%read-sharp-any state start 'sharp-function)))
+    (%read-sharp-any state start 'sharp-function
+                     :errors (when prefix (unsupported-numeric-argument #\')))))
 
 (defun read-sharp-left-parens (state start length)
-  (declare (ignore length))
   ;; N.B. we use current-char instead of read-char, because we don't
   ;; want to consume the left-parens right away.
   (when (current-char= state #\()
@@ -205,23 +211,26 @@ first node being whitespaces.)"
         (error "This is a bug in ~s: ~s should have returned something, but it returned nil."
                'read-sharp-left-parens
                'read-parens))
-      (sharp-vector start (current-position state)
-                    form
-                    :errors `(;; TODO check that length is nil, or an
-                              ;; integer greater or equal to zero
-                              #++
-                              (when (and length
-                                         (< length (length (children form))))
-                                "There are more objects than the length of the vector.")
-                              #++
-                              (when (and length
-                                         (plusp length)
-                                         (zerop (length (children form))))
-                                "Must supply at least one object when the length of a vector is non-zero.")
-                              ;; TODO style #0() => #()
-                              ;; TODO suggest #N(0 0 0 .... 0 0) => #(N 0)
-                              ;; "the last object is used to fill all remaining elements of the vector."
-                              )))))
+      (sharp-vector
+       start (current-position state)
+       form
+       :errors (let ((children-length
+                       (length
+                        (remove-if #'whitespace-or-comment-node-p
+                                   (children form)))))
+                 (list
+                  ;; TODO check that length is nil, or an
+                  ;; integer greater or equal to zero
+                  (when (and length (< length children-length))
+                    "There are more objects than the length of the vector.")
+                  (when (and length
+                             (plusp length)
+                             (zerop children-length))
+                    "Must supply at least one object when the length of a vector is non-zero.")
+                  ;; TODO style #0() => #()
+                  ;; TODO suggest #N(0 0 0 .... 0 0) => #(N 0)
+                  ;; "the last object is used to fill all remaining elements of the vector."
+                  ))))))
 
 (defun read-sharp-asterisk (state start length)
   (declare (ignore length))
@@ -411,6 +420,7 @@ first node being whitespaces.)"
     (when (whitespacep c)
       (incf (current-position state))
       (sharp-unknown start (current-position state)
+                     ;; TODO remove extra "s" to "characters"
                      :errors `(("Invalid dispatch characters: ~a" ,(char-name c)))))))
 
 (defreader read-sharp-right-paren (start prefix)
@@ -420,6 +430,7 @@ first node being whitespaces.)"
     ;; TODO return something to tell the caller that parsing _could_
     ;; be started again from where there's a #\)yes
     (sharp-unknown start (current-position state)
+                   ;; TODO remove extra "s" to "characters"
                    :errors `(("Invalid dispatch characters: ) (right parenthesis)")))))
 
 ;; TODO #) and #<any whitespace> are **invalid**
@@ -631,8 +642,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
   (when (read-char= state #\))
     (extraneous-closing-parens
      start +end+
-     :errors `(("Extraneous closing parenthesis.")))))
-
+     :errors "Extraneous closing parenthesis.")))
 
 (defparameter *state-control-string*
   "position: ~D char: ~s context: «~a»")
@@ -657,15 +667,18 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                 (no-end-p el))
         :do (return (parens start +end+
                             (ensure-nodes content)
-                            :errors `(,@(cond
-                                          ((null el)
-                                           `(("Missing closing parenthesis.")))
-                                          ;; TODO make this a warning,
-                                          ;; to make it easier to
-                                          ;; locate the source of the
-                                          ;; issue.
-                                          ((no-end-p el)
-                                           (errors el))))))
+                            :errors (append
+                                     '("Missing closing parenthesis.")
+                                     ;; (when (null el) "Missing closing parenthesis.")
+                                     #++ (when (or (null el) (no-end-p el))
+                                           '("Missing closing parenthesis."))
+
+                                     ;; TODO make this a warning,
+                                     ;; to make it easier to
+                                     ;; locate the source of the
+                                     ;; issue.
+                                     (when (and el (no-end-p el))
+                                       (errors el)))))
       :finally (return (parens start (current-position state)
                                (ensure-nodes content))))))
 
