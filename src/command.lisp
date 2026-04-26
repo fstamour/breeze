@@ -854,15 +854,14 @@ editor. Returns a list of plist."
     :for declarations := (getf details :declarations)
     :for lambda-list := (command-lambda-list-for-editor (getf details :lambda-list))
     :for name := (command-name-for-editor command-symbol)
-    ;; The editor should only see the commands that are exported and
-    ;; interactive.
-    :when (and (breeze.xref:externalp command-symbol)
-               (interactivep declarations))
+    ;; The editor should only see the commands that are exported
+    :when (breeze.xref:externalp command-symbol)
       :collect (list
                 :name (make-symbol (string-upcase name))
                 :symbol (symbol-package-qualified-name command-symbol)
                 :lambda-list lambda-list
-                :documentation documentation)))
+                :documentation documentation
+                :interactivep (interactivep declarations))))
 
 ;; (list-all-commands-for-editor)
 

@@ -10,9 +10,7 @@
 ;;; Generated autoloads from breeze.el
 
 (autoload 'breeze-init "breeze" "\
-Initialize breeze.
-
-(fn)" t)
+Initialize breeze." t)
 (autoload 'breeze-minor-mode "breeze" "\
 Toggle Breeze minor mode on or off
 
@@ -40,8 +38,8 @@ Disable breeze-minor-mode." t)
 (autoload 'breeze--defstub "breeze" "\
 Macro to define a stub function for the command NAME.
 
-(fn NAME DOCSTRING)" nil t)
-(breeze--defstub breeze-completions-at-point "completion-at-point")
+(fn NAME DOCSTRING &key NONINTERACTIVE)" nil t)
+(breeze--defstub breeze-completions-at-point "completion-at-point" :noninteractive t)
 (breeze--defstub breeze-insert-defvar "Insert a defvar form.")
 (breeze--defstub breeze-insert-decoded-time-multiple-value-bind "Insert a cl:multiple-value-bind form to bind the output of cl:get-decoded-time")
 (breeze--defstub breeze-insert-loop-clause-for-on-list "Insert a loop clause to iterate on a list.")
@@ -82,7 +80,6 @@ Macro to define a stub function for the command NAME.
 (breeze--defstub breeze-insert-defmethod "Insert a defmethod form.")
 (breeze--defstub breeze-insert-defmacro "Insert a defmacro form.")
 (register-definition-prefixes "breeze" '("breeze-"))
-
 
 ;;; End of scraped data
 

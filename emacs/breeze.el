@@ -484,18 +484,37 @@ commands in emacs."
       ;;  - symbol is a string of the cl symbol
       ;;  - lambda-list is a list of symbols that only contains the name
       ;;    of the arguments (no &optional, no default values, etc.)
-      (cl-destructuring-bind (&key name symbol lambda-list documentation)
+      (cl-destructuring-bind (&key name symbol
+                                   lambda-list
+                                   documentation
+                                   interactivep)
           command-plist
         (let* ((defun `(cl-defun ,name (&optional ,@lambda-list)
                          ,documentation
                          ;; (interactive "" 'lisp-mode 'breeze-minor-mode 'breeze-major-mode)
-                         (interactive)
+                         ,(when interactivep
+                            '(interactive))
                          (unless (breeze-disabled-p)
                            (if (and (breeze-list-loaded-listeners)
                                     (breeze-listener-connected-p)
                                     (breeze-validate-if-breeze-package-exists))
                                (breeze-run-command ,symbol ,@lambda-list)
                              (breeze--stub ,symbol))))))
+          (unless interactivep
+            (let* ((async-name (intern (concat (symbol-name name) "-async")))
+                   ;; TODO appending `callback' to `lambda-list' is probably wrong
+                   (defun-async `(cl-defun ,async-name (,@lambda-list callback)
+                                   ;; TODO maybe tweak the documentation
+                                   ,documentation
+                                   ;; TODO breeze-ensure itself is async, but not "run-command"
+                                   (breeze-ensure
+                                    (lambda ()
+                                      (let ((result (breeze-run-command ,symbol ,@lambda-list)))
+                                        (if callback
+                                            (funcall callback result)
+                                          result)))))))
+              (message "%S\n" defun-async)
+              (insert (format "%S\n" defun-async))))
           (insert (format "%S\n" defun))
           (insert (format "%S\n" `(setf (get ',name 'breeze-command-p) t
                                         (get ',name 'breeze-symbol) ,symbol))))))
@@ -832,29 +851,11 @@ listener."
 
 ;;; Hooks for flymake
 
-(defun breeze-lint (args callback)
-  "Asynchronously calls the function breeze.lint:lint."
-  ;; TODO use ARGS to be able to INCREMENTALLY parse and analyze the
-  ;; buffer
-  ;;
-  ;; (null args) => first call ever
-  ;;
-  ;; :recent-changes
-  ;; :changes-start
-  ;; :changes-end
-  (breeze-ensure
-   (lambda ()
-     ;; (cl-loop for change in (cl-getf args :recent-changes) do (breeze-debug "  change: %S" change))
-     (funcall callback (breeze-run-command 'breeze.lint:lint))))
-  nil)
-
-;; TODO maybe delete?
 (defun breeze-lint-interactive ()
   "Call breeze-lint, but print the diagnostics as messages. Mainly
-for debugging breeze itself."
+for debugging breeze's checks."
   (interactive)
-  (breeze-lint nil (lambda (diag)
-                     (message "breeze-lint: %s" diag))))
+  (message "breeze-lint: %s" (breeze-lint)))
 
 (defun breeze-flymake (report-fn &rest args)
   "A flymake diagnostic function to integrate breeze.analysis:lint with flymake."
@@ -865,17 +866,18 @@ for debugging breeze itself."
        ;; TODO breeze-ready-p
        )
       (let ((buffer (current-buffer)))
-        (breeze-lint args (lambda (cl-diagnostics)
-                            (funcall report-fn
-                                     (cl-loop for (beg end type text) in cl-diagnostics
-                                              collect (flymake-make-diagnostic
-                                                       ;; Locus
-                                                       buffer
-                                                       (1+ beg) (if end
-                                                                    (1+ end)
-                                                                  (point-max))
-                                                       type
-                                                       text))))))
+        (breeze-lint-async
+         (lambda (diagnostics)
+           (funcall report-fn
+                    (cl-loop for (beg end type text) in diagnostics
+                             collect (flymake-make-diagnostic
+                                      ;; Locus
+                                      buffer
+                                      (1+ beg) (if end
+                                                   (1+ end)
+                                                 (point-max))
+                                      type
+                                      text))))))
     ;; Not connected, so we can't call breeze's linter.
     (funcall report-fn nil)))
 
@@ -1060,11 +1062,12 @@ automatically enabling breeze-minor-mode in lisp-mode."
     x))
 
 ;;;###autoload
-(defmacro breeze--defstub (name docstring)
+(cl-defmacro breeze--defstub (name docstring &key noninteractive)
   "Macro to define a stub function for the command NAME."
   `(defun ,name ()
      ,docstring
-     (interactive)
+     ,(unless noninteractive
+        `(interactive))
      (breeze--stub ,(symbol-name name))))
 
 ;; TODO make a stub for breeze-quickproject that load the
@@ -1074,7 +1077,7 @@ automatically enabling breeze-minor-mode in lisp-mode."
 ;;; This page is auto-generated (see ../workbench.el), don't edit it
 
 ;;;###autoload
-(breeze--defstub breeze-completions-at-point "completion-at-point")
+(breeze--defstub breeze-completions-at-point "completion-at-point" :noninteractive t)
 ;;;###autoload
 (breeze--defstub breeze-insert-defvar "Insert a defvar form.")
 ;;;###autoload
