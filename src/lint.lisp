@@ -63,15 +63,23 @@
   (check-type buffer buffer)
   ;; TODO &key livep and scan are mutually exclusive
   (handler-bind
-      ((node-parse-error (lambda (condition)
-                           (diag-error (target-node condition)
-                                       (simple-condition-format-control condition)
-                                       (simple-condition-format-arguments condition))
-                           (return-from lint-buffer (diagnostics *scan*))))
-       (node-style-warning (lambda (condition)
-                             (diag-warn (target-node condition)
-                                        (simple-condition-format-control condition)
-                                        (simple-condition-format-arguments condition)))))
+      ((node-parse-error
+         (lambda (condition)
+           (diag-error (target-node condition)
+                       (simple-condition-format-control condition)
+                       (simple-condition-format-arguments condition))
+           ;; For syntax error, we stop here
+           (return-from lint-buffer (diagnostics *scan*))))
+       (simple-node-warning
+         (lambda (condition)
+           (diag-warn (target-node condition)
+                      (simple-condition-format-control condition)
+                      (simple-condition-format-arguments condition))))
+       (simple-node-error
+         (lambda (condition)
+           (diag-error (target-node condition)
+                       (simple-condition-format-control condition)
+                       (simple-condition-format-arguments condition)))))
     (analyse buffer))
   (diagnostics *scan*))
 
