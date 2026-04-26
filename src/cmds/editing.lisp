@@ -30,6 +30,18 @@ using the region/rectangle?
 
 TODO next-alternative/previous alternative (e.g. :accessor <-> :reader <-> :writer, in the right context)
 
+
+TODO the emacs command "delete-indentation" (M-^) (which is similar to
+vim's "join"), doesn't delete the superfluous ";;" when joining lines
+inside a comment... it's easier to understand with an example:
+
+;; adsf
+;; qyar
+=>
+;; asdf ;; qyar
+instead of
+;; asdf qyar
+
 |#
 
 (define-command kill-sexp ()
