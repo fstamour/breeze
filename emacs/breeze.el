@@ -645,9 +645,10 @@ which will redefine the dummy command."
   :lighter nil
   (cond
    (breeze-capfs-mode
-    (add-hook 'completion-at-point-functions 'breeze-completion-at-point))
+    (add-to-list 'completion-at-point-functions 'breeze-completion-at-point))
    (t
-    (remove-hook 'completion-at-point-functions 'breeze-completion-at-point))))
+    (setq completion-at-point-functions
+          (delq 'breeze-completion-at-point completion-at-point-functions)))))
 
 
 ;;; Initializations

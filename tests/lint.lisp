@@ -1,5 +1,5 @@
 (defpackage #:breeze.test.lint
-  (:documentation "Tests for the package breeze.lint")
+  (:documentation "Tests for the package breeze.lint.")
   (:use #:cl #:breeze.lint #:breeze.buffer #:breeze.analysis)
   (:import-from #:breeze.generics
                 #:eqv)

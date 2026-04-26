@@ -304,7 +304,7 @@ c")
 
 ;; TODO This is a good candidate for a function where the unit tests
 ;; would provide great examples for the documentation.
-(defun around (string position &optional (around 10))
+(defun around (string position &optional (around 10) indicator)
   "Returns part of STRING, from POSITION - AROUND to POSITION +
 AROUND. Add elipseses before and after if necessary."
   (let* ((min-size (1+ (* 2 around)))
@@ -317,7 +317,9 @@ AROUND. Add elipseses before and after if necessary."
          (ellipsis-right (max 0 (min 3 (- (length string) end)))))
     (with-output-to-string (out)
       (loop :for i :below ellipsis-left :do (write-char #\. out))
-      (write-string string out :start start :end end)
+      (write-string string out :start start :end position)
+      (when indicator (write-string indicator out))
+      (write-string string out :start position :end end)
       (loop :for i :below ellipsis-right :do (write-char #\. out)))))
 
 

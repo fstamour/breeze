@@ -298,7 +298,8 @@
    (:module "cmds"
     :depends-on ("command")
     :components ((:file "refactor")
-                 (:file "other-files")))
+                 (:file "other-files")
+                 (:file "completion")))
    (:file "string-utils")
    (:file "utils")
    (:file "buffer")

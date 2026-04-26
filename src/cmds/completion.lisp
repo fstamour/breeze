@@ -53,7 +53,7 @@ fiind-sym
 
 (defpackage #:breeze.completion
   (:documentation "Commands to complete text")
-  (:use #:cl)
+  (:use #:cl #:breeze.generics #:breeze.parser)
   (:import-from #:breeze.command
                 #:define-command
                 #:current-buffer
@@ -65,22 +65,124 @@ fiind-sym
 
 (in-package #:breeze.completion)
 
-;; TODO this shouldn't show up in the list of commands suggested by
-;; "quickfix", and it shouldn't generate an interactive command when
+;; Trying to get the "previous s-expression"
+(defun maybe-previous-node ($node point)
+  #++ "The the node is not the first, and if the point is at the beginning of
+a whitespace, return the previous node. Otherwise return $NODE unchanged."
+  ;; (break "node before: ~s" (value $node))
+  (let ((node (value $node)))
+    (cond
+      ((or (token-node-p node) (firstp $node)) $node)
+      ((/= point (start $node))
+       ;; check previous
+       (let* (($previous (previous-iterator $node))
+              (previous-node (value $previous)))
+         (if (token-node-p previous-node)
+             $previous
+             $node)))
+      ((and (/= (1- point) (end $node))
+            (parens-node-p node))
+       ;; TODO get the last child of node... unless it's a whitespace?e
+       $node ;; <- change this, it's a placeholder
+       )
+      (t $node))))
+
+;; (trace maybe-previous-node)
+;; (trace completions-at-point)
+;; (untrace return-value-from-command)
+;; def
+;; (forc-o)
+;; (in-)
+
+#|
+emacs lisp:
+
+(setq completion-at-point-functions/bak (copy-list completion-at-point-functions))
+(setq completion-at-point-functions completion-at-point-functions/bak)
+(delq 'slime--completion-at-point completion-at-point-functions)
+(add-to-list 'completion-at-point-functions 'breeze-completion-at-point)
+
+(setq completion-at-point-functions '(slime--completion-at-point t))
+|#
+
+#|
+
+
+TODO make this testable ffs
+TODO add tests!
+
+"def|"
+"d|ef"
+"|def"
+"(in-|)"
+
+|#
+
+
+;; TODO move to "dogfood"
+(export 'inspect-buffer-at-point)
+(define-command inspect-buffer-at-point ()
+  "For debugging..."
+  (let* ((buffer (current-buffer))
+         (point (breeze.buffer:point buffer))
+         ($node (node-iterator buffer))
+         (node (value $node)))
+    (breeze.command:message "point: ~s~%extract: ~%~s ~%node: ~s"
+                            point
+                            (breeze.string:around (source buffer)
+                                                  point
+                                                  10
+                                                  "<here>")
+                            node)))
+
 (define-command completions-at-point (&optional string)
   "completion-at-point"
   (declare (ignorable string))
   (declare noninteractive)
-  (let* (($node (node-iterator (current-buffer)))
-         (node (breeze.iterator:value $node)))
-    (declare (ignorable node))
-    ;; (break "~s" (breeze.parser:node-string $node))
+
+  ;; to enable/disable this while developing it
+  ;; (progn (return-value-from-command nil) (return-from completions-at-point nil))
+
+  (let* ((buffer (current-buffer))
+         ($node (maybe-previous-node (node-iterator buffer)
+                                     (breeze.command:current-point)))
+         (node (value $node)))
+    ;; (break "node: ~s" node)
+    (cond
+      ((token-node-p node)
+       (let* ((package (breeze.buffer:current-package buffer))
+              (needle
+                ;; TODO I use `name' to avoid the package marker, but this is wrong :D
+                (name node)
+                ;; TODO maybe use `breeze.parser:node-string-designator' instead
+                ;; (breeze.parser:node-string $node)
+                )
+              ;; TODO apropos-list wont work if the token contains
+              ;; package markers
+              (candidates (remove-if-not
+                           'breeze.xref:externalp
+                           (or (and package (apropos-list needle package))
+                               (apropos-list needle)))))
+         ;; (break "candidates ~s" candidates)
+         (return-value-from-command
+          (loop :for c :in candidates
+                :collect (string-downcase c)))
+         #++ (when candidates
+               ;; check for symbols in the current package first
+               (loop :for symbol :in candidates
+                     :when (eq package (symbol-package symbol))
+                       :do (return-value-from-command (list (string-downcase symbol))))))))
+    ;; Fallback: found nothing
+    (return-value-from-command '())
+    #++
     (return-value-from-command
      (list "prin1" "print")
      #++
-     (when (breeze.parser:token-node-p node)
+     (when (token-node-p node)
 
        '("asfd" "qwer" "uiop")))))
+
+
 
 ;; find-most-similar-symbol
 
