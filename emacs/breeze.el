@@ -460,10 +460,13 @@ receiving the data it requested."
             (breeze-deregister-command id))
         (quit
          (breeze-debug "Breeze run command: (%S) " id condition)
-         (breeze-command-cancel id "User-cancelled"))
+         (breeze-command-cancel id "User-cancelled")
+         nil)
         (t
          (breeze-debug "Breeze run command: (%S) got the condition %s" id condition)
-         (breeze-command-cancel id "Elisp condition"))))))
+         (breeze-command-cancel id "Elisp condition")
+         nil)))
+    nil))
 
 
 ;;; Dynamically define interactive (cl-driven) commands in emacs
