@@ -870,21 +870,21 @@ editor. Returns a list of plist."
 
 ;; (list-all-commands-for-editor)
 
-(defun command-docstring (function)
+(defun command-docstring (command-symbol)
   "Return the function's docstring, signals an error if it's nil."
   ;; WIP find-command
-  (check-type function symbol)
-  (let ((doc (documentation function 'function)))
+  (check-type command-symbol symbol)
+  (let ((doc (documentation command-symbol 'function)))
     (unless doc
       (error
        "Function ~s does not have a documentation string. ~
                   Is it defined?"
-       function))
+       command-symbol))
     doc))
 
-(defun command-description (function)
+(defun command-description (command-symbol)
   "Return a list of 2 elements: (FUNCTION its-docstring)"
-  (list function (command-docstring function)))
+  (list command-symbol (command-docstring command-symbol)))
 
 
 
