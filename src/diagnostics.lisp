@@ -126,26 +126,22 @@ simple-condition-format-control, simple-condition-format-arguments
   (not (eq (replacement simple-node-condition) 'cl:null)))
 
 (define-condition simple-node-error (simple-node-condition simple-error) ())
-
 (define-condition simple-node-warning (simple-node-condition simple-warning) ())
 
 (define-condition node-parse-error (simple-node-error parse-error) ())
-
-(defun node-parse-error (node-iterator message &key (replacement 'null))
-  (signal (make-condition
-           'node-parse-error
-           :node-iterator (copy-iterator node-iterator)
-           :format-control message
-           :replacement replacement)))
-
 (define-condition node-style-warning (simple-node-warning style-warning) ())
 
-(defun node-style-warning (node-iterator message &key (replacement 'null))
-  (signal (make-condition
-           'node-style-warning
-           :node-iterator (copy-iterator node-iterator)
-           :format-control message
-           :replacement replacement)))
+(macrolet ((frob (condition)
+             `(defun ,condition (node-iterator message &key (replacement 'null))
+                (signal (make-condition
+                         ',condition
+                         :node-iterator (copy-iterator node-iterator)
+                         :format-control message
+                         :replacement replacement)))))
+  (frob simple-node-error)
+  (frob simple-node-warning)
+  (frob node-parse-error)
+  (frob node-style-warning))
 
 #++
 (let ((c (node-style-warning (node 'dummy 0 1) "Bad node ~a")))
