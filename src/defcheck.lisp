@@ -37,9 +37,57 @@ They are not called rules to avoid confusion with the rewrite rules.")
 (defmethod initialize-instance :after ((check check) &key &allow-other-keys)
   (setf (gethash (fn check) *checks*) check))
 
+;; TODO add a restart (in defcheck) to disable a check
+
 ;; To make the transition from a bunch of functions to something more
 ;; structured, I'll make the "defcheck" macro compatible with "defun".
 (defmacro defcheck (name lambda-list &body body)
+  "Define a linter check.
+
+`defcheck' has the same syntax as `cl:defun' with one extra syntax:
+before the documentation string and the declaration, `defcheck' will
+look for a plist that will be used to specify preconditions that must
+be satisfied to run this check.
+
+The current supported preconditions are:
+
+:node-type <type>
+
+  the check will only be called on node of that type
+
+  for example:
+    :node-type breeze.parse-tree:token
+
+:top-level-p <boolean>
+
+  when T, the check will only be applied to nodes corresponding to
+  top-level forms. Beware, there is a distinction between root-level
+  and top-level: root-level means there are no parent, top-level forms
+  can be root-level, or subforms of `progn', `locally', etc. (see
+  https://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm).
+
+:livep <boolean>
+
+  Whether this check only make sense on a \"live\" image, as opposed
+  to running the linter as batch process. This can be useful to add
+  checks that warns about things that are not defined in the current
+  image, this can help keeping the code and the image in sync.
+
+Example:
+
+(defcheck warn-about-long-name (node-iterator)
+  :node-type 'token
+  (let ((token (value node-iterator)))
+    (when (< 42 (length (name token)))
+      ;; this will signal a 'node-style-warning condition
+      (node-style-warning
+       node-iterator \"Token length is greater than 42.\"))))
+
+The check is automatically added to the hash-table
+breeze.checks::*checks*, the name (symbol) is used as the key and an
+object of they breeze.check:check is used as the value. The object
+holds the function to run to apply the chekc and a list of
+preconditions that defines where/when this check is applicable."
   ;; TODO docstring for defcheck
   (multiple-value-bind (preconditions body)
       (loop

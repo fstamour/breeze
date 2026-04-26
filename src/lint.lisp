@@ -48,7 +48,7 @@
        ;; Apply all the checks!
        (map 'nil (lambda (check)
                    (apply-check check node-iterator
-                                ;; TODO this should be top-level-p (instead of (zerop depth)
+                                ;; TODO this should be top-level-p (instead of (zerop depth))
                                 :top-level-p (zerop depth)))
             checks)
        (next-preorder node-iterator)))

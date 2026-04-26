@@ -138,14 +138,14 @@ Design decision(s):
       ;; return the buffer
       buffer)))
 
-  (defun add-files-to-workspace (files)
-    (loop
-      :for file :in (alexandria:ensure-list files)
-      :for content = (alexandria:read-file-into-string file)
-      :do (add-to-workspace `(:buffer-name ,(namestring file)
-                              :buffer-string ,content
-                              :point 0
-                              :buffer-file-name ,file))))
+(defun add-files-to-workspace (files)
+  (loop
+    :for file :in (alexandria:ensure-list files)
+    :for content = (alexandria:read-file-into-string file)
+    :do (add-to-workspace `(:buffer-name ,(namestring file)
+                            :buffer-string ,content
+                            :point 0
+                            :buffer-file-name ,file))))
 
 (defun map-workpace-buffers (fn &optional (workspace *workspace*))
   (loop

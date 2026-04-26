@@ -10,9 +10,8 @@
 
 (in-package #:breeze.whitespaces)
 
-;; This assumes that NODE-ITERATOR points to a whitespace node
 (defcheck warn-extraneous-whitespaces (node-iterator)
-  :node-type breeze.parser:whitespace
+  :node-type whitespace
   (if (rootp node-iterator)
       ;; Check for spaces at top-level, just before a form. Said
       ;; otherwise: an indented top-level form.
@@ -99,7 +98,7 @@
 
 
 (defcheck missing-whitespace (node-iterator)
-  :node-type (:not breeze.parser:whitespace)
+  :node-type (:not whitespace)
   (when-let ((next-node (next-sibling node-iterator)))
     (unless (whitespace-node-p next-node)
       (node-style-warning node-iterator

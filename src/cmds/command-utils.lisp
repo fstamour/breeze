@@ -27,6 +27,8 @@
   (pulse (start node) (end node)))
 
 (defun current-node (&key pulsep)
+  "Get a node-iterator pointing to the current node in the current
+buffer."
   (alexandria:when-let*
       ((buffer (current-buffer))
        (node-iterator (node-iterator buffer)))

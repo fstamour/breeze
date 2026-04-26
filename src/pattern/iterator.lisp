@@ -543,7 +543,10 @@ parent node then to the children."
     (unless (donep it) it)))
 
 (defmethod previous-iterator ((iterator iterator))
-  "Get a copy of ITERATOR move backward to the previous position."
+  "Get a copy of ITERATOR and move it backward to the previous
+position (if it exists)."
+  ;; TODO perf: this copies the iterator regarless if there is a
+  ;; previous element or not.
   (let ((it (copy-iterator iterator)))
     (and (go-backward it 1) it)))
 

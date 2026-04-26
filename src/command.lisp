@@ -412,7 +412,7 @@ uses the throw tag to stop the command immediately."
   "Update the current-buffer's point."
   (when-let ((point (updates-point updates))
              (buffer (current-buffer (context command-handler))))
-    (breeze.buffer:update-point buffer point)))
+    (update-point buffer point)))
 
 (defun handle-edits (updates)
   "Apply text changes (edits) to all buffers in the current workspace."
@@ -424,9 +424,9 @@ uses the throw tag to stop the command immediately."
   ;; TODO make sure the buffer _exists_ before trying to update its
   ;; content...
   (let ((buffer (current-buffer (context command-handler))))
-    (breeze.buffer:update-content buffer
-                                  buffer-string
-                                  (updates-point updates))
+    (update-content buffer
+                    buffer-string
+                    (updates-point updates))
     ;; tell the command-handler that the buffer has been updated.
     (send-into command-handler :ok)))
 
@@ -711,9 +711,14 @@ resulting string to the editor."
     :finally (return (member answer '("y" "yes") :test #'string-equal))))
 
 (defun return-value-from-command (value)
+  "Return a value from the command. On the editor side, the execution of
+the command is stopped, but it can continue on the lisp side if
+needed."
   (send "return" value))
 
 (defun request-buffer-string ()
+  "Ask the editor to send the whole content of the buffer, and wait for
+the response."
   (send "buffer-string")
   ;; just for the :ok sent by `handle-buffer-string'
   (recv))
