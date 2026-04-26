@@ -300,6 +300,9 @@
     :components ((:file "refactor")
                  (:file "other-files")
                  (:file "completion")))
+   (:module "checks"
+    :depends-on ("lint")
+    :components ((:file "dot-checks")))
    (:file "string-utils")
    (:file "utils")
    (:file "buffer")
