@@ -126,7 +126,10 @@
            #:top-level-node-iterator
            #:map-top-level-forms)
   ;; Extracting data
-  (:export #:parse-symbol-node
+  (:export #:token-raw-package-prefix
+           #:token-raw-name
+           #:token-possibly-internal-p
+           #:parse-symbol-node
            #:node-string-designator))
 
 (in-package #:breeze.parse-tree)
@@ -646,6 +649,50 @@
 
 
 ;;; Extracting more information from the parse tree
+
+;; TODO tests!
+(defun token-raw-package-prefix (node-iterator)
+  "Return the package-prefix of a token (interpreted as a symbol), without the
+package qualifier and marker, but including any escape characters and
+with the original case."
+  (let ((node (value node-iterator)))
+    (when (token-node-p node)
+      (if (package-marker node)
+          (source-substring (state node-iterator)
+                            (start node)
+                            (car (last (package-marker node))))
+          (node-content (state node-iterator) node)))))
+
+#++
+(token-raw-package-prefix
+ (make-node-iterator "a\\sdf:qwer"))
+;; => "a\\sdf"
+
+#++
+(package-prefix (value (make-node-iterator "a\\sdf:qwer")))
+;; => "AsDF"
+
+;; TODO tests!
+(defun token-raw-name (node-iterator)
+  "Return the name of a token (interpreted as a symbol), without the
+package qualifier and marker, but including any escape characters and
+with the original case."
+  (let ((node (value node-iterator)))
+    (when (token-node-p node)
+      (if (package-marker node)
+          (source-substring (state node-iterator)
+                            (1+ (car (package-marker node)))
+                            (end node))
+          (node-content (state node-iterator) node)))))
+
+;; TODO tests!
+(defun token-possibly-internal-p (token)
+  "Return T if TOKEN has more than one colon (:) in it."
+  (let* ((package-marker (package-marker token)))
+    (and package-marker
+         ;; if there's more than one
+         (cdr package-marker)
+         t)))
 
 (defun parse-symbol-node ($node)
   "Extract information about the package-name and symbol-name of a token, if it can.
