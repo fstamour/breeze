@@ -1,6 +1,6 @@
 (defpackage #:breeze.package-checks
   (:documentation "Package-related checks.")
-  (:use #:cl)
+  (:use #:cl #:breeze.generics)
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
@@ -8,6 +8,8 @@
                 #:defcheck)
   (:import-from #:breeze.package
                 #:in-package-node-p)
+  (:import-from #:breeze.buffer
+                #:current-package)
   (:import-from #:breeze.parser
                 #:node-string-designator))
 
@@ -50,7 +52,7 @@ a message and stop the current command."
                 (token-package (find-package package-prefix)))
       (or (eq package token-package)
           ;; lookup the symbol in both packages and check if it's the same symbol.
-          (let* ((name (breeze.generics:name token))
+          (let* ((name (name token))
                  (symbol-in-package (find-symbol name package))
                  (symbol-in-token-package (find-symbol name token-package)))
             (and symbol-in-package
@@ -60,17 +62,17 @@ a message and stop the current command."
 ;; TODO tests!
 ;; TODO make it work out-of-image
 (defun token-external-p (token)
-  (when-let* ((symbol-name (breeze.generics:name token))
+  (when-let* ((symbol-name (name token))
               (package-name (breeze.parser:package-prefix token))
               (package (find-package package-name)))
     (multiple-value-bind (symbol status)
-        (find-symbol (breeze.buffer:name token) package)
+        (find-symbol (name token) package)
       (declare (ignore symbol))
       (eq :external status))))
 
-
 ;; TODO tests!!!
-(defcheck warn-unnecessary-or-internal-package-prefix (node-iterator)
+(defcheck warn-unnecessary-or-internal-package-prefix
+    (node-iterator &key buffer)
   :node-type breeze.parser:token
   "Warn about symbols that have a package prefix but that is redundant in the current package, allow to automatically remove the unnecessary package prefix.
 
@@ -102,7 +104,7 @@ Avoid using internal symbols."
     (cond
       ((token-available-in-package-p
         token
-        (breeze.buffer:current-package (breeze.command:current-buffer)))
+        (current-package buffer (start node-iterator)))
        (breeze.diagnostics:node-style-warning
         node-iterator
         (format nil "Unnecessary package prefix")
@@ -113,7 +115,7 @@ Avoid using internal symbols."
            (breeze.diagnostics:node-style-warning
             node-iterator
             (format nil "Unnecessary double package marker: the symbol ~s is external."
-                    (breeze.generics:name token))
+                    (name token))
             :replacement (format nil "~a:~a"
                                  (breeze.parse-tree:token-raw-package-prefix node-iterator)
                                  (breeze.parse-tree:token-raw-name node-iterator)))

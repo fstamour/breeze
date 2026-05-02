@@ -37,6 +37,12 @@ They are not called rules to avoid confusion with the rewrite rules.")
 (defmethod initialize-instance :after ((check check) &key &allow-other-keys)
   (setf (gethash (fn check) *checks*) check))
 
+(defun ensure-allow-other-keys (lambda-list)
+  (cond
+    ((member '&allow-other-keys lambda-list) lambda-list)
+    ((member '&key lambda-list) `(,@lambda-list &allow-other-keys))
+    (t `(,@lambda-list &key &allow-other-keys))))
+
 ;; TODO add a restart (in defcheck) to disable a check
 
 ;; To make the transition from a bunch of functions to something more
@@ -112,7 +118,7 @@ preconditions that defines where/when this check is applicable."
       (check-type docstring string
                   "Docstring are mandatory for checks")
       `(progn
-         (defun ,name ,lambda-list ,@body)
+         (defun ,name ,(ensure-allow-other-keys lambda-list) ,@body)
          (make-instance 'check
                         :fn ',name
                         :preconditions ',preconditions)))))
@@ -149,8 +155,8 @@ preconditions that defines where/when this check is applicable."
       top-level-p
       t))
 
-(defun apply-check (check $node &key top-level-p)
+(defun apply-check (check buffer $node &key top-level-p)
   (when (and (validate-top-level-p-precondition check top-level-p)
              (validate-live-precondition check)
              (validate-node-type-precondition check $node))
-    (funcall (fn check) $node)))
+    (funcall (fn check) $node :buffer buffer)))

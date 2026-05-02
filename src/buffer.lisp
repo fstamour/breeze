@@ -180,13 +180,10 @@ Returns a parse-tree _node_, not a package."
     (when (and candidates (plusp (length candidates)))
       (find-if (lambda (node) (< (end node) position)) candidates :from-end t))))
 
-
-;; TODO (see interactive-eval-command) - get the node, parse it, find the package
-;; TODO this method is not done:
-(defmethod current-package ((buffer buffer))
+(defmethod current-package ((buffer buffer) &optional point)
   "Find the ~(in-package ...)~ form closest to POINT in BUFFER and returns the _package_."
-  (alexandria:when-let* (($package (current-package-node buffer))
-                         (package-name (node-string-designator $package)))
+  (when-let* (($package (current-package-node buffer point))
+              (package-name (node-string-designator $package)))
     (find-package package-name)))
 
 ;; This should probably go elsewhere...

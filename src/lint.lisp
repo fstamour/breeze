@@ -30,16 +30,14 @@
                                     :do (fresh-line out) (apply #'format out error))))
           (node-parse-error node-iterator "Syntax error")))))
 
-(defun analyse (buffer
-                &aux
-                  (*checks* *checks*))
+(defun analyse (buffer &aux (*checks* *checks*))
   "Apply all the linting rules on BUFFER."
   (check-type buffer buffer)
   (loop
     :with node-iterator = (make-node-iterator buffer)
     :with checks := (alexandria:hash-table-values *checks*)
-    :until (breeze.iterator:tree-iterator-done-p node-iterator)
-    :for node = (breeze.iterator:tree-iterator-value node-iterator)
+    :until (tree-iterator-done-p node-iterator)
+    :for node = (tree-iterator-value node-iterator)
     ;; :for previous-node := nil :then node
     :for depth = (depth node-iterator)
     :do
@@ -47,7 +45,7 @@
        (error-invalid-node node-iterator)
        ;; Apply all the checks!
        (map 'nil (lambda (check)
-                   (apply-check check node-iterator
+                   (apply-check check buffer node-iterator
                                 ;; TODO this should be top-level-p (instead of (zerop depth))
                                 :top-level-p (zerop depth)))
             checks)
@@ -56,9 +54,7 @@
 (defun lint-buffer (buffer
                     &key
                       (livep t)
-                      (*scan*
-                       (make-instance 'scan
-                                      :livep livep)))
+                      (*scan* (make-instance 'scan :livep livep)))
   "Apply all the linting rules on BUFFER, and accumulate the \"diagnostics\"."
   (check-type buffer buffer)
   ;; TODO &key livep and scan are mutually exclusive
