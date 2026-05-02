@@ -41,6 +41,7 @@ generalization of that first iteration (ha!).
   (:export
    #:tree-iterator-done-p
    #:tree-iterator-value
+   #:tree-iterator-next
    #:pos
    #:subtree
    #:subtrees
@@ -330,8 +331,13 @@ depth of the tree."))
 (defmethod donep ((iterator tree-iterator))
   (tree-iterator-done-p iterator))
 
-(defmethod next ((iterator tree-iterator))
+(declaim (inline tree-iterator-next))
+(defun tree-iterator-next (iterator)
+  (declare (type tree-iterator iterator))
   (incf (pos iterator)))
+
+(defmethod next ((iterator tree-iterator))
+  (tree-iterator-next iterator))
 
 (declaim (inline tree-iterator-value))
 (defun tree-iterator-value (iterator)

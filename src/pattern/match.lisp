@@ -106,8 +106,8 @@
   (make-pattern-iterator (vector pattern)))
 
 (defmethod children ((iterator pattern-iterator))
-  (unless (donep iterator)
-    (let ((value (value iterator)))
+  (unless (tree-iterator-done-p iterator)
+    (let ((value (tree-iterator-value iterator)))
       (typecase value
         (vector value)
         (pattern (children value))))))
@@ -138,7 +138,9 @@
     (throw 'no-match (values nil reason))))
 
 (defun go-down-together ($pattern $input)
-  (let ((sub-pattern (value $pattern)))
+  (declare (type pattern-iterator $pattern)
+           (type tree-iterator $input))
+  (let ((sub-pattern (tree-iterator-value $pattern)))
     ;; if the sub-pattern is a vector, we
     ;; "recurse" into the sub-pattern
     (when (vectorp sub-pattern)
@@ -152,6 +154,8 @@
       t)))
 
 (defun go-up-together ($pattern $input)
+  (declare (type pattern-iterator $pattern)
+           (type tree-iterator $input))
   (unless (and (go-up $pattern)
                (go-up $input))
     (no-match :out-of-sync-after-going-up)))
@@ -161,21 +165,21 @@
     (loop
       :with bindings = t ;; (make-substitutions)
       :with new-bindings = nil
-      :with $pattern = (copy-iterator pattern-iterator)
-      :with $input = (copy-iterator iterator)
-      :until (donep $pattern)
+      :with $pattern :of-type pattern-iterator := (copy-iterator pattern-iterator)
+      :with $input :of-type tree-iterator := (copy-iterator iterator)
+      :until (tree-iterator-done-p $pattern)
       :for i :from 0
       :do
          (skip $input skipp)
          (let ((went-down (go-down-together $pattern $input)))
            (setf new-bindings
-                 (match (value $pattern) $input :skipp skipp))
+                 (match (tree-iterator-value $pattern) $input :skipp skipp))
            (when went-down
              ;; TODO maybe check if $input is "done at current level",
              ;; if not then the match failed
              (go-up-together $pattern $input)))
-         (next $input)
-         (next $pattern)
+         (tree-iterator-next $input)
+         (tree-iterator-next $pattern)
          ;; infinite loop guard
          (when (<= 1000000 i)
            (break "Infinite loop?"))
@@ -193,13 +197,13 @@
             ;; to match the whole input is up to the caller. So we
             ;; don't check if $input is done.
             (cond
-              ((donep $pattern)
+              ((tree-iterator-done-p $pattern)
                ;; update the input iterator
                (copy-iterator $input iterator)
                ;; update the pattern iterator
                (copy-iterator $pattern pattern-iterator)
                bindings)
-              (t (values nil :pattern-not-done $pattern (value $pattern))))))))
+              (t (values nil :pattern-not-done $pattern (tree-iterator-value $pattern))))))))
 
 (defmethod match ((var simple-var) ($input iterator) &key skipp)
   "Match a `var' pattern against the current value of an
@@ -351,7 +355,7 @@ where consumed, for example)."
               ;; no match
               (not new-bindings)
               ;; incomplete match
-              (not (donep $pattern)))
+              (not (tree-iterator-done-p $pattern)))
          (return
            (let ((times
                    ;; if it was a match, count the current match,
@@ -444,8 +448,8 @@ where consumed, for example)."
   (loop
     :with names := (make-hash-table)
     :with it := (make-pattern-iterator compiled-pattern)
-    :until (donep it)
-    :for p := (value it)
+    :until (tree-iterator-done-p it)
+    :for p := (tree-iterator-value it)
     :when (and (typep p 'pattern) (name p))
       :do (setf (gethash (name p) names) t)
     :do
