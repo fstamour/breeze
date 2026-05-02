@@ -90,3 +90,14 @@
     (:documentation \"A fast, lossless, robust and "
               (subseq (breeze.parser:node-string node-iterator)
                       0 (length #2#))))))))
+
+
+;;; run "lint" on all of breeze's file, for benchmarking and profiling
+
+(defun lint-every-file-in-breeze ()
+  (let ((*workspace* *breeze-workspace*))
+    (map-workpace-buffers 'breeze.lint:lint-buffer)))
+
+(define-test+run "lint every file in breeze"
+  :depends-on (*breeze-workspace*)
+  (finish (lint-every-file-in-breeze)))
