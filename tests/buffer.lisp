@@ -37,4 +37,5 @@
                 (buffer (make-buffer :string string)))
            (setf (point buffer) (length string))
            (let (($node (current-package-node buffer)))
-             (breeze.analysis:parse-symbol-node $node)))))
+             (multiple-value-list
+              (breeze.analysis:parse-symbol-node $node))))))

@@ -33,7 +33,10 @@
 ;;; Integrating pattern.lisp and parser.lisp
 
 (defun test-parse-symbol-node (string)
-  (parse-symbol-node (make-node-iterator string)))
+  (multiple-value-bind (qualification symbol-name package-name)
+      (parse-symbol-node (make-node-iterator string))
+    (when qualification
+      `(,qualification ,symbol-name ,@package-name))))
 
 (define-test+run parse-symbol-node
   (is eqv '(:current "X") (test-parse-symbol-node "x"))

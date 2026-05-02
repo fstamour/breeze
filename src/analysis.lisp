@@ -110,9 +110,9 @@ The designators can be strings, symbols or packages."
                (package-name-pattern package)
                (qualification-pattern qualification))
       pattern
-    (when-let ((parsed-symbol (parse-symbol-node $node)))
-      (destructuring-bind (qualification symbol-name &optional package-name)
-          parsed-symbol
+    (multiple-value-bind (qualification symbol-name package-name)
+        (parse-symbol-node $node)
+      (when qualification
         (and (match-symbol symbol-name-pattern symbol-name)
              (match-qualification qualification-pattern qualification)
              ;; package:name or package::name

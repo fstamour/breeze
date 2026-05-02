@@ -656,7 +656,7 @@ with the original case."
 
 (defun parse-symbol-node ($node)
   "Extract information about the package-name and symbol-name of a token, if it can.
-Returns a list (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
+Returns values (TYPE SYMBOL-NAME) or (TYPE SYMBOL-NAME PACKAGE-NAME).
 PACKAGE-NAME is provided for the types :qualified and :possibly-internal.
 TYPE is one of:
 
@@ -673,9 +673,9 @@ TYPE is one of:
         ;; () === nil
         ((and (parens-node-p node)
               (every #'ignorable-node-p (children node)))
-         '#.`(:nil "()" (symbol-name :cl)))
+         (values :nil "()" #.(symbol-name :cl)))
         ((sharp-uninterned-node-p node)
-         `(:uninterned ,(name node)))
+         (values :uninterned (name node)))
         ((token-node-p node)
          (with-slots (package-prefix package-marker name)
              node
@@ -683,18 +683,19 @@ TYPE is one of:
              (cond
                ((and (null package-prefix)
                      (null package-marker))
-                `(:current ,name))
+                (values :current name))
                ((and package-marker
                      (= 1 marker-length)
                      (or (null package-prefix)
                          #++ (string= "KEYWORD" package-prefix)))
-                `(:keyword ,name))
+                (values :keyword name))
                ((and package-marker
                      (= 1 marker-length))
-                `(:qualified ,name ,package-prefix))
+                (values :qualified name package-prefix))
                ((and package-marker
                      (= 2 marker-length))
-                `(:possibly-internal ,name ,(or package-prefix "KEYWORD")))))))))))
+                (values
+                 :possibly-internal name (or package-prefix "KEYWORD")))))))))))
 
 (defun node-string-designator (node-iterator)
   "Return the string designated by node-iterator."
