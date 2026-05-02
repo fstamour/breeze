@@ -307,7 +307,8 @@ c")
 (defun around (string position &optional (around 10) indicator)
   "Returns part of STRING, from POSITION - AROUND to POSITION +
 AROUND. Add elipseses before and after if necessary."
-  (let* ((min-size (1+ (* 2 around)))
+  (let* ((position (max 0 (min position (length string))))
+         (min-size (1+ (* 2 around)))
          (before (- position around))
          (start (max 0 before))
          (after (+ start min-size))
