@@ -30,12 +30,6 @@
         (infer-project-name "some path"))
       "infer-project-name should return the name of the version control root directory when it is found"))
 
-(defun goto-all-positions ($node)
-  (loop
-    :with length = (length (breeze.parser:source $node))
-    :for i :below length
-      :do (breeze.parser:goto-position $node i)))
-
 (defparameter *breeze-workspace* nil)
 
 ;; this tests add-to-workspace
@@ -44,17 +38,6 @@
     (add-files-to-workspace
      (breeze.asdf:find-all-related-files 'breeze))
     (setf *breeze-workspace* *workspace*)))
-
-(define-test+run add-to-workspace
-  :depends-on (*breeze-workspace*)
-  (finish
-   (map-workpace-buffers
-    (lambda (buffer
-             &aux ($node (breeze.parser:node-iterator buffer)))
-      (finish
-           (progn ;; time
-             (goto-all-positions $node))
-           "Should be able to \"goto\" every positions in ~s" (name buffer))))))
 
 (defun suffixp (got expected-suffix)
   (alexandria:ends-with-subseq expected-suffix got))
@@ -90,6 +73,31 @@
     (:documentation \"A fast, lossless, robust and "
               (subseq (breeze.parser:node-string node-iterator)
                       0 (length #2#))))))))
+
+
+;;; run "goto-position" with every positions in every files in breeze.
+
+(defun goto-all-positions-of ($node)
+  (loop
+    :with length = (length (breeze.parser:source $node))
+    :for i :below length
+      :do (breeze.parser:goto-position $node i)))
+
+(defun goto-all-positions ()
+  (map-workpace-buffers
+   (lambda (buffer)
+     (goto-all-positions-of (breeze.parser:node-iterator buffer)))))
+
+(define-test+run "goto-all-positions every file in breeze"
+  :depends-on (*breeze-workspace*)
+  (finish
+   (map-workpace-buffers
+    (lambda (buffer
+             &aux ($node (breeze.parser:node-iterator buffer)))
+      (finish
+           (progn ;; time
+             (goto-all-positions-of $node))
+           "Should be able to \"goto\" every positions in ~s" (name buffer))))))
 
 
 ;;; run "lint" on all of breeze's file, for benchmarking and profiling

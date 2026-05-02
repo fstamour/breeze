@@ -735,7 +735,7 @@ the response."
 ;;; Command discovery and documentation
 
 ;; TODO keep a list of removed commands?
-;;  - hook into "unregister-comman"
+;;  - hook into "unregister-command"
 ;;   - don't forget to remove a command from the list if it's registered
 ;;     again
 ;; It's still possible for someone to `fmakunbound' a command without

@@ -330,7 +330,12 @@
 (define-node-type sharp-bitvector ())
 
 ;; TODO use "name" instead of children
-(define-node-type sharp-uninterned (:children t))
+(define-node-type sharp-uninterned (:positional-args (name))
+  ((name
+    :initform nil
+    :initarg :name
+    :accessor name
+    :documentation "Name of the uninterned symbol.")))
 (define-node-type sharp-eval (:children t))
 (define-node-type sharp-binary (:children t))
 (define-node-type sharp-octal (:children t))
@@ -396,23 +401,20 @@
 
 
 
-;; TODO move into range.lisp
 (defun node-contains-position-p (node position)
-  (let ((start (start node))
-        (end (end node)))
-    (and (<= start position)
-         (or (no-end-p node)
-             (< position end)))))
+  (with-slots (start end) node
+    (let ((start (start node))
+          (end (end node)))
+      (and (<= start position)
+           (or (no-end-p node)
+               (< position end))))))
 
-;; TODO move into range.lisp
 (defun node-range-contains-position-p (start-node end-node position)
-  (check-type start-node node)
-  (check-type end-node node)
-  (let ((start (start start-node))
-              (end (end end-node)))
-          (and (<= start position)
-               (or (no-end-p end-node)
-                   (< position end)))))
+  (with-slots (start) start-node
+    (with-slots (end) end-node
+      (and (<= start position)
+           (or (no-end-p end-node)
+               (< position end))))))
 
 (defun node-children-contains-position-p (node position)
   (when-let ((children (children node)))
@@ -664,48 +666,43 @@ TYPE is one of:
  - :qualified
  - :possibly-internal
  - :nil"
-  (unless (or (tree-iterator-done-p $node)
-              (not (valid-node-p (tree-iterator-value $node))))
+  (unless (tree-iterator-done-p $node)
     (let ((node (tree-iterator-value $node)))
-     (cond
-       ;; () === nil
-       ((and (parens-node-p node)
-             (every #'ignorable-node-p (children node)))
-        `(:nil "()" (symbol-name :cl)))
-       ((sharp-uninterned-node-p node)
-        `(:uninterned ,(name (children $node))))
-       ((token-node-p node)
-        (with-slots (package-prefix package-marker name)
-            node
-          (let ((marker-length (length package-marker)))
-            (cond
-              ((and (null package-prefix)
-                    (null package-marker))
-               `(:current ,name))
-              ((and package-marker
-                    (= 1 marker-length)
-                    (or (null package-prefix)
-                        #++ (string= "KEYWORD" package-prefix)))
-               `(:keyword ,name))
-              ((and package-marker
-                    (= 1 marker-length))
-               `(:qualified ,name ,package-prefix))
-              ((and package-marker
-                    (= 2 marker-length))
-               `(:possibly-internal ,name ,(or package-prefix "KEYWORD")))))))))))
+      (cond
+        ((not (valid-node-p (tree-iterator-value $node))) nil)
+        ;; () === nil
+        ((and (parens-node-p node)
+              (every #'ignorable-node-p (children node)))
+         '#.`(:nil "()" (symbol-name :cl)))
+        ((sharp-uninterned-node-p node)
+         `(:uninterned ,(name node)))
+        ((token-node-p node)
+         (with-slots (package-prefix package-marker name)
+             node
+           (let ((marker-length (length package-marker)))
+             (cond
+               ((and (null package-prefix)
+                     (null package-marker))
+                `(:current ,name))
+               ((and package-marker
+                     (= 1 marker-length)
+                     (or (null package-prefix)
+                         #++ (string= "KEYWORD" package-prefix)))
+                `(:keyword ,name))
+               ((and package-marker
+                     (= 1 marker-length))
+                `(:qualified ,name ,package-prefix))
+               ((and package-marker
+                     (= 2 marker-length))
+                `(:possibly-internal ,name ,(or package-prefix "KEYWORD")))))))))))
 
 (defun node-string-designator (node-iterator)
   "Return the string designated by node-iterator."
-  (check-type node-iterator node-iterator)
-  (unless (donep node-iterator)
-    (let ((node (value node-iterator)))
-      (cond
-        ;; TODO handle "`a" "' #| 🤯 |# a" (quote-node and quasiquote
-        ;; TODO (hard) handle "#."
-        ((string-node-p node) (node-string node-iterator))
-        ((sharp-uninterned-node-p node)
-         (let (($node (copy-iterator node-iterator)))
-           (go-down $node)
-           (second (parse-symbol-node $node))))
-        ((token-node-p node)
-         (second (parse-symbol-node node-iterator)))))))
+  (let ((node (tree-iterator-value node-iterator)))
+    (cond
+      ;; TODO handle "`a" "' #| 🤯 |# a" (quote-node and quasiquote
+      ;; TODO (hard) handle "#."
+      ((string-node-p node) (node-string node-iterator))
+      ((sharp-uninterned-node-p node) (name node))
+      ((token-node-p node)
+       (second (parse-symbol-node node-iterator))))))

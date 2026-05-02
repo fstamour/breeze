@@ -297,7 +297,7 @@ limits."
 
 ;; TODO this is a hack, I just copy-pasted it from breeze.string
 (defun around (string position &optional (around 10))
-  "Returns part of STRING, from POSITIONITION - AROUND to POSITIONITION +
+  "Returns part of STRING, from POSITION - AROUND to POSITION +
 AROUND. Add elipseses before and after if necessary."
   (let* ((min-size (1+ (* 2 around)))
          (before (- position around))

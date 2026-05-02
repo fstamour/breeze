@@ -4,6 +4,15 @@
 
 (in-package #:breeze.workbench)
 
+
+
+(ql:quickload "breeze/test")
+(breeze.test.main:run-tests :report 'parachute:largescale)
+(breeze.test.main:run-tests :report 'parachute:plain)
+(breeze.test.main:run-tests :report 'parachute:interactive)
+
+
+
 ;; List all threads
 (find-threads nil nil)
 
@@ -38,6 +47,16 @@
 
 (setf *break-on-signals* 'error)
 (setf *break-on-signals* nil)
+
+
+
+(in-package #:breeze.workspace)
+
+;; empty allll the caches!
+(setf *workspace* (make-instance 'workspace))
+
+(trace note-edits apply-pending-edits
+       breeze.incremental-reader:apply-edit-to-source)
 
 
 
@@ -344,8 +363,3 @@ TODO Would be nice to have a "Shadow-import all" restart.
 |#
 
 
-
-(in-package #:breeze.workspace)
-
-(trace note-edits apply-pending-edits
-       breeze.incremental-reader:apply-edit-to-source)

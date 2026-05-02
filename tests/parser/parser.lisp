@@ -318,7 +318,9 @@ EXPECTED-CHILDREN is the expected list of node's children"
       (setf (current-position state) starting-position)
       ;; make sure expected-children is nil for node types that
       ;; don't support children.
-      (if (member node-type '(sharp-reference sharp-bitvector))
+      (if (member node-type '(sharp-reference
+                              sharp-bitvector
+                              sharp-uninterned))
           (when expected-children
             (error "Node type ~s doesn't have a \"children\" slot, but expected-children is not nil, got: ~s."
                    node-type expected-children))
@@ -474,25 +476,25 @@ EXPECTED-CHILDREN is the expected list of node's children"
 
 ;;; #:
 
-(defun test-read-sharp-colon (input child expected-end
+(defun test-read-sharp-colon (input name expected-end
                               &optional expected-errors)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-colon
    :node-type 'sharp-uninterned
    :input input
    :expected-end expected-end
-   :expected-children child
+   :extra-initargs (list :name name)
    :expected-errors expected-errors))
 
 
 (define-test+run read-sharp-colon
-  (test-read-sharp-colon "#:" (token 2 2 :name "") 2)
-  (test-read-sharp-colon "#: " (token 2 2 :name "") 2)
-  (test-read-sharp-colon "#:||" (token 2 4 :name "") 4)
-  (test-read-sharp-colon "#:|| " (token 2 4 :name "") 4)
-  (test-read-sharp-colon "#: a" (token 2 2 :name "") 2)
-  (test-read-sharp-colon "#: a " (token 2 2 :name "") 2)
-  (test-read-sharp-colon "#:asdf" (token 2 6 :name "ASDF") nil))
+  (test-read-sharp-colon "#:" "" 2)
+  (test-read-sharp-colon "#: " "" 2)
+  (test-read-sharp-colon "#:||" "" 4)
+  (test-read-sharp-colon "#:|| " "" 4)
+  (test-read-sharp-colon "#: a" "" 2)
+  (test-read-sharp-colon "#: a " "" 2)
+  (test-read-sharp-colon "#:asdf" "ASDF" nil))
 
 #++
 (progn
@@ -1177,8 +1179,7 @@ This is a valid syntax:
   (test-parse "\"" (string-node 0 +end+))
   (test-parse "\"\"" (string-node 0 2))
   (test-parse "#:asdf"
-              (sharp-uninterned 0 6
-                                (token 2 6 :name "ASDF")))
+              (sharp-uninterned 0 6 "ASDF"))
   (test-parse "#2()"
               (sharp-vector 0 4
                             (parens 2 4 nil)
@@ -1507,7 +1508,7 @@ reaally?")
               (11 "e"))
       (goto-position/all "a (b c (d))e"))
   (is equal
-      '((0 "#:x") (1 "#:x") (2 "x"))
+      '((0 "#:x") (1 "#:x") (2 "#:x"))
       (goto-position/all "#:x"))
   (is equal
       '((0 ";; #:x") (1 ";; #:x") (2 ";; #:x") (3 ";; #:x") (4 ";; #:x") (5 ";; #:x"))

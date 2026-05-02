@@ -258,7 +258,7 @@ first node being whitespaces.)"
            (token (or (read-token state)
                       (token token-start token-start :name "")))
            (end (current-position state)))
-      (sharp-uninterned start end token))))
+      (sharp-uninterned start end (name token)))))
 
 (defun read-sharp-dot (state start prefix)
   (declare (ignore prefix))
