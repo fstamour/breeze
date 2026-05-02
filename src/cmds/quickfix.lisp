@@ -55,7 +55,36 @@ will fix the issue and then stop the current command."
                       (or replacement ""))
       (return-from-command))))
 
-
+(defun maybe-add-missing-closing-parens ($node)
+  (when-let (($nodes-with-missing-parens
+              (find-all-enclosing-nodes
+               $node
+               (lambda ($n)
+                 (when-let* ((node (value $n))
+                             (errors (errors node)))
+                   (member "Missing closing parenthesis."
+                           errors
+                           :key #'car :test #'string=))))))
+    (insert-at-saving-excursion
+     (let ((state (state $node))
+           (source (source $node)))
+       (or
+        ;; WARNING: heuristics incoming!
+        (when-let ((sync-point
+                    (search #.(format nil "~%(")
+                            source
+                            :start2 (1+ (start (root-node $node))))))
+          (let (($sync-point (goto-position
+                              (make-node-iterator state)
+                              sync-point)))
+            ;; TODO this kind of assume that $sync-point points to a
+            ;; whitespace node.
+            (start $sync-point)))
+        (length source)))
+     (breeze.string:repeat-string
+      (length $nodes-with-missing-parens)
+      ")"))
+    (return-from-command)))
 
 
 (define-command quickfix ()
@@ -64,13 +93,16 @@ will fix the issue and then stop the current command."
   #++ (maybe-ask-to-load-system)
   ;; TODO Is it the right place? maybe do that in the header-line??
   #++ (check-in-package)
-  (let ((root (root-node (current-node-iterator))))
-    (pulse (start root) (end root))
+  (let* (($node (current-node-iterator))
+         ($root (root $node))
+         (root (value $root)))
+    (pulse-node $root)
     (maybe-apply-fixes)
-    (message "Nothing automatically fixable in the current top-level form ~s."
-             (list (current-buffer-name)
-                   (start root)
-                   (end root)))))
+    (maybe-add-missing-closing-parens $node)
+    (message "Nothing automatically fixable in the current top-level form (~s position ~s-~s)."
+             (current-buffer-name)
+             (start root)
+             (end root))))
 
 
 #|

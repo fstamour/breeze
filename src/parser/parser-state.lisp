@@ -12,9 +12,7 @@
            #:pos
            #:tree
            #:make-state
-           #:source-substring
-           ;; TODO FIXME this symbol doesn't exist
-           #:top-level-in-package)
+           #:source-substring)
   (:export #:current-position
            #:donep
            #:valid-position-p

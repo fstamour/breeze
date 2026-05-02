@@ -431,7 +431,9 @@ receiving the data it requested."
     ("pulse"
      (cl-destructuring-bind (_ start end)
          request
-       (pulse-momentary-highlight-region (1+ start) (1+ end))))
+       (pulse-momentary-highlight-region (1+ start) (1+ end))
+       ;; return t
+       t))
     (_ (breeze-debug "Unknown request: %S" request))))
 
 (defun breeze-run-command (name &rest extra-args)
