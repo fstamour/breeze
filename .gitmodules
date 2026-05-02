@@ -1,3 +1,0 @@
-[submodule "scripts/emacs-director"]
-	path = scripts/emacs-director
-	url = https://github.com/bard/emacs-director.git
