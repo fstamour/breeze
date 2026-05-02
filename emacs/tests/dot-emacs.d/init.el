@@ -92,10 +92,6 @@
     (insert " " description))
   (insert "\n"))
 
-(defun breeze-run-demo ()
-  (interactive)
-  (load-file "~/breeze/scripts/demo/demo.el"))
-
 ;; TODO org-roam
 ;; TODO tags.org - validate the tasks's tags
 ;; TODO workbench.el - udpate breeze.el
@@ -115,12 +111,6 @@
             (insert-command-button-item 'breeze-init)
             (insert-command-button-item 'slime)
             (insert-command-button-item 'sly)
-            (insert-command-button-item
-             'breeze-run-demo
-             "Load the demo!")
-            (insert-command-button-item
-             '(find-file "~/breeze/scripts/demo/demo.el")
-             "Open demo.el!")
             (insert-command-button-item
              '(find-file-other-window "~/breeze/")
              "Open breeze's directory")
