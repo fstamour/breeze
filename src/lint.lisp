@@ -33,23 +33,30 @@
 (defun analyse (buffer &aux (*checks* *checks*))
   "Apply all the linting rules on BUFFER."
   (check-type buffer buffer)
-  (loop
-    :with node-iterator = (make-node-iterator buffer)
-    :with checks := (alexandria:hash-table-values *checks*)
-    :until (tree-iterator-done-p node-iterator)
-    :for node = (tree-iterator-value node-iterator)
-    ;; :for previous-node := nil :then node
-    :for depth = (depth node-iterator)
-    :do
-       ;; if the current node has any syntax error, signal them
-       (error-invalid-node node-iterator)
-       ;; Apply all the checks!
-       (map 'nil (lambda (check)
-                   (apply-check check buffer node-iterator
-                                ;; TODO this should be top-level-p (instead of (zerop depth))
-                                :top-level-p (zerop depth)))
-            checks)
-       (next-preorder node-iterator)))
+  (destructuring-bind (&key top-level-checks by-node-types by-not-node-types)
+      (breeze.checks::group-checks *checks*)
+    (loop
+      :with $node = (make-node-iterator buffer)
+      :until (tree-iterator-done-p $node)
+      :for node = (tree-iterator-value $node)
+      :for node-type = (node-type node)
+      ;; :for previous-node := nil :then node
+      :for depth = (depth $node)
+      :do
+         ;; if the current node has any syntax error, signal them
+         (error-invalid-node $node)
+         ;; Apply all the checks!
+         ;; TODO this should be top-level-p (instead of (zerop depth))
+         (when (zerop depth)
+           (map nil #1=(lambda (fn)
+                         (funcall fn $node :buffer buffer))
+                top-level-checks))
+         (map nil #1# (gethash node-type by-node-types))
+         (maphash (lambda (type fns)
+                    (unless (eq node-type type)
+                      (map nil #1# fns)))
+                  by-not-node-types)
+         (next-preorder $node))))
 
 (defun lint-buffer (buffer
                     &key

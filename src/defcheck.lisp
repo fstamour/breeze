@@ -117,6 +117,11 @@ preconditions that defines where/when this check is applicable."
       #++
       (check-type docstring string
                   "Docstring are mandatory for checks")
+      (unless preconditions
+        (error "For performance reasons, a check should have at least one precondition."))
+      (when (and (getf preconditions :top-level-p)
+                 (getf preconditions :node-type))
+        (error "For now, as an optimisation, a check cannot have both :top-level-p and :node-type"))
       `(progn
          (defun ,name ,(ensure-allow-other-keys lambda-list) ,@body)
          (make-instance 'check
@@ -160,3 +165,33 @@ preconditions that defines where/when this check is applicable."
              (validate-live-precondition check)
              (validate-node-type-precondition check $node))
     (funcall (fn check) $node :buffer buffer)))
+
+
+
+(defun filter-checks-by-livep (list-of-checks)
+  (if (breeze.diagnostics:livep*)
+      list-of-checks
+      (loop :for check :in list-of-checks
+            :unless (getf (preconditions check) :livep)
+              :collect check)))
+
+(defun group-checks (checks)
+  (flet ((splat (check)
+           (destructuring-bind (&key livep top-level-p node-type)
+               (preconditions check)
+             (declare (ignore livep))
+             (list top-level-p node-type))))
+    (loop
+      :with by-node-types := (make-hash-table)
+      :with by-not-node-types := (make-hash-table)
+      :for check :in (filter-checks-by-livep (alexandria:hash-table-values checks))
+      :for (top-level-p node-type) := (splat check)
+      :when top-level-p :collect (fn check) :into top-level-checks
+        :when node-type :do
+          (if (and (listp node-type)
+                   (eq :not (first node-type)))
+              (push (fn check) (gethash (second node-type) by-not-node-types))
+              (push (fn check) (gethash node-type by-node-types)))
+          :finally (return (list :top-level-checks top-level-checks
+                                 :by-node-types by-node-types
+                                 :by-not-node-types by-not-node-types)))))
