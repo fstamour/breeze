@@ -324,7 +324,9 @@ where consumed, for example)."
     :for $prev-input := (copy-iterator $input) ;; TODO should this be nil?
       :then (copy-iterator $input $prev-input)
     ;; infinite loop guard
-    :for i :from 1 :below 1000000
+    :for i := 1 :then (prog1 (1+ i)
+                        (when (<= 1000000 i)
+                          (break "Infinite loop? in (match repetition iterator)")))
     :for new-bindings = (match $pattern $input :skipp skipp)
       :then (progn (reset $pattern)
                    (match $pattern $input :skipp skipp))
