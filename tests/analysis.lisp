@@ -3,6 +3,8 @@
   (:use #:cl #:breeze.analysis)
   (:import-from #:breeze.generics
                 #:eqv)
+  (:import-from #:breeze.test-helpers
+                #:iterator-at)
   (:import-from #:parachute
                 #:define-test
                 #:define-test+run
@@ -947,15 +949,6 @@ was expected to end at position ~s (exclusive), but got ~s instead"
 
 
 ;;; Enclosing form navigation
-
-(defun iterator-at (string &key at)
-  "Return a node-iterator for STRING positioned at the token matching
-SEARCH-STRING.  Useful for simulating 'cursor inside a form'."
-  (let ((iterator (make-node-iterator string)))
-    (etypecase at
-      (string (goto-position iterator (search at string)))
-      (integer (goto-position iterator at))
-      (null iterator))))
 
 (defun test-npp (description &key matcher string at expect)
   "Test normalize-pattern-predicate."

@@ -269,7 +269,8 @@
                "breeze/dogfood")
   :pathname "tests"
   :components
-  ((:file "analysis" :depends-on ("pattern"))
+  ((:file "helpers" :depends-on ("parser"))
+   (:file "analysis" :depends-on ("helpers" "pattern"))
    (:file "command")
    (:file "report")
    (:file "documentation" :depends-on ("xref" "report"))
