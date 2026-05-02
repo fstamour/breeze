@@ -156,13 +156,13 @@
   :in-order-to ((test-op (load-op breeze/test)))
   :perform
   (test-op (o c)
-           (uiop:symbol-call
+           (symbol-call
             'breeze.test.main 'run-tests)))
 
 
 ;;; breeze/cli system
 
-(asdf:defsystem "breeze/cli"
+(defsystem "breeze/cli"
   :description "A command line interface for breeze."
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -176,13 +176,13 @@
   ;; this tells asdf what to execute to run the tests
   ;; :perform
   #++ (test-op (o c)
-           (uiop:symbol-call
+           (symbol-call
             'breeze/cli.test 'run-tests))
   :build-operation "program-op"
   :build-pathname "../build/brz"
   :entry-point "breeze.cli:main")
 
-(asdf:defsystem #:breeze/cli/test
+(defsystem #:breeze/cli/test
   :description ""
   :version "0.0.1"
   :author "Francis St-Amour"
@@ -243,7 +243,7 @@
 
 ;;; breeze.dogfood system
 
-(asdf:defsystem "breeze/dogfood"
+(defsystem "breeze/dogfood"
   :description "Breeze commands and utilities to help with breeze's development."
   :version "0.0.1"
   :author "Francis St-Amour"
