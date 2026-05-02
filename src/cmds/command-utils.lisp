@@ -44,7 +44,7 @@ buffer."
   (insert "(cl:in-package #:asdf-user)~%~%"))
 
 
-;; TODO method "ask licence" and "ask author"
+;; TODO method "ask licence", "ask author", "ask docstring"
 ;; (methods, not defun, for better testability and customization)
 ;; TODO choose-package
 

@@ -35,7 +35,7 @@
       ;; TODO if nil (insert "(uiop:define-package ")
       (insert "(defpackage "))
     ;; TODO don't insert the (in-package ...) if it already exists
-    ;; TODO add documentation "Tests for the package X"
+    ;; TODO add documentation "Tests for the package X" (use (normalize-docstring))
     (insert
      "#:~a~
     ~%  (:documentation \"\")~

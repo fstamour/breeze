@@ -628,6 +628,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/02_ad.htm"
                                         (second markers))))))
           (token start end
                  :package-prefix prefix
+                 ;; TODO(perf) maybe only save the start and count of markers
                  :package-marker markers
                  :name name
                  :errors `(,@(unless valid-marker-p

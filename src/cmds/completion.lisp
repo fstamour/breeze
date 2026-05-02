@@ -49,6 +49,9 @@ contextual completions:
 fiind-sym
 => should suggest find-symbol
 
+
+(loop ... :fin|) > should complete "finally" !!!
+
 |#
 
 (defpackage #:breeze.completion

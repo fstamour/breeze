@@ -42,6 +42,12 @@ inside a comment... it's easier to understand with an example:
 instead of
 ;; asdf qyar
 
+
+transpose-sexp
+"a|'b" => "'ba|"
+should be
+"'b a|"
+
 |#
 
 (define-command kill-sexp ()

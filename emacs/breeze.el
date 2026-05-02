@@ -580,11 +580,14 @@ which will redefine the dummy command."
   (if (and (breeze-disabled-p)
            (breeze-listener-connected-p nil))
       nil ;; (warn "Breeze is disabled")
-    (and
-     (breeze-list-loaded-listeners)
-     (breeze-listener-connected-p)
-     (breeze-validate-if-breeze-package-exists)
-     (breeze-refresh-commands))))
+    (when (and
+           (breeze-list-loaded-listeners)
+           (breeze-listener-connected-p)
+           (breeze-validate-if-breeze-package-exists))
+      (breeze-refresh-commands)
+      ;; TODO If the stub didn't get re-define... this will recurse again and again...
+      ;; (funcall 'name)
+      )))
 
 (defun breeze-header-line ()
   "Compute the content of the header-line for the current buffer"

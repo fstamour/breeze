@@ -55,6 +55,28 @@ differences between swank and slynk."
                          (car values)))))
           (t (format nil "~{~S~^, ~}" values)))))
 
+
+#|
+TODO When trying to evaluate a defmethod that changes the lambda-list, it would be nice to have a restart to force it...
+
+Here's what the condition looks like in sbcl:
+
+attempt to add the method
+  #<STANDARD-METHOD (#<STANDARD-CLASS BREEZE.BUFFER:BUFFER>) {1211C4D993}>
+to the generic function
+  #<STANDARD-GENERIC-FUNCTION BREEZE.BUFFER:CURRENT-PACKAGE (1)>;
+ but the method has more optional arguments than the generic function.
+   [Condition of type SB-INT:SIMPLE-PROGRAM-ERROR]
+
+
+
+#<SB-INT:SIMPLE-PROGRAM-ERROR {1211CB2653}>
+--------------------
+The object is a CONDITION of type SB-INT:SIMPLE-PROGRAM-ERROR.
+FORMAT-CONTROL: "~@<attempt to add the method~2I~_~S~I~_to the generic function~2I~_~S;~I~_ but ~?~:>"
+FORMAT-ARGUMENTS: @1=(#<STANDARD-METHOD (#<STANDARD-CLASS BREEZE.BUFFER:BUFFER>) {1211C4D993}> #<STANDARD-GENERIC-FUNCTION BREEZE.BUFFER:CURRENT-PACKAGE (1)> "the method has ~A optional arguments than the generic function." ("more"))
+|#
+
 (defun interactive-eval-string (string)
   ;; TODO maybe keep an history (pushnew string *recent-forms* :test #'string=)
   ;; TODO add a restart to retry
