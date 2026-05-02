@@ -149,7 +149,7 @@ The designators can be strings, symbols or packages."
   (match-parser-state pattern state :skipp skipp))
 
 (defmethod match ((pattern simple-var) (state state) &key skipp)
-  "Match a var against a parse state."
+  "Match a simple-var against a parse state."
   (match-parser-state pattern state :skipp skipp))
 
 ;; TODO One method per type of node

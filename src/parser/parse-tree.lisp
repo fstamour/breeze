@@ -704,5 +704,4 @@ TYPE is one of:
       ;; TODO (hard) handle "#."
       ((string-node-p node) (node-string node-iterator))
       ((sharp-uninterned-node-p node) (name node))
-      ((token-node-p node)
-       (second (parse-symbol-node node-iterator))))))
+      ((token-node-p node) (name node)))))
