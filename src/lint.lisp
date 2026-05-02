@@ -36,12 +36,11 @@
   (check-type buffer buffer)
   (loop
     :with node-iterator = (make-node-iterator buffer)
-    :with source := (source buffer)
     :with checks := (alexandria:hash-table-values *checks*)
-    :until (donep node-iterator)
-    :for node = (value node-iterator)
+    :until (breeze.iterator:tree-iterator-done-p node-iterator)
+    :for node = (breeze.iterator:tree-iterator-value node-iterator)
     ;; :for previous-node := nil :then node
-    :for depth = (slot-value node-iterator 'depth)
+    :for depth = (depth node-iterator)
     :do
        ;; if the current node has any syntax error, signal them
        (error-invalid-node node-iterator)

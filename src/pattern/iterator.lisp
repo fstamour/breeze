@@ -39,6 +39,8 @@ generalization of that first iteration (ha!).
            #:make-stream-iterator)
   ;; Accessors
   (:export
+   #:tree-iterator-done-p
+   #:tree-iterator-value
    #:pos
    #:subtree
    #:subtrees
@@ -191,40 +193,54 @@ save this function's return value."))
 
 ;;; iterator for trees (nested vectors)
 
+(defparameter *initial-tree-iterator-array-size* 0)
+
+(defun make-subtrees ()
+  (make-array
+   (list *initial-tree-iterator-array-size*)
+   :element-type 'vector
+   :initial-element #()
+   :adjustable t
+   :fill-pointer 0))
+
+(defun make-positions ()
+  (make-array
+   (list *initial-tree-iterator-array-size*)
+   :element-type 'fixnum
+   :initial-element -1
+   :adjustable t
+   :fill-pointer 0))
+
 (defclass tree-iterator (iterator)
   ((subtrees
-    :initform (make-array '(0)
-                          :element-type 'vector
-                          :adjustable t
-                          :fill-pointer t)
+    :initform (make-subtrees)
     :initarg :subtrees
+    :type vector
     :documentation "A vector containing the current subtree being at each level
 
 For example, the first element is the root of the tree, and the last
 active element is current subtree).")
-   (depth
-    :initform 0
-    :initarg :depth
-    :type fixnum
-    :documentation "Current depth. Used to get the current subtree from `subtrees' and the
-current position in the subtree from `positions'.")
    (positions
-    :initform (make-array '(1)
-                          :element-type 'fixnum
-                          :adjustable t
-                          :initial-element 0
-                          :fill-pointer 0)
+    :initform (make-positions)
     :initarg :positions
     :type (vector fixnum)
     :documentation "A vector of positions, each one representing the position at different
 depth of the tree."))
   (:documentation "An iterator for nested subtrees."))
 
+(declaim (inline depth))
+(declaim (ftype (function (tree-iterator) fixnum) depth))
+(defun depth (iterator)
+  (declare (optimize (speed 3) (safety 1) (debug 0)))
+  (with-slots (positions) iterator
+    (declare (type (vector fixnum) positions))
+    (1- (length positions))))
+
 (defmethod print-object ((iterator tree-iterator) stream)
   (print-unreadable-object
       (iterator stream :type t :identity t)
-    (with-slots (depth positions) iterator
-        (format stream "depth: ~s pos: ~s" depth positions))))
+    (with-slots (positions) iterator
+      (format stream "depth: ~s pos: ~s" (depth iterator) positions))))
 
 (defmethod initialize-instance
     ((iterator tree-iterator)
@@ -239,9 +255,9 @@ depth of the tree."))
   (make-instance 'tree-iterator :root root))
 
 (defmethod eqv ((a tree-iterator) (b tree-iterator))
-  (with-slots ((depth-a depth) (pos-a positions) (subtrees-a subtrees)) a
-    (with-slots ((depth-b depth) (pos-b positions) (subtrees-b subtrees)) b
-      (and (= depth-a depth-b)
+  (with-slots ((pos-a positions) (subtrees-a subtrees)) a
+    (with-slots ((pos-b positions) (subtrees-b subtrees)) b
+      (and (= (depth a) (depth b))
            (every #'eq subtrees-a subtrees-b)
            (every #'= pos-a pos-b)))))
 
@@ -250,32 +266,35 @@ depth of the tree."))
     (when (vectorp value) value)))
 
 (declaim (inline subtree))
+(declaim (ftype (function (tree-iterator) t) subtree))
 (defun subtree (iterator)
-  #++ (declare (optimize (speed 3)))
+  (declare (optimize (speed 1) (safety 1) (debug 0)))
+  (declare (type tree-iterator iterator))
   #|
-  unable to
-    optimize
-  because:
-    Upgraded element type of array is not known at compile time.
+  unable to  optimize because:
+  Upgraded element type of array is not known at compile time.
   |#
-  (with-slots (subtrees depth) iterator
-      (aref subtrees depth)))
+  (with-slots (subtrees) iterator
+    (declare (type vector subtrees))
+    (aref subtrees (depth iterator))))
 
 (declaim (inline pos))
+(declaim (ftype (function (tree-iterator) fixnum) pos))
 (defun pos (iterator)
-  #++ (declare (optimize (speed 3)))
+  (declare (optimize (speed 1) (safety 1) (debug 0)))
+  ;; (declare (optimize (speed 3) (safety 1) (debug 0)))
   #|
-  unable to
-    optimize
-  because:
-    Upgraded element type of array is not known at compile time.
+    unable to optimize
+    due to type uncertainty: The first argument is a (VECTOR FIXNUM), not a SIMPLE-ARRAY.
   |#
-  (with-slots (positions depth) iterator
-    (aref positions depth)))
+  (with-slots (positions) iterator
+    (declare (type (vector fixnum) positions))
+    (aref positions (depth iterator))))
 
+(declaim (inline (setf pos)))
 (defun (setf pos) (new-position iterator)
-  (with-slots (positions depth) iterator
-    (setf (aref positions depth) new-position)))
+  (with-slots (positions) iterator
+    (setf (aref positions (depth iterator)) new-position)))
 
 (defmethod current-position ((iterator tree-iterator))
   (pos iterator))
@@ -285,23 +304,40 @@ depth of the tree."))
 
 (declaim (inline current-depth-done-p))
 (defun current-depth-done-p (iterator)
+  (declare (type tree-iterator iterator))
   (or
    ;; too deep
-   (with-slots (depth subtrees) iterator
-     (<= (length subtrees) depth))
-   (if (typep (subtree iterator) 'sequence)
-       (not (< -1 (pos iterator) (length (subtree iterator))))
-       ;; if the subtree is not a vector, then 0 is the only valid
-       ;; position
-       (plusp (pos iterator)))))
+   (with-slots (subtrees) iterator
+     (declare (type vector subtrees))
+     (<= (length subtrees) (depth iterator)))
+   (let ((subtree (subtree iterator))
+         (pos (pos iterator)))
+     (declare (type fixnum pos)
+              (dynamic-extent pos subtree))
+     (if (typep subtree 'sequence)
+         (locally
+             (declare (type vector subtree))
+           (not (< -1 pos (length subtree))))
+         ;; if the subtree is not a vector, then 0 is the only valid
+         ;; position
+         (plusp pos)))))
+
+(declaim (inline tree-iterator-done-p))
+(defun tree-iterator-done-p (iterator)
+  (declare (type tree-iterator iterator))
+  (current-depth-done-p iterator))
 
 (defmethod donep ((iterator tree-iterator))
-  (current-depth-done-p iterator))
+  (tree-iterator-done-p iterator))
 
 (defmethod next ((iterator tree-iterator))
   (incf (pos iterator)))
 
-(defmethod value ((iterator tree-iterator))
+(declaim (inline tree-iterator-value))
+(defun tree-iterator-value (iterator)
+  (declare (type tree-iterator iterator)
+           ;; (optimize (speed 3))
+           )
   (let ((subtree (subtree iterator)))
     (if (vectorp subtree)
         (aref subtree (pos iterator))
@@ -310,13 +346,19 @@ depth of the tree."))
         ;; methods.
         subtree)))
 
+(defmethod value ((iterator tree-iterator))
+  (tree-iterator-value iterator))
+
 ;; TODO test
 (defmethod reset ((iterator tree-iterator))
-  (with-slots (depth subtrees positions) iterator
-    (setf depth 0
-          (pos iterator) 0
-          (fill-pointer subtrees) 1
-          (fill-pointer positions) 1)))
+  "Reset a tree-iterator.
+
+This is like `goto-root' followed by `goto-first' (`goto-first'
+doesn't exist)."
+  (with-slots (subtrees positions) iterator
+    (setf (fill-pointer subtrees) 1
+          (fill-pointer positions) 1
+          (pos iterator) 0)))
 
 ;; TODO test
 (defmethod copy-iterator ((iterator tree-iterator)
@@ -327,33 +369,29 @@ depth of the tree."))
                        :adjustable t
                        :fill-pointer (fill-pointer vec)
                        :initial-contents vec)))
-    (with-slots (subtrees positions depth) iterator
+    (with-slots (subtrees positions) iterator
       (cond
         (target
          (setf (slot-value target 'subtrees) (copy-vec subtrees)
-               (slot-value target 'positions) (copy-vec positions)
-               (slot-value target 'depth) depth)
+               (slot-value target 'positions) (copy-vec positions))
          target)
         (t
          (make-instance
           (class-of iterator)
           :subtrees (copy-vec subtrees)
-          :positions (copy-vec positions)
-          :depth depth))))))
+          :positions (copy-vec positions)))))))
 
 (defmethod push-subtree ((iterator tree-iterator)
                         subtree &key (position 0))
-  (with-slots (positions depth subtrees) iterator
+  (with-slots (positions subtrees) iterator
     (vector-push-extend subtree subtrees)
-    (vector-push-extend position positions)
-    (setf depth (1- (length positions))))
+    (vector-push-extend position positions))
   iterator)
 
 (defmethod pop-subtree ((iterator tree-iterator))
-  (with-slots (positions depth subtrees) iterator
+  (with-slots (positions subtrees) iterator
     (decf (fill-pointer subtrees))
-    (decf (fill-pointer positions))
-    (decf depth))
+    (decf (fill-pointer positions)))
   iterator)
 
 ;; TODO test
@@ -373,6 +411,7 @@ depth of the tree."))
       t)))
 
 (defmethod go-down ((iterator tree-iterator))
+  ;; (declare (optimize (speed 3) (safety 1) (debug 0)))
   (unless (current-depth-done-p iterator)
     (let ((value-to-dig-in (children iterator)))
       (when value-to-dig-in
@@ -383,24 +422,24 @@ depth of the tree."))
         t))))
 
 (defmethod go-up ((iterator tree-iterator))
-  (unless (zerop (slot-value iterator 'depth))
+  (unless (zerop (depth iterator))
     (pop-subtree iterator)
     t))
 
 ;; TODO add tests
 (defmethod goto-root ((iterator tree-iterator))
   "Move the ITERATOR to the root."
-  (with-slots (positions depth subtrees) iterator
+  (with-slots (positions subtrees) iterator
     (setf (fill-pointer subtrees) 1)
-    (setf (fill-pointer positions) 1)
-    (setf depth 0))
+    (setf (fill-pointer positions) 1))
   iterator)
 
 (defun next-up (iterator)
+  (declare (optimize (speed 3)))
   (loop
     :for i :from 0
     :while (and (current-depth-done-p iterator)
-                (plusp (slot-value iterator 'depth)))
+                (plusp (depth iterator)))
     :do
        ;; go-up
        (pop-subtree iterator)
@@ -421,7 +460,7 @@ depth of the tree."))
   (loop
     :with went-down
     :while (and (current-depth-done-p iterator)
-                (plusp (slot-value iterator 'depth)))
+                (plusp (depth iterator)))
     :do
        ;; go-up
        (pop-subtree iterator)
@@ -436,7 +475,7 @@ depth of the tree."))
   "Map over the subtree designated by ITERATOR, applying CALLBACK to the
 parent node then to the children."
   (loop
-    :with initial-depth = (slot-value iterator 'depth)
+    :with initial-depth = (depth iterator)
     :with initial-pos = (pos iterator)
     :with positions = (slot-value iterator 'positions)
     :while (and (not (donep iterator))
@@ -464,12 +503,12 @@ parent node then to the children."
 
 (defmethod rootp ((iterator tree-iterator))
   "Test if ITERATOR is currently at the root of the tree."
-  (with-slots (depth) iterator
-    (zerop depth)))
+  (zerop (depth iterator)))
 
 ;; TODO add tests
 (defmethod subtree-at-depth ((iterator tree-iterator) depth)
   "Get the subtree of ITERATOR at depth DEPTH."
+  (declare (type fixnum depth))
   (with-slots (subtrees) iterator
     (aref subtrees depth)))
 
@@ -479,6 +518,7 @@ parent node then to the children."
 
 ;; TODO add tests
 (defmethod value-at-depth ((iterator tree-iterator) depth)
+  (declare (type fixnum depth))
   (with-slots (positions subtrees) iterator
     (let ((pos (aref positions depth))
           (subtree (aref subtrees depth)))
@@ -488,18 +528,21 @@ parent node then to the children."
 (defmethod iterator-at-depth ((iterator tree-iterator) depth)
   ;; TODO _maybe_ some checks
   (let ((new (copy-iterator iterator)))
-    (setf (slot-value new 'depth) depth)
+    (with-slots (subtrees positions) new
+      (setf
+       (fill-pointer subtrees) 1
+       (fill-pointer positions) 1))
     new))
 
 ;; TODO add tests
 (defmethod parent-value ((iterator tree-iterator))
-  (with-slots (depth) iterator
+  (let ((depth (depth iterator)))
     (when (plusp depth)
       (value-at-depth iterator (1- depth)))))
 
 ;; TODO add tests
 (defmethod parent ((iterator tree-iterator))
-  (with-slots (depth) iterator
+  (let ((depth (depth iterator)))
     (when (plusp depth)
       (iterator-at-depth iterator (1- depth)))))
 

@@ -391,7 +391,7 @@
   "Is this node a whitespace, a block comment or line comment?"
   (ignorable-node-p (etypecase node
                       ;; TODO maybe add (not (donep ...))
-                      (node-iterator (value node))
+                      (node-iterator (tree-iterator-value node))
                       (node node))))
 
 
@@ -447,13 +447,13 @@
 (defmethod print-object ((node-iterator node-iterator) stream)
   (print-unreadable-object
       (node-iterator stream :type t :identity nil)
-    (with-slots (depth positions subtrees) node-iterator
+    (with-slots (positions subtrees) node-iterator
       (format stream "~{~s~^, ~}"
-              (list depth positions)))))
+              (list (depth node-iterator) positions)))))
 
 (defmethod children ((iterator node-iterator))
-  (unless (donep iterator)
-    (children (value iterator))))
+  (unless (tree-iterator-done-p iterator)
+    (children (tree-iterator-value iterator))))
 
 (defmethod source ((node-iterator node-iterator))
   (source (state node-iterator)))
@@ -461,7 +461,7 @@
 (defmethod node-string ((_ (eql nil))))
 
 (defmethod node-string ((node-iterator node-iterator))
-  (node-content (state node-iterator) (value node-iterator)))
+  (node-content (state node-iterator) (tree-iterator-value node-iterator)))
 
 
 ;;; goto point
@@ -476,24 +476,24 @@
     ((<= (length (source iterator)) position)
      ;; TODO add a test for this case
      (setf position (1- (length (source iterator)))))
-    ((donep iterator) (reset iterator))
+    ((tree-iterator-done-p iterator) (reset iterator))
     ((node-contains-position-p (root-node iterator) position)
-     (loop :for d :from (slot-value iterator 'depth) :downto 0
+     (loop :for d :from (depth iterator) :downto 0
            :if (node-contains-position-p (value-at-depth iterator d) position)
              :do (return)
            :else
              :do (pop-subtree iterator)))
     ;; TODO this could eazily be optimized by going backward (or bin search)
-    ((< position (start (value iterator)))
+    ((< position (start (tree-iterator-value iterator)))
      (reset iterator)))
   (loop
-    :until (donep iterator)
-    :for node = (value iterator)
+    :until (tree-iterator-done-p iterator)
+    :for node = (tree-iterator-value iterator)
     :do
     #++ (log-debug "============ depth: ~d positions: ~s donep: ~s node: ~s"
-                   (slot-value iterator 'depth)
-                   (slot-value iterator 'positions)
-                   (donep iterator)
+                   (depth iterator)
+                   (slot-tree-iterator-value iterator 'positions)
+                   (tree-iterator-done-p iterator)
                    node)
         (cond
           ((= (start node) position)
@@ -541,61 +541,19 @@
 
 (defmethod start ((node-iterator node-iterator))
   "Get the start position of the current node."
-  (start (value node-iterator)))
+  (start (tree-iterator-value node-iterator)))
 
 (defmethod end ((node-iterator node-iterator))
   "Get the end position of the current node."
-  (end (value node-iterator)))
+  (end (tree-iterator-value node-iterator)))
 
 
 
 
-#++
-(defmethod crumbs ((iterator node-iterator))
-  (loop :for i :from 0 :upto (depth iterator)
-        :for node-at-depth = (value-at-depth iterator i)
-        :for crumb-node = (or (first-node (children node-at-depth)) node-at-depth)
-        :collect (if (= i (depth iterator))
-                     (node-content (state iterator) node-at-depth)
-                     (when crumb-node
-                       (node-content (state iterator) crumb-node)))))
-
-#++
-(defmethod crumbs ((iterator node-iterator))
-  (loop :for i :from 0 :below (depth iterator)
-        :for node-at-depth = (value-at-depth iterator i)
-        :for crumb-node = (or (first-node (children node-at-depth))
-                              node-at-depth)
-        :collect (when crumb-node
-                   (node-content (state iterator) crumb-node))))
-
-#++
-(let* ((input "a (b c (d (e g)))")
-       (state (parse input))
-       (it (make-node-iterator state)))
-  (loop :for i :below (length input)
-        :do (goto-position it i)
-        :collect (crumbs it)))
-
-
-(defun type-path (node-iterator)
-  (let ((depth (slot-value node-iterator 'depth)))
-    (loop :for d :upto depth
-          :for node = (value-at-depth node-iterator d)
-          :collect (node-type node))))
-
-#++
-(let* ((input "a (b c (d (e g)))")
-       (state (parse input))
-       (it (make-node-iterator state)))
-  (loop :for i :below (length input)
-        :do (goto-position it i)
-        :collect (type-path it)))
-
 (defmethod add-offset ((iterator node-iterator) offset)
   (loop
-    :until (donep iterator)
-    :for node = (value iterator)
+    :until (tree-iterator-done-p iterator)
+    :for node = (tree-iterator-value iterator)
     :do (add-offset node offset)
     (next iterator)))
 
@@ -625,8 +583,8 @@
 ;; TODO move somewhere else, this has nothing to do with "parse-tree"
 (defmethod map-top-level-forms (function (state state))
   (loop :with iterator = (make-node-iterator state)
-        :until (donep iterator)
-        :do (let ((node (value iterator))
+        :until (tree-iterator-done-p iterator)
+        :do (let ((node (tree-iterator-value iterator))
                   (body (top-level-forms iterator)))
               (cond
                 (body (copy-iterator body iterator))
@@ -655,7 +613,7 @@
   "Return the package-prefix of a token (interpreted as a symbol), without the
 package qualifier and marker, but including any escape characters and
 with the original case."
-  (let ((node (value node-iterator)))
+  (let ((node (tree-iterator-value node-iterator)))
     (when (token-node-p node)
       (if (package-marker node)
           (source-substring (state node-iterator)
@@ -669,7 +627,7 @@ with the original case."
 ;; => "a\\sdf"
 
 #++
-(package-prefix (value (make-node-iterator "a\\sdf:qwer")))
+(package-prefix (tree-iterator-value (make-node-iterator "a\\sdf:qwer")))
 ;; => "AsDF"
 
 ;; TODO tests!
@@ -677,7 +635,7 @@ with the original case."
   "Return the name of a token (interpreted as a symbol), without the
 package qualifier and marker, but including any escape characters and
 with the original case."
-  (let ((node (value node-iterator)))
+  (let ((node (tree-iterator-value node-iterator)))
     (when (token-node-p node)
       (if (package-marker node)
           (source-substring (state node-iterator)
@@ -706,9 +664,9 @@ TYPE is one of:
  - :qualified
  - :possibly-internal
  - :nil"
-  (unless (or (donep $node)
-              (not (valid-node-p (value $node))))
-    (let ((node (value $node)))
+  (unless (or (tree-iterator-done-p $node)
+              (not (valid-node-p (tree-iterator-value $node))))
+    (let ((node (tree-iterator-value $node)))
      (cond
        ;; () === nil
        ((and (parens-node-p node)

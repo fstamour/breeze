@@ -215,7 +215,7 @@ The designators can be strings, symbols or packages."
 ;; TODO this takes care of the ` reader-macro, but not the (quote ...) special operator :/
 ;; TODO nor can if figure out if part of a macro is evaluated or not
 (defun quotedness (node-iterator)
-  (let ((depth (slot-value node-iterator 'depth)))
+  (let ((depth (depth node-iterator)))
     (loop :for d :upto depth
           :for node = (value-at-depth node-iterator d)
           :for type = (assoc (node-type node)
@@ -334,7 +334,9 @@ MATCHER may be:
            :skipp skipp))))))
 
 ;; TODO maybe add a keyword argument to control whether to return
-;; NODE-ITERATOR if it satisfies PREDICATE.
+;; NODE-ITERATOR if it satisfies PREDICATE (i.e. should
+;; `find-enclosing-node' include NODE-ITERATOR itself; or should it
+;; only search the parents)
 (defun find-enclosing-node (node-iterator matcher
                             &key (direction :bottom-up)
                             &aux (predicate (normalize-pattern-predicate

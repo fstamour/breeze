@@ -130,12 +130,10 @@
   "- the pattern is at the same depth as before
      - the input is at the same depth as before"
   (breeze+parachute:pass-p ('check-iterator-depths)
-    (is = (slot-value $pattern-before 'depth)
-        (slot-value $pattern-after 'depth)
+    (is = (depth $pattern-before) (depth $pattern-after)
         "~a  the depth of the pattern iterator should be the same after and before the match"
         description)
-    (is = (slot-value $input-before 'depth)
-        (slot-value $input-after 'depth)
+    (is = (depth $input-before) (depth $input-after)
         "~a  the depth of the input iterator should be the same after and before the match"
         description)))
 
