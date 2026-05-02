@@ -1,0 +1,41 @@
+#+title: breeze.vim
+
+Vim integration for [[https://codeberg.org/fstamour/breeze][Breeze]], a Common Lisp development tooling library.
+
+* Installation
+
+The plugin lives in the =vim/= directory of the breeze repository.
+Point your plugin manager at it, or load it manually.
+
+** vim-plug
+
+#+begin_src vim
+Plug 'fstamour/breeze', { 'rtp': 'vim' }
+#+end_src
+
+** lazy.nvim
+
+#+begin_src lua
+{ 'fstamour/breeze', main = 'breeze', opts = {}, dir = vim.fn.stdpath('data') .. '/path/to/breeze/vim' }
+#+end_src
+
+** Manual (no plugin manager)
+
+Add the =vim/= directory to Vim's runtime path, e.g. in your
+=~/.vimrc=:
+
+#+begin_src vim
+set runtimepath+=/path/to/breeze/vim
+#+end_src
+
+Or for Neovim in =~/.config/nvim/init.vim= (or =init.lua=):
+
+#+begin_src lua
+vim.opt.rtp:append('/path/to/breeze/vim')
+#+end_src
+
+* Commands
+
+| Command        | Description                                   |
+|----------------+-----------------------------------------------|
+| =:BreezeInit=  | Initialize Breeze in the running Lisp listener |
