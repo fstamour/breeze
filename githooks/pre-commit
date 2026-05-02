@@ -50,7 +50,7 @@ git diff-index --check --cached $against --
 
 
 # run the tests
-./scripts/test.sh
+./scripts/test-sbcl.sh
 
 # generate the docs
 ./scripts/doc.sh
