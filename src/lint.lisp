@@ -12,7 +12,8 @@
                 #:buffer)
   (:export #:target-node
            #:replacement)
-  (:export #:lint-buffer
+  (:export #:analyse
+           #:lint-buffer
            #:fix-buffer)
   (:export #:lint))
 

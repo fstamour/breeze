@@ -84,9 +84,10 @@
       :do (breeze.parser:goto-position $node i)))
 
 (defun goto-all-positions ()
-  (map-workpace-buffers
-   (lambda (buffer)
-     (goto-all-positions-of (breeze.parser:node-iterator buffer)))))
+  (let ((*workspace* *breeze-workspace*))
+    (map-workpace-buffers
+     (lambda (buffer)
+       (goto-all-positions-of (breeze.parser:node-iterator buffer))))))
 
 (define-test+run "goto-all-positions every file in breeze"
   :depends-on (*breeze-workspace*)
@@ -101,6 +102,15 @@
 
 
 ;;; run "lint" on all of breeze's file, for benchmarking and profiling
+
+(defun analyse-every-file-in-breeze ()
+  (let ((*workspace* *breeze-workspace*))
+    (let ((breeze.lint::*scan* (make-instance 'breeze.lint::scan :livep t)))
+      (map-workpace-buffers 'breeze.lint:analyse))))
+
+(define-test+run "analyse every file in breeze"
+  :depends-on (*breeze-workspace*)
+  (finish (analyse-every-file-in-breeze)))
 
 (defun lint-every-file-in-breeze ()
   (let ((*workspace* *breeze-workspace*))

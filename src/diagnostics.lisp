@@ -51,7 +51,7 @@ connected to an image through slime or sly)."))
   "The current run of the linter. Holds the linter's configurations and keeps track of all the diagnostics.")
 
 (defun livep* ()
-  (livep *scan*))
+  (and *scan* (livep *scan*)))
 
 
 
