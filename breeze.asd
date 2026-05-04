@@ -37,6 +37,23 @@
   :pathname "src/"
   :components ((:file "class-utils")))
 
+(defsystem "breeze/iterator"
+  :version "0"
+  :maintainer "Francis St-Amour"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :description "Iterators for vectors, nested vectors (trees), streams, and concatenations."
+  :depends-on ("breeze/generics"
+               "breeze/class-utils")
+  :pathname "src/iterator/"
+  :serial nil
+  :components ((:file "package")
+               (:file "interface" :depends-on ("package"))
+               (:file "vector-iterator" :depends-on ("interface"))
+               (:file "tree-iterator" :depends-on ("interface"))
+               (:file "concat-iterator" :depends-on ("vector-iterator"))
+               (:file "stream-iterator" :depends-on ("vector-iterator"))))
+
 (defsystem "breeze/pattern"
   :version "0"
   :maintainer "Francis St-Amour"
@@ -46,11 +63,11 @@
   :depends-on (;; as of 2025-10-31 — only for "flatten"
                "alexandria"
                "breeze/generics"
-               "breeze/class-utils")
+               "breeze/class-utils"
+               "breeze/iterator")
   :pathname "src/pattern/"
   :serial t
-  :components ((:file "iterator")
-               (:file "pattern")
+  :components ((:file "pattern")
                (:file "compile-pattern")
                (:file "substitution")
                (:file "match")
@@ -256,6 +273,21 @@
 
 ;;; breeze/test system
 
+(defsystem "breeze/iterator/test"
+  :description "Tests for the breeze/iterator system."
+  :version "0"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :depends-on ("breeze/iterator"
+               "parachute")
+  :pathname "tests/iterator/"
+  :serial nil
+  :components ((:file "package")
+               (:file "vector-iterator"  :depends-on ("package"))
+               (:file "tree-iterator"    :depends-on ("package"))
+               (:file "concat-iterator"  :depends-on ("package"))
+               (:file "stream-iterator"  :depends-on ("package"))))
+
 (defsystem "breeze/test"
   :description "Tests for the breeze system."
   :version "0"
@@ -266,7 +298,8 @@
                "breeze/parachute"
                "breeze/doc"
                "breeze/quickproject"
-               "breeze/dogfood")
+               "breeze/dogfood"
+               "breeze/iterator/test")
   :pathname "tests"
   :components
   ((:file "helpers" :depends-on ("parser"))
@@ -276,7 +309,6 @@
    (:file "documentation" :depends-on ("xref" "report"))
    (:file "dummy-package")
    (:file "egraph")
-   (:file "iterator")
    (:file "lint")
    (:file "listener" :depends-on ("command"))
    (:file "logging")

@@ -1,0 +1,20 @@
+(in-package #:breeze.test.iterator)
+
+(define-test+run tree-iterator
+  (let* ((root #(1 2 3))
+         (iterator (make-tree-iterator root)))
+    (is eq root (subtree iterator))
+    (is = 0 (pos iterator))
+    (is equal '(1 2 3) (collect iterator)))
+  (let* ((iterator (make-tree-iterator #())))
+    (true (donep iterator)))
+    ;; Testing push-subtree and pop-subtree
+  (is equal '(1 2 3 4)
+      (let ((iterator (make-tree-iterator #(1 #(2 3) 4))))
+        (list (prog1 (value iterator) (next iterator))
+              (progn (push-subtree iterator (value iterator))
+                     (value iterator))
+              (progn (next iterator)
+                     (value iterator))
+              (progn (pop-subtree iterator) (next iterator)
+                     (value iterator))))))
