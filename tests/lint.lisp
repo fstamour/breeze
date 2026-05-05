@@ -33,8 +33,8 @@ TODO
 
 ;;; Testing the linter
 
-(defun test-lint (buffer-string)
-  (lint-buffer (make-buffer :string buffer-string)))
+(defun test-lint (buffer-string &rest format-args)
+  (lint-buffer (make-buffer :string (apply #'format nil buffer-string format-args))))
 
 (define-test+run lint
   (false (test-lint ""))

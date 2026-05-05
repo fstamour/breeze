@@ -336,7 +336,8 @@
                  (:file "completion")))
    (:module "checks"
     :depends-on ("lint")
-    :components ((:file "dot-checks")))
+    :components ((:file "dot-checks")
+                 (:file "whitespaces-checks")))
    (:file "string-utils")
    (:file "utils")
    (:file "buffer")

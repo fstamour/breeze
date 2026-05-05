@@ -106,3 +106,28 @@
                           ;; TODO the name "replacement doesn't make much sense anymore
                           ;; TODO the "quickfix command doesn't know how to handle this yet.
                           :replacement '(:insert-after " ")))))
+
+(defcheck warn-mixed-indentation (node-iterator)
+  :node-type whitespace
+  (let* ((whitespaces (node-string node-iterator))
+         (last-newline (position #\Newline whitespaces :from-end t)))
+    (when last-newline
+      (let ((indentation (subseq whitespaces (1+ last-newline))))
+        (when (and (find #\Space indentation)
+                   (find #\Tab indentation))
+          (node-style-warning
+           node-iterator
+           "Mixed spaces and tabs in indentation."))))))
+
+(defcheck warn-mixed-non-indentation-whitespace (node-iterator)
+  :node-type whitespace
+  (let* ((whitespaces (node-string node-iterator))
+         (last-newline (position #\Newline whitespaces :from-end t))
+         (non-indentation (if last-newline
+                              (subseq whitespaces 0 (1+ last-newline))
+                              whitespaces)))
+    (when (and (find #\Space non-indentation)
+               (find #\Tab non-indentation))
+      (node-style-warning
+       node-iterator
+       "Mixed spaces and tabs in whitespace."))))
