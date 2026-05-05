@@ -8,8 +8,9 @@
                 #:true
                 #:false
                 #:fail)
+  (:import-from #:breeze.iterator
+                #:map-stream)
   (:import-from #:breeze.egraph
-                #:map-stream
                 #:map-egraph
                 #:stream-eclass
                 #:stream-equivalent-eclasses))

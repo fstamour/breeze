@@ -52,7 +52,8 @@
                (:file "vector-iterator" :depends-on ("interface"))
                (:file "tree-iterator" :depends-on ("interface"))
                (:file "concat-iterator" :depends-on ("vector-iterator"))
-               (:file "stream-iterator" :depends-on ("vector-iterator"))))
+               (:file "stream-iterator" :depends-on ("vector-iterator"))
+               (:file "stream" :depends-on ("interface"))))
 
 (defsystem "breeze/pattern"
   :version "0"
