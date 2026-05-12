@@ -75,19 +75,34 @@ a whitespace, return the previous node. Otherwise return $NODE unchanged."
   ;; (break "node before: ~s" (value $node))
   (let ((node (value $node)))
     (cond
-      ((or (token-node-p node) (firstp $node)) $node)
-      ((/= point (start $node))
+      ((or (token-node-p node)
+           (and (not (parens-node-p node))
+                (firstp $node)))
+       $node)
+      (;; (= point (start $node))
+       (whitespace-node-p node)
        ;; check previous
        (let* (($previous (previous-iterator $node))
               (previous-node (value $previous)))
          (if (token-node-p previous-node)
              $previous
              $node)))
-      ((and (/= (1- point) (end $node))
-            (parens-node-p node))
-       ;; TODO get the last child of node... unless it's a whitespace?e
-       $node ;; <- change this, it's a placeholder
-       )
+      ((and
+        (or (= point (end node))
+            (= point (1- (end node))))
+        (parens-node-p node))
+       ;; get the last non- whitespace-or-comment-node-p child of
+       ;; node...
+       (loop
+         :with children := (children node)
+         :for i :from (1- (length children)) :downto 0
+         :for child := (aref children i)
+         :unless (whitespace-or-comment-node-p child)
+           :do (let (($child (copy-iterator $node)))
+                 (go-down $child)
+                 (setf (pos $child) i)
+                 (return $child))
+         :finally (return $node)))
       (t $node))))
 
 ;; (trace maybe-previous-node)

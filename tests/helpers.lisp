@@ -13,7 +13,12 @@
   "Return a node-iterator for STRING positioned at the token matching
 SEARCH-STRING.  Useful for simulating 'cursor inside a form'."
   (let ((iterator (make-node-iterator string)))
-    (etypecase at
-      (string (goto-position iterator (search at string)))
-      (integer (goto-position iterator at))
-      (null iterator))))
+    (let ((position
+            (etypecase at
+              ((eql :end) (length string))
+              (string (search at string))
+              (integer at)
+              (null nil))))
+      (when position
+        (goto-position iterator position))
+      (values iterator position))))
