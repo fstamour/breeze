@@ -863,7 +863,7 @@ editor. Returns a list of plist."
     :when (breeze.xref:externalp command-symbol)
       :collect (list
                 :name (make-symbol (string-upcase name))
-                :symbol (symbol-package-qualified-name command-symbol)
+                :cl-symbol (symbol-package-qualified-name command-symbol)
                 :lambda-list lambda-list
                 :documentation documentation
                 :interactivep (interactivep declarations))))

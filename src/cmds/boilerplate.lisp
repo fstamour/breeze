@@ -1,5 +1,6 @@
 (cl:in-package #:cl-user)
 
+;; TODO change the package
 (in-package #:breeze.refactor)
 
 (define-command insert-handler-case-form ()
@@ -161,7 +162,7 @@ defun."
         (licence (read-string "Licence name: "
                               #| TODO infer-licence |#
                               :history 'licence)))
-    (insert "(asdf:defsystem #:~a~%~{  ~a~%~}"
+    (insert "(defsystem #:~a~%~{  ~a~%~}"
             system-name
             `(;; TODO use normalize-docstring
               ":description \"\""
@@ -187,15 +188,19 @@ defun."
               ;;     "definitely" the root of a project, then the
               ;;     parent directory is _not_ a root, but the current
               ;;     directory might be one
+
               "  (#+(or) (:file \"todo\"))"
+              ;; TODO ask whether to include this or not, if yes, ask
+              ;; the name of the system; check if it exists and ask
+              ;; whether to add it or not.
               ";; in order to test this system, load the test system"
-              ,(format nil ":in-order-to ((test-op (load-op ~a/test)))"
+              ,(format nil ":in-order-to ((test-op (load-op ~a/tests)))"
                        system-name)
               ";; this tells asdf what to execute to run the tests"
               ":perform"
               "(test-op (o c)"
-              "         (uiop:symbol-call"
-              ,(format nil "          '~a.test 'run-tests))"
+              "         (symbol-call"
+              ,(format nil "          '~a.tests 'run-tests))"
                        system-name)
               ")"))
     ;; TODO maybe insert test-system
@@ -431,3 +436,15 @@ when inserting something.
              stream
              :start (end node)
              :end (unless (donep $node) (start $node))))))))
+
+
+
+;;; TODO format recipes (in its own file perhaps)
+#|
+
+- downcase ~( ~)
+- upcase ~:@( )
+- capitalize first word and downcase the others ~@( ~)
+- capitalize each words ~:( ~)
+
+|#

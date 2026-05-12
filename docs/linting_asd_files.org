@@ -18,3 +18,11 @@ I could see one nice workflow:
 4. The user choose a "code action" that creates the file and opens it
    in the editor, perhaps even adding a package definition at the
    start.
+
+* Licence
+
+- the licence should probably be one of the "SPDX" ones
+- when they are many systems (in the same file or project even), they
+  should probably all have the same licence
+- when there is a licence file, it should match the =:licence= in the
+  system definition(s)

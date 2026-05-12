@@ -483,10 +483,10 @@ commands in emacs."
     (dolist (command-plist (breeze-eval "(breeze.command:list-all-commands-for-editor)"))
       ;; this can be confusing:
       ;;  - name is a symbol
-      ;;  - symbol is a string of the cl symbol
+      ;;  - cl-symbol is a string of the cl symbol
       ;;  - lambda-list is a list of symbols that only contains the name
       ;;    of the arguments (no &optional, no default values, etc.)
-      (cl-destructuring-bind (&key name symbol
+      (cl-destructuring-bind (&key name cl-symbol
                                    lambda-list
                                    documentation
                                    interactivep)
@@ -500,8 +500,8 @@ commands in emacs."
                            (if (and (breeze-list-loaded-listeners)
                                     (breeze-listener-connected-p)
                                     (breeze-validate-if-breeze-package-exists))
-                               (breeze-run-command ,symbol ,@lambda-list)
-                             (breeze--stub ,symbol))))))
+                               (breeze-run-command ,cl-symbol ,@lambda-list)
+                             (breeze--stub ,cl-symbol))))))
           (unless interactivep
             (let* ((async-name (intern (concat (symbol-name name) "-async")))
                    ;; TODO appending `callback' to `lambda-list' is probably wrong
@@ -511,7 +511,7 @@ commands in emacs."
                                    ;; TODO breeze-ensure itself is async, but not "run-command"
                                    (breeze-ensure
                                     (lambda ()
-                                      (let ((result (breeze-run-command ,symbol ,@lambda-list)))
+                                      (let ((result (breeze-run-command ,cl-symbol ,@lambda-list)))
                                         (if callback
                                             (funcall callback result)
                                           result)))))))
@@ -519,7 +519,7 @@ commands in emacs."
               (insert (format "%S\n" defun-async))))
           (insert (format "%S\n" defun))
           (insert (format "%S\n" `(setf (get ',name 'breeze-command-p) t
-                                        (get ',name 'breeze-symbol) ,symbol))))))
+                                        (get ',name 'breeze-symbol) ,cl-symbol))))))
     ;; (debug)
     (eval-buffer)))
 

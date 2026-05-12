@@ -1,6 +1,8 @@
 (defpackage #:breeze.test.completion
   (:documentation "Tests for the package breeze.completion.")
-  (:use #:cl #:breeze.completion)
+  (:use #:cl #:breeze.completion #:breeze.parser)
+  (:import-from #:breeze.test-helpers
+                #:iterator-at)
   (:import-from #:breeze.completion
                 #:maybe-previous-node)
   (:import-from #:parachute
@@ -12,7 +14,7 @@
                 #:of-type
                 #:finish))
 
-(in-package #:breeze.completion)
+(in-package #:breeze.test.completion)
 
 ;;;; WIP
 

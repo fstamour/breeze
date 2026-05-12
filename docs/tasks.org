@@ -12,7 +12,27 @@
 **Regularly review the tasks** it helps to see the big picture and
 prioritize accordingly.
 
-** TODO Basic commands should send the buffer to the editor          :editor:
+** TODO Format on save
+:PROPERTIES:
+:ID:       6d9e87f6-76d6-4b8d-b7c9-fe81827a98e2
+:END:
+
+** TODO Before and after eval hooks
+:PROPERTIES:
+:ID:       2f61b994-78b0-4c06-851c-bc8f788f993b
+:END:
+
+*** TODO Automatically save before evaluating
+:PROPERTIES:
+:ID:       5508aaeb-1a7f-4983-b5a3-a3e4cf545be0
+:END:
+
+Not sure about this one, because I sometimes run a kind of "watch" in
+a terminal that re-runs the tests when changes are detected _and_ I
+often write scratch code in the source file that would not compile or
+load.
+
+** TODO Basic commands should send a buffer identifier to the editor :editor:
 :PROPERTIES:
 :ID:       f14843c3-d506-4beb-8921-eddbdebea1ba
 :END:

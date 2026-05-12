@@ -39,6 +39,8 @@ will fix the issue and then stop the current command."
   ;; didn't get fixed by quickfix. Currently the command "fix buffer"
   ;; only returns `simple-node-conditions' that have a `replacement`.
   (when-let* ((fixes (breeze.lint:fix-buffer (current-buffer)))
+              ;; TODO check the current node before looking at all the
+              ;; ones in the current root-level node
               (top-level-node (root-node (current-node-iterator)))
               (applicable-fixes
                (remove-if-not

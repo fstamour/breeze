@@ -17,19 +17,29 @@
  breeze.parser:make-node-iterator
  breeze.parser:node-string-designator
  breeze.parser:parse-symbol-node
+ breeze.parser:token-node-p
  breeze.iterator:value
  breeze.iterator:donep
  breeze.iterator:tree-iterator-value
  breeze.iterator:tree-iterator-done-p)
 
 (sb-profile:profile
- breeze.pattern:match)
+ breeze.pattern:match
+ breeze.pattern::skip
+ breeze.analysis::match-symbol
+ breeze.analysis::match-package
+ breeze.analysis::match-parser-state
+ breeze.analysis::match-qualification
+ breeze.analysis:quotedp
+ breeze.analysis::quotedness)
+
+(sb-profile:profile breeze.pattern:match :methods t)
 
 (sb-profile:reset)
 (time (loop :repeat 6 :do (time (analyse-every-file-in-breeze))))
 (time (loop :repeat 6 :do (time (lint-every-file-in-breeze))))
 ;; it looks like `buffer.lint:lint-buffer' doesn't add much overhead on top of `buffer.lint:analyse'
-(sb-profile:report)
+(sb-profile:report :print-no-call-list nil)
 
 (sb-profile:unprofile)
 

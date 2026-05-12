@@ -185,7 +185,7 @@ object, which is returned."
     (null nil)
     ((eql t) t)))
 
-  ;; TODO handle multiple-value-p bindings?
+;; TODO handle multiple-value-p bindings?
 (defun merge-substitutions (bindings1 bindings2)
   (cond
     ((or (null bindings1) (null bindings2)) nil)

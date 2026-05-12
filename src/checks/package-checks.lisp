@@ -17,6 +17,7 @@
 
 ;; TODO detect #:package:symbol => package:symbol
 ;; TODO warn about defpackage without a (:use)  (it's not portable)
+;; TODO detect when a qualified symbol could use a local-nickname instead of a longer package-prefix
 
 #++
 (defun check-in-package ()
