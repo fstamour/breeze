@@ -106,7 +106,7 @@
    (:module "parser"
     :depends-on ("range" "string-utils")
     :serial t
-    :components ((:file "parser-state")
+    :components ((:file "parse-state")
                  (:file "parse-tree")
                  (:file "parser")
                  (:file "incremental-parser")))

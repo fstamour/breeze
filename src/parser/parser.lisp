@@ -8,7 +8,7 @@ common lisp.")
   (:use #:cl #:breeze.logging)
   (:use-reexport
    #:breeze.parse-tree
-   #:breeze.parser-state
+   #:breeze.parse-state
    #:breeze.iterator
    #:breeze.generics)
   (:import-from #:breeze.string

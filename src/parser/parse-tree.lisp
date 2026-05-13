@@ -6,7 +6,7 @@
         #:breeze.generics
         #:breeze.iterator
         #:breeze.range)
-  (:import-from #:breeze.parser-state
+  (:import-from #:breeze.parse-state
                 #:state
                 #:tree
                 #:source-substring)
@@ -430,13 +430,13 @@
 
 ;;; Node iterators
 
-;; TODO create a mix-in class for "parser-state" (same for "name")
+;; TODO create a mix-in class for "parse-state" (same for "name")
 (defclass node-iterator (tree-iterator)
-  ((parser-state
-    ;; TODO rename to parser-state
+  ((parse-state
+    ;; TODO rename to parse-state
     :initarg :state
     ;; :type state
-    ;; TODO rename to parser-state
+    ;; TODO rename to parse-state
     :accessor state))
   (:documentation "An iterator for parse-trees."))
 

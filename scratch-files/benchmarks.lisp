@@ -28,7 +28,7 @@
  breeze.pattern::skip
  breeze.analysis::match-symbol
  breeze.analysis::match-package
- breeze.analysis::match-parser-state
+ breeze.analysis::match-parse-state
  breeze.analysis::match-qualification
  breeze.analysis:quotedp
  breeze.analysis::quotedness)

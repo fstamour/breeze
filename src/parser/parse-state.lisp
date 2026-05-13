@@ -1,6 +1,6 @@
 (cl:in-package #:cl-user)
 
-(defpackage #:breeze.parser-state
+(defpackage #:breeze.parse-state
   (:documentation "An object that represents a parser's state.")
   (:use #:cl #:breeze.iterator #:breeze.generics)
   (:import-from #:alexandria #:when-let)
@@ -26,7 +26,7 @@
            #:next-char=
            #:next-char-equal))
 
-(in-package #:breeze.parser-state)
+(in-package #:breeze.parse-state)
 
 
 ;;; Parser state
@@ -47,7 +47,7 @@
     :initarg :pos
     :accessor tree
     :documentation "The parsed nodes."))
-  (:documentation "The reader's state"))
+  (:documentation "The parser's state"))
 
 (defun make-state (string)
   (make-instance 'state

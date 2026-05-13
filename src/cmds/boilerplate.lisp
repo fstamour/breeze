@@ -373,16 +373,16 @@ when inserting something.
 :adjustable t
               :fill-pointer t)")
        (stream *standard-output*)
-       (parser-state (parse input))
+       (parse-state (parse input))
        (indentation
          (+ indentation
-            (let (($node (make-node-iterator parser-state)))
+            (let (($node (make-node-iterator parse-state)))
               (go-down $node)
               (next $node)
               (breeze.pattern::skip $node #'whitespace-or-comment-node-p)
               (start $node)))))
   (declare (ignorable indentation))
-  (let (($node (make-node-iterator parser-state)))
+  (let (($node (make-node-iterator parse-state)))
     (format t "~&  ")
     (loop
       :until (donep $node)
