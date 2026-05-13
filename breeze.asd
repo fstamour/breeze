@@ -47,13 +47,14 @@
                "breeze/class-utils")
   :pathname "src/iterator/"
   :serial nil
-  :components ((:file "package")
-               (:file "interface" :depends-on ("package"))
-               (:file "vector-iterator" :depends-on ("interface"))
-               (:file "tree-iterator" :depends-on ("interface"))
-               (:file "concat-iterator" :depends-on ("vector-iterator"))
-               (:file "stream-iterator" :depends-on ("vector-iterator"))
-               (:file "stream" :depends-on ("interface"))))
+  :components
+  ((:file "package")
+   (:file "interface" :depends-on ("package"))
+   (:file "vector-iterator" :depends-on ("interface"))
+   (:file "tree-iterator" :depends-on ("interface"))
+   (:file "concat-iterator" :depends-on ("vector-iterator"))
+   (:file "stream-iterator" :depends-on ("vector-iterator"))
+   (:file "stream" :depends-on ("interface"))))
 
 (defsystem "breeze/pattern"
   :version "0"
@@ -68,11 +69,12 @@
                "breeze/iterator")
   :pathname "src/pattern/"
   :serial t
-  :components ((:file "pattern")
-               (:file "compile-pattern")
-               (:file "substitution")
-               (:file "match")
-               (:file "rewrite")))
+  :components
+  ((:file "pattern")
+   (:file "compile-pattern")
+   (:file "substitution")
+   (:file "match")
+   (:file "rewrite")))
 
 (defsystem "breeze"
   :name "breeze"
