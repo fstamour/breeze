@@ -164,7 +164,7 @@
                (go-up $input))
     (no-match :out-of-sync-after-going-up)))
 
-(defmethod match ((pattern-iterator pattern-iterator) (iterator iterator) &key skipp)
+(defmethod match ((pattern-iterator pattern-iterator) (iterator tree-iterator) &key skipp)
   (catch 'no-match
     (loop
       :with bindings = t ;; (make-substitutions)
@@ -175,18 +175,22 @@
       :for i :from 0
       :do
          (skip $input skipp)
-         (let ((went-down (go-down-together $pattern $input)))
+         (let* ((sub-pattern (tree-iterator-value $pattern))
+                (went-down-together (go-down-together $pattern $input)))
            (setf new-bindings
-                 (match (tree-iterator-value $pattern) $input :skipp skipp))
-           (when went-down
+                 (match sub-pattern $input :skipp skipp))
+           (when went-down-together
              ;; TODO maybe check if $input is "done at current level",
              ;; if not then the match failed
-             (go-up-together $pattern $input)))
-         (tree-iterator-next $input)
+             (go-up-together $pattern $input))
+           ;; if pattern was a repetition, then the iterator will
+           ;; already have been updated.
+           (unless (repetitionp sub-pattern)
+             (tree-iterator-next $input)))
          (tree-iterator-next $pattern)
          ;; infinite loop guard
          (when (<= 1000000 i)
-           (break "Infinite loop?"))
+           (error "Infinite loop? in (match pattern-iterator tree-iterator). $input=pos~a" (pos $input)))
          (cond
            ;; collect all the bindings
            (new-bindings
@@ -329,6 +333,7 @@ where consumed, for example)."
     :with $pattern := (make-pattern-iterator (pattern pattern))
     :with $input := (copy-iterator iterator)
     :with maximum := (maximum pattern)
+    :with failed-match-p := nil
     :for $prev-input := (copy-iterator $input) ;; TODO should this be nil?
       :then (copy-iterator $input $prev-input)
     ;; infinite loop guard
@@ -338,13 +343,16 @@ where consumed, for example)."
     :for new-bindings = (match $pattern $input :skipp skipp)
       :then (progn (reset $pattern)
                    (match $pattern $input :skipp skipp))
-    :when new-bindings
-      :do (progn
-            (setf substitution (merge-substitutions substitution new-bindings))
-            ;; The new substitution conflicted with the existing ones...
-            (unless substitution
-              (return (values nil :conflicting-bindings))))
-    :until (or (null new-bindings)
+    :if new-bindings
+      :do (let ((merged (merge-substitutions substitution new-bindings)))
+            (if merged
+                (setf substitution merged)
+                ;; conflicting new bindings:
+                (setf failed-match-p t)))
+    :else
+      ;; no new-bindings: failed match
+      :do (setf failed-match-p t)
+    :until (or failed-match-p
                (donep $input)
                (and maximum
                     #| TODO pretty sure this should be <=, not just < |#
@@ -356,22 +364,22 @@ where consumed, for example)."
        (when (or
               ;; no more input
               (donep $input)
-              ;; no match
-              (not new-bindings)
+              ;; no match or conflicting new-bindings
+              failed-match-p
               ;; incomplete match
               (not (tree-iterator-done-p $pattern)))
          (return
            (let ((times
                    ;; if it was a match, count the current match,
                    ;; otherwise count only up to the previous one.
-                   (if new-bindings i (1- i))))
+                   (if failed-match-p (1- i) i)))
              (when (<= (minimum pattern) times)
                (let (($start (copy-iterator iterator))
                      ($end
                        ;; if it was a match, include the current
                        ;; position, otherwise stop at the previous
                        ;; one.
-                       (if new-bindings $input $prev-input)))
+                       (if failed-match-p $prev-input $input)))
                  ;; update iterator
                  (copy-iterator $end iterator)
                  ;; TODO if max = 1, return a "simple" binding
