@@ -22,7 +22,15 @@
   (true (match (wildcard) 2))
   (true (match (wildcard) 'x))
   (true (match (wildcard) "x"))
-  (true (match (wildcard) 'y)))
+  (true (match (wildcard) 'y))
+  (true (match (wildcard) (make-tree-iterator #(a)))
+        "wildcard pattern should match an iteretor (that is not donep).")
+  (false (match (wildcard) (make-tree-iterator #()))
+         "wildcard pattern should not match an iterator that is donep.")
+  (let (($input (make-tree-iterator #(a))))
+    (next $input)
+    (false (match (wildcard) $input)
+           "wildcard pattern should not match an iterator that has been advanced past its end.")))
 
 (define-test+run "match - simple-var"
   (is eqv (make-binding :?x nil) (match (svar :?x) nil))

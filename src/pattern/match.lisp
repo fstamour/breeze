@@ -28,6 +28,10 @@
   (declare (ignore input))
   t)
 
+(defmethod match ((pattern wildcard) (input iterator) &key &allow-other-keys)
+  "Wildcard does not match a iterator that is donep (there's nothing to match)."
+  (not (donep input)))
+
 (defmethod match ((var simple-var) input &key)
   "Match a var (create a binding)"
   (make-binding var input))
