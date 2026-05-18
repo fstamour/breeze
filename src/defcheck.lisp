@@ -4,10 +4,8 @@
 They are not called rules to avoid confusion with the rewrite rules.")
   (:use #:cl)
   (:export #:defcheck
-           #:apply-check
            #:*checks*
-           #:top-level-checks
-           #:apply-check))
+           #:top-level-checks))
 
 (in-package #:breeze.checks)
 
@@ -123,48 +121,11 @@ preconditions that defines where/when this check is applicable."
                  (getf preconditions :node-type))
         (error "For now, as an optimisation, a check cannot have both :top-level-p and :node-type"))
       `(progn
-         (defun ,name ,(ensure-allow-other-keys lambda-list) ,@body)
+         (defun ,name ,(ensure-allow-other-keys lambda-list)
+           ,@body)
          (make-instance 'check
                         :fn ',name
                         :preconditions ',preconditions)))))
-
-(defun validate-live-precondition (check)
-  (if (getf (preconditions check) :livep)
-      (breeze.diagnostics:livep*)
-      ;; the check does not have the "livep" precondition, so it
-      ;; should run regardless of whether we're in a live session or
-      ;; not.
-      t))
-
-(defun validate-node-type-precondition (check $node)
-  (let ((required-node-type (getf (preconditions check) :node-type)))
-    (if required-node-type
-        (let* ((actual-node-type (breeze.parser:node-type
-                                  (breeze.iterator:value $node)))
-               (invertedp (and (listp required-node-type)
-                                          (eq :not (car required-node-type))))
-               (required-node-type (if invertedp
-                                     (second required-node-type)
-                                     required-node-type)))
-          (unless actual-node-type
-            (error "Something went wrong when validating a check's :node-type precondition."))
-          (if invertedp
-              (not (eq required-node-type actual-node-type))
-              (eq required-node-type actual-node-type)))
-        ;; the check does not have the "node-type" preconditions, so
-        ;; it should run regardless of the $node's type.
-        t)))
-
-(defun validate-top-level-p-precondition (check top-level-p)
-  (if (getf (preconditions check) :top-level-p)
-      top-level-p
-      t))
-
-(defun apply-check (check buffer $node &key top-level-p)
-  (when (and (validate-top-level-p-precondition check top-level-p)
-             (validate-live-precondition check)
-             (validate-node-type-precondition check $node))
-    (funcall (fn check) $node :buffer buffer)))
 
 
 
