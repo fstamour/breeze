@@ -125,8 +125,8 @@ simple-condition-format-control, simple-condition-format-arguments
 (defun replacementp (simple-node-condition)
   (not (eq (replacement simple-node-condition) 'cl:null)))
 
-(define-condition simple-node-error (simple-node-condition simple-error) ())
-(define-condition simple-node-warning (simple-node-condition simple-warning) ())
+(define-condition simple-node-error (simple-node-condition) ())
+(define-condition simple-node-warning (simple-node-condition) ())
 
 (define-condition node-parse-error (simple-node-error parse-error) ())
 (define-condition node-style-warning (simple-node-warning style-warning) ())
