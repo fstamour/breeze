@@ -188,7 +188,7 @@ dont Toggle header line
      :history "breeze-insert-asdf--licence")
     (expect-insert
      (pop trace)
-     "(asdf:defsystem #:a"
+     "(defsystem #:a"
      "  :description \"\""
      "  :version \"0.0.1\""
      "  :author \"b\""
@@ -199,12 +199,12 @@ dont Toggle header line
      "  :components"
      "    (#+(or) (:file \"todo\"))"
      "  ;; in order to test this system, load the test system"
-     "  :in-order-to ((test-op (load-op a/test)))"
+     "  :in-order-to ((test-op (load-op a/tests)))"
      "  ;; this tells asdf what to execute to run the tests"
      "  :perform"
      "  (test-op (o c)"
-     "           (uiop:symbol-call"
-     "            'a.test 'run-tests))"
+     "           (symbol-call"
+     "            'a.tests 'run-tests))"
      ;; TODO this last parenthesis should not be on its own line
      "  )"
      "")
