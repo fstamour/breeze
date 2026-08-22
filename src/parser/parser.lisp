@@ -433,6 +433,55 @@ first node being whitespaces.)"
                    ;; TODO remove extra "s" to "characters"
                    :errors `(("Invalid dispatch characters: ) (right parenthesis)")))))
 
+(defreader read-sharp-less-than (start prefix)
+  "Read (nested!) \"#<...>\" (this is best-effort)."
+  (when (read-char= state #\<)
+    (let* ((base-error "#<...> is invalid Common Lisp syntax (printed unreadable form).")
+           ;; Each frame: (list frame-start children-list errors-list).
+           (top (list start nil (list base-error)))
+           (stack (list top)))
+      (when prefix
+        (push (unsupported-numeric-argument #\<) (third top)))
+      (flet ((close-frame (frame frame-end)
+               (sharp-unreadable
+                (first frame) frame-end
+                (ensure-nodes (nreverse (second frame)))
+                :errors (mapcar #'list (nreverse (third frame))))))
+        ;; Read char by char
+        (loop :for char = (read-char* state)
+              :do (cond
+                    ;; EOF: mark the whole chain as unterminated
+                    ((null char)
+                     (return
+                       (loop
+                         :with node
+                         :while stack
+                         :for frame = (pop stack)
+                         :do (when node
+                               (push node (second frame)))
+                             (push "Unterminated #<...> unreadable form."
+                                   (third frame))
+                             (setf node (close-frame frame +end+))
+                         :finally (return node))))
+                    ;; Backslash
+                    ((char= char #\")
+                     (decf (current-position state))
+                     (read-quoted-string state #\" #\\))
+                    ;; #< (nested)
+                    ((and (char= char #\#)
+                          (eql (current-char state) #\<))
+                     (let ((nested-start (1- (current-position state))))
+                       (incf (current-position state))
+                       (push (list nested-start nil (list base-error))
+                             stack)))
+                    ;; >
+                    ((char= char #\>)
+                     (let* ((frame (pop stack))
+                            (node (close-frame frame (current-position state))))
+                       (if stack
+                           (push node (second (first stack)))
+                           (return node))))))))))
+
 ;; TODO #) and #<any whitespace> are **invalid**
 ;; See https://www.lispworks.com/documentation/HyperSpec/Body/02_dh.htm
 (defreader read-sharp-dispatching-reader-macro ()
@@ -466,7 +515,7 @@ first node being whitespaces.)"
               read-sharp-plus
               read-sharp-minus
               read-sharp-whitespace
-              ;; TODO read-sharp-less-than "#<"
+              read-sharp-less-than
               read-sharp-right-paren))
            ;; Invalid syntax OR custom reader macro
            (sharp-unknown start +end+))))))

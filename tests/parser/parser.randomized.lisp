@@ -45,6 +45,7 @@
                 #:read-sharp-sharp
                 #:read-sharp-plus
                 #:read-sharp-minus
+                #:read-sharp-less-than
                 #:page
                 #:unparse)
   (:import-from #:parachute

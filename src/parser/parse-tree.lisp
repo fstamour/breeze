@@ -73,6 +73,7 @@
            #:sharp-label
            #:sharp-reference
            #:sharp-unknown
+           #:sharp-unreadable
            #:shebang
            #:extraneous-closing-parens)
   ;; Node predicates
@@ -108,7 +109,8 @@
            #:sharp-array-node-p
            #:sharp-label-node-p
            #:sharp-reference-node-p
-           #:sharp-unknown-node-p)
+           #:sharp-unknown-node-p
+           #:sharp-unreadable-node-p)
   ;; Accessors
   (:export
    #:package-prefix
@@ -384,6 +386,7 @@
     :initarg :label
     :accessor label)))
 (define-node-type sharp-unknown ())
+(define-node-type sharp-unreadable (:children t))
 (define-node-type shebang ())
 (define-node-type extraneous-closing-parens ())
 

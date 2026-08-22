@@ -424,6 +424,84 @@ EXPECTED-CHILDREN is the expected list of node's children"
    :expected-errors '(("Reader macro #' does not support numeric arguments."))))
 
 
+;;; #<
+
+(defun test-read-sharp-less-than (input expected-end
+                                  &key expected-children expected-errors)
+  (test-read-sharp*
+   :sharpsing-reader-function 'read-sharp-less-than
+   :node-type 'sharp-unreadable
+   :input input
+   :expected-end expected-end
+   :expected-children expected-children
+   :expected-errors expected-errors))
+
+(define-test+run read-sharp-less-than
+  (test-read-sharp-less-than
+   "#<STANDARD-OBJECT {1234}>" 25
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+  (test-read-sharp-less-than
+   "#<>" 3
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+  ;; A #\> inside a string must not terminate the form.
+  (test-read-sharp-less-than
+   "#<PACKAGE \"FOO>BAR\">" 20
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+  ;; Nested #<...> becomes a child node.
+  (test-read-sharp-less-than
+   "#<outer #<inner> tail>" 22
+   :expected-children
+   (nodes (sharp-unreadable
+           8 16 nil
+           :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form)."))))
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+  ;; Multiple sibling nested forms
+  (test-read-sharp-less-than
+   "#<a #<x> #<y> b>" 16
+   :expected-children
+   (nodes (sharp-unreadable
+           4 8 nil
+           :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+          (sharp-unreadable
+           9 13 nil
+           :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form)."))))
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+  ;; Deeply nested: depth 4
+  (test-read-sharp-less-than
+   "#<#<#<#<x>>>>" 13
+   :expected-children
+   (nodes (sharp-unreadable
+           2 12
+           (nodes (sharp-unreadable
+                   4 11
+                   (nodes (sharp-unreadable
+                           6 10 nil
+                           :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form)."))))
+                   :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form)."))))
+           :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form)."))))
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+  ;; Unterminated outer.
+  (test-read-sharp-less-than
+   "#<no-close" +end+
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")
+                      ("Unterminated #<...> unreadable form.")))
+  ;; Unterminated nested: both frames closed with +end+, inner becomes a child.
+  (test-read-sharp-less-than
+   "#<a #<b" +end+
+   :expected-children
+   (nodes (sharp-unreadable
+           4 +end+ nil
+           :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")
+                     ("Unterminated #<...> unreadable form."))))
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")
+                      ("Unterminated #<...> unreadable form.")))
+  ;; Numeric prefix is not meaningful for #<.
+  (test-read-sharp-less-than
+   "#42<obj>" 8
+   :expected-errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")
+                      ("Reader macro #< does not support numeric arguments."))))
+
+
 ;;; #(
 
 (defun test-read-sharp-left-parens (input child expected-end
@@ -1184,7 +1262,14 @@ This is a valid syntax:
               (sharp-vector 0 4
                             (parens 2 4 nil)
                             :errors '(("Must supply at least one object when the length of a vector is non-zero."))))
-  (test-parse "#<>" (sharp-unknown 0 +end+))
+  (test-parse "(a #<x> b)"
+              (parens 0 10
+                      (nodes (token 1 2 :name "A")
+                             (whitespace 2 3)
+                             (sharp-unreadable 3 7 nil
+                                               :errors '(("#<...> is invalid Common Lisp syntax (printed unreadable form).")))
+                             (whitespace 7 8)
+                             (token 8 9 :name "B"))))
   (test-parse "#+ x" (sharp-feature 0 4
                                     (nodes
                                      (whitespace 2 3)
