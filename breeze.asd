@@ -323,7 +323,7 @@
                "breeze/iterator/test")
   :pathname "tests"
   :components
-  ((:file "helpers" :depends-on ("parser"))
+  ((:file "helpers")
    (:file "analysis" :depends-on ("helpers" "pattern"))
    (:file "command")
    (:file "report")
@@ -334,6 +334,7 @@
    (:file "listener" :depends-on ("command"))
    (:file "logging")
    (:module "parser"
+    :depends-on ("helpers")
     :components
     ((:file "parser.randomized")
      ;; TODO split out "parser.lisp"
@@ -351,7 +352,7 @@
                  (:file "match")
                  (:file "rewrite")))
    (:module "cmds"
-    :depends-on ("command")
+    :depends-on ("helpers" "command")
     :components ((:file "refactor")
                  (:file "other-files")
                  (:file "completion")))
