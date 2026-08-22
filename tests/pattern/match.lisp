@@ -25,6 +25,10 @@
   (true (match (wildcard) 'y))
   (true (match (wildcard) (make-tree-iterator #(a)))
         "wildcard pattern should match an iteretor (that is not donep).")
+  (true (let ((it (make-tree-iterator #(a))))
+          (match (wildcard) it)
+          (donep it))
+        "wildcard pattern should advance an iteretor when it matched.")
   (false (match (wildcard) (make-tree-iterator #()))
          "wildcard pattern should not match an iterator that is donep.")
   (let (($input (make-tree-iterator #(a))))
@@ -246,16 +250,12 @@
    '(:one-or-more)
    #(a)
    :expected-substitution nil)
-  ;; this fails...
   ;; (trace match :wherein test-match-iterator)
   (test-match-iterator
    "matching :one-or-more wildcards against an empty sequence"
-   ;; TODO this works because the wildcard automatically matches even
-   ;; though the input iterator is done... I'm not sure that's what we
-   ;; want...
    '(:one-or-more _)
    #()
-   :expected-substitution t)
+   :expected-substitution nil)
   (test-match-iterator
    "matching :one-or-more wildcards against a sequence of 1 element"
    '(:one-or-more _)
