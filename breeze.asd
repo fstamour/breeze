@@ -154,6 +154,7 @@
     :depends-on ("analysis" "command" "diagnostics" "defcheck")
     :components ((:file "whitespaces-checks")
                  (:file "package-checks")
+                 (:file "comparison-checks")
                  (:file "documentation-checks")
                  (:file "lambda-checks")))
    (:file "lint" :depends-on ("checks"))
@@ -357,7 +358,8 @@
    (:module "checks"
     :depends-on ("lint")
     :components ((:file "dot-checks")
-                 (:file "whitespaces-checks")))
+                 (:file "whitespaces-checks")
+                 (:file "comparison-checks")))
    (:file "string")
    (:file "utils")
    (:file "buffer")
