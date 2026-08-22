@@ -295,23 +295,6 @@ limits."
            (eql (maximum a) (maximum b))
            (eq (name a) (name b)))))
 
-;; TODO this is a hack, I just copy-pasted it from breeze.string
-(defun around (string position &optional (around 10))
-  "Returns part of STRING, from POSITION - AROUND to POSITION +
-AROUND. Add elipseses before and after if necessary."
-  (let* ((min-size (1+ (* 2 around)))
-         (before (- position around))
-         (start (max 0 before))
-         (after (+ start min-size))
-         (end (min (length string) after))
-         (start (max 0 (min start (- end min-size))))
-         (ellipsis-left (max 0 (min 3 start)))
-         (ellipsis-right (max 0 (min 3 (- (length string) end)))))
-    (with-output-to-string (out)
-      (loop :for i :below ellipsis-left :do (write-char #\. out))
-      (write-string string out :start start :end end)
-      (loop :for i :below ellipsis-right :do (write-char #\. out)))))
-
 (defmethod print-object ((repetition repetition) stream)
   "Print an object of type `repetition'."
   (print-unreadable-object

@@ -18,6 +18,16 @@
   :pathname "src/"
   :components ((:file "asdf")))
 
+(defsystem "breeze/string"
+  :version "0"
+  :maintainer "Francis St-Amour"
+  :author "Francis St-Amour"
+  :licence "BSD 2-Clause License"
+  :description "String utilities"
+  :depends-on ("alexandria" "uiop")
+  :pathname "src/"
+  :components ((:file "string")))
+
 (defsystem "breeze/generics"
   :version "0"
   :maintainer "Francis St-Amour"
@@ -44,7 +54,9 @@
   :licence "BSD 2-Clause License"
   :description "Iterators for vectors, nested vectors (trees), streams, and concatenations."
   :depends-on ("breeze/generics"
-               "breeze/class-utils")
+               "breeze/class-utils"
+               ;; for breeze.string:around
+               "breeze/string")
   :pathname "src/iterator/"
   :serial nil
   :components
@@ -66,7 +78,8 @@
                "alexandria"
                "breeze/generics"
                "breeze/class-utils"
-               "breeze/iterator")
+               "breeze/iterator"
+               "breeze/string")
   :pathname "src/pattern/"
   :serial t
   :components
@@ -91,22 +104,22 @@
                ;; cl-heap
                "breeze/generics"
                "breeze/class-utils"
-               "breeze/pattern")
+               "breeze/pattern"
+               "breeze/string")
   :pathname "src/"
   :components
   ((:file "logging")
    (:file "cl")
    (:file "utils")
    (:file "indirection")
-   (:file "string-utils" :depends-on ("utils"))
    (:file "queue")
    (:file "channel" :depends-on ("queue"))
    ;; "test-file" is for parsing ERT files
-   (:file "test-file" :depends-on ("utils" "string-utils"))
+   (:file "test-file" :depends-on ("utils"))
    (:file "configuration")
    (:file "range")
    (:module "parser"
-    :depends-on ("range" "string-utils")
+    :depends-on ("range")
     :serial t
     :components ((:file "parse-state")
                  (:file "parse-tree")
@@ -340,7 +353,7 @@
     :depends-on ("lint")
     :components ((:file "dot-checks")
                  (:file "whitespaces-checks")))
-   (:file "string-utils")
+   (:file "string")
    (:file "utils")
    (:file "buffer")
    (:file "cl")

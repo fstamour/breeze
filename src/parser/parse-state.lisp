@@ -4,8 +4,6 @@
   (:documentation "An object that represents a parser's state.")
   (:use #:cl #:breeze.iterator #:breeze.generics)
   (:import-from #:alexandria #:when-let)
-  (:import-from #:breeze.string
-                #:subseq-displaced)
   ;; Parsing state
   (:export #:state
            #:source

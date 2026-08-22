@@ -3,8 +3,6 @@
 (defpackage #:breeze.string
   (:documentation "String manipulation utilities")
   (:use #:cl)
-  (:import-from #:breeze.utils
-                #:subseq-displaced)
   (:export
    #:string-designator
    #:around

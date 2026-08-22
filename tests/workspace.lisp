@@ -54,7 +54,7 @@
             "Should have returned a plist that contains the key :node-iterator.")
       (destructuring-bind (&key buffer node-iterator) location
         (when (and buffer node-iterator)
-          (is suffixp "src/string-utils.lisp" (name buffer))
+          (is suffixp "src/string.lisp" (name buffer))
           (is string= #1="(defpackage #:breeze.string
   (:documentation \"String manipulation utilities\")"
               (subseq (breeze.parser:node-string node-iterator)
