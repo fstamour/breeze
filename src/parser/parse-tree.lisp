@@ -226,12 +226,16 @@
     (node (nth-node (children nodes) n))
     (vector (aref nodes (if (minusp n) (+ n (length nodes)) n)))))
 
-(defun first-node (nodes)
-  (nth-node nodes 0))
+(defun first-node (nodes &optional skipp)
+  (if skipp
+      (find-if-not skipp nodes)
+      (nth-node nodes 0)))
 
+;; TODO add &optional skipp
 (defun second-node (nodes)
   (nth-node nodes 1))
 
+;; TODO add &optional skipp
 (defun last-node (nodes)
   (etypecase nodes
     (null nil)
@@ -261,29 +265,33 @@
                                (constructor t)
                                children)
                             &body defclass-body)
-  `(breeze.class-utils:define-class
-       ,name
-       (:superclass ,superclass
-        :positional-args ,(append
-                           '(start end)
-                           (if children
-                               (adjoin 'children positional-args)
-                               positional-args))
-        :keyword-args (errors)
-        :constructor ,(when constructor
-                        `(:let* ((errors (normalize-errors errors)))))
-        :predicate ,(intern (breeze.string:ensure-suffixes
-                             '("-NODE" "-P")
-                             (symbol-name name))))
-     ,@(destructuring-bind (&optional slots &rest rest)
-           defclass-body
-         `((,@slots
-            ,@(when children
-                `((children
-                   :initform nil
-                   :initarg :children
-                   :accessor children))))
-           ,@rest))))
+  `(progn
+     (breeze.class-utils:define-class
+         ,name
+         (:superclass ,superclass
+          :positional-args ,(append
+                             '(start end)
+                             (if children
+                                 (adjoin 'children positional-args)
+                                 positional-args))
+          :keyword-args (errors)
+          :constructor ,(when constructor
+                          `(:let* ((errors (normalize-errors errors)))))
+          :predicate ,(intern (breeze.string:ensure-suffixes
+                               '("-NODE" "-P")
+                               (symbol-name name))))
+       ,@(destructuring-bind (&optional slots &rest rest)
+             defclass-body
+           `((,@slots
+              ,@(when children
+                  `((children
+                     :initform nil
+                     :initarg :children
+                     :accessor children))))
+             ,@rest)))
+     ;; TODO define a new type of pattern, along with methods on
+     ;; `match' and `compile-compound-pattern'
+     ))
 
 (define-node-type ignorable-node (:constructor nil))
 
@@ -446,6 +454,7 @@
     (setf (state iterator) (state node-iterator))
     iterator))
 
+#++
 (defmethod print-object ((node-iterator node-iterator) stream)
   (print-unreadable-object
       (node-iterator stream :type t :identity nil)
@@ -468,6 +477,8 @@
 
 ;;; goto point
 
+;; TODO making this a function instead of a method might have a nice
+;; impact on performances...
 (defmethod goto-position ((iterator node-iterator) position)
   ;; TODO this might not be necessary, as an optimization, when can
   ;; check if the current node contains the position. If yes, check if

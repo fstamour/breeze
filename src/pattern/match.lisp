@@ -119,19 +119,6 @@
 
 ;;; Matching sequences
 
-
-;; TODO move to iterators
-;; TODO rename to skip-forward
-;; TODO add a skip-backward
-(declaim (inline skip))
-(defun skip ($input skipp)
-  ;; TODO support skipp ∈ {t :whitespace :comment)
-  (when skipp
-   (loop :while (and
-                 (not (donep $input))
-                 (funcall skipp $input))
-         :do (next $input))))
-
 (declaim (inline no-match))
 (defun no-match (reason)
   (throw 'no-match (values nil reason)))
@@ -292,6 +279,7 @@ where consumed, for example)."
 ;; TODO add tests with and without skipp
 (defmethod match ((pattern either) (iterator iterator) &key skipp)
   "Match an `either' pattern against ITERATOR."
+  ;; TODO perf: only copy $before when there's a match
   (let* (($before (copy-iterator iterator))
          ($input (copy-iterator iterator)))
     (loop :for pat :across (patterns pattern)

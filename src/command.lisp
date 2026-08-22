@@ -90,6 +90,7 @@ TODO maybe add `find-command-handler` which should just call
 
 |#
 
+;; TODO add the cancellation reason(s)
 (defclass command-handler (actor)
   ((context
     :initarg :context
@@ -196,7 +197,7 @@ uses the throw tag to stop the command immediately."
   (%recv (channel-out command)))
 
 (defmethod recv-into ((command command-handler))
-  "From the command-handler COMMAND, reveive a value."
+  "From the command-handler COMMAND, receive a value."
   (%recv (channel-in command)))
 
 (defmethod send-out ((command command-handler) value)
@@ -432,6 +433,7 @@ uses the throw tag to stop the command immediately."
 
 (defun handle-response (command-handler request-type response updates)
   (let ((fn (fn command-handler)))
+    (declare (ignorable fn))
     ;; dispatch on request-type
     ;; (format *trace-output* "~&~s current-source before:~%~s" fn (breeze.parser:source (current-buffer (context command-handler))))
     (cond

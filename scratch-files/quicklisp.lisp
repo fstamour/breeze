@@ -52,7 +52,7 @@
 
 ;; Found 1 bug in "archive": unhandled-read-header-error should "inherit" unhandled-error
 ;;
-;; Now I'm getting errors because "archive" doesn't recogize entries
+;; Now I'm getting errors because "archive" doesn't recognize entries
 ;; of type 50 (symlink) and 120 (pax (extended stuff)).
 ;;
 ;;

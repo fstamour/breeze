@@ -454,7 +454,7 @@ EXPECTED-CHILDREN is the expected list of node's children"
 
 ;;; #*
 
-;; TODO sharp-bitvector doens't have children (for now at least)
+;; TODO sharp-bitvector doesn't have children (for now at least)
 (defun test-read-sharp-asterisk (input &key child end)
   (test-read-sharp*
    :sharpsing-reader-function 'read-sharp-asterisk
@@ -1527,3 +1527,16 @@ reaally?")
       (goto-position/all "#(a)")))
 
 ;; TODO run `goto-position/all' on all "test strings"
+
+
+;; TODO this was reported as "missing closing parenthesis" but it's actually an unknown reader macro
+;; from xml-parse.lisp in cxml
+#++
+(breeze.parser:value
+ (breeze.parser:make-node-iterator
+  "(defparameter *initial-namespace-bindings*
+  '((#\"\" . nil)
+    (#\"xmlns\" . #\"http://www.w3.org/2000/xmlns/\")
+    (#\"xml\" . #\"http://www.w3.org/XML/1998/namespace\")))
+
+"))

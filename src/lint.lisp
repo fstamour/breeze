@@ -42,7 +42,10 @@
       :for node-type = (node-type node)
       ;; :for previous-node := nil :then node
       :for depth = (depth $node)
+      :for i :from 0
       :do
+         (when (<= 1000000 i)
+           (break "Infinite loop? in (lint:analyse)"))
          ;; if the current node has any syntax error, signal them
          (error-invalid-node $node)
          ;; Apply all the checks!

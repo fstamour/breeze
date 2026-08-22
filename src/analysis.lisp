@@ -28,11 +28,11 @@
 
 ;;; Integrating pattern.lisp and parser.lisp
 
-(defun match-parser-state (pattern state &key skipp)
+(defun match-parse-state (pattern state &key skipp)
   (match pattern (make-node-iterator state) :skipp skipp))
 
 (defmethod match (pattern (state state) &key skipp)
-  (match-parser-state pattern state :skipp skipp))
+  (match-parse-state pattern state :skipp skipp))
 
 (defmethod match ((pattern null) (state state) &key skipp)
   "Nil should not match a parse-tree (use an empty vector as pattern to
@@ -105,7 +105,7 @@ The designators can be strings, symbols or packages."
 (defmethod match ((pattern sym) ($node node-iterator) &key skipp)
   "Match a `sym' pattern against a string."
   ;; TODO export skip...
-  (breeze.pattern::skip $node skipp)
+  (skip $node skipp)
   (with-slots ((symbol-name-pattern name)
                (package-name-pattern package)
                (qualification-pattern qualification))
@@ -136,21 +136,21 @@ The designators can be strings, symbols or packages."
 
 (defmethod match ((pattern symbol) (node-iterator node-iterator) &key skipp)
   "Match a symbol against a parse tree's node."
-  (breeze.pattern::skip node-iterator skipp)
+  (skip node-iterator skipp)
   (match-symbol-to-token pattern node-iterator))
 
 (defmethod match ((pattern null) (node-iterator node-iterator) &key skipp)
   "Match the symbol `nil' against a parse tree's node."
-  (breeze.pattern::skip node-iterator skipp)
+  (skip node-iterator skipp)
   (match-symbol-to-token pattern node-iterator))
 
 (defmethod match ((pattern var) (state state) &key skipp)
   "Match a var against a parse state."
-  (match-parser-state pattern state :skipp skipp))
+  (match-parse-state pattern state :skipp skipp))
 
 (defmethod match ((pattern simple-var) (state state) &key skipp)
   "Match a simple-var against a parse state."
-  (match-parser-state pattern state :skipp skipp))
+  (match-parse-state pattern state :skipp skipp))
 
 ;; TODO One method per type of node
 ;; Update: I recently added "object-patterns"
@@ -248,6 +248,7 @@ The designators can be strings, symbols or packages."
       ;; TODO complex #c
       )))
 
+#++ ;; TODO
 (defun self-evaluating-p (node-iterator)
   (let* ((node (value node-iterator))
          (type (node-type node))
@@ -261,7 +262,7 @@ The designators can be strings, symbols or packages."
 - symbols (depends on the environment)
     |#
     (or (and token-node-p
-             (or )))))
+             (or)))))
 
 
 
@@ -307,7 +308,7 @@ TODO
 ;; TODO export
 ;; TODO test
 (defun loop-form-p ($node)
-  (with-match ($node ((cl:loop (:named ?body (:maybe _)))))
+  (with-match ($node ((loop (:named ?body (:maybe _)))))
     ?body))
 
 

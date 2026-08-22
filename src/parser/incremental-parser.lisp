@@ -45,7 +45,7 @@
           new-string
           (current-position (iterator state)) 0
           (slot-value (iterator state) 'vector) new-string))
-  (breeze.parser:parse (source state) state))
+  (parse (source state) state))
 
 (defun apply-edit-to-string (edit string)
   (destructuring-bind (type position detail)

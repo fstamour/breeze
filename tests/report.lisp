@@ -59,6 +59,7 @@
 
 (define-test+run link-to-page
   :dependencies (pathname-to)
+  ;; TODO ... These are not correctly escaped and shows up as actual links in the listings.
   (is string=
       "<a href=\"listing-asdf.html#asdf-42\">asdf &#8212; untitled page 42</a>"
       (link-to-page
@@ -82,7 +83,7 @@
 
 ;;; TODO I want to generate example pages, especially for commands
 
-;; TODO extract string-utils's around function's tests
+;; TODO extract string.lisp's around function's tests
 ;; TODO eval-node would be useful!
 
 ;; Here I render a buffer with syntax errors into an html file

@@ -315,7 +315,8 @@
 
 #++
 (trace match
-       :wherein test-match-iterator)
+       :wherein test-match-iterator
+       :methods t)
 
 ;; (test-match-iterator "asdf" '(?x) #(a))
 

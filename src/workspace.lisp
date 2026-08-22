@@ -1,5 +1,5 @@
 (uiop:define-package #:breeze.workspace
-  (:documentation "")
+  (:documentation "A place to hold all the states (e.g. buffers, diagnostics, etc).")
   (:use #:cl)
   (:use-reexport #:breeze.buffer)
   (:import-from #:alexandria
@@ -106,6 +106,8 @@ Design decision(s):
 
 (defvar *workspace* (make-instance 'workspace)
   "The workspace.")
+
+;; (setf *workspace* (make-workspace))
 
 
 ;;; Buffers in the workspace

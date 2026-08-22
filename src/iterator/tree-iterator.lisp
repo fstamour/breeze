@@ -49,6 +49,7 @@ depth of the tree."))
     (with-slots (positions) iterator
       (format stream "depth: ~s pos: ~s" (depth iterator) positions))))
 
+;; TODO I should document why this isn't an :after method
 (defmethod initialize-instance
     ((iterator tree-iterator)
      &rest initargs

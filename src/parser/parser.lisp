@@ -245,7 +245,7 @@ first node being whitespaces.)"
             )
       ;; TODO check token-length <= length
       ;; TODO check that token-length is plusp when length is supplied (same as with `read-sharp-left-parens')
-      ;; TODO check that all the chararcter in "range" are 0s and 1s (no exception)
+      ;; TODO check that all the character in "range" are 0s and 1s (no exception)
       (sharp-bitvector start (current-position state))
       ;; TODO style #*0 => #*
       )))

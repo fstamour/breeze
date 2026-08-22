@@ -436,6 +436,7 @@ receiving the data it requested."
        t))
     (_ (breeze-debug "Unknown request: %S" request))))
 
+;; TODO unwind-protect to cancel the command
 (defun breeze-run-command (name &rest extra-args)
   "Runs a \"breeze command\". TODO Improve this docstring."
   (breeze-debug "breeze-run-command")
@@ -515,13 +516,13 @@ commands in emacs."
                                         (if callback
                                             (funcall callback result)
                                           result)))))))
-              (message "%S\n" defun-async)
               (insert (format "%S\n" defun-async))))
           (insert (format "%S\n" defun))
           (insert (format "%S\n" `(setf (get ',name 'breeze-command-p) t
                                         (get ',name 'breeze-symbol) ,cl-symbol))))))
     ;; (debug)
-    (eval-buffer)))
+    (eval-buffer)
+    "Breeze commands refreshed."))
 
 
 ;;; Enabling/disabling breeze

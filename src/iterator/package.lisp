@@ -15,6 +15,7 @@
            #:current-position)
   ;; Classes and Constructors
   (:export #:iterator
+           #:iteratorp
            #:vector-iterator
            #:tree-iterator
            #:make-vector-iterator
@@ -64,4 +65,5 @@
    #:depth
    #:collect
    #:map-iterator
+   #:skip
    #:iterator-value))

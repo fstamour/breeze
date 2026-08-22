@@ -111,7 +111,7 @@ Avoid using internal symbols."
         (format nil "Unnecessary package prefix")
         :replacement (breeze.parse-tree:token-raw-name node-iterator)))
       ((breeze.parser:token-possibly-internal-p token)
-       ;; TODO check if the sybol is external
+       ;; TODO check if the symbol is external
        (if (token-external-p token)
            (breeze.diagnostics:node-style-warning
             node-iterator

@@ -22,3 +22,6 @@
   (is equal '((4 11 :warning "Mixed spaces and tabs in whitespace."))
       (test-lint "(foo~% ~C ~%  bar)" #\Tab)
       "should warn when mixing tabs and space (outside of indentation)."))
+
+
+;; TODO BUG "(length #1#foo)" is automatically fixed to "(length foo)" instead of "(length #1# foo)"

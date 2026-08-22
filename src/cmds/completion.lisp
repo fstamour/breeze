@@ -52,6 +52,10 @@ fiind-sym
 
 (loop ... :fin|) > should complete "finally" !!!
 
+when in and .asd file
+- :module | => complete a directory name
+- :file | => complete a file name
+
 |#
 
 (defpackage #:breeze.completion
@@ -175,7 +179,7 @@ TODO add tests!
                 ;; TODO maybe use `breeze.parser:node-string-designator' instead
                 ;; (breeze.parser:node-string $node)
                 )
-              ;; TODO apropos-list wont work if the token contains
+              ;; TODO apropos-list won't work if the token contains
               ;; package markers
               (candidates (remove-if-not
                            'breeze.xref:externalp

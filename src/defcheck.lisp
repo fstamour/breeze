@@ -90,7 +90,7 @@ Example:
 The check is automatically added to the hash-table
 breeze.checks::*checks*, the name (symbol) is used as the key and an
 object of they breeze.check:check is used as the value. The object
-holds the function to run to apply the chekc and a list of
+holds the function to run to apply the check and a list of
 preconditions that defines where/when this check is applicable."
   ;; TODO docstring for defcheck
   (multiple-value-bind (preconditions body)

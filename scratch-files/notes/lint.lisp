@@ -20,11 +20,34 @@
 ;; should be
 x
 
+(cond
+  (test ...)
+  (t ...))
+;; where both "..." is only one form
+;; should be
+(if test ... ...)
+
+
+;; if all branches of a conditional returns the same thing; and it's
+;; the last form of it parent, then extract the return value
+(let ((result))
+  ...
+  (cond
+    (test ... result)
+    (t ... result)))
+;; =>
+(let ((result))
+  (cond (test ...) (t ...))
+  result)
+
 ;; The format is missing the stream parameter
 (format "~a" 42)
 ;; should be
 (format stream "~a" 32)
 ;; where STREAM is probably T or NIL
+
+;; The loop in the format string never consumes anything (infinite loop)
+(format t "~{s~}")
 
 ;; Too many forms in if (probably missing a progn)
 (if p a b c)
@@ -75,6 +98,9 @@ a-symbol
 
 (if (not x) y) => (unless x y)
 
+(unless test t) ==> (not test)
+(when test nil) ==> (not test)
+
 ;; TODO
 (defun _ (&ptional))
 makeunbound
@@ -115,6 +141,8 @@ symbol keyword integer number string cons atom list
 
 (typep 0 '(integer 1))
 (plusp 0)
+
+;; the type '(member t nil) is the same as 'boolean and '(or null (eql t))
 
 
 ;; No need to nest variadic functions or macros
@@ -266,6 +294,11 @@ prog*
   (declare (ignore _))
   "a docstring"
   (declare (ignore _)))
+
+;; an actual silly thing I did...
+(integer 0 #.(1- (expt 2 32))) => (unsigned-byte 32)
+
+(declare (type <type>)) => missing an actual place to type
 
 ;; Look for duplicated code...
 
@@ -702,7 +735,7 @@ commented out.
   ;; just pasted this comment)
 
 it would be nice to look for trailing parenthesis inside comments when
-some parenthesis are not closed correclty
+some parenthesis are not closed correctly
 
 |#
 
@@ -710,3 +743,21 @@ some parenthesis are not closed correclty
 
 
 ;; in typecase, you don't want 'nil as one of the types, you probably meant null
+
+
+
+;; don't use eq with numbers
+
+
+
+#|
+
+try to warn about functions or macros with same or similar name in the same project...
+
+e.g. simple-var-p
+
+|#
+
+
+
+;; (random 1) will always return 0, maybe you meant (random 1.0)

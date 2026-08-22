@@ -4,7 +4,7 @@ TODO
 
 - emptyp
 - donep
-- source: TODO use in "reader" and "buffer" (buffer -> node-iterator -> parser-state -> source)
+- source: TODO use in "parser" and "buffer" (buffer -> node-iterator -> parse-state -> source)
 - register/unregister (e.g. actors, command-set, workspace, ...)
 - hash
 - size

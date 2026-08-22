@@ -11,7 +11,6 @@
    #:package-apropos)
   (:export
    #:before-last
-   #:subseq-displaced
    #:length>1?
    #:length=1
    #:with-collectors)

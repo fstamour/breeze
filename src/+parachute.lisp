@@ -87,14 +87,19 @@ that message to *trace-output* and return it as a second value.
         (control
           (concatenate 'string
                        "For "
+                       ;; input
                        "«~a» "
+                       ;; description (recurse)
                        (if description "~1{~?~}" "~*")
                        "~%"
+                       ;; got
                        "~tgot:~%"
                        "~t~t~s~%"
+                       ;; expected
                        "~texpected:~%"
                        "~t~t~s")))
     (flet ((fmt (&rest args)
+             "Prints to *trace-output* unless parachute:*context* is not nil. Returns the formatted string."
              (let ((str (apply #'format nil args)))
                (unless parachute:*context*
                  (format *trace-output* "~&~a" str))

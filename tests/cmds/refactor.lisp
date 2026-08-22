@@ -291,7 +291,7 @@ dont Toggle header line
                                :context '(:buffer-name "insert-defclass-test.lisp"
                                           :point 0))))
     (common-trace-asserts 'insert-defclass trace 15)
-    #| TODO instead of "imperatively" poping trace item from the list of trace, I would like to collect all the assertions into a "model" of what the trace should be.
+    #| TODO instead of "imperatively" popping trace item from the list of trace, I would like to collect all the assertions into a "model" of what the trace should be.
     That way it would be much much easier to detect drift between the model and the actual trace. ;
     Similar to how I print the "mismatch" in "expect-insert*" ;
     |#

@@ -8,4 +8,4 @@ set -e
 cd $(dirname $0)/../
 
 exec sbcl --noinform --non-interactive \
-     --eval "(load \"scripts/run-tests.lisp\")"
+     --eval "(load \"scripts/run-tests.lisp\")" -- "$@"

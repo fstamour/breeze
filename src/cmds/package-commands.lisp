@@ -22,7 +22,8 @@
 
 (define-command insert-defpackage ()
   "Insert a defpackage form."
-  (declare (context :top-level))
+  (declare (context :top-level
+                    #| TODO "empty file" context |#))
   (let ((package-name
           (read-string
            "Name of the package: "

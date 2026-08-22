@@ -1,60 +1,5 @@
 ;;;; Trying to design a DSL for small refactors
 
-(defpackage #:breeze.pattern
-  (:documentation "Pattern matching")
-  (:use #:cl #:breeze.iterator #:breeze.generics)
-  (:import-from #:breeze.class-utils
-                #:define-class)
-  (:export #:compile-pattern)
-  (:export #:pattern
-           #:patterns
-           #:defpattern
-           #:match
-           #:wildcard
-           #:wildcardp
-           #:simple-var
-           #:svar
-           #:multi-valued-p
-           #:var
-           #:varp
-           #:name
-           #:sym
-           #:sym-package
-           #:qualification
-           #:wildp
-           #:maybe
-           #:zero-or-more
-           #:one-or-more
-           #:repetition
-           #:repetitionp
-           #:minimum
-           #:maximum
-           #:either
-           #:eitherp
-           #:slot-pattern
-           #:slot-name
-           #:object-pattern
-           #:slots
-           #:pattern-iterator
-           #:make-pattern-iterator)
-  ;; Working with match results
-  (:export #:make-binding
-           #:merge-substitutions
-           #:find-binding
-           #:binding
-           #:add-binding
-           #:from
-           #:to
-           #:substitutions
-           #:substitutions-p
-           #:merge-sets-of-substitutions
-           #:pattern-substitute)
-  (:export #:extract-names
-           #:let-match)
-  (:export #:make-rewrite
-           #:rewrite-pattern
-           #:rewrite-template))
-
 (in-package #:breeze.pattern)
 
 ;; TODO guard (? pred pat) => match pattern, then apply pred
@@ -90,7 +35,7 @@
 
 (defun wildcardp (x)
   "Is X an object of class `wildcard'?"
-  (eq (class-name (class-of x)) 'wildcard))
+  (typep x 'wildcard))
 
 (defmethod eqv ((a wildcard) (b wildcard))
   t)
@@ -121,7 +66,6 @@ a match for a variable of the same name."))
   "Print an object of type `var'."
   (let ((*print-case* :downcase)
         (*print-readably* nil))
-    ;; TODO
     (format stream "(svar ~s~@[ :multi-valued-p ~s~])"
             (name var)
             (multi-valued-p var))))
@@ -149,7 +93,6 @@ a match for a variable of the same name."))
     :documentation "An optional pattern to match against."))
   (:documentation "Pattern that creates a binding if its sub-pattern matches."))
 
-;; TODO muffle sbcl warning about the mix of &optional and &key
 (defun var (name pattern
             &key multi-valued-p)
   "Make a pattern object that creates a binding."
@@ -284,7 +227,7 @@ successful match.")
 
 (defun repetitionp (x)
   "Is X an object of class `repetition'?"
-  (eq (class-name (class-of x)) 'repetition))
+  (typep x 'repetition))
 
 (defmethod eqv ((a repetition) (b repetition))
   "Test that A and B are both object of type `repetition' with the same
@@ -344,7 +287,7 @@ limits."
 
 (defun eitherp (x)
   "Is X an object of class `either'?"
-  (eq (class-name (class-of x)) 'either))
+  (typep x 'either))
 
 (defmethod eqv ((a either) (b either))
   "Test that A and B are both object of type `either' with the same

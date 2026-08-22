@@ -41,7 +41,7 @@
         (ensure-directories-exist *capture-folder*)
         (error "The capture folder ~s does not exist" *capture-folder*)))
   ;; We use "chose" instead of "read-string" so that the user can
-  ;; easily see if he's trying to create a file with a name that
+  ;; easily see if they are trying to create a file with a name that
   ;; already exists.
   (let* ((files (list-existing-captured-files))
          (name (concatenate 'string

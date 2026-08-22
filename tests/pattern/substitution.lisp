@@ -77,7 +77,7 @@
   (isnt eqv (make-binding 'a 5) (substitutions))
   (isnt eqv (substitutions) (make-binding 'a 5)))
 
-(define-test+run "substitution - coopy"
+(define-test+run "substitution - cooy"
   (false
    (let* ((b1 (make-substitutions))
           (b2 (copy-substitutions b1)))

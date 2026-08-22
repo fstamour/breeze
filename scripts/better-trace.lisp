@@ -10,13 +10,11 @@
 ;; often prints "way too much" stuff
 (defun trace-report (depth function event stack-frame values)
   (declare (ignorable stack-frame))
-  ;; (pprint-logical-block stream values :prefix ... :suffix ...)
   (let ((*print-pretty* nil)
         (stream *standard-output*))
     (terpri stream)
     (pprint-logical-block (stream values
                                   :per-line-prefix (format nil "~v@{~A~:*~}" depth "  |"))
-      ;; (loop :repeat depth :do (format stream "  |"))
       (pprint-indent :current depth stream)
       (case event
         (:enter

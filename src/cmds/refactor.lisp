@@ -88,7 +88,7 @@
 
 (define-command extract-as-defun ()
   "Extract as defun."
-  ;; TODO if current node is a lamda, replace "lambda" by defun,
+  ;; TODO if current node is a lambda, replace "lambda" by defun,
   ;; choose a name, don't ask about the lamda-list (unless it's a
   ;; closure!), and replace the expression by '<the-name> (or #'...)
   ;;

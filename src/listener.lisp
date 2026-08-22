@@ -30,7 +30,7 @@
   "Low-level eval used as a kind of RPC. We need this to avoid issue from
 differences between swank and slynk."
   (let ((*package* (find-package "CL-USER"))
-        (*readtable* (cl:copy-readtable nil)))
+        (*readtable* (copy-readtable nil)))
     (eval (read-from-string string))))
 
 
@@ -86,7 +86,7 @@ FORMAT-ARGUMENTS: @1=(#<STANDARD-METHOD (#<STANDARD-CLASS BREEZE.BUFFER:BUFFER>)
          ;; &optional package readtable
          ;; TODO infer the *readtable*
 
-         (let ((*readtable* (cl:copy-readtable nil))
+         (let ((*readtable* (copy-readtable nil))
                (values (multiple-value-list
                         (eval
                          (read-from-string string)))))

@@ -34,12 +34,15 @@ save this function's return value."))
 (defclass iterator () ()
   (:documentation "An abstract iterator."))
 
+(defun iteratorp (x)
+  (typep x 'iterator))
+
 
 ;;; Generic utilities
 
 (defmethod next-iterator ((iterator iterator))
   "Get a copy of ITERATOR moved to the next position."
-  ;; TODO perf: this copies the iterator regarless if there is a
+  ;; TODO perf: this copies the iterator regardless if there is a
   ;; next element or not.
   (let ((it (copy-iterator iterator)))
     (next it)
@@ -48,7 +51,7 @@ save this function's return value."))
 (defmethod previous-iterator ((iterator iterator))
   "Get a copy of ITERATOR and move it backward to the previous
 position (if it exists)."
-  ;; TODO perf: this copies the iterator regarless if there is a
+  ;; TODO perf: this copies the iterator regardless if there is a
   ;; previous element or not.
   (let ((it (copy-iterator iterator)))
     (and (go-backward it 1) it)))
@@ -72,6 +75,16 @@ position (if it exists)."
         until (donep iterator)
         do (funcall fn (value iterator))
         do (next iterator))))
+
+;; TODO rename to skip-forward
+;; TODO add a skip-backward
+(declaim (inline skip))
+(defun skip ($input skipp)
+  (when skipp
+    (loop :while (and
+                  (not (donep $input))
+                  (funcall skipp $input))
+          :do (next $input))))
 
 
 ;;; iterator-value: comparison helper

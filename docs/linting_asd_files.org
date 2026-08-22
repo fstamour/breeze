@@ -1,28 +1,154 @@
 :PROPERTIES:
 :ID:       e55cab7e-beb6-4cb4-be2e-d0d78a8f568a
 :END:
-#+title: Linting asd files
+#+title: Linting asd files and asdf-related code
 
-* Use =(in-package #:asdf-user)= at the start of the file
+* Avoid defining packages in =.asd= files
+:PROPERTIES:
+:ID:       31e2ec95-8735-45d5-ae4c-29318fdab0e5
+:END:
 
 Using (interned) symbols in the .asd files _might_ intern symbols in
-=*package*= (especially if someone tries to =(read ...)= the =.asd=
-file.
+~*package*~ (especially if someone tries to ~(read ...)~ the =.asd=
+file. Some people tries to avoid this situation by adding a
+~defpackage~ and ~in-package~, but this is
+unnecessary. ~asdf:load-asd~ makes sure the file is read using the
+~asdf-user~ package, and other code reading =.asd= files should do the
+same.
 
-* Look for missing files
+* Prefer strings for system names and file names
+:PROPERTIES:
+:ID:       a77184c8-9b21-4f7f-9bfc-03478549fa5c
+:END:
+
+For example:
+
+#+begin_src lisp
+(defsystem my-system
+  :components ((:file my-main-file)))
+#+end_src
+
+should be:
+
+#+begin_src lisp
+(defsystem "my-system"
+  :components ((:file "my-main-file")))
+#+end_src
+
+* Validate ~:file~ entries
+:PROPERTIES:
+:ID:       fa848ccd-8994-4b3e-b677-85d748ac7a73
+:END:
+
+** Look for empty ~:file~ entries
+:PROPERTIES:
+:ID:       0de73d06-774a-4deb-bbe0-b850e8b8e896
+:END:
+
+For example: ~(:file "")~
+
+Arguably, this should be handled automatically if I create a "schema"
+for the ~asdf:defsystem~ macro.
+
+** Look for duplicate ~:file: entries
+:PROPERTIES:
+:ID:       345a821b-6f00-4f5c-b9f7-102d8b4b2200
+:END:
+
+For example:
+
+#+begin_src lisp
+(defsystem ...
+    (:file "a")
+    (:file "a")...)
+#+end_src
+
+** Look for missing files in =.asd= file
+:PROPERTIES:
+:ID:       bd5f2e2d-d537-4a7d-a4e2-04dd04720f6e
+:END:
+
+There are two ways to interpret "missing files in .asd":
+- there is an existing file that is not part of any system
+- there is a ~:file~ in a system that point to a file that doesn't
+  exist in the file system.
 
 I could see one nice workflow:
-1. Open the system defintion
-2. Add a file in the =:components= list
-3. The linter highlights the missing file
-4. The user choose a "code action" that creates the file and opens it
+1. Add a file in the ~:components~ list
+2. The linter highlights the missing file
+3. The user choose a "code action" that creates the file and opens it
    in the editor, perhaps even adding a package definition at the
    start.
 
+It could also be nice to help with renaming files
+1. rename a ~:file~ (or even ~:module~)
+2. The linter highlights the missing file (or directory)
+3. The user choose a "code action" that rename the corresponding file
+   (or directory).
+
+There are multiple ways to "to figure out which file (or directory)",
+and they can be mixed to some extent:
+- go with "string distance"
+- enumerate all possible file
+- enumerate all files that are not already part of the system
+- use the name of the file before it was changed (assuming the file
+  existed in the file system before the ~:file~ was modified)
+
 * Licence
+:PROPERTIES:
+:ID:       f729e2b4-1877-473d-ba6c-75850243306f
+:END:
 
 - the licence should probably be one of the "SPDX" ones
 - when they are many systems (in the same file or project even), they
   should probably all have the same licence
-- when there is a licence file, it should match the =:licence= in the
+- when there is a licence file, it should match the ~:licence~ in the
   system definition(s)
+
+* Formatting
+:PROPERTIES:
+:ID:       2abf3e46-8e2d-41bd-8798-8647f27cf8aa
+:END:
+
+I prefer to have the list of components to go on a separate line than
+the ~:components~ keyword, to avoid some nesting.
+
+* File dependencies
+:PROPERTIES:
+:ID:       0c123ecc-e736-47a1-88f0-34dc11f268e7
+:END:
+
+** Without ~:serial~ or with ~:serial nil~
+
+When there is no ~:serial~, it would be nice to be able to validate
+the ~:file~ and ~:module~'s ~:depends-on~. We could try to look at the
+dependecies between the packages (when there are multiple) and how the
+function/macros/etc are used.
+
+For example, if file "a" uses a function from file "b", then we can
+infer that file "a" _should_ be loaded after file "b". This is just a
+heuristic though, because in lisp it would still be valid to load them
+in the reverse order (although sbcl, for example, might not be able to
+do as much optimizations).
+
+** With ~:serial t~
+
+There shoud (probably) not have any ~:depends-on~ on modules and files
+when ~:serial~ is true.
+
+* Avoid using ~asdf:*central-registry*~
+:PROPERTIES:
+:ID:       bc944cdb-7c7f-4419-a17f-38ffddbfca50
+:END:
+
+It's deprecated (or is it?).
+
+One example, to add one specific directory:
+#+begin_src lisp
+(asdf:initialize-source-registry
+ `(:source-registry
+   (:directory ,directory)
+   :inherit-configuration))
+#+end_src
+
+See [[https://asdf.common-lisp.dev/asdf.html#Configuration-DSL-1][asdf's configuration DSL]]

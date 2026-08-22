@@ -119,7 +119,6 @@ after the list of superclasses) of a cl:defclass form.
 ;;; print-object
        (defmethod print-object ((node ,name) stream)
          (let ((*print-case* :downcase))
-           ;; TODO pp is unused
            (flet ((pp (x)
                     (if (and x (symbolp x)
                              (not (self-evaluating-symbol-p x)))
@@ -139,8 +138,10 @@ after the list of superclasses) of a cl:defclass form.
                      :by #'cddr
                      :collect `(let ((,arg (,arg node)))
                                  (when ,arg
-                                   (format stream " ~s ~s"
-                                           ,kw ,arg))))
+                                   (write-char #\Space stream)
+                                   (prin1 ,kw stream)
+                                   (write-char #\Space stream)
+                                   (pp ,arg))))
              (write-char #\) stream))))
 ;;; eqv
        (defmethod eqv ((a ,name) (b ,name))

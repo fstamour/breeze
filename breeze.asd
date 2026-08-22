@@ -83,7 +83,8 @@
   :pathname "src/pattern/"
   :serial t
   :components
-  ((:file "pattern")
+  ((:file "package")
+   (:file "pattern")
    (:file "compile-pattern")
    (:file "substitution")
    (:file "match")
@@ -151,7 +152,9 @@
    (:module "checks"
     :depends-on ("analysis" "command" "diagnostics" "defcheck")
     :components ((:file "whitespaces-checks")
-                 (:file "package-checks")))
+                 (:file "package-checks")
+                 (:file "documentation-checks")
+                 (:file "lambda-checks")))
    (:file "lint" :depends-on ("checks"))
    (:file "cmds/command-utils")
    (:module "cmds"
@@ -239,7 +242,7 @@
                "breeze/asdf"
                (:feature :sbcl "sb-introspect"))
   :pathname "src/"
-  :serial nil ; <-
+  :serial nil
   :components
   ((:file "html")
    (:file "documentation" :depends-on ("html"))
@@ -299,10 +302,10 @@
   :pathname "tests/iterator/"
   :serial nil
   :components ((:file "package")
-               (:file "vector-iterator"  :depends-on ("package"))
-               (:file "tree-iterator"    :depends-on ("package"))
-               (:file "concat-iterator"  :depends-on ("package"))
-               (:file "stream-iterator"  :depends-on ("package"))))
+               (:file "vector-iterator" :depends-on ("package"))
+               (:file "tree-iterator" :depends-on ("package"))
+               (:file "concat-iterator" :depends-on ("package"))
+               (:file "stream-iterator" :depends-on ("package"))))
 
 (defsystem "breeze/test"
   :description "Tests for the breeze system."

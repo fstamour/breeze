@@ -111,8 +111,8 @@ slot should be a vector)."))
 
 (defun make-substitutions (&key bindings)
   (if bindings
-    (make-instance 'substitutions :bindings bindings)
-    (make-instance 'substitutions)))
+      (make-instance 'substitutions :bindings bindings)
+      (make-instance 'substitutions)))
 
 (defun copy-substitutions (substitutions)
   (make-substitutions
