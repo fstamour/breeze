@@ -7,12 +7,15 @@
   (:import-from #:breeze.command
                 #:choose
                 #:define-command
+                #:context
                 #:message
-                #:find-file)
+                #:find-file
+                #:insert)
   (:import-from #:breeze.config
                 #:*capture-folder*
                 #:*capture-template*)
-  (:export #:capture))
+  (:export #:capture
+           #:insert-capture-template))
 
 (in-package #:breeze.capture)
 
@@ -27,6 +30,12 @@
                           :if-does-not-exist :create
                           :direction :output)
     (format output (remove-indentation *capture-template*))))
+
+(define-command insert-capture-template ()
+  "Insert the \"capture template\" at point."
+  (declare (context :top-level
+                    #| TODO "empty file" context |#))
+  (insert (remove-indentation *capture-template*)))
 
 (define-command capture ()
   "Quickly create a lisp file in a pre-determined directory."

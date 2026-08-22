@@ -78,6 +78,7 @@
 | breeze-render-buffer-to-html                       | Render the current buffer to html.                                              |              |
 | breeze-update-config-file                          | Create or update breeze's config file.                                          |              |
 | breeze-inspect-buffer-at-point                     | For debugging...                                                                |              |
+| breeze-insert-capture-template                     | Insert the "capture template" at point.                                         |              |
 
 * Keymap
 :PROPERTIES:
