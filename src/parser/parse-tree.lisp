@@ -130,7 +130,14 @@
            #:token-raw-name
            #:token-possibly-internal-p
            #:parse-symbol-node
-           #:node-string-designator))
+           #:node-string-designator)
+  ;; Enclosing form navigation
+  ;; TODO I moved these out of analysis.lisp, but I didn't move the tests yet
+  (:export #:normalize-pattern-predicate
+           #:find-enclosing-node
+           #:find-nearest-enclosing-node
+           #:find-furthest-enclosing-node
+           #:find-all-enclosing-nodes))
 
 (in-package #:breeze.parse-tree)
 

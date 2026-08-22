@@ -124,6 +124,7 @@
     :serial t
     :components ((:file "parse-state")
                  (:file "parse-tree")
+                 (:file "node-iterator")
                  (:file "parser")
                  (:file "incremental-parser")))
    (:file "buffer" :depends-on ("parser" "package"))
@@ -335,6 +336,7 @@
     :components
     ((:file "parser.randomized")
      ;; TODO split out "parser.lisp"
+     (:file "node-iterator")
      (:file "parser" :depends-on ("parser.randomized"))
      (:file "parse-tree" :depends-on ("parser.randomized"))
      (:file "incremental-parser")))
