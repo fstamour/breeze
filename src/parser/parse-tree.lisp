@@ -599,12 +599,16 @@
 (defmethod map-top-level-forms (function (state state))
   (loop :with iterator = (make-node-iterator state)
         :until (tree-iterator-done-p iterator)
-        :do (let ((node (tree-iterator-value iterator))
-                  (body (top-level-forms iterator)))
+        :do (let* ((node (tree-iterator-value iterator))
+                   (whitespace-or-comment-p (whitespace-or-comment-node-p node))
+                   ;; `top-level-forms' is an expensive match, and
+                   ;; whitespaces and comments can never match it.
+                   (body (unless whitespace-or-comment-p
+                           (top-level-forms iterator))))
               (cond
                 (body (copy-iterator body iterator))
                 (t
-                 (unless (whitespace-or-comment-node-p node)
+                 (unless whitespace-or-comment-p
                    (funcall function iterator))
                  ;; advance the iterator
                  (incf (pos iterator))
