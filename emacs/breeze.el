@@ -14,20 +14,43 @@
 
 ;;; Logging
 
+(defvar breeze-debug-buffer-name " *breeze-debug*"
+  "The name of breeze's debug buffer.")
+
+(defvar breeze-debug-buffer-max-size 100000
+  "Maximum size, in characters, of `breeze-debug-buffer-name'.
+Once the buffer grows past this, `breeze-trim-debug-buffer' drops
+the oldest entries.")
+
+(defun breeze-trim-debug-buffer (buffer)
+  "Delete the oldest entries of breeze's debug buffer.
+Does nothing until the buffer is bigger than
+`breeze-debug-buffer-max-size', then removes roughly the older
+half, keeping whole entries."
+  (when (> (buffer-size buffer) breeze-debug-buffer-max-size)
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (/ (buffer-size) 2))
+          ;; try to avoid cutting an entry in half when a logged
+          ;; object spans multiple lines.
+          (when (re-search-forward "^\\[[0-9]\\{4\\}-" nil t)
+            (delete-region (point-min) (match-beginning 0))))))))
+
 (defun breeze-debug (string &rest objects)
   "Log a meesage in the \" *breeze-debug*\" buffer."
-  (save-current-buffer
-    (set-buffer (get-buffer-create " *breeze-debug*"))
-    (setf buffer-read-only nil)
-    (goto-char (point-max))
-    (insert
-     "\n"
-     (format-time-string "[%Y-%m-%d %H:%M:%S.%3N] ")
-     (let ((s (apply #'format string objects)))
-       (if (< (length s) 1000)
-           s
-         (cl-subseq s 0 1000))))
-    (setf buffer-read-only t)))
+  (let ((buffer (get-buffer-create breeze-debug-buffer-name)))
+    (breeze-trim-debug-buffer)
+    (save-current-buffer
+      (set-buffer buffer)
+      (setf buffer-read-only nil)
+      (goto-char (point-max))
+      (insert "\n" (format-time-string "[%Y-%m-%d %H:%M:%S.%3N] ")
+              (let ((s (apply #'format string objects)))
+                (if (< (length s) 1000)
+                    s
+                  (cl-subseq s 0 1000))))
+      (setf buffer-read-only t))))
 
 (defun breeze-message (string &rest objects)
   "Log a meesage in both \" *breeze-debug*\" and *Messages* buffers."
@@ -38,8 +61,6 @@
 ;; TODO a function to get the buffer name and/or the " *breeze-debug*" buffer
 ;; TODO an emacs command to open the " *breeze-debug*" buffer
 ;; TODO an emacs command to clear the " *breeze-debug*" buffer
-;; TODO something to remove the old entries only?
-;; TODO find a way to clean the logs before they're too long
 
 
 ;;; Utilities for integrating with other packages that might or might
