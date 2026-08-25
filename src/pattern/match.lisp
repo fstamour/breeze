@@ -155,86 +155,48 @@
 
 ;;; Matching sequences
 
-(declaim (inline no-match))
-(defun no-match (reason)
-  (throw 'no-match (values nil reason)))
-
-(declaim (inline maybe-stop))
-(defun maybe-stop ($input &optional (reason :input-done))
-  (when (donep $input)
-    (throw 'no-match (values nil reason))))
-
-(defun go-down-together ($pattern $input)
-  (declare (type pattern-iterator $pattern)
-           (type tree-iterator $input))
-  (let ((sub-pattern (tree-iterator-value $pattern)))
-    ;; if the sub-pattern is a vector, we
-    ;; "recurse" into the sub-pattern
-    (when (vectorp sub-pattern)
-      (push-subtree $pattern sub-pattern)
-      ;; we also recurse into the input data,
-      (go-down $input)
-      ;; it's possible that there's no data to
-      ;; match against in the input's sub-tree
-      (maybe-stop $input :input-done-after-going-down)
-      ;; return t, so the caller knows to "go-up" afterwards.
-      t)))
-
-(defun go-up-together ($pattern $input)
-  (declare (type pattern-iterator $pattern)
-           (type tree-iterator $input))
-  (unless (and (go-up $pattern)
-               (go-up $input))
-    (no-match :out-of-sync-after-going-up)))
-
 (defmethod match ((pattern-iterator pattern-iterator) (iterator tree-iterator) &key skipp)
-  (catch 'no-match
-    (loop
-      :with bindings = t ;; (make-substitutions)
-      :with new-bindings = nil
-      :with $pattern :of-type pattern-iterator := (copy-iterator pattern-iterator)
-      :with $input :of-type tree-iterator := (copy-iterator iterator)
-      :until (tree-iterator-done-p $pattern)
-      :for i :from 0
-      :do
-         (skip $input skipp)
-         (let* ((sub-pattern (tree-iterator-value $pattern))
-                (went-down-together (go-down-together $pattern $input)))
-           (setf new-bindings
-                 (match sub-pattern $input :skipp skipp))
-           (when went-down-together
-             ;; TODO maybe check if $input is "done at current level",
-             ;; if not then the match failed
-             (go-up-together $pattern $input))
-           ;; if pattern was a repetition, then the iterator will
-           ;; already have been updated.
-           (unless (repetitionp sub-pattern)
-             (tree-iterator-next $input)))
-         (tree-iterator-next $pattern)
-         ;; infinite loop guard
-         (when (<= 1000000 i)
-           (error "Infinite loop? in (match pattern-iterator tree-iterator). $input=pos~a" (pos $input)))
+  (loop
+    :with bindings = t ;; (make-substitutions)
+    :with new-bindings = nil
+    :with $pattern :of-type pattern-iterator := (copy-iterator pattern-iterator)
+    :with $input :of-type tree-iterator := (copy-iterator iterator)
+    :until (tree-iterator-done-p $pattern)
+    :for i :from 0
+    :do
+       (skip $input skipp)
+       (let* ((sub-pattern (tree-iterator-value $pattern)))
+         (setf new-bindings
+               (match sub-pattern $input :skipp skipp))
+         ;; if pattern was a repetition, then the iterator will
+         ;; already have been updated.
+         (unless (or (wildcardp sub-pattern) (repetitionp sub-pattern))
+           (tree-iterator-next $input)))
+       (tree-iterator-next $pattern)
+       ;; infinite loop guard
+       (when (<= 1000000 i)
+         (error "Infinite loop? in (match pattern-iterator tree-iterator). $input=pos~a" (pos $input)))
+       (cond
+         ;; collect all the bindings
+         (new-bindings
+          (setf bindings (merge-substitutions bindings new-bindings))
+          ;; The new bindings conflicted with the existing ones...
+          (unless bindings (return (values nil :conflicting-bindings))))
+         ;; failed to match, bail out of the whole function
+         (t (return (values nil :failed-submatch))))
+    :finally
+       (return
+         ;; We want to match the whole pattern, but whether we want
+         ;; to match the whole input is up to the caller. So we
+         ;; don't check if $input is done.
          (cond
-           ;; collect all the bindings
-           (new-bindings
-            (setf bindings (merge-substitutions bindings new-bindings))
-            ;; The new bindings conflicted with the existing ones...
-            (unless bindings (return (values nil :conflicting-bindings))))
-           ;; failed to match, bail out of the whole function
-           (t (return (values nil :failed-submatch))))
-      :finally
-          (return
-            ;; We want to match the whole pattern, but whether we want
-            ;; to match the whole input is up to the caller. So we
-            ;; don't check if $input is done.
-            (cond
-              ((tree-iterator-done-p $pattern)
-               ;; update the input iterator
-               (copy-iterator $input iterator)
-               ;; update the pattern iterator
-               (copy-iterator $pattern pattern-iterator)
-               bindings)
-              (t (values nil :pattern-not-done $pattern (tree-iterator-value $pattern))))))))
+           ((tree-iterator-done-p $pattern)
+            ;; update the input iterator
+            (copy-iterator $input iterator)
+            ;; update the pattern iterator
+            (copy-iterator $pattern pattern-iterator)
+            bindings)
+           (t (values nil :pattern-not-done $pattern (tree-iterator-value $pattern)))))))
 
 (defmethod match ((var simple-var) ($input iterator) &key skipp)
   "Match a `var' pattern against the current value of an
