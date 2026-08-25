@@ -240,7 +240,7 @@
                       ;; TODO (:maybe typespec)
                       ;; this is not currently possible because the matching is too greedy and it's not possible
                       ;; the "typespec" should not match a "=" or "and"
-                      (:maybe ((:symbol =) ?*form1))
+                      (:maybe (:symbol =) ?*form1)
                       ;; TODO this kind of repetitions could be
                       ;; handled by a special pattern, not sure about
                       ;; the name "joined-repetition"? it's a

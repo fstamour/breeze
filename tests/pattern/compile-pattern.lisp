@@ -56,12 +56,13 @@
     (is eq (name (aref p 0)) (name (aref p 1)))))
 
 (define-test+run "compile-pattern - :maybe"
-  (is eqv (maybe :x) (compile-pattern '(:maybe :x)))
-  (is eqv (maybe #(:x :y)) (compile-pattern '(:maybe (:x :y))))
-  (is eqv (maybe :x :?y) (compile-pattern '(:maybe :x :?y)))
-  (is eqv (maybe :x :?z) (compile-pattern '(:named :?z (:maybe :x))))
-  (is eqv (maybe (svar :?x)) (compile-pattern '(:maybe :?x)))
-  (is eqv (maybe (var :?x (wildcard))) (compile-pattern '(:maybe (:var :?x :_)))))
+  (is eqv (maybe #(:x)) (compile-pattern '(:maybe :x)))
+  (is eqv (maybe #(:x :y)) (compile-pattern '(:maybe :x :y)))
+  (is eqv (maybe `#(:x ,(svar :?y))) (compile-pattern '(:maybe :x :?y)))
+  (is eqv (with-name (maybe #(:x)) :?z)
+      (compile-pattern '(:named :?z (:maybe :x))))
+  (is eqv (maybe `#(,(svar :?x))) (compile-pattern '(:maybe :?x)))
+  (is eqv (maybe `#(,(var :?x (wildcard)))) (compile-pattern '(:maybe (:var :?x :_)))))
 
 (define-test+run "compile-pattern - :zero-or-more"
   (is eqv (zero-or-more #(:x)) (compile-pattern '(:zero-or-more :x)))

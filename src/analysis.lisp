@@ -294,7 +294,7 @@ TODO
 (define-node-matcher malformed-if-node-p
     ;; This matches longer sequence because there's no implicit
     ;; "anchor" at the end of the patterns.
-    ((if (:maybe (?cond (:maybe (?then (:maybe (?else (:maybe ?extra)))))))))
+    ((if (:maybe ?cond (:maybe ?then (:maybe ?else (:maybe ?extra))))))
   (cond
     ;; there should be no extra forms
     (?extra (values t :extra-forms))
@@ -307,4 +307,3 @@ TODO
 (defun loop-form-p ($node)
   (with-match ($node ((loop (:named ?body (:maybe _)))))
     ?body))
-

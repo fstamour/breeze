@@ -125,7 +125,8 @@
            #:top-level-node-iterator
            #:map-top-level-forms)
   ;; Extracting data
-  (:export #:token-raw-package-prefix
+  (:export #:token-name
+           #:token-raw-package-prefix
            #:token-raw-name
            #:token-possibly-internal-p
            #:parse-symbol-node
@@ -584,16 +585,11 @@
          (eval-when _ (:maybe ?body))
          ((:either macrolet symbol-macrolet)
           _ #| definitions |#
-          ;;
-          ;; TODO this doesn't work, I think it's because (match
-          ;; repetition iterator) advances the iterator when
-          ;; there's no match _but_ the match is successful
-          ;; because 'minimum is 0
-          ;;
-          ;; (:zero-or-more (declare _ #| TODO tests|#))
+          (:zero-or-more (declare _))
           (:maybe ?body))
-         ;; TODO locally
-         ))
+         (locally
+             (:zero-or-more (declare _))
+           (:maybe ?body))))
        $node
        :skipp #'whitespace-or-comment-node-p)
     ?body))
@@ -626,6 +622,13 @@
 
 
 ;;; Extracting more information from the parse tree
+
+(defun token-name (node-iterator)
+  "Return the symbol name (no package prefix or marker) of NODE-ITERATOR
+if it points at a token, else NIL."
+  (let ((node (tree-iterator-value node-iterator)))
+    (when (token-node-p node)
+      (name node))))
 
 ;; TODO tests!
 (defun token-raw-package-prefix (node-iterator)

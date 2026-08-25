@@ -14,7 +14,13 @@ MATCHER may be:
   - a list (pattern): compiled with `breeze.pattern:compile-pattern` and wrapped into a lambda."
   (etypecase matcher
     (function matcher)
-    (symbol (normalize-pattern-predicate `(((:symbol ,matcher)))))
+    (symbol
+     (let ((predicate (normalize-pattern-predicate
+                       `(((:symbol ,matcher)))
+                       :skipp skipp)))
+       (lambda (iterator)
+         (and (children iterator)
+              (funcall predicate iterator)))))
     ((or cons vector breeze.pattern:pattern)
      (let ((compiled-pattern (breeze.pattern:compile-pattern matcher)))
        (lambda (iterator)

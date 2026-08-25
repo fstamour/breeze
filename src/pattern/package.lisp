@@ -1,4 +1,3 @@
-
 (defpackage #:breeze.pattern
   (:documentation "Pattern matching")
   (:use #:cl #:breeze.iterator #:breeze.generics)
@@ -6,10 +5,13 @@
                 #:define-class)
   (:import-from #:breeze.string
                 #:around)
+  ;; re-exporting from breeze.generic
+  (:export #:name
+           #:named
+           #:with-name)
   (:export #:compile-pattern)
   (:export #:pattern
            #:patterns
-           #:defpattern
            #:match
            #:wildcard
            #:wildcardp

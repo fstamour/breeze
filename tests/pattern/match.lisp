@@ -78,7 +78,11 @@
 
 (define-test+run "pattern iterators"
   (true (donep (make-tree-iterator #())))
-  (false (donep (make-tree-iterator #(a)))))
+  (false (donep (make-tree-iterator #(a))))
+  (is = 0 (pos (make-tree-iterator #())))
+  (is = 0 (pos (make-tree-iterator #(a))))
+  (is = 0 (depth (make-tree-iterator #())))
+  (is = 0 (depth (make-tree-iterator #(a)))))
 
 
 ;;; Sequences
@@ -152,9 +156,12 @@
 (defun test-match-iterator
     (description pattern input
      &key skipp
-       expected-substitution)
+       expected-substitution
+       expected-input-pos
+       (debug breeze.pattern::*debug-match*))
   (breeze+parachute:pass-p ('test-match-iterator)
-    (let* ((compiled-pattern (compile-pattern pattern))
+    (let* ((breeze.pattern::*debug-match* debug)
+           (compiled-pattern (compile-pattern pattern))
            ($pattern (make-pattern-iterator compiled-pattern))
            ($pattern-before (copy-iterator $pattern))
            ($input (make-tree-iterator input))
@@ -177,10 +184,16 @@
                                    check-if-iterators-are-updated
                                    check-iterator-depths)
               :always (apply invariant kwargs))
-        ;; TODO I was adding more checks:
-        ;; (break "~s ~s" $input-before $input)
-        )
-      substitutions)))
+        (when expected-input-pos
+          (let ((expected-positions
+                  (etypecase expected-input-pos
+                    (integer (vector expected-input-pos))
+                    (vector expected-input-pos)))
+                (actual-positions (slot-value $input 'positions)))
+            (is equalp expected-positions actual-positions
+                "~a  expected the input iterator's positions to be:~%  ~s~% after the match, but got:~%  ~s"
+                description expected-positions actual-positions)))
+        substitutions))))
 
 ;; TODO need to make sure that the "input" iterator is not advanced when matching zero-or-more
 (define-test+run "match iterators"
@@ -198,45 +211,68 @@
    ;; TODO what does this pattern even mean?
    '(:zero-or-more)
    #()
-   :expected-substitution t)
+   :expected-substitution t
+   :expected-input-pos 0)
   (test-match-iterator
    "matching empty :zero-or-more against a sequence of 1 element"
    ;; TODO what does this pattern even mean?
    '(:zero-or-more)
    #(a)
-   :expected-substitution t)
+   :expected-substitution t
+   :expected-input-pos 0)
   (test-match-iterator
    "matching :zero-or-more wildcards against an empty sequence"
    '(:zero-or-more _)
    #()
-   :expected-substitution t)
+   :expected-substitution t
+   :expected-input-pos 0)
   (test-match-iterator
    "matching :zero-or-more wildcards against a sequence of 1 element"
    '(:zero-or-more _)
    #(a)
-   :expected-substitution t)
+   :expected-substitution t
+   :expected-input-pos 1)
   (test-match-iterator
    "matching :zero-or-more simple-vars against an empty sequence"
    '(:zero-or-more ?x)
    #()
-   :expected-substitution t)
+   :expected-substitution t
+   :expected-input-pos 0)
   (test-match-iterator
    "matching :zero-or-more simple-vars against a sequence of 1 element"
    '(:zero-or-more ?x)
    #(a)
-   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))
+   :expected-input-pos 1)
   (test-match-iterator
    "matching :zero-or-more simple-vars against a sequence of 2 elements #(a a)"
+   ;; TODO (:zero-or-more ?x) should keep consuming as long as the
+   ;; same value matches (non-greedy match is out-of-scope for the
+   ;; moment)
    '(:zero-or-more ?x)
    #(a a)
    ;; TODO assert that it only consumed the first "a"
-   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))
+   :expected-input-pos 2)
   (test-match-iterator
    "matching :zero-or-more simple-vars against a sequence of 2 elements #(a b)"
+   ;; Single-valued ?x conflicts when re-bound to a different value:
+   ;; iter 1 binds ?x → 'a, iter 2 sees 'b which conflicts, so the
+   ;; repetition stops after the first match and rolls back to pos 1.
    '(:zero-or-more ?x)
    #(a b)
-   ;; TODO assert that it only consumed the first "a"
-   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))
+   :expected-input-pos 1)
+  (test-match-iterator
+   "matching :zero-or-more of a non-matching sub-pattern against a non-empty sequence"
+   ;; The :zero-or-more part matches zero elements (`foo' is not a
+   ;; `(declare _)' form), so the input iterator must stay at
+   ;; position 0 - this is the configuration that bites
+   ;; `top-level-forms'.
+   '(:zero-or-more (declare _))
+   #(foo)
+   :expected-substitution t
+   :expected-input-pos 0)
 ;;;; one-or-more
   (test-match-iterator
    "matching empty :one-or-more against an empty sequence"
@@ -260,7 +296,8 @@
    "matching :one-or-more wildcards against a sequence of 1 element"
    '(:one-or-more _)
    #(a)
-   :expected-substitution t)
+   :expected-substitution t
+   :expected-input-pos 1)
   (test-match-iterator
    "matching :one-or-more simple-vars against an empty sequence"
    '(:one-or-more ?x)
@@ -270,48 +307,49 @@
    "matching :one-or-more simple-vars against a sequence of 1 element"
    '(:one-or-more ?x)
    #(a)
-   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))
+   :expected-input-pos 1)
   (test-match-iterator
    "matching :one-or-more simple-vars against a sequence of 2 elements #(a a)"
    '(:one-or-more ?x)
    #(a a)
-   ;; TODO assert that it only consumed the first "a"
-   :expected-substitution (substitutions `((?x ,(iterator-value 'a)))))
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))
+   :expected-input-pos 2)
   (test-match-iterator
    "matching :one-or-more simple-vars against a sequence of 2 elements #(a b)"
    '(:one-or-more ?x)
    #(a b)
-   ;; TODO assert that it only consumed the first "a"
-   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))))
-(loop :for test-case :in (list
-                          #()
-                          #(a)
-                          #(b c)
-                          #(d e f))
-      :do
+   :expected-substitution (substitutions `((?x ,(iterator-value 'a))))
+   :expected-input-pos 1)
+  (loop :for test-case :in (list
+                            #()
+                            #(a)
+                            #(b c)
+                            #(d e f))
+        :do
+           (test-match-iterator
+            "matching a sequence pattern against an identical input sequence"
+            test-case test-case
+            :expected-substitution t)
+           (test-match-iterator
+            "matching a sequence pattern of one simple-var against an input sequence"
+            '(?x) test-case
+            :expected-substitution
+            (unless (zerop (length test-case))
+              (substitutions `((?x ,(let ((it (make-tree-iterator test-case)))
+                                      (go-down it)
+                                      it))))))
+        #++
          (test-match-iterator
-          "matching a sequence pattern against an identical input sequence"
-          test-case test-case
-          :expected-substitution t)
-         (test-match-iterator
-          "matching a sequence pattern of one simple-var against an input sequence"
-          '(?x) test-case
+          ;; This should fail for input longer than one because
+          ;; there should be conflincting bindings.
+          "matching a :zero-or-more pattern of one simple-var against an input sequence"
+          '(:zero-or-more ?y) test-case
           :expected-substitution
           (unless (zerop (length test-case))
-            (substitutions `((?x ,(let ((it (make-tree-iterator test-case)))
+            (substitutions `((?y ,(let ((it (make-tree-iterator test-case)))
                                     (go-down it)
-                                    it))))))
-      #++
-       (test-match-iterator
-        ;; This should fail for input longer than one because
-        ;; there should be conflincting bindings.
-        "matching a :zero-or-more pattern of one simple-var against an input sequence"
-        '(:zero-or-more ?y) test-case
-        :expected-substitution
-        (unless (zerop (length test-case))
-          (substitutions `((?x ,(let ((it (make-tree-iterator test-case)))
-                                  (go-down it)
-                                  it)))))))
+                                    it))))))))
 
 #++
 (trace match
@@ -415,14 +453,14 @@
   (test-match* "Matching (a (:zero-or-more b c) against (a b c)"
                '(a (:zero-or-more b c)) #(a b c)
                t)
-  (test-match* "Matching (a (:zero-or-more a b)) against (a (a b))"
+  (test-match* "Matching (a (:zero-or-more a b)) against (a (a b)) should return T because (:zero-or-more a b) matches 0 times."
                '(a (:zero-or-more a b))
                #(a (a b))
                t)
-  (test-match* "Matching (a ((:zero-or-more a b))) against (a (a b))"
+  (test-match* "Matching (a ((:zero-or-more a b))) against (a (a b)) should return T because (:zero-or-more a b) matches once"
                '(a ((:zero-or-more a b)))
                #(a (a b))
-               nil))
+               t))
 
 
 ;;; Matching "sym"

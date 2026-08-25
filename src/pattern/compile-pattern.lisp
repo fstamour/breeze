@@ -83,9 +83,7 @@
 
 (defmethod compile-compound-pattern ((token (eql :maybe)) pattern)
   "Compile (:maybe ...)"
-  (destructuring-bind (sub-pattern &optional name)
-      (rest pattern)
-    (maybe (%compile-pattern sub-pattern) name)))
+  (maybe (%compile-pattern (rest pattern))))
 
 (defmethod compile-compound-pattern ((token (eql :zero-or-more)) pattern)
   "Compile (:zero-or-more ...)"

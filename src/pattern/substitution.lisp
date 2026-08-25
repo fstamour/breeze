@@ -29,13 +29,12 @@ slot should be a vector)."))
 
 (defun make-binding (from to &key pattern children)
   (when from
-    (make-instance
-     'binding
-     :from (if (varp from) (name from) from)
-     :to (if (and (varp from) (multi-valued-p from))
-             (vector to)
-             to)
-     :pattern pattern :children children)))
+    (let ((multi-valued-p (and (varp from) (multi-valued-p from))))
+      (make-instance
+       (if multi-valued-p 'multi-valued-binding 'binding)
+       :from (if (varp from) (name from) from)
+       :to (if multi-valued-p (vector to) to)
+       :pattern pattern :children children))))
 
 (defun bindingp (x)
   (typep x 'binding))
@@ -167,14 +166,35 @@ object, which is returned."
 (defmethod add-binding ((substitutions (eql t)) (new-binding binding))
   new-binding)
 
+(defun binding-value (binding)
+  (let ((to (to binding)))
+    (if (typep to 'iterator) (value to) to)))
+
 (defmethod add-binding ((substitutions substitutions) (new-binding binding))
   (let ((old-binding (find-binding substitutions (from new-binding))))
-    (and (if old-binding
-             ;; (error "Conflicting bindings: ~a ~a" a b)
-             ;; TODO handle multi-valued-p
-             (eql (to old-binding) (to new-binding))
-             (set-binding substitutions new-binding))
-         substitutions)))
+    (cond
+      ((null old-binding)
+       (set-binding substitutions new-binding)
+       substitutions)
+      ;; keep the existing binding when it's eqv to the new binding
+      ((eqv (binding-value old-binding) (binding-value new-binding))
+       substitutions)
+      ;; conflict.
+      (t nil))))
+
+(defmethod add-binding ((substitutions substitutions)
+                        (new-binding multi-valued-binding))
+  (let ((old-binding (find-binding substitutions (from new-binding))))
+    (if old-binding
+        ;; TODO use an adjustable array instead... or maybe not, I've
+        ;; heard bad things about adjustable arrays' performances.
+        ;;
+        ;; Accumulate: append new-binding's values onto old-binding's
+        ;; `to' vector.
+        (setf (slot-value old-binding 'to)
+              (concatenate 'simple-vector (to old-binding) (to new-binding)))
+        (set-binding substitutions new-binding))
+    substitutions))
 
 (defun ensure-substitutions (x)
   (etypecase x
@@ -221,9 +241,9 @@ object, which is returned."
      ;; implies that `add-bindings'will be called more times.
      (let ((result (copy-substitutions bindings1)))
        (loop :for from2 :being :the :hash-key :of (bindings bindings2) :using (hash-value binding2)
-             :for successp = (add-binding result binding2)
-             :unless successp :do (return))
-       result))))
+             :unless (add-binding result binding2)
+               :return nil
+             :finally (return result))))))
 
 (defun merge-sets-of-substitutions (set-of-substitutions1 set-of-substitutions2)
   "Merge two set (list) of `substitutions', returns a new set of

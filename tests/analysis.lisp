@@ -68,13 +68,16 @@
   (true (match-symbol-to-token 'uiop:define-package
                                (make-node-iterator "uiop:define-package"))))
 
-(defun test-match-parse (pattern string &optional skip-whitespaces-and-comments)
-  (finish
-   (let* ((state (parse string))
-          (bindings (match (compile-pattern pattern) state
-                      :skipp (when skip-whitespaces-and-comments
-                               #'whitespace-or-comment-node-p))))
-     (values bindings state))))
+(defun test-match-parse (pattern string
+                         &optional skip-whitespaces-and-comments
+                         &key debugp)
+  (let ((breeze.pattern::*debug-match* debugp))
+    (finish
+     (let* ((state (parse string))
+            (bindings (match (compile-pattern pattern) state
+                        :skipp (when skip-whitespaces-and-comments
+                                 #'whitespace-or-comment-node-p))))
+       (values bindings state)))))
 
 (define-test+run "match sym - regression tests"
   (is eq t (test-match-parse (sym "UIOP" "DEFINE-PACKAGE") "uiop:define-package")))

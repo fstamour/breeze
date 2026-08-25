@@ -1108,6 +1108,17 @@ This is a valid syntax:
                      "~c is supposed to be a terminating character." char))
           '(#\; #\" #\' #\( #\) #\, #\`)))
 
+;; Making sure that `eqv' is implemented correctly for the `token`
+;; nodes. It should be a good indicator that it is implemented
+;; correctly for the other types of nodes, as they are all generated
+;; by the same macro.
+(define-test+run eqv-token-node
+  (true (eqv (token 0 1) (token 0 1)))
+  (true (eqv (token 0 1 :name "A") (token 0 1 :name "A")))
+  (false (eqv (token 0 1 :name "a") (token 0 1 :name "A")))
+  (true (eqv (token 0 1 :errors '(("qwer")))
+             (token 0 1 :errors '(("qwer"))))))
+
 (defun test-read-token (input expected-end
                         &optional
                           expected-name
@@ -1122,17 +1133,6 @@ This is a valid syntax:
                     :package-marker expected-package-marker
                     :name expected-name
                     :errors expected-errors)))))
-
-;; Just making sure that `eqv' seems implemented correctly for the
-;; `token` nodes. It should be a good indicator that it is implemented
-;; correctly for the other types of nodes, as they are all generated
-;; by the same macro.
-(define-test+run eqv-token-node
-  (true (eqv (token 0 1) (token 0 1)))
-  (true (eqv (token 0 1 :name "A") (token 0 1 :name "A")))
-  (false (eqv (token 0 1 :name "a") (token 0 1 :name "A")))
-  (true (eqv (token 0 1 :errors '(("qwer")))
-             (token 0 1 :errors '(("qwer"))))))
 
 (define-test+run read-token
   :depends-on (current-char
@@ -1172,11 +1172,14 @@ This is a valid syntax:
   (test-read-token "p:" 2 nil "P" '(1)
                    '(("Missing name after package marker.")))
   (test-read-token "::" 2 nil nil '(1 0)
-                   '(("Missing name after package marker."))))
+                   '(("Missing name after package marker.")))
+  (test-read-token "." 1 "."))
 
-;; (read-from-string "..") => error "too many dots"
+;; (read-from-string "'.")  => error "dot context error"
+;; (read-from-string "'..") => error "too many dots"
+;; (read-from-string "..")  => error "too many dots"
 ;; (read-from-string "..a") => '..a
-;; (read-from-string ".\\") => error "eof after single escape character
+;; (read-from-string ".\\") => error "eof after single escape character"
 
 ;; TODO read-extraneous-closing-parens
 

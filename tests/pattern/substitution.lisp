@@ -5,17 +5,28 @@
 (define-test+run make-binding
   (of-type binding
            (make-binding :?x "a")
-           "Make binding should return an instance of the class \"binding\".")
+           "make-binding should return an instance of the class \"binding\".")
   (is equal "#<binding :?x → a>"
       (prin1-to-string
        (make-binding :?x 'a))
       "The specialized print-object method on the class \"binding\" should print the slots \"from\" and \"to\".")
+;;; Multi-Valued
+  (of-type multi-valued-binding
+           (make-binding (svar '?*x :multi-valued-p t) 'a)
+           "make-binding with a multi-valued var should return a multi-valued-binding.")
+  (is equalp #(a)
+      (to (make-binding (svar '?*x :multi-valued-p t) 'a))
+      "make-binding should wrap `to' in a one-element vector for multi-valued vars.")
+  (is eq 'a
+      (to (make-binding (svar '?x) 'a))
+      "make-binding should NOT wrap `to' in a vector for single-valued vars.")
   ;; TODO tests with :pattern and :children
   )
 
 (define-test+run "binding - eqv"
   (true (eqv (make-binding :?x "a") (make-binding :?x "a")))
   (false (eqv (make-binding :?y "a") (make-binding :?z "a")))
+  ;; TODO multi-valued bindings
   ;; TODO tests with :pattern and :children
   )
 
@@ -117,6 +128,25 @@
         (bindings-alist bs))
       "Adding conflicting bindings should not modify the substitutions"))
 
+(define-test+run add-binding
+  (let ((bs (make-substitutions)))
+    (add-binding bs (make-binding :?x "a"))
+    (is eq bs (add-binding bs (make-binding :?x "a"))
+        "Adding bindings to an equal (but not eql) value should succeed."))
+  (let* ((var (svar '?*x :multi-valued-p t))
+         (bs (make-substitutions)))
+    (add-binding bs (make-binding var 'a))
+    (is equalp #(a)
+        (to (find-binding bs '?*x))
+        "After first add the multi-valued binding holds one value.")
+    (add-binding bs (make-binding var 'b))
+    (is equalp #(a b)
+        (to (find-binding bs '?*x))
+        "Adding a second multi-valued binding should append the new value.")
+    (add-binding bs (make-binding var 'a))
+    (is equalp #(a b a)
+        (to (find-binding bs '?*x))
+        "Multi-valued bindings accumulate even when a value reappears.")))
 
 (define-test+run merge-substitutions
   ;; merging nil and t
