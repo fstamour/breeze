@@ -1,19 +1,8 @@
 (in-package #:breeze.parse-tree)
 
-
 
 ;;; Enclosing form navigation
 
-#|
-
-About moving these:
-
-- find-all-enclosing-nodes et al. uses pattern matching and tree-iterators
-  - these are mostly decoupled from the parser,
-  - except the :skipp which defaults to #'whitespace-or-comment-node-p
-- top-level-node-iterator is currently defined in parse-tree
-
-|#
 
 ;; TODO this generic, it should work for any kind of iterators
 (defun normalize-pattern-predicate (matcher &key skipp)

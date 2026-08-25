@@ -22,6 +22,7 @@ TODO
    #:file-exists-p
    #:eqv
    #:name
+   #:with-name
    #:source
    #:start
    #:end
@@ -189,6 +190,11 @@ The real filesystem is represented by T."))
 
 (defmethod name ((class standard-class))
   (class-name class))
+
+(defmethod with-name ((named named) name)
+  "Set the name of the object NAMED to NAME and return NAMED."
+  (setf (name named) name)
+  named)
 
 
 

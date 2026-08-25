@@ -36,7 +36,6 @@
    #:merge-eclass
    #:rebuild)
   (:export
-   #:root-node-p
    #:root-eclass-p
    #:root-eclasses
    #:enode<

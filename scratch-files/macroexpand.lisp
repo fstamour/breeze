@@ -32,10 +32,10 @@ Initially this is set to FUNCALL.
 
 (defun macroexpand-hook (expander macro-form environment)
   (let ((macroexpanded-form
-	  (funcall expander macro-form environment)))
+          (funcall expander macro-form environment)))
     (format t "~&The macro-form ~%~a~%~%expanded to ~%~a"
-	    macro-form
-	    macroexpanded-form)))
+            macro-form
+            macroexpanded-form)))
 
 (setf *macroexpand-hook* #'macroexpand-hook)
 

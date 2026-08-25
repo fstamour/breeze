@@ -70,7 +70,7 @@
    #:commandp
    #:list-all-commands
    #:list-all-commands-for-editor
-   #:describe-command
+   ;; TODO #:describe-command
    #:command-docstring
    #:command-description
    ;; Utilities to create commands
@@ -888,7 +888,6 @@ editor. Returns a list of plist."
   "Return a list of 2 elements: (FUNCTION its-docstring)"
   (list command-symbol (command-docstring command-symbol)))
 
-
 
 ;;; Utilities to help creating commands less painful.
 
@@ -971,7 +970,6 @@ Example:
 (defmethod notify-editor ((notification-channel channel) datum)
   (breeze.channel:send notification-channel datum))
 
-#++
 (define-command notifications ()
   "Receive all the notifications one-by-one, in a loop, waiting for new
 ones if necessary."

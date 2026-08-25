@@ -12,7 +12,6 @@
   (:export
    #:breeze-relative-pathname
    #:find-breeze-packages
-   #:generate-breeze-reference
    #:insert-command-test))
 
 (in-package #:breeze.dogfood)
@@ -35,11 +34,11 @@
 #++
 (when (breeze.syntax-tree::list-car-symbol= outer-node 'define-test+run)
       ;; TODO Maybe make a command "replace-form" or "replace-car"
-      (breeze.command:replace-region
+      (replace-region
        (breeze.syntax-tree:node-start outer-node-car)
        (breeze.syntax-tree:node-end outer-node-car)
        "define-test")
-      (breeze.command:return-from-command))
+      (return-from-command))
 
 
 

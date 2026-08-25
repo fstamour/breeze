@@ -3,7 +3,6 @@
     (:documentation "Cross-reference and introspection")
   (:mix :cl #:breeze.utils #:alexandria)
   (:export
-   #:calls-who
    ;; Utilities
    #:find-packages-by-prefix
    ;; Symbol inspection

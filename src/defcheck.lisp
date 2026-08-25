@@ -4,8 +4,7 @@
 They are not called rules to avoid confusion with the rewrite rules.")
   (:use #:cl)
   (:export #:defcheck
-           #:*checks*
-           #:top-level-checks))
+           #:*checks*))
 
 (in-package #:breeze.checks)
 

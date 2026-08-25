@@ -27,7 +27,6 @@
   (:export
    ;; Simple transformation commands
    #:insert-breeze-define-command
-   #:insert-parachute-define-test
    #:insert-loop-clause-for-on-list
    #:insert-loop-clause-for-in-list
    #:insert-loop-clause-for-hash

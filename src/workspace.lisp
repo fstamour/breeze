@@ -34,7 +34,6 @@
            #:find-buffer
            #:map-workpace-buffers
            #:locate-package-definition
-           #:after-change-function
            #:apply-pending-edits)
   (:export #:in-package-cl-user-p
            #:infer-package-name-from-file

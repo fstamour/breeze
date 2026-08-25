@@ -358,3 +358,6 @@ subpatterns."
 (defmethod children ((object-pattern object-pattern))
   (vector (class-name object-pattern)
           (slots object-pattern)))
+
+
+;;; Modifiers

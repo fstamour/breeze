@@ -171,3 +171,13 @@ flymake--state
   (add-hook 'lisp-mode-hook #'enable-breeze-minor-mode))
 
 (add-hook 'lisp-mode-hook #'breeze-minor-mode)
+
+
+;;; Debugging issues with the current connection
+
+(let ((dispatching (breeze-symbol-value 'slime-dispatching-connection))
+      (default (breeze-symbol-value 'slime-default-connection)))
+  (list :dispatching-connection dispatching
+        :dispatching-connection-live-p (process-live-p dispatching)
+        :default-connection default
+        :default-connection-live-p (process-live-p default)))

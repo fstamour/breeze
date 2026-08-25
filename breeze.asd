@@ -346,7 +346,8 @@
    (:file "package-commands")
    (:module "pattern"
     :serial t
-    :components ((:file "pattern")
+    :components ((:file "package")
+                 (:file "pattern")
                  (:file "compile-pattern")
                  (:file "substitution")
                  (:file "match")

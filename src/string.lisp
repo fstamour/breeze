@@ -18,7 +18,6 @@
    #:trim-whitespace
    #:whitespacep
    #:symbol-package-qualified-name
-   #:symbol-starts-with
    #:without-prefix
    #:ensure-prefix
    #:ensure-prefixes

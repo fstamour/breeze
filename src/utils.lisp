@@ -4,9 +4,6 @@
   (:documentation "Utilities")
   (:import-from #:alexandria #:symbolicate)
   (:export
-   #:walk
-   #:walk-car
-   #:walk-list
    #:nrun
    #:package-apropos)
   (:export
@@ -14,8 +11,6 @@
    #:length>1?
    #:length=1
    #:with-collectors)
-  (:export
-   #:stream-size)
   (:export
    #:find-version-control-root
    #:find-asdf-in-parent-directories))

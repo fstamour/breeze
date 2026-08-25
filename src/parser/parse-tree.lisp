@@ -53,7 +53,6 @@
            #:comma
            #:comma-at
            #:comma-dot
-           #:sharp
            #:sharp-char
            #:sharp-function
            #:sharp-vector
@@ -88,9 +87,7 @@
            #:string-node-p
            #:quote-node-p
            #:quasiquote-node-p
-           #:dot-node-p
            #:comma-node-p
-           #:sharp-node-p
            #:sharp-char-node-p
            #:sharp-function-node-p
            #:sharp-vector-node-p
@@ -134,7 +131,6 @@
            #:parse-symbol-node
            #:node-string-designator)
   ;; Enclosing form navigation
-  ;; TODO I moved these out of analysis.lisp, but I didn't move the tests yet
   (:export #:normalize-pattern-predicate
            #:find-enclosing-node
            #:find-nearest-enclosing-node
