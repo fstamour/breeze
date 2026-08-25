@@ -268,4 +268,4 @@ Returns a parse-tree _node_, not a package."
             ;; parse the source again (update the parse-tree)
             ;; TODO (perf) this parse the buffer "from scratch"
             (setf (node-iterator buffer) (make-node-iterator state))
-            (%update-content buffer (source state) nil)))))))
+            (index-in-package-nodes buffer)))))))
