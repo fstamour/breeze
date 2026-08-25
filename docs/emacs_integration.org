@@ -77,7 +77,6 @@
 | breeze-reload-config                               | Reload breeze's configuration file.                                                      |              |
 | breeze-render-buffer-to-html                       | Render the current buffer to html.                                                       |              |
 | breeze-update-config-file                          | Create or update breeze's config file.                                                   |              |
-| breeze-inspect-buffer-at-point                     | For debugging...                                                                         |              |
 | breeze-insert-capture-template                     | Insert the "capture template" at point.                                                  |              |
 | breeze-notifications                               | Receive all the notifications one-by-one, in a loop, waiting for new ones if necessary.  |              |
 
