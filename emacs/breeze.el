@@ -448,6 +448,8 @@ receiving the data it requested."
     ("goto-char"
      (cl-destructuring-bind (_ position)
          request
+       ;; TODO make saving the mark optional
+       (push-mark)
        (goto-char (1+ position))))
     ("pulse"
      (cl-destructuring-bind (_ start end)

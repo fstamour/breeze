@@ -62,8 +62,7 @@
 
 (define-command previous-in-package ()
   "Go to the nearest previous ~cl:in-package~ form."
-  ;; TODO current-package-node
-  (let (($in-package-node (current-package (current-buffer))))
+  (let (($in-package-node (current-package-node (current-buffer))))
     (cond
       ($in-package-node
        (goto-char (start $in-package-node)))
@@ -71,11 +70,18 @@
        ;; TODO wrap around? (that doesn't seem useful)
        (message "No in-package form found before point.")))))
 
-;; TODO export
 (define-command goto-package-definition ()
   "Goto package definition (of the current package)."
-  'TODO
-  )
+  (let* ((buffer (current-buffer))
+         ($package (current-package-node buffer))
+         (location (time (locate-package-definition $package))))
+    (if location
+        (destructuring-bind (&key buffer node-iterator)
+            location
+          (find-file (filename buffer))
+          (goto-char (start node-iterator)))
+        (message "Failed to find the location of the package ~s"
+                 (node-string-designator $package)))) ())
 
 (define-command export-symbol-at-point ()
   "Export symbol at point."

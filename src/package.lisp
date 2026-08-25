@@ -6,6 +6,7 @@
                 #:when-let
                 #:when-let*)
   (:export #:in-package-node-p
+           #:locate-package-definition
            ;; re-export from breeze.analysis
            #:map-top-level-in-package))
 

@@ -25,7 +25,8 @@
                 #:node-string-designator
                 #:with-match)
   (:import-from #:breeze.package
-                #:map-top-level-in-package)
+                #:map-top-level-in-package
+                #:locate-package-definition)
   (:export #:*workspace*
            #:make-workspace
            #:workspace
