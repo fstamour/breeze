@@ -12,7 +12,8 @@
   (:export
    #:breeze-relative-pathname
    #:find-breeze-packages
-   #:insert-command-test))
+   #:insert-command-test
+   #:inspect-buffer-at-point))
 
 (in-package #:breeze.dogfood)
 
@@ -113,3 +114,17 @@ newline in the expected result."
 (progn
   (breeze-refresh-commands)
   (define-key breeze-minor-mode-map (kbd "C-,") #'breeze-insert-command-test))
+
+(define-command inspect-buffer-at-point ()
+  "For debugging breeze."
+  (let* ((buffer (current-buffer))
+         (point (point buffer))
+         ($node (node-iterator buffer))
+         (node (value $node)))
+    (message "point: ~s~%extract: ~%~s ~%node: ~s"
+             point
+             (around (source buffer)
+                     point
+                     10
+                     "<here>")
+             node)))

@@ -141,21 +141,7 @@ TODO add tests!
 |#
 
 
-;; TODO move to "dogfood"
-(export 'inspect-buffer-at-point)
-(define-command inspect-buffer-at-point ()
-  "For debugging..."
-  (let* ((buffer (current-buffer))
-         (point (breeze.buffer:point buffer))
-         ($node (node-iterator buffer))
-         (node (value $node)))
-    (breeze.command:message "point: ~s~%extract: ~%~s ~%node: ~s"
-                            point
-                            (breeze.string:around (source buffer)
-                                                  point
-                                                  10
-                                                  "<here>")
-                            node)))
+
 
 (define-command completions-at-point (&optional string)
   "completion-at-point"
