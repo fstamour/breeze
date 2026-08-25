@@ -17,6 +17,40 @@
 (defgeneric match (pattern input &key))
 
 
+;;; Debugging
+
+(defvar *debug-match* nil)
+(defvar *debug-match-depth* -1)
+(setf *debug-match-depth* -1)
+
+(defmethod match :around (pattern input &rest kargs)
+  (if *debug-match*
+      ;; TODO only print before/after when they (pattern or input) are iteratorp
+      ;; (or (iteratorp pattern) (iteratorp input))
+      (let* ((*debug-match-depth* (1+ *debug-match-depth*))
+             (*print-pretty* nil)
+             (*print-length* nil)
+             (stream *standard-output* #| *trace-output* |#)
+             (per-line-prefix (format nil "~v@{~A~:*~}" *debug-match-depth* "  |")))
+        (flet ((frob (control &rest args)
+                 (fresh-line stream)
+                 (pprint-logical-block (stream nil :per-line-prefix per-line-prefix)
+                   (apply #'format stream control args))))
+          ;; before
+          (frob "~3d (match ~a ~a ~s)" *debug-match-depth* pattern input kargs)
+          (let* ((results (multiple-value-list (call-next-method))))
+            ;; after
+            (frob "~3d => ~{~a~^, ~}" *debug-match-depth* results)
+            ;; return
+            (apply #'values results))))
+      (call-next-method)))
+
+#++
+(let ((*debug-match* t))
+  (with-output-to-string (*trace-output*)
+    (match 'x nil)))
+
+
 ;;; Matching atoms
 
 (defmethod match (pattern input &key &allow-other-keys)

@@ -43,12 +43,6 @@ depth of the tree."))
     (declare (type (vector fixnum) positions))
     (1- (length positions))))
 
-(defmethod print-object ((iterator tree-iterator) stream)
-  (print-unreadable-object
-      (iterator stream :type t :identity t)
-    (with-slots (positions) iterator
-      (format stream "depth: ~s pos: ~s" (depth iterator) positions))))
-
 ;; TODO I should document why this isn't an :after method
 (defmethod initialize-instance
     ((iterator tree-iterator)
@@ -162,6 +156,24 @@ depth of the tree."))
 (defmethod value ((iterator tree-iterator))
   (tree-iterator-value iterator))
 
+(defmethod print-object ((iterator tree-iterator) stream)
+  (print-unreadable-object
+      (iterator stream :type t :identity t)
+    (with-slots (positions) iterator
+      (format stream "depth=~s pos=~s" (depth iterator) positions))
+    (if (tree-iterator-done-p iterator)
+        (write-string " :done" stream)
+        (let ((*print-level* 2)
+              (*print-length* 4)
+              (*print-pretty* nil)
+              (*print-right-margin* nil))
+          (write-string " value=" stream)
+          (write-string
+           (breeze.string:around
+            (prin1-to-string (tree-iterator-value iterator))
+            0 40)
+           stream)))))
+
 ;; TODO test
 (defmethod reset ((iterator tree-iterator))
   "Reset a tree-iterator.
@@ -224,6 +236,10 @@ doesn't exist)."
       t)))
 
 (defmethod go-down ((iterator tree-iterator))
+  "If ITERATOR's current value has children, move the iterator \"down\"
+into the sequence of children.
+Return `t' if if the iterator was moved.
+Return `nil' otherwise (could not go down)."
   ;; (declare (optimize (speed 3) (safety 1) (debug 0)))
   (unless (current-depth-done-p iterator)
     (let ((value-to-dig-in (children iterator)))
