@@ -20,7 +20,11 @@
   (:export
    #:rpc-eval
    #:interactive-eval-string
-   #:interactive-eval))
+   #:interactive-eval)
+  (:export
+   #:compose-hook
+   #:*interactive-eval-hooks*
+   #:*interactive-eval-after-hooks*))
 
 (in-package #:breeze.listener)
 
@@ -34,7 +38,7 @@ differences between swank and slynk."
     (eval (read-from-string string))))
 
 
-(defparameter *interactive-eval-hooks* '())
+(defparameter *interactive-eval-after-hooks* '())
 
 ;; TODO Use with-timeout
 
@@ -77,15 +81,62 @@ FORMAT-CONTROL: "~@<attempt to add the method~2I~_~S~I~_to the generic function~
 FORMAT-ARGUMENTS: @1=(#<STANDARD-METHOD (#<STANDARD-CLASS BREEZE.BUFFER:BUFFER>) {1211C4D993}> #<STANDARD-GENERIC-FUNCTION BREEZE.BUFFER:CURRENT-PACKAGE (1)> "the method has ~A optional arguments than the generic function." ("more"))
 |#
 
+(defparameter *interactive-eval-hooks*
+  ;; TODO add a hook to add a restart to disable the hook that invoked
+  ;; the debugger
+  '(call-with-package-variance-restarts
+    call-with-correction-suggestion))
+
+(defun call-with-package-variance-restarts (thunk)
+  (handler-case
+      (funcall thunk)
+    #+sbcl
+    (sb-int:package-at-variance (c)
+      (unless #1=(get 'call-with-package-variance-restarts 'disabled)
+              (ignore-errors
+               (let* ((package-name (car (simple-condition-format-arguments c)))
+                      (package (find-package package-name))
+                      (symbols (cadr (simple-condition-format-arguments c))))
+                 ;; TODO add a restart to change sbcl's *on-package-variance*
+                 (restart-case
+                     (invoke-debugger c)
+                   (continue ()
+                     :report (lambda (stream)
+                               (format stream "Continue with the extra exported symbols.")))
+                   (disable ()
+                     :report (lambda (stream)
+                               (format stream "Disable the hook `call-with-package-variance-restarts' for this session."))
+                     (setf *interactive-eval-hooks*
+                           (remove 'call-with-package-variance-restarts *interactive-eval-hooks*)))
+                   (unexport ()
+                     :report (lambda (stream)
+                               (format stream "Unexport ~{~s~^ ~} from ~s"
+                                       symbols package))
+                     ;; TODO maybe one might want to **unintern** some
+                     ;; of the symbols too
+                     (mapcar (lambda (s)
+                               (unexport s package))
+                             symbols)
+                     (message "The symbols ~{~s~^ ~} where unexported from the package ~s"
+                              symbols package)))))))))
+
+(defun compose-hooks (hooks)
+  ;; clear as mud
+  (reduce (lambda (f a)
+             (lambda (c)
+               (funcall f (lambda ()
+                            (funcall a c)))))
+          hooks))
+
 (defun interactive-eval-string (string)
   ;; TODO maybe keep an history (pushnew string *recent-forms* :test #'string=)
   ;; TODO add a restart to retry
-  (call-with-correction-suggestion
+  (funcall
+   (compose-hooks *interactive-eval-hooks*)
    (lambda ()
      (prog1
          ;; &optional package readtable
          ;; TODO infer the *readtable*
-
          (let ((*readtable* (copy-readtable nil))
                (values (multiple-value-list
                         (eval
@@ -95,7 +146,7 @@ FORMAT-ARGUMENTS: @1=(#<STANDARD-METHOD (#<STANDARD-CLASS BREEZE.BUFFER:BUFFER>)
 
 (defun run-interactive-eval-after-hooks (string)
   (loop
-    :for (name . hook) :in *interactive-eval-hooks*
+    :for (name . hook) :in *interactive-eval-after-hooks*
     :do
        (handler-case
            (funcall hook string)
