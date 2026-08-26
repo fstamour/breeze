@@ -115,7 +115,7 @@ newlines or more marks the start of a new paragraph)."
 
 (defun page-node-p (node)
   "Is the node (from the lossless parser) a new-page (^L) character?"
-  (eq 'breeze.parser::page (node-type node)))
+  (eq 'page (node-type node)))
 
 (defun pages (state)
   "Split a parse-tree by top-level new-page character (^L)"
@@ -244,7 +244,8 @@ newlines or more marks the start of a new paragraph)."
      (map nil (lambda (node)
                 (render-node out state node (1+ depth)))
           (children node))
-     ;; TODO this ain't exactly right, because parens get an +end+ if one of the children has one...
+     ;; TODO this ain't exactly right, because parens get an +end+ if
+     ;; one of the children has one...
      (unless (no-end-p node)
        (format out "</span>)</span>")))
     (t (format out "<span class=\"~a\">~a</span>"
@@ -262,7 +263,7 @@ newlines or more marks the start of a new paragraph)."
        (format out "~%<pre class=\"src\"><code>")
        (map nil (lambda (node)
                   (render-node out state node))
-            (breeze.parser:tree state))
+            (tree state))
        (format out "~%</code></pre>")))))
 
 (defun render-page (out state page)

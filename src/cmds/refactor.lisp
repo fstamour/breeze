@@ -18,7 +18,8 @@
   (:import-from #:breeze.string
                 #:trim-whitespace
                 #:ensure-circumfix
-                #:ensure-circumfixes)
+                #:ensure-circumfixes
+                #:symbol-starts-with)
   (:import-from #:breeze.indirection
                 #:indirect)
   (:import-from #:breeze.command-utils
@@ -72,6 +73,7 @@
 ;; otherwise, it inserts the declaim in weid places
 (define-command declaim-inline ()
   "Declaim inline the current top-level function."
+  (declare (context defun))
   (let* (($current-node (current-node :pulsep t))
          ($root (top-level-node-iterator $current-node)))
     (with-match ($root (defun ?name))

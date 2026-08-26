@@ -22,8 +22,8 @@
   ~%  (frobnicate))"))
 
 (define-command insert-loop-clause-for-on-list ()
-  "Insert a loop clause to iterate on a list."
-  (declare (context cl:loop))
+  "Insert a loop clause to iterate on a list. (~for var on list~)"
+  (declare (context loop))
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :on ")
@@ -31,8 +31,8 @@
    "Enter the the list to iterate on: " "~a"))
 
 (define-command insert-loop-clause-for-in-list ()
-  "Insert a loop clause to iterate in a list."
-  (declare (context cl:loop))
+  "Insert a loop clause to iterate in a list. (~for var in list~)"
+  (declare (context loop))
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the iterator: " "~a :in ")
@@ -40,8 +40,8 @@
    "Enter the the list to iterate on: " "~a"))
 
 (define-command insert-loop-clause-for-hash ()
-  "Insert a loop clause to iterate on a hash-table."
-  (declare (context cl:loop))
+  "Insert a loop clause to iterate on a hash-table. (~for key being the hash-key of hash-table~)"
+  (declare (context loop))
   (insert " :for ")
   (read-string-then-insert
    "Enter the variable name for the key: "
@@ -379,7 +379,7 @@ when inserting something.
             (let (($node (make-node-iterator parse-state)))
               (go-down $node)
               (next $node)
-              (breeze.pattern::skip $node #'whitespace-or-comment-node-p)
+              (skip $node #'whitespace-or-comment-node-p)
               (start $node)))))
   (declare (ignorable indentation))
   (let (($node (make-node-iterator parse-state)))

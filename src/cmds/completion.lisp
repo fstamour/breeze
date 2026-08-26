@@ -140,9 +140,6 @@ TODO add tests!
 
 |#
 
-
-
-
 (define-command completions-at-point (&optional string)
   "completion-at-point"
   (declare (ignorable string))

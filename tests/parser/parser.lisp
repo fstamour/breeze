@@ -1620,8 +1620,8 @@ reaally?")
 ;; TODO this was reported as "missing closing parenthesis" but it's actually an unknown reader macro
 ;; from xml-parse.lisp in cxml
 #++
-(breeze.parser:value
- (breeze.parser:make-node-iterator
+(value
+ (make-node-iterator
   "(defparameter *initial-namespace-bindings*
   '((#\"\" . nil)
     (#\"xmlns\" . #\"http://www.w3.org/2000/xmlns/\")

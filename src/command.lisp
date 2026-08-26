@@ -77,6 +77,10 @@
    #:define-command
    #:noninteractive
    #:interactivep
+   #:loop-context-p
+   #:defun-context-p
+   #:expression-context-p
+   #:top-level-context-p
    ;; Utilities to send notifications to the editor
    #:notify-editor
    #:notifications))
@@ -821,11 +825,93 @@ exported from its home package."
    (find-command command)
    (breeze.xref:externalp command)))
 
-(defun interactivep (function-or-declarations)
-  "Return true if a command's declaration doesn't contain breeze.command:noninteractive."
-  (if (listp function-or-declarations)
-      (null (member 'noninteractive function-or-declarations))
-      (interactivep (getf (find-command function-or-declarations) :declarations))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defstruct spec
+    invertp contextp symbol)
+
+  (defun parse-spec (spec)
+    (let ((invertp)
+          (contextp)
+          (symbol spec))
+      (if (listp symbol)
+          (destructuring-bind (car name)
+              spec
+            (ecase car
+              (not (setf invertp t))
+              (context (setf contextp t)))
+            (setf symbol name)))
+      (check-type symbol symbol)
+      (make-spec :symbol symbol
+                 :contextp contextp
+                 :invertp invertp)))
+
+  (defun maybe-invert (spec body)
+    (if (spec-invertp spec) `(not ,body) body))
+
+  (defun docstring (spec)
+    (apply #'format
+           nil
+           (if (spec-invertp spec)
+               "Return true if a command's ~adeclarations do not contain ~s."
+               "Return true if a command's ~adeclarations contain ~s.")
+           (if (spec-contextp spec) "context " "")
+           (list (spec-symbol spec))))
+
+  (defun predicate-body (spec &aux (contextp (spec-contextp spec))
+                                (symbol (spec-symbol spec)))
+    (maybe-invert
+     spec
+     `(loop
+        :for declaration :in declarations
+        :for identifier := (etypecase declaration
+                             (list (car declaration))
+                             (symbol declaration))
+        ,@(when contextp `(:for value := (when (listp declaration)
+                                           (second declaration))))
+          :thereis
+        ,(if contextp
+             `(and
+               (eq identifier 'context)
+               (eq value ',symbol))
+             `(eq identifier ',symbol))))))
+
+(defmacro defcontext (predicate specifications &key default)
+  (let ((spec (parse-spec specifications)))
+    `(defun ,predicate (function-or-declarations)
+       ,(docstring spec)
+       (etypecase function-or-declarations
+         ;; no declarations
+         (null ,default)
+         ;; got a list of declarations
+         (list
+          (let ((declarations function-or-declarations))
+            ,(predicate-body spec)))
+         ;; got a symbol, specifying the command.
+         (symbol
+          (let ((command (find-command function-or-declarations)))
+            (if command
+                (,predicate (getf command :declarations))
+                ;; command not found, return nil
+               nil)))))))
+
+#|
+TODO list/document/design/validate custom declarations
+- (context where &key :extension)
+- where
+- :format-string
+- (funcall f) ... ?
+- (cl:defclass :slot-specifier)
+- skipp - t nil :whitespace :comment
+- context: first line, last line, bol, eol...
+- (interactive ...)
+|#
+
+(progn
+  (defcontext interactivep (not noninteractive) :default t)
+  (defcontext loop-context-p (context loop))
+  (defcontext defun-context-p (context defun))
+  (defcontext expression-context-p (context :expression))
+  (defcontext top-level-context-p (context :top-level)))
 
 (defun list-all-commands ()
   "Get the list of commands (list of symbols) registered in the current
@@ -890,23 +976,6 @@ editor. Returns a list of plist."
 
 
 ;;; Utilities to help creating commands less painful.
-
-#|
-TODO list/document/design/validate custom declarations
- - (context where &key :extension)
-   - where
-     - :top-level
-     - cl:defun
-     - :loop-clause
-     - :format-string
-     - :expression
-     - (funcall f) ... ?
-     - (cl:defclass :slot-specifier)
-     - skipp - t nil :whitespace :comment
-   - context: first line, last line, bol, eol...
- - (interactive ...)
-
-|#
 
 (defmacro define-command (name lambda-list &body body)
   "Macro to define a command.

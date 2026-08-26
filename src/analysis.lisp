@@ -6,7 +6,8 @@
   (:use-reexport #:breeze.iterator
                  #:breeze.generics
                  #:breeze.parser
-                 #:breeze.pattern)
+                 #:breeze.pattern
+                 #:breeze.top-levelness)
   (:import-from #:alexandria
                 #:when-let
                 #:when-let*)
@@ -15,7 +16,8 @@
   (:export #:with-match
            #:define-node-matcher
            #:quotedp
-           #:number-node-p)
+           #:number-node-p
+           #:loop-form-p)
   ;; Rewriting parse-trees
   (:export #:apply-rewrite-to-source
            #:apply-rewrite-to-tree))
@@ -53,14 +55,14 @@ The designators can be strings, symbols or packages."
     (not (packagep package-designator2))
     (string= package-designator1 package-designator2))
    (when-let ((p1 (find-package package-designator1))
-                         (p2 (find-package package-designator2)))
+              (p2 (find-package package-designator2)))
      (eq p1 p2))))
 
 (defun same-symbol-p (symbol-name package-designator1 package-designator2)
   "Check if a symbol-name designate the same symbol in two different packages."
   (or (same-package-p package-designator1 package-designator2)
       (when-let ((p1 (find-package package-designator1))
-                            (p2 (find-package package-designator2)))
+                 (p2 (find-package package-designator2)))
         (let ((s1 (find-symbol symbol-name p1))
               (s2 (find-symbol symbol-name p2)))
           ;; this makes sure we don't compare s1 and s2 if they are
@@ -213,7 +215,9 @@ The designators can be strings, symbols or packages."
 ;; TODO nor can if figure out if part of a macro is evaluated or not
 (defun quotedness (node-iterator)
   (let ((depth (depth node-iterator)))
-    (loop :for d :upto depth
+    (loop :for d :upto (if (donep node-iterator)
+                           (1- depth)
+                           depth)
           :for node = (value-at-depth node-iterator d)
           :for type = (assoc (node-type node)
                              '((quote-node . 1)
@@ -305,5 +309,5 @@ TODO
 ;; TODO export
 ;; TODO test
 (defun loop-form-p ($node)
-  (with-match ($node ((loop (:named ?body (:maybe _)))))
+  (with-match ($node (loop (:named ?body (:maybe _))))
     ?body))

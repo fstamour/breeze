@@ -5,27 +5,10 @@
 (defun shortcircuit (x)
   (throw 'shortcircuit x))
 
-(defun commands-applicable-at-toplevel ()
-  "Create a list of all the commands applicable in the TOP-LEVEL context."
-  (remove-if-not (lambda (command)
-                   (eq (get command 'context) :top-level))
-                 ;; TODO filter by ":category :template"
-                 (list-all-commands)))
+;; TODO (idea) filter by ":category :template"
 
-(defun commands-applicable-in-a-loop-form ()
-  "Create a list of all the commands applicable directly under a \"loop\" clause."
-  (remove-if-not (lambda (command)
-                   (eq (get command 'context) 'cl:loop))
-                 (list-all-commands)))
-
-;; That's some Java-level name
-(defun commands-applicable-in-expression-context ()
-  "Create a list of all the commands applicable where an expression would be expected.
-
-TODO maybe find a better nomenclature?"
-  (remove-if-not (lambda (command)
-                   (eq (get command 'context) :expression))
-                 (list-all-commands)))
+(defun commands-for-context (context-predicate)
+  (remove-if-not context-predicate (list-all-commands)))
 
 (defun suggest-package-definition ()
   "When the buffer is empty, or only contains comments and whitespaces."
@@ -68,10 +51,10 @@ TODO maybe find a better nomenclature?"
 
 (defun suggest-loop-clauses ()
   "When inside a loop form."
-  (let* ((buffer (current-buffer))
-         (node-iterator (node-iterator buffer)))
-    (when (breeze.analysis::loop-form-p (parent node-iterator))
-      (shortcircuit (commands-applicable-in-a-loop-form)))))
+  (let* ((node-iterator (current-node-iterator)))
+    (when (loop-form-p (or (parent node-iterator)
+                           node-iterator))
+      (shortcircuit (commands-for-context 'loop-context-p)))))
 
 (defun suggest-package-definition-clauses ()
   "When inside a package definition form."
@@ -84,17 +67,10 @@ TODO maybe find a better nomenclature?"
 
 (defun suggest-other ()
   "Otherwise"
-  (let* ((current-node-iterator (current-node-iterator))
-         (current-node (value current-node-iterator))
-         ;; TODO we actually want to know if we're in a "top-level"
-         ;; form, not "at the root", because we want the commands that
-         ;; are applicable at top-level to also be applicable in forms
-         ;; that preserves top-levelness like `progn'.
-         (root-node (root-node (current-node-iterator)))
-         (rootp (eq current-node root-node)))
-    (if rootp
-        (commands-applicable-at-toplevel)
-        (commands-applicable-in-expression-context))))
+  (commands-for-context
+   (if (top-level-node-p (current-node-iterator))
+       'top-level-context-p
+       'expression-context-p)))
 
 (defun compute-suggestions ()
   "Given the current commands' context, suggests an appropriate list of
@@ -112,38 +88,44 @@ commands that the user might want to run."
 
 (defun ensure-flat-list (x)
   "~(flatten (ensure-list))~"
-  (alexandria:flatten
-   (copy-seq
-    (alexandria:ensure-list x))))
+  (alexandria:flatten (alexandria:ensure-list x)))
 
-(defun sanitize-list-of-commands (commands)
-  ;; Some methods returns lists, some just a symbol.
-  ;; We flatten that to just a list of symbols.
-  (setf commands (ensure-flat-list commands))
-  ;; Fallback to suggesting _all_ commands.
-  (unless commands
-    ;; TODO This is wrong when called from "quickinsert"
-    (setf commands (copy-seq (list-all-commands))))
-  ;; Deduplicate commands
-  (setf commands (remove-duplicates commands))
-  ;; Augment the commands with their descriptions.
-  (setf commands (mapcar #'command-description commands))
-  ;; Save some information for debugging
-  (setf *qf* `((:context . ,(context*))
-               (:commands . ,commands)))
-  ;; Returns the list of applicable commands
-  commands)
+(defun sanitize-list-of-commands (commands &key
+                                             filter
+                                             (fallback 'list-all-commands))
+  (let* (;; Some methods returns lists, some just a symbol.
+         ;; We flatten that to just a list of symbols.
+         (commands (ensure-flat-list commands))
+         (commands (or commands
+                       (and fallback
+                            (funcall fallback))))
+         (commands
+           ;; Filter out commands that are not "inserts"
+           (if filter
+               (remove-if-not filter commands)
+               commands))
+         ;; Deduplicate commands
+         (commands (remove-duplicates commands))
+         ;; Augment the commands with their descriptions.
+         (command-descriptions (mapcar #'command-description commands)))
+    ;; Save some information for debugging
+    (setf *qf* `((:context . ,(context*))
+                 (:commands . ,command-descriptions)))
+    ;; Returns the list of applicable commands
+    command-descriptions))
 
+(defun insert-command-p (command-symbol)
+  (symbol-starts-with command-symbol '#:insert-))
 
-;; TODO FIXME TODO FIXME This doesn't actually filter the commands that are not inserts...
-;;
 ;; TODO I might want to use the name "blueprints" instead of snippets
 ;; because I want these to be usable for _updating_ code, not just
 ;; creating new code
 (define-command quickinsert ()
   "Given the context, suggest applicable snippets."
   (let* (;; Compute the applicable commands
-         (commands (sanitize-list-of-commands (compute-suggestions)))
+         (commands (sanitize-list-of-commands
+                    (compute-suggestions)
+                    :filter 'insert-command-p))
          ;; TODO What if there are no suggestions?
          ;; Ask the user to choose a command
          (choice (choose "Choose a command: "

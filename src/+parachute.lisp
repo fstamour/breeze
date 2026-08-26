@@ -209,7 +209,7 @@ expected:
             #'(lambda (string)
                 (declare (ignore string))
                 (run-all-tests)))
-      breeze.listener::*interactive-eval-hooks*)
+      breeze.listener:*interactive-eval-hooks*)
 
 (defmacro pass-p ((name &optional description &rest format-args) &body body)
   "Group tests and return T if they were successful.

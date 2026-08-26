@@ -5,13 +5,6 @@
 
 ;;; Pattern compilation from lists and symbols to vectors and structs
 
-(defun symbol-starts-with (symbol prefix)
-  (and (symbolp symbol)
-       (etypecase prefix
-         (character (char= prefix (char (symbol-name symbol) 0)))
-         (string (alexandria:starts-with-subseq prefix
-                                                (symbol-name symbol))))))
-
 (defun var-symbol-p (x)
   "Does the symbol X represents a \"var\" pattern?"
   (symbol-starts-with x #\?))

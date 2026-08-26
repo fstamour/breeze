@@ -116,19 +116,6 @@
   (test-npp)
   ())
 
-
-#++
-(unwind-protect
-     (progn
-       (trace match
-              compile-pattern
-              breeze.pattern::%compile-pattern
-
-              find-nearest-enclosing-node
-              find-enclosing-node)
-       (find-nearest-enclosing-node (iterator-at "(a b)") 'a))
-  (untrace))
-
 (defun test-find-nearest (description &key string at matcher expect)
   (is eqv expect (find-nearest-enclosing-node
                   (iterator-at string :at at)

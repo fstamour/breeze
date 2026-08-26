@@ -908,7 +908,7 @@ was expected to end at position ~s (exclusive), but got ~s instead"
           :do (goto-position it i)
           :collect (list i
                          (node-type (value it))
-                         (breeze.analysis::quotedp it)))))
+                         (quotedp it)))))
 
 (define-test+run quotedp
   (is equal '((0 quote-node t)
@@ -952,3 +952,15 @@ was expected to end at position ~s (exclusive), but got ~s instead"
   ;; TODO hex #x
   ;; TODO complex #c
   )
+
+
+
+(define-test+run loop-form-p
+  ;; TODO those tests represents the current behaviour, not the
+  ;; intended behaviour
+  (false (loop-form-p (iterator-at "pool")))
+  (true (loop-form-p (iterator-at "loop"))) ; I don't want this
+  (true (loop-form-p (iterator-at "(loop)")))
+  (false (loop-form-p (iterator-at "((loop))")))
+  (true (loop-form-p (iterator-at "(loop")))
+  (true (loop-form-p (iterator-at "(loop :for fun"))))

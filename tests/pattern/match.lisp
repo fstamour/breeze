@@ -189,7 +189,7 @@
                   (etypecase expected-input-pos
                     (integer (vector expected-input-pos))
                     (vector expected-input-pos)))
-                (actual-positions (slot-value $input 'positions)))
+                (actual-positions (active-positions $input)))
             (is equalp expected-positions actual-positions
                 "~a  expected the input iterator's positions to be:~%  ~s~% after the match, but got:~%  ~s"
                 description expected-positions actual-positions)))

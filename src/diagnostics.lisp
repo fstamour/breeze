@@ -16,8 +16,9 @@
            #:push-diagnostic
            #:push-diagnostic*
            #:diag-node
-           #:diag-warn
            #:diag-error
+           #:diag-warn
+           #:diag-note
            #:simple-node-condition
            #:node-iterator
            #:target-node
@@ -25,6 +26,7 @@
            #:replacementp
            #:simple-node-error
            #:simple-node-warning
+           #:simple-node-note
            #:node-parse-error
            #:node-style-warning))
 
@@ -87,15 +89,20 @@ variable *scan*."
 ;; TODO severity :note
 ;; TODO severity :style-warning
 
+(defun diag-error (node format-string &rest format-args)
+  "Create a diagnostic object for NODE with severity :error and push it
+into the special variable *scan*."
+  (apply #'diag-node node :error format-string format-args))
+
 (defun diag-warn (node format-string &rest format-args)
   "Create a diagnostic object for NODE with severity :WARNING and push it
 into the special variable *scan*."
   (apply #'diag-node node :warning format-string format-args))
 
-(defun diag-error (node format-string &rest format-args)
-  "Create a diagnostic object for NODE with severity :error and push it
+(defun diag-note (node format-string &rest format-args)
+  "Create a diagnostic object for NODE with severity :NOTE and push it
 into the special variable *scan*."
-  (apply #'diag-node node :error format-string format-args))
+  (apply #'diag-node node :note format-string format-args))
 
 
 ;;; using signals to be able to decide what to do when certain
@@ -120,13 +127,14 @@ simple-condition-format-control, simple-condition-format-arguments
 
 (define-condition simple-node-condition (simple-condition)
   ((node-iterator :initarg :node-iterator :reader target-node)
-   (replacement :initarg :replacement :reader replacement :initform 'cl:null)))
+   (replacement :initarg :replacement :reader replacement :initform 'null)))
 
 (defun replacementp (simple-node-condition)
-  (not (eq (replacement simple-node-condition) 'cl:null)))
+  (not (eq (replacement simple-node-condition) 'null)))
 
 (define-condition simple-node-error (simple-node-condition) ())
 (define-condition simple-node-warning (simple-node-condition) ())
+(define-condition simple-node-note (simple-node-condition) ())
 
 (define-condition node-parse-error (simple-node-error parse-error) ())
 (define-condition node-style-warning (simple-node-warning style-warning) ())
@@ -140,6 +148,7 @@ simple-condition-format-control, simple-condition-format-arguments
                          :replacement replacement)))))
   (frob simple-node-error)
   (frob simple-node-warning)
+  (frob simple-node-note)
   (frob node-parse-error)
   (frob node-style-warning))
 

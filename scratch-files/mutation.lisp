@@ -61,6 +61,19 @@ NIL
   (:ERROR
    "Error: DEFINITION-SOURCE of function G did not contain meaningful information.")))
 
+(swank/backend:list-callees 'g)
+((F
+  (:LOCATION
+   (:BUFFER-AND-FILE "mutation.lisp"
+    "/.../breeze/scratch-files/mutation.lisp")
+   (:OFFSET 596 0) (:SNIPPET "(defun f (x) x)"))))
+(swank/backend:list-callers 'f)
+((G
+  (:LOCATION
+   (:BUFFER-AND-FILE "mutation.lisp"
+    "/.../breeze/scratch-files/mutation.lisp")
+   (:OFFSET 707 0) (:SNIPPET "(defun g (x) (f x))"))))
+
 (defun h (x) (+ (g x) (h x)))
 
 (let ((f2 (lambda (x) (* 2 x))))

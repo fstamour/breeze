@@ -3,6 +3,8 @@
   (:documentation "Data structure to hold and manage lisp source code, its parse tree and
 point.")
   (:use #:cl #:breeze.parser)
+  (:import-from #:breeze.top-levelness
+                #:map-top-level-forms)
   (:import-from #:breeze.package
                 #:in-package-node-p
                 #:map-top-level-in-package)

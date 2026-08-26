@@ -121,9 +121,7 @@
            #:node-string
            #:goto-position
            #:parent-node
-           #:root-node
-           #:top-level-node-iterator
-           #:map-top-level-forms)
+           #:root-node)
   ;; Extracting data
   (:export #:token-name
            #:token-raw-package-prefix
@@ -555,10 +553,6 @@
 (defmethod root-node ((iterator node-iterator))
   (root-value iterator))
 
-(defmethod top-level-node-iterator ((iterator node-iterator))
-  ;; TODO get the actual top-level node, not the root one (see `map-top-level-forms')
-  (root iterator))
-
 (defmethod start ((node-iterator node-iterator))
   "Get the start position of the current node."
   (start (tree-iterator-value node-iterator)))
@@ -576,45 +570,6 @@
     :for node = (tree-iterator-value iterator)
     :do (add-offset node offset)
     (next iterator)))
-
-;; TODO move somewhere else, this has nothing to do with "parse-tree"
-(defun top-level-forms ($node)
-  (breeze.pattern:let-match
-      (((:either
-         (progn (:maybe ?body))
-         (eval-when _ (:maybe ?body))
-         ((:either macrolet symbol-macrolet)
-          _ #| definitions |#
-          (:zero-or-more (declare _))
-          (:maybe ?body))
-         (locally
-             (:zero-or-more (declare _))
-           (:maybe ?body))))
-       $node
-       :skipp #'whitespace-or-comment-node-p)
-    ?body))
-
-;; TODO add tests
-;; TODO move somewhere else, this has nothing to do with "parse-tree"
-(defmethod map-top-level-forms (function (state state))
-  (loop :with iterator = (make-node-iterator state)
-        :until (tree-iterator-done-p iterator)
-        :do (let* ((node (tree-iterator-value iterator))
-                   (whitespace-or-comment-p (whitespace-or-comment-node-p node))
-                   ;; `top-level-forms' is an expensive match, and
-                   ;; whitespaces and comments can never match it.
-                   (body (unless whitespace-or-comment-p
-                           (top-level-forms iterator))))
-              (cond
-                (body (copy-iterator body iterator))
-                (t
-                 (unless whitespace-or-comment-p
-                   (funcall function iterator))
-                 ;; advance the iterator
-                 (incf (pos iterator))
-                 ;; go up if the current level is done
-                 (when (next-up iterator)
-                   (incf (pos iterator))))))))
 
 ;; TODO add tests
 (defmethod make-node-iterator ((state state))

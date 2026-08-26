@@ -90,6 +90,20 @@
  "breeze.utils"
  3)
 
+(define-test+run symbol-starts-with
+  (progn
+    (false (symbol-starts-with 'x #\?))
+    (true (symbol-starts-with :? #\?))
+    (true (symbol-starts-with :?x #\?))
+    (true (symbol-starts-with '? #\?))
+    (true (symbol-starts-with '?x #\?)))
+  (progn
+    (false (symbol-starts-with 'x "?"))
+    (true (symbol-starts-with :? "?"))
+    (true (symbol-starts-with :?x "?"))
+    (true (symbol-starts-with '? "?"))
+    (true (symbol-starts-with '?x "?"))))
+
 (define-test+run whitespacesp)
 
 (define-test+run trim-whitespace)

@@ -19,11 +19,12 @@
                 #:make-node-iterator
                 #:state
                 #:source
-                #:goto-position
-                #:map-top-level-forms)
+                #:goto-position)
   (:import-from #:breeze.analysis
                 #:node-string-designator
                 #:with-match)
+  (:import-from #:breeze.top-levelness
+                #:map-top-level-forms)
   (:import-from #:breeze.package
                 #:map-top-level-in-package
                 #:locate-package-definition)
@@ -222,11 +223,14 @@ Design decision(s):
   ;; iterator, and that there will be incremental parsing eventually).
   (map-workpace-buffers
    (lambda (buffer)
+     ;; TODO(perf) cl:search for defpackage/define-package and then
+     ;; `goto-position' there and _then_ check if it's a top-level
+     ;; defpackage.
      (map-top-level-forms
       (lambda (node-iterator)
         (with-match (node-iterator
                      (:either
-                      (cl:defpackage ?name)
+                      (defpackage ?name)
                       ;; TODO matching uiop:define-package is
                       ;; currently broken/not implemented.
                       ((:symbol :define-package :uiop) ?name)))

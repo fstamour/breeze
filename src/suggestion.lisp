@@ -133,7 +133,7 @@ of the instance of that had the smallest score."
     (package-error-package condition))
   #+sbcl
   (:method ((condition sb-pcl:class-not-found-error))
-    (sb-kernel::cell-error-name condition)))
+    (cell-error-name condition)))
 
 ;; (trace condition-suggestion-input)
 

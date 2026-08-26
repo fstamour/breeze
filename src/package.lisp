@@ -23,14 +23,14 @@
 ;; the in-package to know the current package.
 
 (define-node-matcher in-package-node-p ((in-package ?package-designator))
-  (unless (quotedp node-iterator)
-    (when ?package-designator
-      (let ((package-designator-node (value ?package-designator)))
-        (when (or (token-node-p package-designator-node)
-                  (string-node-p package-designator-node)
-                  (sharp-uninterned-node-p package-designator-node))
-          ;; TODO else... it's a malformed in-package form
-          ?package-designator)))))
+  (when (and ?package-designator
+             (not (quotedp node-iterator)))
+    (let ((package-designator-node (value ?package-designator)))
+      (when (or (token-node-p package-designator-node)
+                (string-node-p package-designator-node)
+                (sharp-uninterned-node-p package-designator-node))
+        ;; TODO else... it's a malformed in-package form
+        ?package-designator))))
 
 ;; TODO add tests
 (defmethod map-top-level-in-package (function (state state))

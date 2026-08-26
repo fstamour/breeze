@@ -2,20 +2,6 @@
 
 
 
-(define-test+run symbol-starts-with
-  (progn
-    (false (symbol-starts-with 'x #\?))
-    (true (symbol-starts-with :? #\?))
-    (true (symbol-starts-with :?x #\?))
-    (true (symbol-starts-with '? #\?))
-    (true (symbol-starts-with '?x #\?)))
-  (progn
-    (false (symbol-starts-with 'x "?"))
-    (true (symbol-starts-with :? "?"))
-    (true (symbol-starts-with :?x "?"))
-    (true (symbol-starts-with '? "?"))
-    (true (symbol-starts-with '?x "?"))))
-
 (define-test+run var-symbol-p
   (true (var-symbol-p :?x))
   (false (var-symbol-p 'x))

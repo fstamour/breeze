@@ -33,6 +33,8 @@
    #:subtree
    #:subtrees
    #:positions
+   #:active-positions
+   #:position-at-depth
    #:children
    #:push-subtree
    #:pop-subtree

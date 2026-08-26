@@ -41,7 +41,7 @@ a message and stop the current command."
   (when-let* ((package-designator-node (in-package-node-p node-iterator))
               (package-name (node-string-designator package-designator-node)))
     (unless (find-package package-name)
-      (breeze.diagnostics:node-style-warning
+      (breeze.diagnostics:simple-node-note
        node-iterator
        (format nil "Package ~s is not currently defined." package-name)))))
 

@@ -34,7 +34,7 @@
   "Apply all the linting rules on BUFFER."
   (check-type buffer buffer)
   (destructuring-bind (&key top-level-checks by-node-types by-not-node-types)
-      (breeze.checks::group-checks *checks*)
+      (group-checks *checks*)
     (loop
       :with $node = (make-node-iterator buffer)
       :until (tree-iterator-done-p $node)
@@ -76,6 +76,11 @@
                        (simple-condition-format-arguments condition))
            ;; For syntax error, we stop here
            (return-from lint-buffer (diagnostics *scan*))))
+       (simple-node-note
+         (lambda (condition)
+           (diag-note (target-node condition)
+                      (simple-condition-format-control condition)
+                      (simple-condition-format-arguments condition))))
        (simple-node-warning
          (lambda (condition)
            (diag-warn (target-node condition)

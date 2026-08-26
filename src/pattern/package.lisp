@@ -4,7 +4,8 @@
   (:import-from #:breeze.class-utils
                 #:define-class)
   (:import-from #:breeze.string
-                #:around)
+                #:around
+                #:symbol-starts-with)
   ;; re-exporting from breeze.generic
   (:export #:name
            #:named

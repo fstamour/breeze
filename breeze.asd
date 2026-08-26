@@ -130,7 +130,8 @@
    (:file "buffer" :depends-on ("parser" "package"))
    (:file "workspace" :depends-on ("parser" "buffer"))
    (:file "egraph")
-   (:file "analysis" :depends-on ("parser"))
+   (:file "top-levelness" :depends-on ("parser"))
+   (:file "analysis" :depends-on ("top-levelness"))
    (:file "actor"
     :depends-on ("channel"))
    (:file "command"
@@ -342,6 +343,7 @@
      (:file "parser" :depends-on ("parser.randomized"))
      (:file "parse-tree" :depends-on ("parser.randomized"))
      (:file "incremental-parser")))
+   (:file "top-levelness")
    (:file "package")
    (:file "package-commands")
    (:module "pattern"

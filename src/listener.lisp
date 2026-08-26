@@ -87,6 +87,39 @@ FORMAT-ARGUMENTS: @1=(#<STANDARD-METHOD (#<STANDARD-CLASS BREEZE.BUFFER:BUFFER>)
   '(call-with-package-variance-restarts
     call-with-correction-suggestion))
 
+
+;; TODO add a hook that adds a message "did you forget to specify the format's stream?"
+;;
+;; TODO add a type of condition that wraps another condition and adds
+;; more context to it when printed.
+;;
+;; (format "oups" 'x)
+;; "oups" is not a string with a fill-pointer
+
+#|
+
+TODO
+
+../../../quicklisp/local-projects/breeze/src/top-levelness.lisp:1:1:
+  warning:
+    BREEZE.TOP-LEVELNESS also uses the following packages:
+      (BREEZE.PARSE-STATE BREEZE.PARSE-TREE)
+    See also:
+      Common Lisp Hyperspec, DEFPACKAGE [:macro]
+      SBCL Manual, *ON-PACKAGE-VARIANCE* [:variable]
+    ==>
+      (SB-IMPL::%DEFPACKAGE "BREEZE.TOP-LEVELNESS" 'NIL 'NIL 'NIL 'NIL
+                            '("CL" "BREEZE.ITERATOR" "BREEZE.PARSER")
+                            '(("BREEZE.PATTERN" "LET-MATCH")) 'NIL
+                            '("TOP-LEVEL-NODE-ITERATOR" "TOP-LEVEL-FORMS"
+                              "TOP-LEVEL-NODE-P" "MAP-TOP-LEVEL-FORMS")
+                            '("BREEZE.TOP-LEVELNESS") 'NIL ...)
+
+
+Compilation failed.
+
+|#
+
 (defun call-with-package-variance-restarts (thunk)
   (handler-case
       (funcall thunk)

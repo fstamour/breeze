@@ -394,6 +394,30 @@ N.B. \"Requests\" are what the command returns. \"inputs\" are answers to those 
 
 
 
+(define-test+run interactivep
+  (false (interactivep 'car))
+  (true (interactivep 'breeze.refactor:insert-handler-case-form)))
+
+(define-test+run loop-context-p
+  (false (loop-context-p 'car))
+  (true (loop-context-p 'breeze.refactor:insert-loop-clause-for-on-list)))
+
+(define-test+run top-level-context-p
+  (false (top-level-context-p 'car))
+  (true (top-level-context-p 'breeze.capture:insert-capture-template)))
+
+(define-test+run expression-context-p
+  (false (expression-context-p 'car))
+  (false (expression-context-p 'breeze.capture:insert-capture-template))
+  (false (expression-context-p 'breeze.refactor:declaim-inline))
+  (true (expression-context-p 'breeze.refactor:insert-lambda)))
+
+(define-test+run defun-context-p
+  (false (defun-context-p 'car))
+  (false (defun-context-p 'breeze.capture:insert-capture-template))
+  (true (defun-context-p 'breeze.refactor:declaim-inline)))
+
+
 ;; TODO add (interactive)
 #++
 (define-test+run define-command

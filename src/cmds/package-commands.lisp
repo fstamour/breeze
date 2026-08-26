@@ -85,8 +85,7 @@
 
 (define-command export-symbol-at-point ()
   "Export symbol at point."
-  'TODO
-  )
+  'TODO)
 
 ;; TODO map tokens, find all symbols in source package, filter based
 ;; on target package, generate #:import-from forms

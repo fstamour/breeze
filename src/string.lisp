@@ -18,6 +18,7 @@
    #:trim-whitespace
    #:whitespacep
    #:symbol-package-qualified-name
+   #:symbol-starts-with
    #:without-prefix
    #:ensure-prefix
    #:ensure-prefixes
@@ -340,7 +341,17 @@ AROUND. Add elipseses before and after if necessary."
         (*package* (find-package "KEYWORD")))
     (prin1-to-string symbol)))
 
+(defun symbol-starts-with (symbol prefix)
+  (and (symbolp symbol)
+       (etypecase prefix
+         (character (char= prefix (char (symbol-name symbol) 0)))
+         (string (alexandria:starts-with-subseq prefix
+                                                (symbol-name symbol)))
+         (symbol (symbol-starts-with symbol
+                                     (symbol-name prefix))))))
+
 (defun without-prefix (prefix string)
+  "Return STRING with PREFIX trimmed if STRING started with PREFIX."
   (etypecase prefix
     (null string)
     (character

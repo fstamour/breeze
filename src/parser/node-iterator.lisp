@@ -60,11 +60,12 @@ DIRECTION controls the traversal order:
                (unless (go-up it)
                  (return nil))))
     (:top-down
-     (loop :with it := (goto-root (copy-iterator node-iterator))
-           :do (when (funcall predicate it)
-                 (return it))
-               (unless (go-down it)
-                 (return nil))))))
+     (loop
+       :for it := (copy-iterator node-iterator)
+       :for depth :from 0 :to (depth node-iterator)
+       :do (setf (slot-value it 'depth) depth)
+           (when (funcall predicate it)
+             (return it))))))
 
 (defun find-nearest-enclosing-node (node-iterator matcher)
   "Find the closest enclosing node matching MATCHER.
