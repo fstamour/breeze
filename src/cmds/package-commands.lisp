@@ -74,7 +74,7 @@
   "Goto package definition (of the current package)."
   (let* ((buffer (current-buffer))
          ($package (current-package-node buffer))
-         (location (time (locate-package-definition $package))))
+         (location (locate-package-definition $package)))
     (if location
         (destructuring-bind (&key buffer node-iterator)
             location
