@@ -40,7 +40,7 @@ half, keeping whole entries."
 (defun breeze-debug (string &rest objects)
   "Log a meesage in the \" *breeze-debug*\" buffer."
   (let ((buffer (get-buffer-create breeze-debug-buffer-name)))
-    (breeze-trim-debug-buffer)
+    (breeze-trim-debug-buffer buffer)
     (save-current-buffer
       (set-buffer buffer)
       (setf buffer-read-only nil)
